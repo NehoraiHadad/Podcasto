@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 interface SocialButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

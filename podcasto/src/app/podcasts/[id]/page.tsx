@@ -9,7 +9,7 @@ import { getPodcastById, getEpisodesByPodcastId } from '@/lib/api/podcasts';
 import { formatDuration } from '@/lib/utils';
 import { SubscribeButton } from './subscribe-button';
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const podcast = await getPodcastById(resolvedParams.id);
   
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function PodcastDetailsPage({ params }: { params: { id: string } }) {
+export default async function PodcastDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const podcast = await getPodcastById(resolvedParams.id);
   

@@ -23,9 +23,9 @@ export function AuthLayout({
           <Image
             src="/podcasto-logo.png"
             alt="podcasto Logo"
-            width={240}
-            height={80}
-            className="h-auto w-auto"
+            width={160}
+            height={64}
+            className="h-24 w-auto"
             priority
             quality={100}
           />

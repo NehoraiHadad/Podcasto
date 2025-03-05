@@ -25,11 +25,15 @@ export function ResetPasswordForm() {
       const { error } = await resetPassword(email);
       
       if (error) {
-        setError(error.message);
+        setError(typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'An error occurred while sending the reset link');
+        setIsLoading(false);
+        return;
       } else {
         setSuccessMessage('Password reset instructions have been sent to your email.');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

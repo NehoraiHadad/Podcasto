@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { createServerClientWithCookies } from '@/lib/supabase/server';
+import { createClientWithCookies } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const supabase = createServerClientWithCookies(cookieStore);
+  const supabase = createClientWithCookies(cookieStore);
   
   // Get authenticated user - more secure than getSession
   const { data: { user }, error } = await supabase.auth.getUser();

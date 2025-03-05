@@ -13,15 +13,18 @@ export const metadata: Metadata = {
 };
 
 interface PodcastsPageProps {
-  searchParams?: { search?: string };
+  searchParams?: Promise<{ search?: string }>;
 }
 
-export default async function PodcastsPage({ searchParams = {} }: PodcastsPageProps) {
+export default async function PodcastsPage({ searchParams }: PodcastsPageProps) {
+  // Resolve searchParams promise
+  const resolvedSearchParams = await searchParams || {};
+  
   // Fetch podcasts from Supabase
   const podcasts = await getPodcasts();
   
   // Filter podcasts if search parameter is provided
-  const searchQuery = searchParams?.search?.toLowerCase() || '';
+  const searchQuery = resolvedSearchParams?.search?.toLowerCase() || '';
   const filteredPodcasts = searchQuery
     ? podcasts.filter(
         podcast => 
@@ -45,7 +48,7 @@ export default async function PodcastsPage({ searchParams = {} }: PodcastsPagePr
                 name="search"
                 placeholder="Search podcasts..."
                 className="pl-10 pr-4 py-2 text-left"
-                defaultValue={searchParams?.search || ''}
+                defaultValue={resolvedSearchParams?.search || ''}
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <svg
@@ -72,8 +75,8 @@ export default async function PodcastsPage({ searchParams = {} }: PodcastsPagePr
           <div className="mb-8 text-center">
             <p className="text-gray-600">
               {filteredPodcasts.length === 0 
-                ? `No results found for "${searchParams?.search}"` 
-                : `Showing ${filteredPodcasts.length} result${filteredPodcasts.length === 1 ? '' : 's'} for "${searchParams?.search}"`}
+                ? `No results found for "${resolvedSearchParams?.search}"` 
+                : `Showing ${filteredPodcasts.length} result${filteredPodcasts.length === 1 ? '' : 's'} for "${resolvedSearchParams?.search}"`}
             </p>
             {filteredPodcasts.length === 0 && (
               <Link href="/podcasts">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
   subscribeToNewEpisodesClient, 
   unsubscribeFromPodcastClient 
 } from '@/lib/api/subscriptions';
-import { createBrowserClient } from '@supabase/ssr';
 
 interface SubscribeButtonProps {
   podcastId: string;
@@ -23,8 +22,8 @@ const useSupabaseSubscription = (podcastId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
 
-  // Check if user is subscribed using Supabase
-  const checkSubscription = async () => {
+  // Use useCallback to memoize the function
+  const checkSubscription = useCallback(async () => {
     try {
       // Get current session to check if user is logged in
       const { data: { session } } = await supabase.auth.getSession();
@@ -41,8 +40,10 @@ const useSupabaseSubscription = (podcastId: string) => {
     } catch (error) {
       console.error('Error checking subscription:', error);
       setIsSubscribed(false);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [podcastId, supabase.auth]);
 
   // Toggle subscription status
   const toggleSubscription = async () => {
@@ -107,7 +108,7 @@ const useSupabaseSubscription = (podcastId: string) => {
   // Check subscription on mount
   useEffect(() => {
     checkSubscription();
-  }, [podcastId]);
+  }, [checkSubscription]);
 
   return { isSubscribed, isLoading, toggleSubscription };
 };

@@ -29,10 +29,9 @@ export function formatDate(dateString: string, locale = 'en-US'): string {
 /**
  * Formats a date string to a relative time format (e.g., "2 days ago")
  * @param dateString - ISO date string to format
- * @param locale - Locale to use for formatting (defaults to English)
  * @returns Formatted relative time string
  */
-export function formatRelativeTime(dateString: string, locale = 'en-US'): string {
+export function formatRelativeTime(dateString: string): string {
   if (!dateString) return '';
   
   try {

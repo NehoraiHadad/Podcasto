@@ -17,7 +17,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   
   const { signIn, signInWithGoogle } = useAuthContext();
-  const router = useRouter();
+  const _router = useRouter();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,13 +28,15 @@ export function LoginForm() {
       const { error } = await signIn({ email, password });
       
       if (error) {
-        setError(error.message);
+        setError(typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'An error occurred during login');
         setIsLoading(false);
         return;
       }
       
       // Redirect is handled by the auth state change in useAuth
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
@@ -48,11 +50,13 @@ export function LoginForm() {
       const { error } = await signInWithGoogle();
       
       if (error) {
-        setError(error.message);
+        setError(typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'An error occurred during Google login');
         setIsLoading(false);
       }
       // Redirect is handled by the OAuth provider
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }

@@ -38,12 +38,12 @@ export function Header() {
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="block">
-                <Image
+              <Image
                   src="/podcasto-logo.png"
                   alt="podcasto Logo"
-                  width={100}
-                  height={40}
-                  className="h-auto w-auto -mt-1"
+                  width={80}
+                  height={32}
+                  className="h-8 w-auto -mt-1"
                   priority
                   quality={100}
                 />

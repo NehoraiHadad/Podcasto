@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/supabase/types';
 
 export type Podcast = {
   id: string;

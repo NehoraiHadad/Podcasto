@@ -33,15 +33,15 @@ export function Footer() {
         <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-row items-center justify-between">
             <div className="flex items-center">
-            <Image
-                  src="/podcasto-logo.png"
-                  alt="podcasto Logo"
-                  width={100}
-                  height={40}
-                  className="h-auto w-auto -mt-1"
-                  priority
-                  quality={100}
-                />
+              <Image
+                src="/podcasto-logo.png"
+                alt="podcasto Logo"
+                width={80}
+                height={32}
+                className="h-6 w-auto -mt-1"
+                priority
+                quality={100}
+              />
               <p className="text-xs text-gray-400 ml-3">
                 &copy; {currentYear}
               </p>

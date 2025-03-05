@@ -45,7 +45,9 @@ export function RegisterForm() {
       const { data, error } = await signUp({ email, password });
       
       if (error) {
-        setErrorMessage(error.message);
+        setErrorMessage(typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'An error occurred during registration');
         return;
       }
       
@@ -72,7 +74,9 @@ export function RegisterForm() {
       const { error } = await signInWithGoogle();
       
       if (error) {
-        setErrorMessage(error.message);
+        setErrorMessage(typeof error === 'object' && error !== null && 'message' in error 
+          ? String(error.message) 
+          : 'An error occurred during Google sign up');
       }
     } catch (error) {
       setErrorMessage('An unexpected error occurred. Please try again.');
