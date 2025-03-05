@@ -5,41 +5,34 @@ This document outlines the database schema used to store and manage user data, p
 
 ## Tables
 
-### 1. **Users** (`users`)
-Stores user authentication details and preferences.
-
-| Column       | Type       | Description                        |
-|-------------|-----------|--------------------------------|
-| id          | UUID      | Primary Key                     |
-| email       | VARCHAR   | User email (unique)             |
-| created_at  | TIMESTAMP | Account creation timestamp      |
-
-### 2. **Podcasts** (`podcasts`)
+### 1. **Podcasts** (`podcasts`)
 Stores metadata about each generated podcast.
 
 | Column       | Type         | Description                       |
 |-------------|------------|--------------------------------|
 | id         | UUID       | Primary Key                     |
-| title      | VARCHAR    | Podcast title                   |
+| title      | TEXT    | Podcast title                   |
 | description | TEXT       | Podcast description             |
-| language   | VARCHAR    | Language of the podcast         |
+| cover_image   | TEXT    | Image of the podcast         |
 | created_at | TIMESTAMP  | Podcast creation timestamp      |
 | updated_at | TIMESTAMP  | Last update timestamp          |
 
-### 3. **Episodes** (`episodes`)
+### 2. **Episodes** (`episodes`)
 Stores details about individual podcast episodes.
 
 | Column       | Type         | Description                         |
-|-------------|------------|----------------------------------|
-| id         | UUID       | Primary Key                      |
+|-------------|------------|---------------------------------|
+| id         | UUID       | Primary Key                     |
 | podcast_id | UUID       | Foreign Key to `podcasts`       |
-| title      | VARCHAR    | Episode title                    |
+| title      | TEXT       | Episode title                   |
+| description   TEXT      | Episode description             |
+| language    |  TEXT     | Episode language                |
 | audio_url  | VARCHAR    | URL to the stored audio file    |
 | duration   | INTEGER    | Episode length in seconds       |
 | created_at | TIMESTAMP  | Episode creation timestamp      |
-| updated_at | TIMESTAMP  | Last update timestamp          |
+| published_at | TIMESTAMP  | Last update timestamp          |
 
-### 4. **Subscriptions** (`subscriptions`)
+### 3. **Subscriptions** (`subscriptions`)
 Tracks which users are subscribed to which podcasts.
 
 | Column      | Type     | Description                           |
@@ -49,7 +42,7 @@ Tracks which users are subscribed to which podcasts.
 | podcast_id | UUID   | Foreign Key to `podcasts`      |
 | created_at | TIMESTAMP | Subscription creation timestamp |
 
-### 5. **Sent Episodes** (`sent_episodes`)
+### 4. **Sent Episodes** (`sent_episodes`)
 Tracks episodes that have been emailed to users.
 
 | Column       | Type     | Description                             |

@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Podcasto
 
-## Getting Started
+Podcasto transforms news content from Telegram channels into professional podcasts, delivered directly to your inbox daily.
 
-First, run the development server:
+## Features
+
+- **Daily News Updates**: Receive the latest news from leading Telegram channels, processed into a convenient podcast format for easy listening.
+- **Multi-language Support**: Listen to podcasts in your preferred language, including Hebrew, English, and additional languages.
+- **Direct Email Delivery**: Get podcasts delivered straight to your inbox, eliminating the need for manual searching or downloading.
+- **User Authentication**: Sign in using your Google account or email and password.
+- **Personalized Content**: Customize your podcast feed based on your interests and preferred news sources.
+- **Cross-platform Accessibility**: Listen on any device with a modern web browser or email client.
+
+## Technology Stack
+
+- **Next.js 15 with RSC**: Advanced React framework with Server Components support for optimal performance.
+- **Supabase**: Backend-as-a-Service for secure data storage, user authentication, and real-time updates.
+- **Tailwind CSS**: Utility-first CSS framework for rapid and modern UI development.
+- **TypeScript**: JavaScript-based programming language with strong typing for enhanced code quality and developer experience.
+- **Shadcn UI**: Component library for consistent and accessible user interfaces.
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://gitlab.com/your-username/podcasto.git
+cd podcasto
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env.local` file with Supabase settings (see `.env.local.example`):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create an account on [Supabase](https://supabase.com/).
+2. Create a new project.
+3. Enable the authentication service and configure desired providers (email/password, Google).
+4. Copy the URL and Anon Key from the project settings to your `.env.local` file.
+5. Set up the database schema according to the `ProjectDocs/contexts/databaseSchema.md` document.
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+├── app/                  # Application pages
+│   ├── (auth)/           # Authentication pages
+│   ├── (dashboard)/      # Dashboard pages
+│   ├── api/              # API routes
+│   ├── podcasts/         # Podcast pages
+│   └── layout.tsx        # Root layout
+├── components/           # React components
+│   ├── shared/           # Shared components
+│   ├── features/         # Feature-specific components
+│   └── ui/               # UI components (Shadcn)
+├── lib/                  # Libraries and services
+│   ├── supabase/         # Supabase client and services
+│   ├── hooks/            # Custom React hooks
+│   ├── constants/        # Global constants
+│   └── utils/            # Utility functions
+└── public/               # Static files
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Code Style**: The project follows functional programming principles with TypeScript for type safety.
+- **Component Structure**: Components are modular, reusable, and follow the RORO (Receive an Object, Return an Object) pattern.
+- **State Management**: Server components are used where possible, with client-side state managed by Zustand when necessary.
+- **Documentation**: Code is self-documenting with descriptive variable names and comments where needed.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is distributed under the MIT License. See the `LICENSE` file for more details.
