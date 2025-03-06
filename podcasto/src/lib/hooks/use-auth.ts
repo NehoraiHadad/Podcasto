@@ -66,7 +66,7 @@ export function useAuth({ initialUser = null }: UseAuthProps = {}) {
   useEffect(() => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event, _session) => {
         // When auth state changes, verify the user with getUser() for security
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           const { data: { user }, error } = await supabase.auth.getUser();

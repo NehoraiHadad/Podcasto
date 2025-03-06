@@ -10,7 +10,7 @@ import { useOnClickOutside } from 'usehooks-ts';
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const { user, signOut, isLoading } = useAuthContext();
+  const { user, signOut, isLoading, error: _error } = useAuthContext();
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -20,7 +20,7 @@ export function Header() {
   };
 
   // Use the useOnClickOutside hook from usehooks-ts for profile menu
-  // @ts-ignore - Ignoring TypeScript error as the hook handles null refs internally
+  // @ts-expect-error - Ignoring TypeScript error as the hook handles null refs internally
   useOnClickOutside(profileMenuRef, () => {
     if (isProfileMenuOpen) {
       setIsProfileMenuOpen(false);
@@ -28,7 +28,7 @@ export function Header() {
   });
 
   // Use the useOnClickOutside hook for mobile menu as well
-  // @ts-ignore - Ignoring TypeScript error as the hook handles null refs internally
+  // @ts-expect-error - Ignoring TypeScript error as the hook handles null refs internally
   useOnClickOutside(mobileMenuRef, () => {
     if (isMobileMenuOpen) {
       setIsMobileMenuOpen(false);
