@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { getURL } from '@/lib/utils/url';
 
 type AuthState = {
   user: User | null;
@@ -85,7 +86,7 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${getURL()}auth/callback`,
         },
       });
 
@@ -107,7 +108,7 @@ export function useAuth() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getURL()}auth/callback`,
         },
       });
 
@@ -143,7 +144,7 @@ export function useAuth() {
   const resetPassword = useCallback(async (email: string) => {
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${getURL()}auth/reset-password`,
       });
 
       if (error) {
