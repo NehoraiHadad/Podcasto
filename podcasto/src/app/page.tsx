@@ -1,14 +1,22 @@
-'use client';
-
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PodcastSearch } from "@/components/home/podcast-search";
+import { PodcastCarousel } from "@/components/home/podcast-carousel";
 import { SearchInput } from "@/components/home/search-input";
-import { useAuthContext } from "@/lib/context/auth-context";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
-  const { user, isLoading } = useAuthContext();
+export default async function Home() {
+  // Get the session on the server
+  const supabase = await createClient();
+  
+  // First authenticate the user with getUser() for security
+  const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
+  
+  // Then get the session data
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  // Prefer the authenticated user over the session user
+  const user = authenticatedUser || session?.user || null;
 
   return (
     <MainLayout>
@@ -23,7 +31,7 @@ export default function Home() {
                 podcasto transforms news content from Telegram channels into professional podcasts, delivered directly to you.
               </p>
               <div className="flex flex-col space-y-4">
-                {!isLoading && !user && (
+                {!user && (
                   <Link href="/auth/register" className="inline-block">
                     <Button className="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
                       Register Now
@@ -36,7 +44,8 @@ export default function Home() {
               </div>
             </div>
             <div className="w-full md:w-1/2 relative mt-6 md:mt-0">
-              <PodcastSearch />
+              {/* Server component that fetches podcasts */}
+              <PodcastCarousel />
               <div className="absolute -top-20 right-10 w-40 h-40 bg-indigo-300 rounded-full filter blur-3xl opacity-50"></div>
               <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-300 rounded-full filter blur-3xl opacity-50"></div>
             </div>

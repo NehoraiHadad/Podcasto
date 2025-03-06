@@ -1,6 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
-import type { Database } from '@/lib/supabase/types';
+import { createClientWithCookies } from '@/lib/supabase/server';
 
 // Define protected routes that require authentication
 const protectedRoutes = ['/profile', '/settings', '/podcasts/my'];
@@ -8,24 +7,8 @@ const protectedRoutes = ['/profile', '/settings', '/podcasts/my'];
 export async function middleware(request: NextRequest) {
   const res = NextResponse.next();
   
-  // Create a Supabase client configured for use with middleware
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            res.cookies.set({ name, value, ...options });
-          });
-        }
-      },
-    }
-  );
+  // Create a Supabase client using our utility function
+  const supabase = createClientWithCookies(request.cookies, res);
   
   // Refresh session if expired - required for Server Components
   await supabase.auth.getSession();
@@ -36,10 +19,11 @@ export async function middleware(request: NextRequest) {
   );
   
   if (isProtectedRoute) {
-    const { data: { session } } = await supabase.auth.getSession();
+    // Use getUser() instead of getSession() for better security on the server
+    const { data: { user } } = await supabase.auth.getUser();
     
-    // If no session and trying to access a protected route, redirect to login
-    if (!session) {
+    // If no user and trying to access a protected route, redirect to login
+    if (!user) {
       const redirectUrl = new URL('/auth/login', request.url);
       redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
       return NextResponse.redirect(redirectUrl);

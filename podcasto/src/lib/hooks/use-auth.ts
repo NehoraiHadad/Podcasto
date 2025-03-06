@@ -24,13 +24,22 @@ export function useAuth() {
     // Get initial session
     const getInitialSession = async () => {
       try {
+        // First authenticate the user with getUser() for security
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          setAuthState(prev => ({ ...prev, isLoading: false, error: userError }));
+          return;
+        }
+        
+        // Then get the session data
         const { data: { session }, error } = await supabase.auth.getSession();
         
         setAuthState({
-          user: session?.user ?? null,
+          user: user ?? session?.user ?? null,
           session,
           isLoading: false,
-          error,
+          error: error || userError,
         });
       } catch (error) {
         setAuthState(prev => ({ ...prev, isLoading: false, error: error as AuthError }));

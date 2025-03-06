@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPodcastById, getEpisodesByPodcastId } from '@/lib/api/podcasts';
 import { formatDuration } from '@/lib/utils';
-import { SubscribeButton } from './subscribe-button';
+import { SubscribeButtonServer } from './subscribe-button-server';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
@@ -71,7 +71,7 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
             <p className="text-gray-600 mb-6">{podcast.episodes_count} episodes | {podcast.language}</p>
             <p className="text-gray-700 mb-6">{podcast.description}</p>
             
-            <SubscribeButton podcastId={resolvedParams.id} />
+            <SubscribeButtonServer podcastId={resolvedParams.id} />
           </div>
 
           {/* Episodes List */}

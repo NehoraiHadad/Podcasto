@@ -1,3 +1,5 @@
+'use server';
+
 import { createClient } from '@/lib/supabase/server';
 
 export type Podcast = {
@@ -30,40 +32,39 @@ export type Episode = {
 export async function getPodcasts(): Promise<Podcast[]> {
   const supabase = await createClient();
   
-  const { data: podcasts, error } = await supabase
+  // Use a single query with count to get podcasts and their episode counts
+  const { data, error } = await supabase
     .from('podcasts')
-    .select('*');
+    .select(`
+      *,
+      episodes:episodes(count)
+    `);
   
   if (error) {
     console.error('Error fetching podcasts:', error);
     return [];
   }
   
-  const podcastsWithEpisodeCounts = await Promise.all(
-    podcasts.map(async (podcast) => {
-      const { count, error: countError } = await supabase
-        .from('episodes')
-        .select('*', { count: 'exact', head: true })
-        .eq('podcast_id', podcast.id);
-      
-      if (countError) {
-        console.error(`Error counting episodes for podcast ${podcast.id}:`, countError);
-        return { ...podcast, episodes_count: 0 };
-      }
-      
-      return { ...podcast, episodes_count: count || 0 };
-    })
-  );
+  // Transform the data to match the expected format
+  const podcasts = data.map(podcast => ({
+    ...podcast,
+    episodes_count: podcast.episodes?.[0]?.count || 0,
+    episodes: undefined // Remove the episodes property as it's not part of our Podcast type
+  })) as Podcast[];
   
-  return podcastsWithEpisodeCounts;
+  return podcasts;
 }
 
 export async function getPodcastById(id: string): Promise<Podcast | null> {
   const supabase = await createClient();
   
-  const { data: podcast, error } = await supabase
+  // Use a single query with count to get the podcast and its episode count
+  const { data, error } = await supabase
     .from('podcasts')
-    .select('*')
+    .select(`
+      *,
+      episodes:episodes(count)
+    `)
     .eq('id', id)
     .single();
   
@@ -72,17 +73,14 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
     return null;
   }
   
-  const { count, error: countError } = await supabase
-    .from('episodes')
-    .select('*', { count: 'exact', head: true })
-    .eq('podcast_id', id);
+  // Transform the data to match the expected format
+  const podcast = {
+    ...data,
+    episodes_count: data.episodes?.[0]?.count || 0,
+    episodes: undefined // Remove the episodes property as it's not part of our Podcast type
+  } as Podcast;
   
-  if (countError) {
-    console.error(`Error counting episodes for podcast ${id}:`, countError);
-    return { ...podcast, episodes_count: 0 };
-  }
-  
-  return { ...podcast, episodes_count: count || 0 };
+  return podcast;
 }
 
 export async function getEpisodesByPodcastId(podcastId: string): Promise<Episode[]> {

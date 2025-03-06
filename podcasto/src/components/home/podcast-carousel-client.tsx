@@ -4,41 +4,18 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import type { Podcast } from "@/lib/api/podcasts";
 
-export function PodcastSearch() {
-  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+interface PodcastCarouselClientProps {
+  podcasts: Podcast[];
+}
+
+/**
+ * Client component that displays podcasts in a carousel
+ * Receives data from the server component
+ */
+export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch podcasts on component mount
-  useEffect(() => {
-    const fetchPodcasts = async () => {
-      setIsLoading(true);
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("podcasts")
-          .select("*");
-
-        if (error) {
-          console.error("Error fetching podcasts:", error);
-          return;
-        }
-
-        if (data) {
-          setPodcasts(data);
-        }
-      } catch (error) {
-        console.error("Error fetching podcasts:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPodcasts();
-  }, []);
 
   // Rotate through podcast images
   useEffect(() => {
@@ -56,11 +33,13 @@ export function PodcastSearch() {
   return (
     <div className="w-full">
       <div className="relative z-10 rounded-2xl shadow-xl overflow-hidden h-[300px] sm:h-[350px] md:h-[400px]">
-        {isLoading ? (
-          <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-            <p className="text-gray-500">Loading podcasts...</p>
+        {podcasts.length === 0 ? (
+          <div className="w-full h-full bg-white flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-gray-500 mb-2">No podcasts found</p>
+            </div>
           </div>
-        ) : podcasts.length > 0 ? (
+        ) : (
           <div className="relative w-full h-full">
             {podcasts.map((podcast, index) => (
               <div
@@ -103,12 +82,6 @@ export function PodcastSearch() {
                 </div>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="w-full h-full bg-white flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-gray-500 mb-2">No podcasts found</p>
-            </div>
           </div>
         )}
       </div>

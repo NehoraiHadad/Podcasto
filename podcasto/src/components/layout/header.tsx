@@ -1,35 +1,39 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthContext } from '@/lib/context/auth-context';
 import { Button } from '@/components/ui/button';
+import { useOnClickOutside } from 'usehooks-ts';
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { user, signOut, isLoading } = useAuthContext();
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
     await signOut();
     setIsProfileMenuOpen(false);
   };
 
-  // Close profile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false);
-      }
-    };
+  // Use the useOnClickOutside hook from usehooks-ts for profile menu
+  // @ts-ignore - Ignoring TypeScript error as the hook handles null refs internally
+  useOnClickOutside(profileMenuRef, () => {
+    if (isProfileMenuOpen) {
+      setIsProfileMenuOpen(false);
+    }
+  });
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  // Use the useOnClickOutside hook for mobile menu as well
+  // @ts-ignore - Ignoring TypeScript error as the hook handles null refs internally
+  useOnClickOutside(mobileMenuRef, () => {
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  });
 
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 shadow-sm">
@@ -169,7 +173,7 @@ export function Header() {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden bg-white border-b border-gray-100 shadow-sm">
+        <div ref={mobileMenuRef} className="sm:hidden bg-white border-b border-gray-100 shadow-sm">
           <div className="pt-2 pb-3 space-y-1 px-4">
             <Link
               href="/"
