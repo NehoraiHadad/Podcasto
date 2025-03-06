@@ -1,62 +1,90 @@
+'use client';
+
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
+import { User, AuthError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { getURL } from '@/lib/utils/url';
 
 type AuthState = {
   user: User | null;
-  session: Session | null;
   isLoading: boolean;
   error: AuthError | null;
 };
 
-export function useAuth() {
+type UseAuthProps = {
+  initialUser?: User | null;
+};
+
+/**
+ * Hook for authentication in client components
+ * Can be used with or without initial server-fetched data
+ * Uses getUser() for secure authentication against the Supabase Auth server
+ * 
+ * @param initialUser Optional user data fetched from the server
+ * @returns Authentication state and methods
+ */
+export function useAuth({ initialUser = null }: UseAuthProps = {}) {
   const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    isLoading: true,
+    user: initialUser,
+    isLoading: !initialUser,
     error: null,
   });
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Skip initial user fetch if we already have data from the server
+    if (initialUser) {
+      return;
+    }
+
+    // Get initial authenticated user
+    const getInitialUser = async () => {
       try {
-        // First authenticate the user with getUser() for security
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Use getUser() for security - this authenticates against the Supabase Auth server
+        const { data: { user }, error } = await supabase.auth.getUser();
         
-        if (userError) {
-          setAuthState(prev => ({ ...prev, isLoading: false, error: userError }));
+        if (error) {
+          setAuthState(prev => ({ ...prev, isLoading: false, error }));
           return;
         }
         
-        // Then get the session data
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
         setAuthState({
-          user: user ?? session?.user ?? null,
-          session,
+          user,
           isLoading: false,
-          error: error || userError,
+          error: null,
         });
       } catch (error) {
         setAuthState(prev => ({ ...prev, isLoading: false, error: error as AuthError }));
       }
     };
 
-    getInitialSession();
+    getInitialUser();
+  }, [initialUser, supabase.auth]);
 
+  useEffect(() => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setAuthState({
-          user: session?.user ?? null,
-          session,
-          isLoading: false,
-          error: null,
-        });
+      async (event, session) => {
+        // When auth state changes, verify the user with getUser() for security
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          
+          setAuthState(prev => ({
+            ...prev,
+            user: error ? null : user,
+            isLoading: false,
+            error: error || null,
+          }));
+        } else if (event === 'SIGNED_OUT') {
+          setAuthState(prev => ({
+            ...prev,
+            user: null,
+            isLoading: false,
+            error: null,
+          }));
+        }
         
         // Refresh the page to ensure server-side state is updated
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
@@ -68,7 +96,7 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, supabase.auth]);
 
   const signIn = useCallback(async ({ email, password }: { email: string; password: string }) => {
     try {
@@ -82,13 +110,27 @@ export function useAuth() {
         return { error };
       }
 
+      // Verify the user with getUser() after sign in
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        setAuthState(prev => ({ ...prev, error: userError }));
+        return { error: userError };
+      }
+      
+      setAuthState(prev => ({
+        ...prev,
+        user,
+        error: null,
+      }));
+
       router.push('/');
       return { data };
     } catch (error) {
       setAuthState(prev => ({ ...prev, error: error as AuthError }));
       return { error };
     }
-  }, [router]);
+  }, [router, supabase.auth]);
 
   const signInWithGoogle = useCallback(async () => {
     try {
@@ -109,7 +151,7 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, error: error as AuthError }));
       return { error };
     }
-  }, []);
+  }, [supabase.auth]);
 
   const signUp = useCallback(async ({ email, password }: { email: string; password: string }) => {
     try {
@@ -131,7 +173,7 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, error: error as AuthError }));
       return { error };
     }
-  }, []);
+  }, [supabase.auth]);
 
   const signOut = useCallback(async () => {
     try {
@@ -142,13 +184,19 @@ export function useAuth() {
         return { error };
       }
       
+      setAuthState(prev => ({
+        ...prev,
+        user: null,
+        error: null,
+      }));
+      
       router.push('/');
       return { success: true };
     } catch (error) {
       setAuthState(prev => ({ ...prev, error: error as AuthError }));
       return { error };
     }
-  }, [router]);
+  }, [router, supabase.auth]);
 
   const resetPassword = useCallback(async (email: string) => {
     try {
@@ -166,11 +214,10 @@ export function useAuth() {
       setAuthState(prev => ({ ...prev, error: error as AuthError }));
       return { error };
     }
-  }, []);
+  }, [supabase.auth]);
 
   return {
     user: authState.user,
-    session: authState.session,
     isLoading: authState.isLoading,
     error: authState.error,
     signIn,
