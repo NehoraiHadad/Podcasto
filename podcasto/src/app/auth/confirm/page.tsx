@@ -5,15 +5,11 @@ import { redirect } from 'next/navigation';
  * Page for confirming email verification
  * This is called when a user clicks the confirmation link in their email
  * 
- * @param searchParams The URL search parameters
  * @returns A redirect to the home page after processing the token
  */
-export default async function ConfirmPage({
-  searchParams,
-}: {
-  searchParams: { token_hash?: string; type?: string };
-}) {
-  const { token_hash, type } = searchParams;
+export default async function ConfirmPage(props: any) {
+  const token_hash = props.searchParams?.token_hash;
+  const type = props.searchParams?.type;
 
   if (!token_hash || !type) {
     return <div className="p-8">Invalid confirmation link.</div>;
