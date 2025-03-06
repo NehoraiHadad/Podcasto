@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
@@ -63,7 +63,7 @@ export function SubscribeForm({ podcastId, initialIsSubscribed }: SubscribeFormP
   const lastNotifiedStateRef = useRef<string | null>(null);
   
   // Initialize form state with server action using useActionState instead of useFormState
-  const initialState: SubscriptionState = { success: true, message: '' };
+  const initialState = useMemo<SubscriptionState>(() => ({ success: true, message: '' }), []);
   const [state, formAction] = useActionState(toggleSubscription, initialState);
   
   // Handle form submission result

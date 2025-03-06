@@ -7,9 +7,15 @@ import { redirect } from 'next/navigation';
  * 
  * @returns A redirect to the home page after processing the token
  */
-export default async function ConfirmPage(props: any) {
-  const token_hash = props.searchParams?.token_hash;
-  const type = props.searchParams?.type;
+export default async function ConfirmPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // Access searchParams after awaiting the promise
+  const resolvedParams = await searchParams;
+  const token_hash = resolvedParams.token_hash as string | undefined;
+  const type = resolvedParams.type as string | undefined;
 
   if (!token_hash || !type) {
     return <div className="p-8">Invalid confirmation link.</div>;
