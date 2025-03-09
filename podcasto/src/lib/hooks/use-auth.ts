@@ -1,10 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { User, AuthError } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { getURL } from '@/lib/utils/url';
+import { 
+  signInWithPassword as serverSignInWithPassword,
+  signInWithGoogle as serverSignInWithGoogle,
+  signUpWithPassword as serverSignUpWithPassword,
+  signOut as serverSignOut,
+  resetPassword as serverResetPassword
+} from '@/lib/actions/auth-actions';
+import { useAuthEvents } from './use-auth-events';
 
 type AuthState = {
   user: User | null;
@@ -19,7 +25,9 @@ type UseAuthProps = {
 /**
  * Hook for authentication in client components
  * Can be used with or without initial server-fetched data
- * Uses getUser() for secure authentication against the Supabase Auth server
+ * Uses server actions for secure authentication operations
+ * Uses Server-Sent Events for auth state changes instead of client-side subscriptions
+ * Now with immediate UI updates for better UX
  * 
  * @param initialUser Optional user data fetched from the server
  * @returns Authentication state and methods
@@ -31,190 +39,218 @@ export function useAuth({ initialUser = null }: UseAuthProps = {}) {
     error: null,
   });
   const router = useRouter();
-  const supabase = createClient();
+  
+  // Use our SSE-based auth events hook for real-time auth state updates
+  const { user: eventUser, error: eventError } = useAuthEvents({ initialUser });
 
+  // Update auth state when event user changes
   useEffect(() => {
-    // Skip initial user fetch if we already have data from the server
-    if (initialUser) {
-      return;
+    if (eventUser !== undefined) {
+      setAuthState(prev => ({
+        ...prev,
+        user: eventUser,
+        isLoading: false,
+        error: eventError ? eventError as AuthError : null,
+      }));
+      
+      // Refresh the page to ensure server-side state is updated
+      // Only do this when auth state actually changes
+      if (eventUser?.id !== authState.user?.id) {
+        router.refresh();
+      }
     }
-
-    // Get initial authenticated user
-    const getInitialUser = async () => {
-      try {
-        // Use getUser() for security - this authenticates against the Supabase Auth server
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) {
-          setAuthState(prev => ({ ...prev, isLoading: false, error }));
-          return;
-        }
-        
-        setAuthState({
-          user,
-          isLoading: false,
-          error: null,
-        });
-      } catch (error) {
-        setAuthState(prev => ({ ...prev, isLoading: false, error: error as AuthError }));
-      }
-    };
-
-    getInitialUser();
-  }, [initialUser, supabase.auth]);
-
-  useEffect(() => {
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, _session) => {
-        // When auth state changes, verify the user with getUser() for security
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          const { data: { user }, error } = await supabase.auth.getUser();
-          
-          setAuthState(prev => ({
-            ...prev,
-            user: error ? null : user,
-            isLoading: false,
-            error: error || null,
-          }));
-        } else if (event === 'SIGNED_OUT') {
-          setAuthState(prev => ({
-            ...prev,
-            user: null,
-            isLoading: false,
-            error: null,
-          }));
-        }
-        
-        // Refresh the page to ensure server-side state is updated
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          router.refresh();
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router, supabase.auth]);
+  }, [eventUser, eventError, router, authState.user?.id]);
 
   const signIn = useCallback(async ({ email, password }: { email: string; password: string }) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Set loading state immediately for better UX
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Use server action for sign in
+      const { data, error } = await serverSignInWithPassword(email, password);
 
       if (error) {
-        setAuthState(prev => ({ ...prev, error }));
+        setAuthState(prev => ({ 
+          ...prev, 
+          isLoading: false,
+          error: error as AuthError 
+        }));
         return { error };
       }
 
-      // Verify the user with getUser() after sign in
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        setAuthState(prev => ({ ...prev, error: userError }));
-        return { error: userError };
+      // Immediately update UI with user data if available
+      if (data?.user) {
+        setAuthState(prev => ({
+          ...prev,
+          user: data.user,
+          isLoading: false,
+          error: null
+        }));
+      } else {
+        // Just mark as not loading if no user data
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false
+        }));
       }
-      
-      setAuthState(prev => ({
-        ...prev,
-        user,
-        error: null,
-      }));
 
+      // Navigate to home page
       router.push('/');
+      router.refresh();
+      
       return { data };
     } catch (error) {
-      setAuthState(prev => ({ ...prev, error: error as AuthError }));
-      return { error };
+      const authError = error as AuthError;
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: authError 
+      }));
+      return { error: authError };
     }
-  }, [router, supabase.auth]);
+  }, [router]);
 
   const signInWithGoogle = useCallback(async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${getURL()}auth/callback`,
-        },
-      });
+      // Set loading state immediately
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Use server action for Google sign in with PKCE flow
+      const { data, error } = await serverSignInWithGoogle();
 
       if (error) {
-        setAuthState(prev => ({ ...prev, error }));
+        setAuthState(prev => ({ 
+          ...prev, 
+          isLoading: false,
+          error: error as AuthError 
+        }));
         return { error };
       }
 
+      // For OAuth, we don't get user data immediately, just mark as not loading
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+
       return { data };
     } catch (error) {
-      setAuthState(prev => ({ ...prev, error: error as AuthError }));
-      return { error };
+      const authError = error as AuthError;
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: authError 
+      }));
+      return { error: authError };
     }
-  }, [supabase.auth]);
+  }, []);
 
   const signUp = useCallback(async ({ email, password }: { email: string; password: string }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${getURL()}auth/callback`,
-        },
-      });
+      // Set loading state immediately
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Use server action for sign up
+      const { data, error } = await serverSignUpWithPassword(email, password);
 
       if (error) {
-        setAuthState(prev => ({ ...prev, error }));
+        setAuthState(prev => ({ 
+          ...prev, 
+          isLoading: false,
+          error: error as AuthError 
+        }));
         return { error };
       }
 
+      // Update UI with confirmation message
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+
       return { data };
     } catch (error) {
-      setAuthState(prev => ({ ...prev, error: error as AuthError }));
-      return { error };
+      const authError = error as AuthError;
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: authError 
+      }));
+      return { error: authError };
     }
-  }, [supabase.auth]);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        setAuthState(prev => ({ ...prev, error }));
-        return { error };
-      }
-      
+      // Immediately clear local state for better UX
       setAuthState(prev => ({
         ...prev,
         user: null,
+        isLoading: true,
         error: null,
       }));
       
+      // Use server action for sign out
+      const { error } = await serverSignOut();
+      
+      // Mark as not loading regardless of result
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+      
+      if (error) {
+        // If it's an AuthSessionMissingError, ignore it
+        if (error.message?.includes('Auth session missing')) {
+          router.push('/');
+          router.refresh();
+          return { success: true };
+        }
+        
+        setAuthState(prev => ({ ...prev, error: error as AuthError }));
+        return { error };
+      }
+      
       router.push('/');
+      router.refresh();
       return { success: true };
     } catch (error) {
-      setAuthState(prev => ({ ...prev, error: error as AuthError }));
-      return { error };
+      const authError = error as AuthError;
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: authError 
+      }));
+      return { error: authError };
     }
-  }, [router, supabase.auth]);
+  }, [router]);
 
   const resetPassword = useCallback(async (email: string) => {
     try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getURL()}auth/reset-password`,
-      });
+      // Set loading state immediately
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Use server action for password reset
+      const { data, error } = await serverResetPassword(email);
 
-      if (error) {
-        setAuthState(prev => ({ ...prev, error }));
-        return { error };
-      }
+      // Mark as not loading regardless of result
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error ? error as AuthError : null
+      }));
 
-      return { data };
+      return { data, error };
     } catch (error) {
-      setAuthState(prev => ({ ...prev, error: error as AuthError }));
-      return { error };
+      const authError = error as AuthError;
+      setAuthState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: authError 
+      }));
+      return { error: authError };
     }
-  }, [supabase.auth]);
+  }, []);
 
   return {
     user: authState.user,

@@ -5,117 +5,112 @@ import { NextResponse } from 'next/server';
 import { RequestCookies } from 'next/dist/server/web/spec-extension/cookies';
 
 /**
- * Creates a Supabase client for use in Server Components
- * This should only be used in Server Components
+ * Creates a Supabase client for server-side usage with flexible cookie handling
+ * This unified function replaces the previous separate client creation functions
  * 
+ * @param options Configuration options for the client
  * @returns A Supabase client configured for server usage
  */
-export async function createClient() {
-  // Dynamic import to avoid issues with Next.js middleware
-  const { cookies } = await import('next/headers');
+export async function createServerSupabaseClient(options?: {
+  cookieStore?: ReadonlyRequestCookies | RequestCookies;
+  response?: NextResponse;
+  useNextCookies?: boolean;
+}) {
+  // If no cookie store is provided and useNextCookies is true, use Next.js cookies
+  if (!options?.cookieStore && (options?.useNextCookies !== false)) {
+    // Dynamic import to avoid issues with Next.js middleware
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    
+    return createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            try {
+              return cookieStore.getAll();
+            } catch (error) {
+              console.error('Error getting cookies:', error);
+              return [];
+            }
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => 
+                cookieStore.set({ name, value, ...options })
+              );
+            } catch (error) {
+              console.error('Error setting cookies:', error);
+            }
+          }
+        },
+      }
+    );
+  }
   
-  // Get the cookie store - cookies() is async in Next.js 15
-  const cookieStore = await cookies();
+  // If a cookie store is provided, use it
+  if (options?.cookieStore) {
+    return createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return options.cookieStore!.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+              // Set cookie on the store
+              options.cookieStore!.set({ name, value, ...cookieOptions });
+              
+              // If we have a response (middleware context), also set cookie there
+              if (options.response) {
+                options.response.cookies.set({ name, value, ...cookieOptions });
+              }
+            });
+          }
+        },
+      }
+    );
+  }
   
+  // Fallback to a client with no cookie handling
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          try {
-            return cookieStore.getAll();
-          } catch (error) {
-            console.error('Error getting cookies:', error);
-            return [];
-          }
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => 
-              cookieStore.set({ name, value, ...options })
-            );
-          } catch (error) {
-            console.error('Error setting cookies:', error);
-          }
-        }
+        getAll: () => [],
+        setAll: () => {},
       },
     }
   );
 }
 
+// Legacy functions for backward compatibility
+// These will help with the transition to the new unified function
+
 /**
- * Creates a Supabase client for use in Server Actions
- * This should only be used in Server Actions
- * 
- * @returns A Supabase client configured for server actions
+ * @deprecated Use createServerSupabaseClient() instead
+ */
+export async function createClient() {
+  return createServerSupabaseClient({ useNextCookies: true });
+}
+
+/**
+ * @deprecated Use createServerSupabaseClient() instead
  */
 export async function createActionClient() {
-  // Dynamic import to avoid issues with Next.js middleware
-  const { cookies } = await import('next/headers');
-  
-  // Get the cookie store
-  const cookieStore = await cookies();
-  
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          try {
-            return cookieStore.getAll();
-          } catch (error) {
-            console.error('Error getting cookies:', error);
-            return [];
-          }
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => 
-              cookieStore.set({ name, value, ...options })
-            );
-          } catch (error) {
-            console.error('Error setting cookies:', error);
-          }
-        }
-      },
-    }
-  );
+  return createServerSupabaseClient({ useNextCookies: true });
 }
 
 /**
- * Creates a Supabase client for use with cookies from a request
- * This is useful for middleware and other contexts where cookies() is not available
- * 
- * @param cookieStore The cookie store from the request
- * @param response Optional NextResponse object for middleware contexts
- * @returns A Supabase client configured for middleware usage
+ * @deprecated Use createServerSupabaseClient() instead
  */
 export function createClientWithCookies(
   cookieStore: ReadonlyRequestCookies | RequestCookies,
   response?: NextResponse
 ) {
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            // Set cookie on the store
-            cookieStore.set({ name, value, ...options });
-            
-            // If we have a response (middleware context), also set cookie there
-            if (response) {
-              response.cookies.set({ name, value, ...options });
-            }
-          });
-        }
-      },
-    }
-  );
+  return createServerSupabaseClient({ cookieStore, response });
 } 

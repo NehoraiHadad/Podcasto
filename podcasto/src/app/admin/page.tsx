@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/actions/auth-actions';
-import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ServerAdminDashboard } from '@/components/admin/server-admin-dashboard';
 
 export const metadata = {
   title: 'Admin Dashboard | podcasto',
@@ -31,7 +31,7 @@ export default async function AdminPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       <Suspense fallback={<DashboardSkeleton />}>
-        <AdminDashboard />
+        <ServerAdminDashboard />
       </Suspense>
     </div>
   );

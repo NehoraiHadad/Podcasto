@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { verifyAdminAccess } from '@/lib/utils/admin-utils';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminErrorBoundary } from '@/components/admin/error-boundary';
 
@@ -7,9 +7,9 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Use the requireAdmin server action to check if the user is an admin
+  // Use the verifyAdminAccess utility to check if the user is an admin
   // This will automatically redirect to unauthorized page if not
-  await requireAdmin();
+  await verifyAdminAccess();
   
   return (
     <div className="flex min-h-screen bg-gray-50">

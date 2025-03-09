@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Header } from './header';
+import { ServerHeader } from './server-header';
 import { Footer } from './footer';
 
 type MainLayoutProps = {
@@ -9,7 +9,7 @@ type MainLayoutProps = {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-white relative">
-      <Header />
+      <ServerHeader />
       <main className="flex-grow overflow-auto">{children}</main>
       <Footer />
     </div>

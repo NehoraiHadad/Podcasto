@@ -3,6 +3,15 @@
  * This is used for redirects in authentication flows
  */
 export const getURL = () => {
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // In development, always use localhost
+  if (isDevelopment) {
+    return 'http://localhost:3000/';
+  }
+  
+  // In production, use the configured URL
   let url =
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
     process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.

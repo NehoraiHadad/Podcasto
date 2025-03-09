@@ -47,15 +47,24 @@ export function LoginForm() {
     setError(null);
     
     try {
-      const { error } = await signInWithGoogle();
+      // Use server action for Google sign in
+      const { data, error } = await signInWithGoogle();
       
       if (error) {
         setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
           : 'An error occurred during Google login');
         setIsLoading(false);
+        return;
       }
-      // Redirect is handled by the OAuth provider
+      
+      // Redirect to the URL returned by the server action
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setError('Failed to get authentication URL');
+        setIsLoading(false);
+      }
     } catch {
       setError('An unexpected error occurred. Please try again.');
       setIsLoading(false);
