@@ -52,6 +52,17 @@ Tracks episodes that have been emailed to users.
 | episode_id | UUID   | Foreign Key to `episodes`      |
 | sent_at    | TIMESTAMP | Timestamp when the episode was sent |
 
+
+### 5. ** User Roles ** ('user_roles')
+
+| Column       | Type     | Description                             |
+|-------------|--------|----------------------------------|
+| id         | UUID   | Primary Key                      |
+| user_id    | UUID   | Foreign Key to `users`         |
+| rule | user_rule   | user or admin     |
+| created_at    | TIMESTAMP | Timestamp when the user register |
+
+
 ## Webhooks & Triggers
 - **Episode Creation Trigger**: Automatically notifies subscribers via email when a new episode is generated.
 - **Daily Podcast Generation Job**: Runs a scheduled process to generate a podcast every day.

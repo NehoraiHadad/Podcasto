@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useAuthContext } from '@/lib/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { useOnClickOutside } from 'usehooks-ts';
+import { AdminNavLink } from '@/components/admin/admin-nav-link';
+import { LayoutDashboard } from 'lucide-react';
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -101,6 +103,13 @@ export function Header() {
                     >
                       My Profile
                     </Link>
+                    <AdminNavLink 
+                      href="/admin"
+                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full inline-flex items-center gap-2"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Admin Dashboard</span>
+                    </AdminNavLink>
                     <button
                       onClick={handleSignOut}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -190,13 +199,22 @@ export function Header() {
               Podcasts
             </Link>
             {user && (
-              <Link
-                href="/profile"
-                className="text-gray-600 hover:text-indigo-600 hover:bg-gray-50 block px-3 py-2.5 text-base font-medium rounded-md transition-colors"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                My Profile
-              </Link>
+              <>
+                <Link
+                  href="/profile"
+                  className="text-gray-600 hover:text-indigo-600 hover:bg-gray-50 block px-3 py-2.5 text-base font-medium rounded-md transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Profile
+                </Link>
+                <AdminNavLink 
+                  href="/admin"
+                  className="text-gray-600 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2.5 text-base font-medium rounded-md transition-colors inline-flex items-center gap-2"
+                >
+                  <LayoutDashboard className="h-5 w-5" />
+                  <span>Admin Dashboard</span>
+                </AdminNavLink>
+              </>
             )}
           </div>
           <div className="pt-4 pb-5 border-t border-gray-200 px-4">

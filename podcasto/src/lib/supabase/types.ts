@@ -47,6 +47,82 @@ export interface Database {
         }
         Relationships: []
       }
+      podcast_configs: {
+        Row: {
+          id: string
+          podcast_id: string
+          content_source: string
+          telegram_channel?: string
+          telegram_hours?: number
+          urls?: string[]
+          creator: string
+          podcast_name: string
+          slogan?: string
+          creativity_level: number
+          is_long_podcast: boolean
+          discussion_rounds: number
+          min_chars_per_round: number
+          conversation_style: string
+          speaker1_role: string
+          speaker2_role: string
+          mixing_techniques: string[]
+          additional_instructions?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          podcast_id: string
+          content_source: string
+          telegram_channel?: string
+          telegram_hours?: number
+          urls?: string[]
+          creator: string
+          podcast_name: string
+          slogan?: string
+          creativity_level: number
+          is_long_podcast: boolean
+          discussion_rounds: number
+          min_chars_per_round: number
+          conversation_style: string
+          speaker1_role: string
+          speaker2_role: string
+          mixing_techniques: string[]
+          additional_instructions?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          podcast_id?: string
+          content_source?: string
+          telegram_channel?: string
+          telegram_hours?: number
+          urls?: string[]
+          creator?: string
+          podcast_name?: string
+          slogan?: string
+          creativity_level?: number
+          is_long_podcast?: boolean
+          discussion_rounds?: number
+          min_chars_per_round?: number
+          conversation_style?: string
+          speaker1_role?: string
+          speaker2_role?: string
+          mixing_techniques?: string[]
+          additional_instructions?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_configs_podcast_id_fkey"
+            columns: ["podcast_id"]
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       episodes: {
         Row: {
           id: string
@@ -152,6 +228,34 @@ export interface Database {
           },
           {
             foreignKeyName: "sent_episodes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          user_id: string
+          role: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "users"
             referencedColumns: ["id"]

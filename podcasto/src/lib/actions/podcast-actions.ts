@@ -1,0 +1,146 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { createActionClient } from '@/lib/supabase/server';
+import { z } from 'zod';
+
+// Define the podcast creation schema
+const podcastCreationSchema = z.object({
+  // Content Source
+  contentSource: z.enum(['telegram', 'urls']),
+  telegramChannel: z.string().optional(),
+  telegramHours: z.number().min(1).max(72).optional(),
+  urls: z.array(z.string().url().optional()).optional(),
+  
+  // Metadata
+  title: z.string().min(3),
+  creator: z.string().min(2),
+  description: z.string().min(10),
+  coverImage: z.string().optional(),
+  
+  // Basic Settings
+  podcastName: z.string().min(3),
+  outputLanguage: z.enum(['english', 'hebrew']),
+  slogan: z.string().optional(),
+  creativityLevel: z.number().min(0).max(1),
+  
+  // Advanced Settings
+  isLongPodcast: z.boolean().default(false),
+  discussionRounds: z.number().min(1).max(20).default(5),
+  minCharsPerRound: z.number().min(100).max(2000).default(500),
+  
+  // Style and Roles
+  conversationStyle: z.enum([
+    'engaging', 'dynamic', 'enthusiastic', 'educational', 
+    'casual', 'professional', 'friendly', 'formal'
+  ]),
+  speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
+  speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
+  
+  // Mixing Techniques
+  mixingTechniques: z.array(z.string()),
+  
+  // Additional Instructions
+  additionalInstructions: z.string().optional(),
+});
+
+type PodcastCreationData = z.infer<typeof podcastCreationSchema>;
+
+/**
+ * Creates a new podcast with the provided data
+ * 
+ * @param data The podcast creation data
+ * @returns An object with success status and error message if applicable
+ */
+export async function createPodcast(data: PodcastCreationData) {
+  try {
+    // Validate the input data
+    const validatedData = podcastCreationSchema.parse(data);
+    
+    // Get the Supabase client
+    const supabase = await createActionClient();
+    
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return { error: 'You must be logged in to create a podcast' };
+    }
+    
+    // Check if user has admin role
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (!userRoles || userRoles.role !== 'admin') {
+      return { error: 'You do not have permission to create podcasts' };
+    }
+    
+    // Create the podcast in the database
+    const { data: podcast, error } = await supabase
+      .from('podcasts')
+      .insert({
+        title: validatedData.title,
+        description: validatedData.description,
+        language: validatedData.outputLanguage,
+        image_url: validatedData.coverImage,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating podcast:', error);
+      return { error: 'Failed to create podcast in the database' };
+    }
+    
+    // TODO Store the podcast configuration in a separate table (not implemented yet)
+    // const { error: configError } = await supabase
+    //   .from('podcast_configs')
+    //   .insert({
+    //     podcast_id: podcast.id,
+    //     content_source: validatedData.contentSource,
+    //     telegram_channel: validatedData.telegramChannel,
+    //     telegram_hours: validatedData.telegramHours,
+    //     urls: validatedData.urls?.filter(url => url && url.trim() !== ''),
+    //     creator: validatedData.creator,
+    //     podcast_name: validatedData.podcastName,
+    //     slogan: validatedData.slogan,
+    //     creativity_level: validatedData.creativityLevel,
+    //     is_long_podcast: validatedData.isLongPodcast,
+    //     discussion_rounds: validatedData.discussionRounds,
+    //     min_chars_per_round: validatedData.minCharsPerRound,
+    //     conversation_style: validatedData.conversationStyle,
+    //     speaker1_role: validatedData.speaker1Role,
+    //     speaker2_role: validatedData.speaker2Role,
+    //     mixing_techniques: validatedData.mixingTechniques,
+    //     additional_instructions: validatedData.additionalInstructions,
+    //   });
+    
+    // if (configError) {
+      // console.error('Error creating podcast configuration:', configError);
+      
+      // Clean up the podcast if config creation fails
+    //   await supabase
+    //     .from('podcasts')
+    //     .delete()
+    //     .eq('id', podcast.id);
+      
+    //   return { error: 'Failed to create podcast configuration' };
+    // }
+    
+    // Revalidate the podcasts page
+    revalidatePath('/admin/podcasts');
+    
+    return { success: true, podcastId: podcast.id };
+  } catch (error) {
+    console.error('Error in createPodcast:', error);
+    
+    if (error instanceof z.ZodError) {
+      return { error: 'Invalid podcast data: ' + error.errors[0].message };
+    }
+    
+    return { error: 'An unexpected error occurred' };
+  }
+} 
