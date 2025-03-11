@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import { MainLayout } from '@/components/layout/main-layout';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getPodcasts } from '@/lib/api/podcasts';
+import { getAllPodcasts, Podcast } from '@/lib/db/api/podcasts';
+import { PodcastImage } from '@/components/podcasts/podcast-image';
 
 export const metadata: Metadata = {
   title: 'Podcasts | podcasto',
@@ -21,16 +21,15 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
   const resolvedSearchParams = await searchParams || {};
   
   // Fetch podcasts from Supabase
-  const podcasts = await getPodcasts();
+  const podcasts = await getAllPodcasts();
   
   // Filter podcasts if search parameter is provided
   const searchQuery = resolvedSearchParams?.search?.toLowerCase() || '';
   const filteredPodcasts = searchQuery
     ? podcasts.filter(
-        podcast => 
+        (podcast: Podcast) => 
           podcast.title.toLowerCase().includes(searchQuery) ||
-          podcast.description.toLowerCase().includes(searchQuery)
-      )
+          podcast.description?.toLowerCase().includes(searchQuery))
     : podcasts;
   
   return (
@@ -91,34 +90,15 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
             filteredPodcasts.map((podcast) => (
               <Card key={podcast.id} className="overflow-hidden">
                 <div className="h-48 bg-gray-200 relative">
-                  {podcast.image_url ? (
-                    <Image
-                      src={podcast.image_url}
-                      alt={podcast.title}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                      <svg
-                        className="w-12 h-12"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                    </div>
-                  )}
+                  <PodcastImage
+                    imageUrl={podcast.cover_image}
+                    title={podcast.title}
+                  />
                 </div>
                 <CardHeader>
                   <CardTitle>{podcast.title}</CardTitle>
                   <CardDescription>
-                    {podcast.episodes_count} episodes | {podcast.language}
+                    {podcast.episodes_count} episodes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -3,20 +3,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PodcastCarousel } from "@/components/home/podcast-carousel";
 import { SearchInput } from "@/components/home/search-input";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/actions/auth-actions";
 
 export default async function Home() {
-  // Get the session on the server
-  const supabase = await createClient();
-  
-  // First authenticate the user with getUser() for security
-  const { data: { user: authenticatedUser } } = await supabase.auth.getUser();
-  
-  // Then get the session data
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // Prefer the authenticated user over the session user
-  const user = authenticatedUser || session?.user || null;
+  // Get the authenticated user on the server using the new function
+  const user = await getCurrentUser();
 
   return (
     <MainLayout>

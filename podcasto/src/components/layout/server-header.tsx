@@ -1,4 +1,4 @@
-import { createActionClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { ClientHeader } from './client-header';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -11,7 +11,7 @@ export async function ServerHeader() {
   // Opt out of caching for this component
   noStore();
   
-  const supabase = await createActionClient();
+  const supabase = await createClient();
   
   // Get the current user
   const { data: { user }, error } = await supabase.auth.getUser();

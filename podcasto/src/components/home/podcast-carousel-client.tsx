@@ -4,7 +4,27 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Podcast } from "@/lib/api/podcasts";
+import type { Podcast } from "@/lib/db/api/podcasts";
+
+// Fallback component for when image is not available or fails to load
+function PodcastImageFallback() {
+  return (
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+      <svg
+        className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-gray-400"
+        fill="currentColor"
+        viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+          clipRule="evenodd"
+        ></path>
+      </svg>
+    </div>
+  );
+}
 
 interface PodcastCarouselClientProps {
   podcasts: Podcast[];
@@ -16,6 +36,7 @@ interface PodcastCarouselClientProps {
  */
 export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Rotate through podcast images
   useEffect(() => {
@@ -29,6 +50,10 @@ export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) 
 
     return () => clearInterval(interval);
   }, [podcasts]);
+
+  const handleImageError = (podcastId: string) => {
+    setFailedImages(prev => ({ ...prev, [podcastId]: true }));
+  };
 
   return (
     <div className="w-full">
@@ -48,32 +73,21 @@ export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) 
                   index === currentImageIndex ? "opacity-100" : "opacity-0"
                 }`}
               >
-                {podcast.image_url ? (
+                {podcast.cover_image && !failedImages[podcast.id] ? (
                   <Image
-                    src={podcast.image_url}
+                    src={podcast.cover_image}
                     alt={podcast.title}
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
                     priority={index === 0}
                     className="object-cover"
+                    onError={() => handleImageError(podcast.id)}
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <svg
-                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
-                  </div>
+                  <PodcastImageFallback />
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 sm:p-5 md:p-6">
+                
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
                   <h3 className="text-white text-lg sm:text-xl font-bold">{podcast.title}</h3>
                   <p className="text-white/80 text-sm sm:text-base line-clamp-2">{podcast.description}</p>
                   <Link href={`/podcasts/${podcast.id}`} className="mt-2 inline-block">

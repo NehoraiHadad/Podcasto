@@ -1,21 +1,26 @@
-import { createClient } from '@/lib/supabase/server';
+import { getAllPodcasts } from '@/lib/db/api/podcasts';
 import { PodcastCarouselClient } from './podcast-carousel-client';
+import { unstable_noStore as noStore } from 'next/cache';
 
 /**
- * Server component that fetches podcasts and passes them to a client component
+ * Server component that fetches featured podcasts and renders the client carousel
  */
 export async function PodcastCarousel() {
-  // Fetch podcasts on the server
-  const supabase = await createClient();
-  const { data: podcasts, error } = await supabase
-    .from('podcasts')
-    .select('*');
-
-  if (error) {
+  // Opt out of caching for this component
+  noStore();
+  
+  try {
+    // Fetch podcasts using Drizzle API
+    const podcasts = await getAllPodcasts();
+    
+    if (!podcasts || podcasts.length === 0) {
+      return null; // Don't render anything if no podcasts
+    }
+    
+    
+    return <PodcastCarouselClient podcasts={podcasts} />;
+  } catch (error) {
     console.error('Error fetching podcasts:', error);
-    return <div>Error loading podcasts</div>;
+    return <div>Failed to load featured podcasts</div>;
   }
-
-  // Pass the podcasts to the client component
-  return <PodcastCarouselClient podcasts={podcasts || []} />;
 } 

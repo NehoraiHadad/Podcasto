@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/lib/context/auth-context";
 import { Toaster } from "sonner";
 import { Inter } from "next/font/google";
 
@@ -26,10 +25,8 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr" className={`${inter.variable}`}>
       <body className="antialiased min-h-screen bg-white text-gray-900">
-        <AuthProvider>
-          {children}
-          <Toaster position="bottom-right" richColors />
-        </AuthProvider>
+        {children}
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

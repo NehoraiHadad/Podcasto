@@ -1,7 +1,10 @@
 'use server';
 
-import { createActionClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { cache } from 'react';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from './user-actions';
+import { podcastsApi, episodesApi, userRolesApi } from '@/lib/db/api';
 
 /**
  * Interface for admin dashboard statistics
@@ -19,31 +22,90 @@ export interface AdminDashboardStats {
  * @returns Object containing dashboard statistics
  */
 export const getAdminDashboardStats = cache(async (): Promise<AdminDashboardStats> => {
-  const supabase = await createActionClient();
+  try {
+    // Get counts using Drizzle APIs
+    const totalPodcasts = await podcastsApi.getPodcastCount();
+    const totalEpisodes = await episodesApi.getEpisodeCount();
+    const totalUsers = await userRolesApi.getUserRoleCount();
+    
+    return {
+      totalPodcasts,
+      totalEpisodes,
+      totalUsers
+    };
+  } catch (error) {
+    console.error('Error fetching admin dashboard stats:', error);
+    return {
+      totalPodcasts: 0,
+      totalEpisodes: 0,
+      totalUsers: 0
+    };
+  }
+});
+
+/**
+ * Server action to check if the current user has admin role
+ * This is cached to avoid multiple database calls for the same user
+ * 
+ * @param redirectOnFailure If true, redirects to unauthorized page if not admin
+ * @param redirectTo Optional path to redirect to after login if not authenticated
+ * @returns The user object if admin, or boolean if not redirecting
+ */
+export const checkIsAdmin = cache(async ({ 
+  redirectOnFailure = false, 
+  redirectTo = '/admin' 
+}: { 
+  redirectOnFailure?: boolean, 
+  redirectTo?: string 
+} = {}) => {
+  const supabase = await createClient();
   
-  // Get total podcasts count
-  const { count: totalPodcasts, error: podcastsError } = await supabase
-    .from('podcasts')
-    .select('*', { count: 'exact', head: true });
+  // Get the current user
+  const { data: { user }, error } = await supabase.auth.getUser();
   
-  // Get total episodes count
-  const { count: totalEpisodes, error: episodesError } = await supabase
-    .from('episodes')
-    .select('*', { count: 'exact', head: true });
+  if (error || !user) {
+    if (redirectOnFailure) {
+      redirect(`/auth/login?redirect=${encodeURIComponent(redirectTo)}`);
+    }
+    return false;
+  }
   
-  // Get total users count
-  const { count: totalUsers, error: usersError } = await supabase
-    .from('user_roles')
-    .select('*', { count: 'exact', head: true });
+  // Check if user has admin role using Drizzle API
+  const isAdmin = await userRolesApi.isUserAdmin(user.id);
   
-  // Log any errors
-  if (podcastsError) console.error('Error fetching podcasts count:', podcastsError);
-  if (episodesError) console.error('Error fetching episodes count:', episodesError);
-  if (usersError) console.error('Error fetching users count:', usersError);
+  if (!isAdmin && redirectOnFailure) {
+    redirect('/unauthorized');
+  }
   
-  return {
-    totalPodcasts: totalPodcasts || 0,
-    totalEpisodes: totalEpisodes || 0,
-    totalUsers: totalUsers || 0
-  };
-}); 
+  return redirectOnFailure ? user : isAdmin;
+});
+
+/**
+ * Server action to require admin role for a route
+ * Redirects to unauthorized page if user is not an admin
+ * 
+ * @returns The user object if the user is an admin
+ */
+export const requireAdmin = async () => {
+  return checkIsAdmin({ redirectOnFailure: true });
+};
+
+/**
+ * Server action to get the current user's role
+ * 
+ * @returns The user's role or null if not found
+ */
+export const getUserRole = async (): Promise<string | null> => {
+  const user = await getCurrentUser();
+  
+  if (!user) return null;
+  
+  // Get user role using Drizzle API
+  const userRoles = await userRolesApi.getUserRoles(user.id);
+  
+  if (!userRoles || userRoles.length === 0) {
+    return null;
+  }
+  
+  return userRoles[0].role;
+}; 

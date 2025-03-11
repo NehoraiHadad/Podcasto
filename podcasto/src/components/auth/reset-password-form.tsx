@@ -1,25 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthContext } from '@/lib/context/auth-context';
-import Link from 'next/link';
 import { AuthInput } from './auth-input';
 import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
+import Link from 'next/link';
+import { resetPassword } from '@/lib/actions/auth-actions';
 
 export function ResetPasswordForm() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
-  const { resetPassword } = useAuthContext();
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setSuccessMessage(null);
+    setSuccess(null);
 
     try {
       const { error } = await resetPassword(email);
@@ -27,13 +25,13 @@ export function ResetPasswordForm() {
       if (error) {
         setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
-          : 'An error occurred while sending the reset link');
-        setIsLoading(false);
+          : 'An error occurred while sending the reset password email');
         return;
-      } else {
-        setSuccessMessage('Password reset instructions have been sent to your email.');
       }
-    } catch {
+      
+      setSuccess('Password reset instructions have been sent to your email');
+    } catch (_error) {
+      console.error('Error in handleResetPassword:', _error);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -43,7 +41,7 @@ export function ResetPasswordForm() {
   return (
     <div className="space-y-4">
       {error && <AuthAlert type="error" message={error} />}
-      {successMessage && <AuthAlert type="success" message={successMessage} />}
+      {success && <AuthAlert type="success" message={success} />}
 
       <form onSubmit={handleResetPassword} className="space-y-4">
         <AuthInput
@@ -55,13 +53,14 @@ export function ResetPasswordForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
-          disabled={isLoading}
+          disabled={isLoading || !!success}
           autoComplete="email"
         />
 
         <AuthButton 
           type="submit" 
           isLoading={isLoading}
+          disabled={!!success}
         >
           Send Reset Instructions
         </AuthButton>
@@ -69,6 +68,7 @@ export function ResetPasswordForm() {
 
       <div className="text-center mt-4">
         <p className="text-sm text-gray-600">
+          Remember your password?{' '}
           <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
             Back to Login
           </Link>

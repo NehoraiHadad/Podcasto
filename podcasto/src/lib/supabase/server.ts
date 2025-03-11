@@ -1,116 +1,113 @@
 import { createServerClient } from '@supabase/ssr';
-import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
 import type { Database } from '@/lib/supabase/types';
-import { NextResponse } from 'next/server';
-import { RequestCookies } from 'next/dist/server/web/spec-extension/cookies';
+import { cookies } from 'next/headers';
+import { unstable_noStore as noStore } from 'next/cache';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Creates a Supabase client for server-side usage with flexible cookie handling
- * This unified function replaces the previous separate client creation functions
+ * Creates a Supabase client for server-side usage
+ * Following the official Supabase documentation for Next.js App Router
  * 
- * @param options Configuration options for the client
  * @returns A Supabase client configured for server usage
  */
-export async function createServerSupabaseClient(options?: {
-  cookieStore?: ReadonlyRequestCookies | RequestCookies;
-  response?: NextResponse;
-  useNextCookies?: boolean;
-}) {
-  // If no cookie store is provided and useNextCookies is true, use Next.js cookies
-  if (!options?.cookieStore && (options?.useNextCookies !== false)) {
-    // Dynamic import to avoid issues with Next.js middleware
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    
-    return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            try {
-              return cookieStore.getAll();
-            } catch (error) {
-              console.error('Error getting cookies:', error);
-              return [];
-            }
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => 
-                cookieStore.set({ name, value, ...options })
-              );
-            } catch (error) {
-              console.error('Error setting cookies:', error);
-            }
-          }
-        },
-      }
-    );
-  }
+export async function createClient() {
+  // Opt out of caching for all data requests to Supabase
+  noStore();
   
-  // If a cookie store is provided, use it
-  if (options?.cookieStore) {
-    return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return options.cookieStore!.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
-              // Set cookie on the store
-              options.cookieStore!.set({ name, value, ...cookieOptions });
-              
-              // If we have a response (middleware context), also set cookie there
-              if (options.response) {
-                options.response.cookies.set({ name, value, ...cookieOptions });
-              }
-            });
-          }
-        },
-      }
-    );
-  }
-  
-  // Fallback to a client with no cookie handling
+  const cookieStore = await cookies();
+
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => [],
-        setAll: () => {},
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
       },
     }
   );
 }
 
-// Legacy functions for backward compatibility
-// These will help with the transition to the new unified function
-
 /**
- * @deprecated Use createServerSupabaseClient() instead
+ * Creates a Supabase client for middleware usage
+ * 
+ * @param request The Next.js request object
+ * @param response The Next.js response object (optional)
+ * @returns An object containing the Supabase client and response
  */
-export async function createClient() {
-  return createServerSupabaseClient({ useNextCookies: true });
+export function createMiddlewareClient(request: NextRequest, response?: NextResponse) {
+  const isUpdateSession = !response;
+  let supabaseResponse: NextResponse | undefined;
+  
+  if (isUpdateSession) {
+    supabaseResponse = NextResponse.next({
+      request: { headers: request.headers },
+    });
+  }
+  
+  return {
+    client: createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return isUpdateSession 
+              ? request.cookies.getAll()
+              : request.cookies.getAll().map(cookie => ({
+                  name: cookie.name,
+                  value: cookie.value,
+                }));
+          },
+          setAll(cookies) {
+            cookies.forEach(({ name, value, ...options }) => {
+              if (isUpdateSession && supabaseResponse) {
+                request.cookies.set(name, value);
+                supabaseResponse.cookies.set({
+                  name,
+                  value,
+                  ...options,
+                });
+              } else if (response) {
+                response.cookies.set({
+                  name,
+                  value,
+                  ...options,
+                });
+              }
+            });
+          },
+        },
+      }
+    ),
+    response: isUpdateSession ? supabaseResponse : response,
+  };
 }
 
 /**
- * @deprecated Use createServerSupabaseClient() instead
+ * Updates the Supabase session in middleware context
+ * This refreshes the auth token if needed
+ * 
+ * @param request The Next.js request object
+ * @returns A response with updated cookies
  */
-export async function createActionClient() {
-  return createServerSupabaseClient({ useNextCookies: true });
+export async function updateSession(request: NextRequest) {
+  const { client, response } = createMiddlewareClient(request);
+  
+  // IMPORTANT: DO NOT REMOVE auth.getUser() - This refreshes the session if needed
+  await client.auth.getUser();
+  
+  return response as NextResponse;
 }
-
-/**
- * @deprecated Use createServerSupabaseClient() instead
- */
-export function createClientWithCookies(
-  cookieStore: ReadonlyRequestCookies | RequestCookies,
-  response?: NextResponse
-) {
-  return createServerSupabaseClient({ cookieStore, response });
-} 

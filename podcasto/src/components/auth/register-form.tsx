@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthContext } from '@/lib/context/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AuthInput } from './auth-input';
@@ -9,78 +8,72 @@ import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
 import { AuthDivider } from './auth-divider';
 import { SocialButton } from './social-button';
+import { signUpWithPassword, signInWithGoogle } from '@/lib/actions/auth-actions';
 
 export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
-  const { signUp, signInWithGoogle } = useAuthContext();
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate password strength
-    if (password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters');
-      setIsLoading(false);
-      return;
-    }
+    setError(null);
+    setSuccess(null);
 
     try {
-      const { data, error } = await signUp({ email, password });
+      const { data, error } = await signUpWithPassword(email, password);
       
       if (error) {
-        setErrorMessage(typeof error === 'object' && error !== null && 'message' in error 
+        setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
           : 'An error occurred during registration');
         return;
       }
       
       // Check if email confirmation is required
-      if (data?.user?.identities?.length === 0) {
-        setSuccessMessage('Verification email sent. Please check your inbox.');
+      if (data?.user && !data.user.email_confirmed_at) {
+        setSuccess('Registration successful! Please check your email to confirm your account.');
       } else {
-        router.push('/');
+        // If no email confirmation is required, refresh the page
         router.refresh();
       }
-    } catch (error) {
-      setErrorMessage('An unexpected error occurred. Please try again.');
-      console.error(error);
+    } catch (_error) {
+      console.error('Error in handleRegister:', _error);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSignUp = async () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    setErrorMessage('');
-
+    setError(null);
+    setSuccess(null);
+    
     try {
-      const { error } = await signInWithGoogle();
+      const { data, error } = await signInWithGoogle();
       
       if (error) {
-        setErrorMessage(typeof error === 'object' && error !== null && 'message' in error 
+        setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
-          : 'An error occurred during Google sign up');
+          : 'An error occurred during Google sign in');
+        return;
       }
-    } catch (error) {
-      setErrorMessage('An unexpected error occurred. Please try again.');
-      console.error(error);
+      
+      // Redirect to the URL returned by the server action
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setError('Failed to get authentication URL');
+      }
+    } catch (_error) {
+      console.error('Error in handleGoogleLogin:', _error);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -88,8 +81,8 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-4">
-      {errorMessage && <AuthAlert type="error" message={errorMessage} />}
-      {successMessage && <AuthAlert type="success" message={successMessage} />}
+      {error && <AuthAlert type="error" message={error} />}
+      {success && <AuthAlert type="success" message={success} />}
 
       <form onSubmit={handleRegister} className="space-y-4">
         <AuthInput
@@ -101,7 +94,7 @@ export function RegisterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
-          disabled={isLoading}
+          disabled={isLoading || !!success}
           autoComplete="email"
         />
 
@@ -113,28 +106,16 @@ export function RegisterForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          disabled={isLoading}
-          autoComplete="new-password"
-          hint="Password must be at least 8 characters"
-        />
-
-        <AuthInput
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          label="Confirm Password"
-          required
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          disabled={isLoading}
+          disabled={isLoading || !!success}
           autoComplete="new-password"
         />
 
         <AuthButton 
           type="submit" 
           isLoading={isLoading}
+          disabled={!!success}
         >
-          Register
+          Sign Up
         </AuthButton>
       </form>
 
@@ -142,8 +123,9 @@ export function RegisterForm() {
 
       <SocialButton
         provider="google"
-        onClick={handleGoogleSignUp}
+        onClick={handleGoogleLogin}
         isLoading={isLoading}
+        disabled={!!success}
       />
 
       <div className="text-center mt-4">

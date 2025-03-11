@@ -10,12 +10,13 @@ import { redirect } from 'next/navigation';
 export default async function ConfirmPage({
   searchParams,
 }: {
+  params?: Promise<Record<string, string>>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // Access searchParams after awaiting the promise
-  const resolvedParams = await searchParams;
-  const token_hash = resolvedParams.token_hash as string | undefined;
-  const type = resolvedParams.type as string | undefined;
+  const resolvedSearchParams = await searchParams;
+  const token_hash = resolvedSearchParams.token_hash as string | undefined;
+  const type = resolvedSearchParams.type as string | undefined;
+  const next = (resolvedSearchParams.next as string) || '/';
 
   if (!token_hash || !type) {
     return <div className="p-8">Invalid confirmation link.</div>;
@@ -38,8 +39,11 @@ export default async function ConfirmPage({
         </div>
       );
     }
+    
+    // Redirect to the specified page or home page after successful confirmation
+    redirect(next);
   }
   
-  // Redirect to the home page after successful confirmation
-  redirect('/');
+  // Redirect to the specified page or home page after successful confirmation
+  redirect(next);
 } 

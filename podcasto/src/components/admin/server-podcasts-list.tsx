@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { createActionClient } from '@/lib/supabase/server';
 import { unstable_noStore as noStore } from 'next/cache';
+import { podcastsApi } from '@/lib/db/api';
 
 import {
   Table,
@@ -15,6 +15,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PodcastActionsMenu } from './podcast-actions-menu';
 
+// Define the expected podcast type for the component
+interface Podcast {
+  id: string;
+  title: string;
+  language?: string;
+  created_at?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 /**
  * Server component that fetches and displays a list of podcasts
  * Updated to follow Next.js 15 best practices for data fetching
@@ -25,16 +34,17 @@ export async function ServerPodcastsList() {
   noStore();
   
   try {
-    // Fetch podcasts from the database
-    const supabase = await createActionClient();
-    const { data: podcasts, error } = await supabase
-      .from('podcasts')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Fetch podcasts from the database using Drizzle API
+    const drizzlePodcasts = await podcastsApi.getAllPodcasts();
     
-    if (error) {
-      throw new Error(`Failed to fetch podcasts: ${error.message}`);
-    }
+    // Convert Drizzle podcasts to the expected format
+    const podcasts: Podcast[] = drizzlePodcasts.map(podcast => ({
+      id: podcast.id,
+      title: podcast.title,
+      // Convert Date object to string if it exists
+      created_at: podcast.created_at ? podcast.created_at.toISOString() : undefined,
+      // Add other properties as needed
+    }));
     
     if (!podcasts || podcasts.length === 0) {
       return (
@@ -61,7 +71,6 @@ export async function ServerPodcastsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Language</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -71,8 +80,7 @@ export async function ServerPodcastsList() {
               {podcasts.map((podcast) => (
                 <TableRow key={podcast.id}>
                   <TableCell className="font-medium">{podcast.title}</TableCell>
-                  <TableCell>{podcast.language}</TableCell>
-                  <TableCell>{format(new Date(podcast.created_at), 'MMM d, yyyy')}</TableCell>
+                  <TableCell>{podcast.created_at ? format(new Date(podcast.created_at), 'MMM d, yyyy') : 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
                       Active

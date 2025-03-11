@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuthContext } from '@/lib/context/auth-context';
+import { signOut } from '@/lib/actions/auth-actions';
 import { Button } from '@/components/ui/button';
 import { useOnClickOutside } from 'usehooks-ts';
 import { AdminNavLink } from '@/components/admin/admin-nav-link';
 import { LayoutDashboard } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 interface ClientHeaderProps {
   initialIsAdmin: boolean;
@@ -19,38 +20,41 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
-  const { user, signOut, isLoading } = useAuthContext();
+  const [user, setUser] = useState(initialUser);
+  const [isLoading, setIsLoading] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Update admin status when user changes
   useEffect(() => {
-    // If the user from context matches the initial user, use the initial admin status
-    if (user?.id === initialUser?.id) {
-      setIsAdmin(initialIsAdmin);
-    } else {
-      // If the user has changed, reset admin status
-      // The page will need to be refreshed to get the new admin status from the server
-      setIsAdmin(false);
-    }
-  }, [user, initialUser, initialIsAdmin]);
+    setIsAdmin(initialIsAdmin);
+    setUser(initialUser);
+  }, [initialUser, initialIsAdmin]);
 
   const handleSignOut = async () => {
-    await signOut();
-    setIsProfileMenuOpen(false);
+    try {
+      setIsLoading(true);
+      await signOut();
+      setUser(null);
+      setIsProfileMenuOpen(false);
+      router.refresh();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Use the useOnClickOutside hook from usehooks-ts for profile menu
-  // @ts-expect-error - Ignoring TypeScript error as the hook handles null refs internally
-  useOnClickOutside(profileMenuRef, () => {
+  useOnClickOutside(profileMenuRef as React.RefObject<HTMLElement>, () => {
     if (isProfileMenuOpen) {
       setIsProfileMenuOpen(false);
     }
   });
 
   // Use the useOnClickOutside hook for mobile menu
-  // @ts-expect-error - Ignoring TypeScript error as the hook handles null refs internally
-  useOnClickOutside(mobileMenuRef, () => {
+  useOnClickOutside(mobileMenuRef as React.RefObject<HTMLElement>, () => {
     if (isMobileMenuOpen) {
       setIsMobileMenuOpen(false);
     }
@@ -224,7 +228,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             {isAdmin && !isLoading && (
               <Link
                 href="/admin"
-                className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md flex items-center gap-2"
+                className="px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md flex items-center gap-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <LayoutDashboard className="h-5 w-5" />

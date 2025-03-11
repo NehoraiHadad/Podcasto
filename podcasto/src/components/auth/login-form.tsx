@@ -1,23 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuthContext } from '@/lib/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthInput } from './auth-input';
 import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
 import { AuthDivider } from './auth-divider';
 import { SocialButton } from './social-button';
+import { signInWithPassword, signInWithGoogle } from '@/lib/actions/auth-actions';
 
 export function LoginForm() {
+  return (
+    <Suspense fallback={<div className="space-y-4">Loading...</div>}>
+      <LoginFormContent />
+    </Suspense>
+  );
+}
+
+function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { signIn, signInWithGoogle } = useAuthContext();
-  const _router = useRouter();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/';
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,19 +34,22 @@ export function LoginForm() {
     setError(null);
 
     try {
-      const { error } = await signIn({ email, password });
+      const { error } = await signInWithPassword(email, password);
       
       if (error) {
         setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
           : 'An error occurred during login');
-        setIsLoading(false);
         return;
       }
       
-      // Redirect is handled by the auth state change in useAuth
-    } catch {
+      // Refresh the page to reflect the new authentication state
+      // and redirect to the requested page
+      router.push(redirectPath);
+    } catch (_error) {
+      console.error('Error in handleEmailLogin:', _error);
       setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -54,19 +66,24 @@ export function LoginForm() {
         setError(typeof error === 'object' && error !== null && 'message' in error 
           ? String(error.message) 
           : 'An error occurred during Google login');
-        setIsLoading(false);
         return;
       }
       
       // Redirect to the URL returned by the server action
       if (data?.url) {
-        window.location.href = data.url;
+        // Add the redirect path to the URL if it exists
+        const url = new URL(data.url);
+        if (redirectPath !== '/') {
+          url.searchParams.set('redirect', redirectPath);
+        }
+        window.location.href = url.toString();
       } else {
         setError('Failed to get authentication URL');
-        setIsLoading(false);
       }
-    } catch {
+    } catch (_error) {
+      console.error('Error in handleGoogleLogin:', _error);
       setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -74,6 +91,12 @@ export function LoginForm() {
   return (
     <div className="space-y-4">
       {error && <AuthAlert type="error" message={error} />}
+      {redirectPath !== '/' && (
+        <AuthAlert 
+          type="info" 
+          message={`You'll be redirected to ${redirectPath} after login.`} 
+        />
+      )}
 
       <form onSubmit={handleEmailLogin} className="space-y-4">
         <AuthInput

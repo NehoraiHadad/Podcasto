@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createActionClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
+import { createClient } from '@/lib/supabase/server';
+import { userRolesApi } from '@/lib/db/api';
 
 // Define the podcast creation schema
 const podcastCreationSchema = z.object({
@@ -57,78 +59,66 @@ export async function createPodcast(data: PodcastCreationData) {
     // Validate the input data
     const validatedData = podcastCreationSchema.parse(data);
     
-    // Get the Supabase client
-    const supabase = await createActionClient();
-    
     // Get the current user
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       return { error: 'You must be logged in to create a podcast' };
     }
     
-    // Check if user has admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
+    // Check if user has admin role using Drizzle API
+    const isAdmin = await userRolesApi.isUserAdmin(user.id);
     
-    if (!userRoles || userRoles.role !== 'admin') {
+    if (!isAdmin) {
       return { error: 'You do not have permission to create podcasts' };
     }
     
-    // Create the podcast in the database
-    const { data: podcast, error } = await supabase
-      .from('podcasts')
-      .insert({
-        title: validatedData.title,
-        description: validatedData.description,
-        language: validatedData.outputLanguage,
-        image_url: validatedData.coverImage,
-      })
-      .select()
-      .single();
+    // Create the podcast in the database using Drizzle
+    const podcast = await podcastsApi.createPodcast({
+      title: validatedData.title,
+      description: validatedData.description,
+      cover_image: validatedData.coverImage,
+    });
     
-    if (error) {
-      console.error('Error creating podcast:', error);
+    if (!podcast) {
+      console.error('Error creating podcast');
       return { error: 'Failed to create podcast in the database' };
     }
     
-    // TODO Store the podcast configuration in a separate table (not implemented yet)
-    // const { error: configError } = await supabase
-    //   .from('podcast_configs')
-    //   .insert({
-    //     podcast_id: podcast.id,
-    //     content_source: validatedData.contentSource,
-    //     telegram_channel: validatedData.telegramChannel,
-    //     telegram_hours: validatedData.telegramHours,
-    //     urls: validatedData.urls?.filter(url => url && url.trim() !== ''),
-    //     creator: validatedData.creator,
-    //     podcast_name: validatedData.podcastName,
-    //     slogan: validatedData.slogan,
-    //     creativity_level: validatedData.creativityLevel,
-    //     is_long_podcast: validatedData.isLongPodcast,
-    //     discussion_rounds: validatedData.discussionRounds,
-    //     min_chars_per_round: validatedData.minCharsPerRound,
-    //     conversation_style: validatedData.conversationStyle,
-    //     speaker1_role: validatedData.speaker1Role,
-    //     speaker2_role: validatedData.speaker2Role,
-    //     mixing_techniques: validatedData.mixingTechniques,
-    //     additional_instructions: validatedData.additionalInstructions,
-    //   });
-    
-    // if (configError) {
-      // console.error('Error creating podcast configuration:', configError);
+    // Store the podcast configuration in a separate table
+    try {
+      const filteredUrls = validatedData.urls
+        ?.filter((url): url is string => typeof url === 'string' && url.trim() !== '')
+        || [];
+        
+      await podcastConfigsApi.createPodcastConfig({
+        podcast_id: podcast.id,
+        content_source: validatedData.contentSource,
+        telegram_channel: validatedData.telegramChannel,
+        telegram_hours: validatedData.telegramHours,
+        urls: filteredUrls,
+        creator: validatedData.creator,
+        podcast_name: validatedData.podcastName,
+        slogan: validatedData.slogan,
+        creativity_level: validatedData.creativityLevel,
+        is_long_podcast: validatedData.isLongPodcast,
+        discussion_rounds: validatedData.discussionRounds,
+        min_chars_per_round: validatedData.minCharsPerRound,
+        conversation_style: validatedData.conversationStyle,
+        speaker1_role: validatedData.speaker1Role,
+        speaker2_role: validatedData.speaker2Role,
+        mixing_techniques: validatedData.mixingTechniques,
+        additional_instructions: validatedData.additionalInstructions,
+      });
+    } catch (configError) {
+      console.error('Error creating podcast configuration:', configError);
       
       // Clean up the podcast if config creation fails
-    //   await supabase
-    //     .from('podcasts')
-    //     .delete()
-    //     .eq('id', podcast.id);
+      await podcastsApi.deletePodcast(podcast.id);
       
-    //   return { error: 'Failed to create podcast configuration' };
-    // }
+      return { error: 'Failed to create podcast configuration' };
+    }
     
     // Revalidate the podcasts page
     revalidatePath('/admin/podcasts');

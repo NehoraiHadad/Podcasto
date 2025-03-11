@@ -43,12 +43,12 @@ A secure admin access control system that:
 - [x] Document the server components and their usage
 
 ### 5. Testing
-- [ ] Test the admin access control system with different user roles
-- [ ] Verify that non-admin users cannot access admin routes
-- [ ] Verify that admin UI elements are only visible to admin users
+- [x] Test the admin access control system with different user roles
+- [x] Verify that non-admin users cannot access admin routes
+- [x] Verify that admin UI elements are only visible to admin users
 - [ ] Test edge cases like expired sessions and token refreshes
 
 ### 6. Deployment
-- [ ] Run the SQL script to create the `user_roles` table in production
-- [ ] Deploy the updated codebase to production
-- [ ] Verify that the admin access control system works in production 
+- [x] Run the SQL script to create the `user_roles` table in production
+- [x] Deploy the updated codebase to production
+- [x] Verify that the admin access control system works in production 
