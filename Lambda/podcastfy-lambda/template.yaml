@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  podcastfy-lambda
+  
+  SAM Template for podcast generator Lambda function
+
+Parameters:
+  GeminiApiKey:
+    Type: String
+    Description: API Key for Gemini
+    Default: ""
+    NoEcho: true
+  OpenAiApiKey:
+    Type: String
+    Description: API Key for OpenAI
+    Default: ""
+    NoEcho: true
+  S3BucketName:
+    Type: String
+    Description: S3 Bucket Name for storing podcasts
+    Default: "podcasto-podcasts"
+
+Globals:
+  Function:
+    Timeout: 600
+    MemorySize: 3008
+    Environment:
+      Variables:
+        PYTHONPATH: /var/task
+        GEMINI_API_KEY: !Ref GeminiApiKey
+        OPENAI_API_KEY: !Ref OpenAiApiKey
+        STORAGE_DIR: /tmp/podcasts
+        S3_BUCKET_NAME: !Ref S3BucketName
+
+Resources:
+  PodcastGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:PodcastGeneratorSecrets-*'
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /generate
+            Method: post
+            RestApiId: !Ref PodcastGeneratorApi
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: python3.12-v1
+
+  PodcastGeneratorApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'POST, OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  PodcastGeneratorSecrets:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: PodcastGeneratorSecrets
+      Description: API keys for podcast generator
+      SecretString: !Sub '{"GEMINI_API_KEY":"${GeminiApiKey}","OPENAI_API_KEY":"${OpenAiApiKey}"}'
+
+Outputs:
+  PodcastGeneratorFunctionArn:
+    Description: "Podcast Generator Lambda Function ARN"
+    Value: !GetAtt PodcastGeneratorFunction.Arn
+  PodcastGeneratorApiEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage for Podcast Generator function"
+    Value: !Sub "https://${PodcastGeneratorApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/generate/"
+  PodcastGeneratorFunctionRef:
+    Description: "Podcast Generator Lambda Function"
+    Value: !Ref PodcastGeneratorFunction 

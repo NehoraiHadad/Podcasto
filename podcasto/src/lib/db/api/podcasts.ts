@@ -73,11 +73,7 @@ export async function getPodcastsPaginated(page: number = 1, pageSize: number = 
  * Creates a new podcast
  */
 export async function createPodcast(data: NewPodcast): Promise<Podcast> {
-  const podcast = await dbUtils.create<typeof podcasts.$inferSelect, NewPodcast>(podcasts, data);
-  return {
-    ...podcast,
-    episodes_count: 0
-  };
+  return await dbUtils.create<Podcast, NewPodcast>(podcasts, data);
 }
 
 /**

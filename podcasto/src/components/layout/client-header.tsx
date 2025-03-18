@@ -73,6 +73,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                   alt="podcasto"
                   width={32}
                   height={32}
+                  quality={100}
                   className="h-8 w-auto mb-1.5"
                 />
               </Link>

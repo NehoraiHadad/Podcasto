@@ -1,0 +1,14 @@
+version = 0.1
+[default]
+[default.local_invoke]
+[default.local_invoke.parameters]
+parameter_overrides = "TelegramApiId='${TELEGRAM_API_ID}' TelegramApiHash='${TELEGRAM_API_HASH}' TelegramSession='${TELEGRAM_SESSION}' S3BucketName='${S3_BUCKET_NAME}'" 
+[default.deploy.parameters]
+stack_name = "podcasto-telegram-collector"
+resolve_s3 = true
+s3_prefix = "podcasto-telegram-collector"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "S3BucketName=\"podcasto-telegram-data\" SQSQueueUrl=\"\""
+image_repositories = []

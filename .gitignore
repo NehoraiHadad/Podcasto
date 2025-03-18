@@ -2,7 +2,10 @@
 
 # Environment variables
 .env*
+env*
 !.env.example
+
+*.session
 
 # Dependencies
 /node_modules

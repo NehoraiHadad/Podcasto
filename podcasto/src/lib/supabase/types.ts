@@ -67,6 +67,7 @@ export interface Database {
           speaker2_role: string
           mixing_techniques: string[]
           additional_instructions?: string
+          episode_frequency?: number
           created_at: string
           updated_at: string
         }
@@ -89,6 +90,7 @@ export interface Database {
           speaker2_role: string
           mixing_techniques: string[]
           additional_instructions?: string
+          episode_frequency?: number
           created_at?: string
           updated_at?: string
         }
@@ -111,6 +113,7 @@ export interface Database {
           speaker2_role?: string
           mixing_techniques?: string[]
           additional_instructions?: string
+          episode_frequency?: number
           created_at?: string
           updated_at?: string
         }

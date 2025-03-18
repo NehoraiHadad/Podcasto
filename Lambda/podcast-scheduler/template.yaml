@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  podcast-scheduler
+
+  Lambda function to check which podcasts need new episodes based on their frequency
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 512
+
+Resources:
+  PodcastSchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_KEY: !Ref SupabaseKey
+          TELEGRAM_LAMBDA_NAME: !Ref TelegramLambdaName
+          AUDIO_LAMBDA_NAME: !Ref AudioLambdaName
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref TelegramLambdaName
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AudioLambdaName
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+            Name: DailyPodcastScheduler
+            Description: Runs once a day to check which podcasts need new episodes
+            Enabled: true
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase URL
+  
+  SupabaseKey:
+    Type: String
+    Description: Supabase API Key
+  
+  TelegramLambdaName:
+    Type: String
+    Description: Name of the Telegram Lambda function
+  
+  AudioLambdaName:
+    Type: String
+    Description: Name of the Audio Generation Lambda function
+
+Outputs:
+  PodcastSchedulerFunction:
+    Description: "Podcast Scheduler Lambda Function ARN"
+    Value: !GetAtt PodcastSchedulerFunction.Arn
+  PodcastSchedulerFunctionIamRole:
+    Description: "Implicit IAM Role created for Podcast Scheduler function"
+    Value: !GetAtt PodcastSchedulerFunctionRole.Arn 

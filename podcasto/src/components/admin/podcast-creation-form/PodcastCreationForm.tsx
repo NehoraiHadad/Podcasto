@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -28,6 +28,8 @@ export function PodcastCreationForm() {
         toast.error('You do not have permission to create podcasts. Please login as admin.');
       } else if (error.includes('logged in')) {
         toast.error('Please login to create a podcast.');
+      } else if (error.includes('Validation error')) {
+        toast.error(error);
       } else {
         toast.error(`Error: ${error}`);
       }
@@ -35,6 +37,20 @@ export function PodcastCreationForm() {
     onSubmitStart: () => setIsSubmitting(true),
     onSubmitEnd: () => setIsSubmitting(false)
   });
+
+  // Debug form state
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      console.log('Form State:', {
+        isValid: form.formState.isValid,
+        errors: form.formState.errors,
+        values: form.getValues(),
+        isDirty: form.formState.isDirty,
+        isSubmitting: form.formState.isSubmitting
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
   
   return (
     <Form {...form}>
@@ -47,13 +63,25 @@ export function PodcastCreationForm() {
           </div>
         )}
         
+        {/* Debug info */}
+        <div className="text-sm text-gray-500">
+          <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
+          <p>Form Dirty: {form.formState.isDirty ? 'Yes' : 'No'}</p>
+          <p>Has Errors: {Object.keys(form.formState.errors).length > 0 ? 'Yes' : 'No'}</p>
+        </div>
+        
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button 
             type="submit" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || !form.formState.isValid}
           >
             {isSubmitting ? 'Creating...' : 'Create Podcast'}
           </Button>

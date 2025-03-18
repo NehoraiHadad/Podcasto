@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  TelegramCollector:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.12
+    Properties:
+      CodeUri: .
+      Handler: src.lambda_handler.lambda_handler
+      Runtime: python3.12
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          TELEGRAM_API_ID: !Ref TelegramApiId
+          TELEGRAM_API_HASH: !Ref TelegramApiHash
+          TELEGRAM_SESSION: !Ref TelegramSession
+          S3_BUCKET_NAME: !Ref S3BucketName
+          LOG_LEVEL: DEBUG
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+
+Parameters:
+  TelegramApiId:
+    Type: String
+    Description: Telegram API ID
+    NoEcho: true
+
+  TelegramApiHash:
+    Type: String
+    Description: Telegram API Hash
+    NoEcho: true
+
+  TelegramSession:
+    Type: String
+    Description: Telegram Session String
+    NoEcho: true
+
+  S3BucketName:
+    Type: String
+    Description: S3 Bucket Name for storing messages
+    Default: telegram-data-collector-dev 

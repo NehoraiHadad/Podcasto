@@ -42,6 +42,7 @@ export function usePodcastCreationForm({
       mixingTechniques: ['rhetorical-questions', 'personal-anecdotes'],
       additionalInstructions: '',
     },
+    mode: 'onChange', // Enable real-time validation
   });
   
   // Check which tabs are incomplete - wrapped in useCallback
@@ -83,6 +84,7 @@ export function usePodcastCreationForm({
 
   // Handle form submission
   const handleSubmit = form.handleSubmit(async (data: FormValues) => {
+    // First check if all required fields are filled
     if (!checkIncompleteTabs()) {
       return;
     }
@@ -115,6 +117,8 @@ export function usePodcastCreationForm({
   useEffect(() => {
     const subscription = form.watch(() => {
       checkIncompleteTabs();
+      // Trigger validation on every change
+      form.trigger();
     });
     return () => subscription.unsubscribe();
   }, [form.watch, checkIncompleteTabs, form]);

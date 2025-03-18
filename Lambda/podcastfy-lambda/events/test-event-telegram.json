@@ -1,0 +1,89 @@
+{
+  "type": "telegram",
+  "metadata": {
+    "title": "News Summary from Telegram",
+    "description": "News summary from AbuAliExpress channel"
+  },
+  "conversation_config": {
+    "conversation_style": ["Engaging", "Informative"],
+    "roles_person1": "Host",
+    "roles_person2": "Analyst",
+    "podcast_name": "Today's News",
+    "podcast_tagline": "Daily summary of important news",
+    "output_language": "English",
+    "user_instructions": "Summarize the news in a clear and interesting way, focus on the important points",
+    "engagement_techniques": ["Rhetorical Questions", "Analogies"],
+    "creativity": 0.6
+  },
+  "longform": false,
+  "max_num_chunks": 2,
+  "min_chunk_size": 500,
+  "telegram_data": {
+    "message": "Data collected successfully",
+    "podcast_config_id": "test-podcast-config",
+    "channel": "abualiexpress",
+    "days_back": 1,
+    "total_messages": 41,
+    "messages_per_channel": {
+      "abualiexpress": 41
+    },
+    "media_stats": {
+      "abualiexpress": {
+        "image": 16,
+        "video": 11,
+        "audio": 0,
+        "file": 0,
+        "download_failed": 0
+      }
+    },
+    "url_stats": {
+      "abualiexpress": 0
+    },
+    "filtered_domains": [
+      "exact:abualiexpress.com",
+      "contains:t.me",
+      "contains:abualiexpress.com",
+      "ends:example.com",
+      "starts:test."
+    ],
+    "media_types": [
+      "image"
+    ],
+    "results": {
+      "abualiexpress": [
+        {
+          "id": 90715,
+          "date": "2025-03-15T07:45:53+00:00",
+          "text": "**ארה\"ב: חיסלנו את מנהיג דאע\"ש בעיראק (מספר 2 בארגון)**\n\nבהמשך לדיווח כאן 👆אתמול הכריז פיקוד מרכז של ארה\"ב כי כוחותיו חיסלו (בתקיפה מהאוויר) את עבדאללה מכי, הטרוריסטי מספר 2 בארגון דאע\"ש.\nאחרי החיסול שלשום, הגיעו כוחות אמריקאים לאתר בו חוסל ולקחו דגימות DNA כדי לאשר את מותו.\nהחיסול בוצע בשיתוף פעולה עם הכוחות העיראקים והכורדים, ע\"פ ציוץ של הנשיא טראמפ בעניין.\n\nמצורף תיעוד מהחיסול אותו פרסם פיקוד מרכז של ארה\"ב.\n\n[כדי להגיב לכתבה לחצו כאן](",
+          "media_info": "[Video: Not downloaded - Not configured to download videos]",
+          "urls": [],
+          "channel": "abualiexpress"
+        },
+        {
+          "id": 90719,
+          "date": "2025-03-15T07:53:01+00:00",
+          "text": "כלי תקשורת לבנוניים: יו\"ר הרש\"פ, אבו מאזן צפוי לבקר השבוע בביירות ולדון עם ההנהגה הלבנונית בפירוק מחנות הפליטים הפלסטינים בלבנון, מנשקם.\n\n##\nבהחלט מעניין.\nתנועת הפת\"ח שבראשה עומד אבו מאזן מחזיקה בנשק רב במחנות הפליטים הפלסטינים בלבנון, ולכאורה, היא זו שמשליטה את הסדר ברוב מחנות אלה.\n\n[2 תגובות](",
+          "media_info": "[Image: s3://podcasto-telegram-data/test-podcast-config/episode_20250315_195536/images/photo_90719_20250315.jpg]",
+          "urls": [],
+          "channel": "abualiexpress"
+        },
+        {
+          "id": 90720,
+          "date": "2025-03-15T08:03:59+00:00",
+          "text": "**מה הציעה ישראל בתמורה לשחרורר 11 חטופים חיים ו 16 חללים?**\n\nרשת אלג'זירה מדווחת מפי מקורותיה כי    בתמורה לשחרור 11 חטופים חיים, בהם עידן אלכסנדר (המחזיק באזרחות אמריקאית) וכן 16 חללים, הציעה ישראל לשחרר 120 אסירי עולם ו 1110 עזתיים שנעצרו ברצועה אחרי ה 7.10 לצד גופות של 160 פלסטינים.\n\nעוד דרשה ישראל, ע\"פ אלג'זירה, כי לאחר שחרור החטופים יוגבל משך המו\"מ בהמשך ל 40 יום במקום ל 50 וכי התנאי למו\"מ בעניין סיום הלחימה הוא הצגת הוכחות שהחטופים בחיים.\n\nע\"פ הדיווח ישראל ביקשה לייצר מנגנון לחלוקת סיוע לאזרחים בעזה ולא התייחסה לנושא הנסיגה מהרצועה.\n\n##\n\nאם הדיווח של אלג'זירה אכן נכון הרי שישראל מציעה מפתח חילופים בו ישוחררו 10 אסירי עולם ו 100 עצורים עזתיים על כל חטוף חי ו 10 גופות של פלסטינים בתמורה לכל חלל ישראלי שיוחזר.\n\nבמהלך השנה האחרונה שיחררה ישראל, להערכתי (ע\"פ הדיווחים העיתיים בתקשורת הפלס') , לפחות 1,000 עצורים עזתיים (כנראה שהרבה יותר) ללא קשר לעסקה. הם היו יכולים לשמש כקלפי מיקוח כעת... מטבע עובר לסוחר. חבל.\n\n[2 תגובות](",
+          "media_info": null,
+          "urls": [],
+          "channel": "abualiexpress"
+        },
+        {
+          "id": 90721,
+          "date": "2025-03-15T08:09:34+00:00",
+          "text": "אדם בוהלר, השליח האמריקאי שנפגש ישירות עם בכירי חמאס בחודש ינואר (וציין בעניין ש\"ארה\"ב היא לא סוכנת של ישראל\"👆) הסיר את מועמדותו הרשמית לתפקיד השליח האמריקאי לנושא חטופים.\n\n[2 תגובות](",
+          "media_info": "[Image: s3://podcasto-telegram-data/test-podcast-config/episode_20250315_195536/images/photo_90721_20250315.jpg]",
+          "urls": [],
+          "channel": "abualiexpress"
+        }
+      ]
+    }
+  }
+} 

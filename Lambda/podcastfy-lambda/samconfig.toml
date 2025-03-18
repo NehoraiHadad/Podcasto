@@ -1,0 +1,20 @@
+version = 0.1
+
+[default]
+[default.local_invoke]
+[default.local_invoke.parameters]
+parameter_overrides = [
+  "GeminiApiKey=AIzaSyAPpE24VwzXg7bZqcG92Yxw0vZlHh7rhsk",
+  "OpenAiApiKey=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",
+  "S3BucketName=podcasto-podcasts-dev"
+]
+
+[default.deploy.parameters]
+stack_name = "podcasto-podcast-generator"
+resolve_s3 = true
+s3_prefix = "podcasto-podcast-generator"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "S3BucketName=\"podcasto-podcasts\""
+image_repositories = ["PodcastGeneratorFunction=638520701769.dkr.ecr.us-east-1.amazonaws.com/podcastopodcastgenerator05ec9e89/podcastgeneratorfunction50159cadrepo"] 

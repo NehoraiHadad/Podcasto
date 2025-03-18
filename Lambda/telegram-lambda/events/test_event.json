@@ -1,0 +1,15 @@
+{
+  "podcast_config": {
+    "id": "test-podcast-config",
+    "telegram_channel": "abualiexpress",
+    "telegram_hours": 24,
+    "filtered_domains": [
+      "exact:abualiexpress.com", 
+      "contains:t.me", 
+      "contains:abualiexpress.com", 
+      "ends:example.com",
+      "starts:test."
+    ],
+    "media_types": ["image"]
+  }
+} 

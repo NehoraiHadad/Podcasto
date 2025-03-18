@@ -30,6 +30,7 @@ const podcastCreationSchema = z.object({
   isLongPodcast: z.boolean().default(false),
   discussionRounds: z.number().min(1).max(20).default(5),
   minCharsPerRound: z.number().min(100).max(2000).default(500),
+  episodeFrequency: z.number().min(1).max(30).default(7),
   
   // Style and Roles
   conversationStyle: z.enum([
@@ -101,7 +102,7 @@ export async function createPodcast(data: PodcastCreationData) {
         creator: validatedData.creator,
         podcast_name: validatedData.podcastName,
         slogan: validatedData.slogan,
-        creativity_level: validatedData.creativityLevel,
+        creativity_level: Math.round(validatedData.creativityLevel * 100),
         is_long_podcast: validatedData.isLongPodcast,
         discussion_rounds: validatedData.discussionRounds,
         min_chars_per_round: validatedData.minCharsPerRound,
@@ -110,6 +111,7 @@ export async function createPodcast(data: PodcastCreationData) {
         speaker2_role: validatedData.speaker2Role,
         mixing_techniques: validatedData.mixingTechniques,
         additional_instructions: validatedData.additionalInstructions,
+        episode_frequency: validatedData.episodeFrequency,
       });
     } catch (configError) {
       console.error('Error creating podcast configuration:', configError);

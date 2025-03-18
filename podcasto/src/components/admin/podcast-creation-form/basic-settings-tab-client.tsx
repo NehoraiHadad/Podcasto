@@ -65,6 +65,40 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
       
       <FormField
         control={form.control}
+        name="episodeFrequency"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>
+              Episode Frequency: {field.value} days
+              <span className="text-red-500 ml-1">*</span>
+            </FormLabel>
+            <FormControl>
+              <div className="space-y-2">
+                <Slider
+                  min={1}
+                  max={30}
+                  step={1}
+                  defaultValue={[7]}
+                  value={[field.value]}
+                  onValueChange={(values) => field.onChange(values[0])}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Daily</span>
+                  <span>Weekly</span>
+                  <span>Monthly</span>
+                </div>
+              </div>
+            </FormControl>
+            <FormDescription>
+              How often a new episode should be created (1-30 days)
+            </FormDescription>
+            <FormMessage className="text-red-500" />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
         name="slogan"
         render={({ field }) => (
           <FormItem>
