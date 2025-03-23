@@ -18,10 +18,18 @@ Resources:
           TELEGRAM_API_HASH: !Ref TelegramApiHash
           TELEGRAM_SESSION: !Ref TelegramSession
           S3_BUCKET_NAME: !Ref S3BucketName
+          SQS_QUEUE_URL: !Ref SQSQueueUrl
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_KEY: !Ref SupabaseKey
           LOG_LEVEL: DEBUG
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: "*"
 
 Parameters:
   TelegramApiId:
@@ -42,4 +50,21 @@ Parameters:
   S3BucketName:
     Type: String
     Description: S3 Bucket Name for storing messages
-    Default: telegram-data-collector-dev 
+    Default: ""
+    
+  SQSQueueUrl:
+    Type: String
+    Description: URL of the SQS queue for podcast processing
+    Default: ""
+    
+  SupabaseUrl:
+    Type: String
+    Description: Supabase URL
+    Default: ""
+    NoEcho: true
+    
+  SupabaseKey:
+    Type: String
+    Description: Supabase API Key
+    Default: ""
+    NoEcho: true 

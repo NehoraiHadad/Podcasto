@@ -19,19 +19,35 @@ Parameters:
   S3BucketName:
     Type: String
     Description: S3 Bucket Name for storing podcasts
-    Default: "podcasto-podcasts"
+    Default: ""
+  SQSQueueArn:
+    Type: String
+    Description: ARN of the SQS queue for podcast processing
+    Default: ""
+  SupabaseUrl:
+    Type: String
+    Description: Supabase URL
+    Default: ""
+    NoEcho: true
+  SupabaseKey:
+    Type: String
+    Description: Supabase API Key
+    Default: ""
+    NoEcho: true
 
 Globals:
   Function:
-    Timeout: 600
+    Timeout: 300
     MemorySize: 3008
     Environment:
       Variables:
         PYTHONPATH: /var/task
         GEMINI_API_KEY: !Ref GeminiApiKey
         OPENAI_API_KEY: !Ref OpenAiApiKey
-        STORAGE_DIR: /tmp/podcasts
+        STORAGE_DIR: /tmp
         S3_BUCKET_NAME: !Ref S3BucketName
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_KEY: !Ref SupabaseKey
 
 Resources:
   PodcastGeneratorFunction:
@@ -42,9 +58,11 @@ Resources:
         - x86_64
       Policies:
         - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:PodcastGeneratorSecrets-*'
+            SecretArn: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:PodcastGeneratorSecretsV2-*'
         - S3CrudPolicy:
             BucketName: !Ref S3BucketName
+        - SQSPollerPolicy:
+            QueueName: "podcast-processing-queue"
       Events:
         ApiEvent:
           Type: Api
@@ -52,6 +70,14 @@ Resources:
             Path: /generate
             Method: post
             RestApiId: !Ref PodcastGeneratorApi
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !Ref SQSQueueArn
+            BatchSize: 1
+            Enabled: true
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: .
@@ -69,9 +95,9 @@ Resources:
   PodcastGeneratorSecrets:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: PodcastGeneratorSecrets
+      Name: PodcastGeneratorSecretsV2
       Description: API keys for podcast generator
-      SecretString: !Sub '{"GEMINI_API_KEY":"${GeminiApiKey}","OPENAI_API_KEY":"${OpenAiApiKey}"}'
+      SecretString: !Sub '{"GEMINI_API_KEY":"${GeminiApiKey}","OPENAI_API_KEY":"${OpenAiApiKey}","SUPABASE_KEY":"${SupabaseKey}"}'
 
 Outputs:
   PodcastGeneratorFunctionArn:
