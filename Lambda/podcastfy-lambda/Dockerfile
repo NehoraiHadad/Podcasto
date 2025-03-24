@@ -16,16 +16,17 @@ ENV PATH="/var/task/ffmpeg:${PATH}"
 RUN chmod -R +x /var/task/ffmpeg
 
 # Create necessary directories for Lambda
-RUN mkdir -p /tmp/podcastify-demo/tmp /tmp/podcastify-demo/transcripts /tmp/podcastify-demo/audio && \
-    chmod -R 777 /tmp/podcastify-demo
+RUN mkdir -p /tmp/podcastfy-demo/tmp /tmp/podcastfy-demo/transcripts /tmp/podcastfy-demo/audio && \
+    chmod -R 777 /tmp/podcastfy-demo
 
 # Copy application files
 COPY requirements.txt ./
 COPY src/ ./src/
 
-# Install dependencies - use the requirements.txt file
+# Install all dependencies with latest versions
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt -t .
+    # Install requirements with latest versions
+    pip install -r requirements.txt -t . --upgrade
 
 # Command can be overwritten by providing a different command in the template directly
 CMD ["src/lambda_handler.lambda_handler"] 

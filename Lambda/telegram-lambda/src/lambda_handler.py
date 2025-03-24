@@ -8,6 +8,7 @@ from typing import Dict, Any
 from src.config import ConfigManager
 from src.channel_processor import ChannelProcessor
 from src.result_formatter import ResultFormatter
+from src.clients.sqs_client import SQSClient
 from src.utils.logging import get_logger, log_event, log_error
 
 logger = get_logger(__name__)
@@ -27,6 +28,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         log_event(logger, event)
         logger.info("Starting Telegram collector Lambda function")
+        
+        # Initialize SQS client
+        sqs_client = SQSClient()
         
         # Parse configuration from event
         config_manager = ConfigManager(event)
@@ -51,6 +55,23 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Store results
                 all_results[config.id] = result
+                
+                # Check if processing was successful and send to SQS
+                if result.get('status') == 'success':
+                    # Extract timestamp from the S3 path
+                    s3_path = result.get('s3_path', '')
+                    timestamp = result.get('timestamp', '')
+                    
+                    # Send message to SQS
+                    sqs_sent = sqs_client.send_message(
+                        podcast_id=config.id,
+                        result_data=result,
+                        timestamp=timestamp
+                    )
+                    
+                    # Add SQS status to result
+                    result['sqs_message_sent'] = sqs_sent
+                    logger.info(f"SQS message for podcast {config.id}: {'Sent' if sqs_sent else 'Failed'}")
                 
             except Exception as e:
                 logger.error(f"Error processing podcast config {config.id}: {str(e)}")

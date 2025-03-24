@@ -17,7 +17,34 @@ Stores metadata about each generated podcast.
 | created_at | TIMESTAMP  | Podcast creation timestamp      |
 | updated_at | TIMESTAMP  | Last update timestamp          |
 
-### 2. **Episodes** (`episodes`)
+### 2. **Podcast Configurations** (`podcast_configs`)
+Stores configuration settings for podcast generation.
+
+| Column                  | Type       | Description                                     |
+|------------------------|------------|-------------------------------------------------|
+| id                     | UUID       | Primary Key                                     |
+| podcast_id             | UUID       | Foreign Key to `podcasts`                       |
+| content_source         | TEXT       | Source of content (telegram, urls)              |
+| telegram_channel       | TEXT       | Telegram channel for content (if applicable)    |
+| telegram_hours         | INTEGER    | Hours of Telegram history to collect            |
+| urls                   | JSONB      | Array of URLs for content (if applicable)       |
+| creator                | TEXT       | Name of the podcast creator                     |
+| podcast_name           | TEXT       | Display name of the podcast                     |
+| slogan                 | TEXT       | Podcast tagline                                 |
+| creativity_level       | INTEGER    | AI creativity level (0-100)                     |
+| is_long_podcast        | BOOLEAN    | Whether the podcast is longform                 |
+| discussion_rounds      | INTEGER    | Number of discussion segments                   |
+| min_chars_per_round    | INTEGER    | Minimum characters per discussion segment       |
+| conversation_style     | TEXT       | Style of conversation (engaging, formal, etc.)  |
+| speaker1_role          | TEXT       | Role of first speaker                           |
+| speaker2_role          | TEXT       | Role of second speaker                          |
+| mixing_techniques      | JSONB      | Array of engagement techniques                  |
+| additional_instructions| TEXT       | Custom instructions for generation              |
+| episode_frequency      | INTEGER    | Days between episode generations (default: 7)   |
+| created_at             | TIMESTAMP  | Configuration creation timestamp                |
+| updated_at             | TIMESTAMP  | Last update timestamp                           |
+
+### 3. **Episodes** (`episodes`)
 Stores details about individual podcast episodes.
 
 | Column       | Type         | Description                         |
@@ -31,8 +58,11 @@ Stores details about individual podcast episodes.
 | duration   | INTEGER    | Episode length in seconds       |
 | created_at | TIMESTAMP  | Episode creation timestamp      |
 | published_at | TIMESTAMP  | Last update timestamp          |
+| status     | TEXT       | Processing status (pending, completed, etc.) |
+| metadata_url | TEXT      | URL to episode source metadata   |
+| source_data_ref | TEXT    | Reference to timestamp-based source data |
 
-### 3. **Subscriptions** (`subscriptions`)
+### 4. **Subscriptions** (`subscriptions`)
 Tracks which users are subscribed to which podcasts.
 
 | Column      | Type     | Description                           |
@@ -42,7 +72,7 @@ Tracks which users are subscribed to which podcasts.
 | podcast_id | UUID   | Foreign Key to `podcasts`      |
 | created_at | TIMESTAMP | Subscription creation timestamp |
 
-### 4. **Sent Episodes** (`sent_episodes`)
+### 5. **Sent Episodes** (`sent_episodes`)
 Tracks episodes that have been emailed to users.
 
 | Column       | Type     | Description                             |
@@ -53,13 +83,13 @@ Tracks episodes that have been emailed to users.
 | sent_at    | TIMESTAMP | Timestamp when the episode was sent |
 
 
-### 5. ** User Roles ** ('user_roles')
+### 6. **User Roles** (`user_roles`)
 
 | Column       | Type     | Description                             |
 |-------------|--------|----------------------------------|
 | id         | UUID   | Primary Key                      |
 | user_id    | UUID   | Foreign Key to `users`         |
-| rule | user_rule   | user or admin     |
+| role | TEXT   | user or admin     |
 | created_at    | TIMESTAMP | Timestamp when the user register |
 
 

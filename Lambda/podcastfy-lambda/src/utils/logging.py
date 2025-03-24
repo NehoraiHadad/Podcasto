@@ -1,76 +1,66 @@
 """
-Logging utilities for the Podcast Generator Lambda.
+Logging utilities for the Lambda function.
 """
 import logging
 import json
-import traceback
-from typing import Dict, Any, Optional
+import sys
+import os
+from typing import Any, Dict, Optional
+
+# Set up logging
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
+FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Map string log levels to logging constants
+LOG_LEVEL_MAP = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL
+}
 
 def get_logger(name: str) -> logging.Logger:
     """
-    Get a logger instance with proper configuration.
+    Get a configured logger instance.
     
     Args:
-        name: Name of the logger
+        name: Name for the logger
         
     Returns:
         Configured logger instance
     """
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
     
-    # Only add handler if it doesn't already have one
+    # Set the log level
+    level = LOG_LEVEL_MAP.get(LOG_LEVEL, logging.INFO)
+    logger.setLevel(level)
+    
+    # Only add handler if not already added to avoid duplicate logs
     if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
+        # Create console handler
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(FORMATTER)
         logger.addHandler(handler)
     
     return logger
 
-def log_event(logger: logging.Logger, event: Dict[str, Any]) -> None:
-    """
-    Log an event, sanitizing sensitive information.
-    
-    Args:
-        logger: Logger instance
-        event: Event to log
-    """
-    # Create a copy of the event to sanitize
-    sanitized_event = {}
-    
-    # Check if event is a dictionary
-    if isinstance(event, dict):
-        for key, value in event.items():
-            # Skip sensitive fields or truncate large values
-            if key.lower() in ['api_key', 'secret', 'password', 'token']:
-                sanitized_event[key] = '***REDACTED***'
-            elif isinstance(value, str) and len(value) > 1000:
-                sanitized_event[key] = f"{value[:1000]}... (truncated)"
-            else:
-                sanitized_event[key] = value
-    else:
-        sanitized_event = {'event': str(event)[:1000]}
-    
-    logger.info(f"Event received: {json.dumps(sanitized_event, default=str)}")
 
 def log_error(logger: logging.Logger, error: Exception, context: Optional[Dict[str, Any]] = None) -> None:
     """
-    Log an error with context and traceback.
+    Log an error with context information.
     
     Args:
         logger: Logger instance
         error: Exception to log
-        context: Additional context information
+        context: Additional context dictionary
     """
-    if context is None:
-        context = {}
+    context = context or {}
     
-    error_details = {
-        'error_type': error.__class__.__name__,
+    error_info = {
+        'error_type': type(error).__name__,
         'error_message': str(error),
-        'traceback': traceback.format_exc(),
-        'context': context
+        **context
     }
     
-    logger.error(f"Error details: {json.dumps(error_details, default=str)}") 
+    logger.error(f"Error occurred: {json.dumps(error_info)}") 

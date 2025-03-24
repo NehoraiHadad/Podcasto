@@ -35,7 +35,7 @@ class MediaHandler:
         self.media_dir = media_dir
         self.is_local = is_local
         self.podcast_id = None
-        self.episode_folder = None
+        self.episode_id = None
         self.media_types = ["image"]  # Default to only images
         
         # Create a semaphore to limit concurrent downloads
@@ -44,25 +44,25 @@ class MediaHandler:
         # Create media directory if it doesn't exist
         os.makedirs(self.media_dir, exist_ok=True)
     
-    def set_context(self, podcast_id: str, episode_folder: str, media_types: List[str] = None):
+    def set_context(self, podcast_id: str, episode_id: str, media_types: List[str] = None):
         """
         Set the context for media handling.
         
         Args:
             podcast_id: The ID of the podcast
-            episode_folder: The folder name for the episode
+            episode_id: The episode ID for consistent folder structure
             media_types: List of media types to process (e.g., ["image", "video", "audio", "file"])
         """
         self.podcast_id = podcast_id
-        self.episode_folder = episode_folder
+        self.episode_id = episode_id
         if media_types:
             self.media_types = media_types
         
-        # Create podcast-specific media directory
-        self.podcast_media_dir = os.path.join(self.media_dir, podcast_id, episode_folder)
+        # Create podcast-specific media directory using consistent folder structure
+        self.podcast_media_dir = os.path.join(self.media_dir, "podcasts", podcast_id, episode_id)
         os.makedirs(self.podcast_media_dir, exist_ok=True)
         
-        logger.info(f"Media handler context set: podcast_id={podcast_id}, episode_folder={episode_folder}, media_types={self.media_types}")
+        logger.info(f"Media handler context set: podcast_id={podcast_id}, episode_id={episode_id}, media_types={self.media_types}")
     
     async def download_media(self, client: TelegramClient, message: Message) -> Optional[str]:
         """
@@ -75,7 +75,7 @@ class MediaHandler:
         Returns:
             A description of the media, or None if no media was found
         """
-        if not self.podcast_id or not self.episode_folder:
+        if not self.podcast_id or not self.episode_id:
             logger.warning("Media handler context not set. Call set_context() first.")
             return None
             
@@ -96,172 +96,167 @@ class MediaHandler:
                         if isinstance(attr, DocumentAttributeVideo):
                             if "video" in self.media_types:
                                 return await self._handle_video(client, message, file_id)
-                            return "[Video: Not downloaded - Not configured to download videos]"
+                            else:
+                                logger.debug(f"Skipping video in message {message.id} (not in media_types)")
+                                return "[Video: Not downloaded - Not configured to download videos]"
+                                
                         elif isinstance(attr, DocumentAttributeAudio):
                             if "audio" in self.media_types:
                                 return await self._handle_audio(client, message, file_id)
-                            return "[Audio: Not downloaded - Not configured to download audio]"
-                    
-                    # Generic file
+                            else:
+                                logger.debug(f"Skipping audio in message {message.id} (not in media_types)")
+                                return "[Audio: Not downloaded - Not configured to download audio]"
+                                
+                    # If we get here, it's a file
                     if "file" in self.media_types:
                         return await self._handle_file(client, message, file_id)
-                    return "[File: Not downloaded - Not configured to download files]"
-                
+                    else:
+                        logger.debug(f"Skipping file in message {message.id} (not in media_types)")
+                        return "[File: Not downloaded - Not configured to download files]"
+                        
                 return None
                 
             except Exception as e:
-                logger.error(f"Error downloading media: {str(e)}")
-                return f"[Media: Download failed - {str(e)}]"
+                logger.error(f"Error downloading media from message {message.id}: {str(e)}")
+                return "[Media: Download failed]"
     
     async def _handle_photo(self, client: TelegramClient, message: Message, file_id: str) -> str:
-        """Handle photo media type."""
-        media_path = os.path.join(self.podcast_media_dir, f"photo_{file_id}.jpg")
-        
-        # Download only if the file doesn't exist
-        if not os.path.exists(media_path):
-            try:
-                # Set a timeout for the download
-                download_task = message.download_media(media_path)
-                await asyncio.wait_for(download_task, timeout=30)  # 30 seconds timeout
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout downloading photo for message {message.id}")
-                return f"[Image: Download failed - Timeout]"
-            except Exception as e:
-                logger.error(f"Error downloading photo: {str(e)}")
-                return f"[Image: Download failed - {str(e)}]"
-        
-        # Upload to S3 if not running locally
-        if not self.is_local and self.s3_client and os.path.exists(media_path):
-            try:
-                filename = f"photo_{file_id}.jpg"
-                s3_url = self.s3_client.upload_file(
-                    media_path, 
-                    self.podcast_id, 
-                    self.episode_folder, 
-                    "images", 
-                    filename
+        """Handle photo media."""
+        try:
+            # Generate filename
+            filename = f"photo_{file_id}.jpg"
+            local_path = os.path.join(self.podcast_media_dir, filename)
+            
+            # Download the photo
+            await client.download_media(message, local_path)
+            
+            # Upload to S3 if not in local mode
+            if not self.is_local:
+                s3_path = self.s3_client.upload_file(
+                    local_path=local_path,
+                    podcast_id=self.podcast_id,
+                    episode_id=self.episode_id,
+                    file_type="images",
+                    filename=filename
                 )
-                if s3_url:
-                    return f"[Image: {s3_url}]"
-            except Exception as e:
-                logger.error(f"Error uploading to S3: {str(e)}")
-                # Fall back to local path
-        
-        return f"[Image: {media_path}]"
-    
+                
+                if s3_path:
+                    logger.info(f"Uploaded photo to S3: {s3_path}")
+                    return f"[Image: {s3_path}]"
+                else:
+                    logger.warning(f"Failed to upload photo to S3, using local path: {local_path}")
+                    return f"[Image: local://{local_path}]"
+            else:
+                return f"[Image: local://{local_path}]"
+                
+        except Exception as e:
+            logger.error(f"Error handling photo in message {message.id}: {str(e)}")
+            return "[Image: Download failed]"
+            
     async def _handle_video(self, client: TelegramClient, message: Message, file_id: str) -> str:
-        """Handle video media type."""
-        media_path = os.path.join(self.podcast_media_dir, f"video_{file_id}.mp4")
-        
-        # Download only if the file doesn't exist
-        if not os.path.exists(media_path):
-            try:
-                # Set a timeout for the download
-                download_task = message.download_media(media_path)
-                await asyncio.wait_for(download_task, timeout=120)  # 2 minutes timeout for videos
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout downloading video for message {message.id}")
-                return f"[Video: Download failed - Timeout]"
-            except Exception as e:
-                logger.error(f"Error downloading video: {str(e)}")
-                return f"[Video: Download failed - {str(e)}]"
-        
-        # Upload to S3 if not running locally
-        if not self.is_local and self.s3_client and os.path.exists(media_path):
-            try:
-                filename = f"video_{file_id}.mp4"
-                s3_url = self.s3_client.upload_file(
-                    media_path, 
-                    self.podcast_id, 
-                    self.episode_folder, 
-                    "videos", 
-                    filename
+        """Handle video media."""
+        try:
+            # Generate filename
+            filename = f"video_{file_id}.mp4"
+            local_path = os.path.join(self.podcast_media_dir, filename)
+            
+            # Download the video
+            await client.download_media(message, local_path)
+            
+            # Upload to S3 if not in local mode
+            if not self.is_local:
+                s3_path = self.s3_client.upload_file(
+                    local_path=local_path,
+                    podcast_id=self.podcast_id,
+                    episode_id=self.episode_id,
+                    file_type="videos",
+                    filename=filename
                 )
-                if s3_url:
-                    return f"[Video: {s3_url}]"
-            except Exception as e:
-                logger.error(f"Error uploading to S3: {str(e)}")
-                # Fall back to local path
-        
-        return f"[Video: {media_path}]"
-    
+                
+                if s3_path:
+                    logger.info(f"Uploaded video to S3: {s3_path}")
+                    return f"[Video: {s3_path}]"
+                else:
+                    logger.warning(f"Failed to upload video to S3, using local path: {local_path}")
+                    return f"[Video: local://{local_path}]"
+            else:
+                return f"[Video: local://{local_path}]"
+                
+        except Exception as e:
+            logger.error(f"Error handling video in message {message.id}: {str(e)}")
+            return "[Video: Download failed]"
+            
     async def _handle_audio(self, client: TelegramClient, message: Message, file_id: str) -> str:
-        """Handle audio media type."""
-        media_path = os.path.join(self.podcast_media_dir, f"audio_{file_id}.mp3")
-        
-        # Download only if the file doesn't exist
-        if not os.path.exists(media_path):
-            try:
-                # Set a timeout for the download
-                download_task = message.download_media(media_path)
-                await asyncio.wait_for(download_task, timeout=60)  # 1 minute timeout for audio
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout downloading audio for message {message.id}")
-                return f"[Audio: Download failed - Timeout]"
-            except Exception as e:
-                logger.error(f"Error downloading audio: {str(e)}")
-                return f"[Audio: Download failed - {str(e)}]"
-        
-        # Upload to S3 if not running locally
-        if not self.is_local and self.s3_client and os.path.exists(media_path):
-            try:
-                filename = f"audio_{file_id}.mp3"
-                s3_url = self.s3_client.upload_file(
-                    media_path, 
-                    self.podcast_id, 
-                    self.episode_folder, 
-                    "audio", 
-                    filename
+        """Handle audio media."""
+        try:
+            # Generate filename
+            filename = f"audio_{file_id}.mp3"
+            local_path = os.path.join(self.podcast_media_dir, filename)
+            
+            # Download the audio
+            await client.download_media(message, local_path)
+            
+            # Upload to S3 if not in local mode
+            if not self.is_local:
+                s3_path = self.s3_client.upload_file(
+                    local_path=local_path,
+                    podcast_id=self.podcast_id,
+                    episode_id=self.episode_id,
+                    file_type="audio",
+                    filename=filename
                 )
-                if s3_url:
-                    return f"[Audio: {s3_url}]"
-            except Exception as e:
-                logger.error(f"Error uploading to S3: {str(e)}")
-                # Fall back to local path
-        
-        return f"[Audio: {media_path}]"
-    
+                
+                if s3_path:
+                    logger.info(f"Uploaded audio to S3: {s3_path}")
+                    return f"[Audio: {s3_path}]"
+                else:
+                    logger.warning(f"Failed to upload audio to S3, using local path: {local_path}")
+                    return f"[Audio: local://{local_path}]"
+            else:
+                return f"[Audio: local://{local_path}]"
+                
+        except Exception as e:
+            logger.error(f"Error handling audio in message {message.id}: {str(e)}")
+            return "[Audio: Download failed]"
+            
     async def _handle_file(self, client: TelegramClient, message: Message, file_id: str) -> str:
-        """Handle generic file media type."""
-        # Get original filename if available
-        original_filename = None
-        for attr in message.document.attributes:
-            if hasattr(attr, 'file_name') and attr.file_name:
-                original_filename = attr.file_name
-                break
-        
-        if not original_filename:
-            original_filename = f"file_{file_id}"
-        
-        media_path = os.path.join(self.podcast_media_dir, original_filename)
-        
-        # Download only if the file doesn't exist
-        if not os.path.exists(media_path):
-            try:
-                # Set a timeout for the download
-                download_task = message.download_media(media_path)
-                await asyncio.wait_for(download_task, timeout=60)  # 1 minute timeout for files
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout downloading file for message {message.id}")
-                return f"[File: Download failed - Timeout]"
-            except Exception as e:
-                logger.error(f"Error downloading file: {str(e)}")
-                return f"[File: Download failed - {str(e)}]"
-        
-        # Upload to S3 if not running locally
-        if not self.is_local and self.s3_client and os.path.exists(media_path):
-            try:
-                s3_url = self.s3_client.upload_file(
-                    media_path, 
-                    self.podcast_id, 
-                    self.episode_folder, 
-                    "files", 
-                    original_filename
+        """Handle other file types."""
+        try:
+            # Extract file extension if possible
+            extension = ""
+            for attr in message.document.attributes:
+                if hasattr(attr, 'file_name') and attr.file_name:
+                    _, ext = os.path.splitext(attr.file_name)
+                    if ext:
+                        extension = ext
+                        break
+            
+            # Generate filename
+            filename = f"file_{file_id}{extension}"
+            local_path = os.path.join(self.podcast_media_dir, filename)
+            
+            # Download the file
+            await client.download_media(message, local_path)
+            
+            # Upload to S3 if not in local mode
+            if not self.is_local:
+                s3_path = self.s3_client.upload_file(
+                    local_path=local_path,
+                    podcast_id=self.podcast_id,
+                    episode_id=self.episode_id,
+                    file_type="files",
+                    filename=filename
                 )
-                if s3_url:
-                    return f"[File: {s3_url}]"
-            except Exception as e:
-                logger.error(f"Error uploading to S3: {str(e)}")
-                # Fall back to local path
-        
-        return f"[File: {media_path}]" 
+                
+                if s3_path:
+                    logger.info(f"Uploaded file to S3: {s3_path}")
+                    return f"[File: {s3_path}]"
+                else:
+                    logger.warning(f"Failed to upload file to S3, using local path: {local_path}")
+                    return f"[File: local://{local_path}]"
+            else:
+                return f"[File: local://{local_path}]"
+                
+        except Exception as e:
+            logger.error(f"Error handling file in message {message.id}: {str(e)}")
+            return "[File: Download failed]" 

@@ -3,6 +3,7 @@ Channel processing module for the Telegram collector Lambda function.
 """
 import asyncio
 import os
+import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -82,18 +83,28 @@ class ChannelProcessor:
                 logger.warning(f"No messages found in channel {channel}")
                 return self._create_empty_result()
             
-            # Create episode folder name - create it once and use it consistently
+            # Create timestamp for consistent folder structure
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            episode_folder = f"episode_{timestamp}"
             
-            # Set media handler context
-            self.media_handler.set_context(self.config.id, episode_folder, self.config.media_types)
+            # Use the episode ID from config if available, otherwise generate a new one
+            # This is crucial for ensuring the episode ID is consistent throughout the pipeline
+            episode_id = self.config.episode_id
+            if not episode_id:
+                # If no episode_id provided, use UUID for episode_id to ensure uniqueness
+                episode_id = str(uuid.uuid4())
+                logger.warning(f"No episode_id provided in config, generated new ID: {episode_id}")
+            else:
+                logger.info(f"Using provided episode_id from config: {episode_id}")
+            
+            # Set media handler context with the episode_id
+            self.media_handler.set_context(self.config.id, episode_id, self.config.media_types)
             
             # Process messages
             processed_messages = await self._process_messages(messages)
             
             # Create result
             result = {
+                'status': 'success',
                 'message': 'Data collected successfully',
                 'podcast_config_id': self.config.id,
                 'channel': channel,
@@ -104,12 +115,14 @@ class ChannelProcessor:
                 'url_stats': {channel: sum(len(msg.get('urls', [])) for msg in processed_messages)},
                 'filtered_domains': self.config.filtered_domains,
                 'media_types': self.config.media_types,
-                'results': {channel: processed_messages}
+                'results': {channel: processed_messages},
+                'timestamp': timestamp,
+                'episode_id': episode_id
             }
             
-            # Upload results to S3 - pass the same episode folder name
-            output_file = self.s3_client.upload_data(result, self.config.id, episode_folder)
-            result['output_file'] = output_file
+            # Upload results to S3 using episode_id instead of timestamp
+            s3_result = self.s3_client.upload_data(result, self.config.id, episode_id)
+            result['s3_path'] = s3_result
             
             return result
             

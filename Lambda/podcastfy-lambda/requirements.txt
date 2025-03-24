@@ -1,3 +1,14 @@
 podcastfy
 python-dotenv
-boto3
+boto3[crt]==1.36.0
+botocore==1.36.0
+requests
+idna
+charset-normalizer
+certifi
+supabase
+postgrest
+cython
+ffmpeg-python
+openai
+pydub

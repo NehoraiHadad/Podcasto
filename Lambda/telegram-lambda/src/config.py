@@ -1,8 +1,10 @@
 """
-Configuration management for the Telegram collector Lambda function.
+Configuration module for the Telegram collector Lambda function.
+This module provides classes for managing Lambda configuration.
 """
 import os
-from typing import List, Dict, Any
+import json
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
 from src.utils.logging import get_logger
@@ -12,29 +14,48 @@ logger = get_logger(__name__)
 
 @dataclass
 class PodcastConfig:
-    """Podcast configuration data class."""
+    """
+    Podcast configuration data structure.
+    """
     id: str
     telegram_channel: str
-    telegram_hours: int = 24
+    media_types: List[str] = field(default_factory=list)
     filtered_domains: List[str] = field(default_factory=list)
-    media_types: List[str] = field(default_factory=lambda: ["image"])  # Default to only images
+    days_back: int = 1
+    episode_id: Optional[str] = None
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PodcastConfig':
-        """Create a PodcastConfig from a dictionary."""
+        """
+        Create a PodcastConfig instance from a dictionary.
+        
+        Args:
+            data: Dictionary with configuration data
+            
+        Returns:
+            A PodcastConfig instance
+        """
+        # Extract required fields
+        podcast_id = data.get('id')
+        telegram_channel = data.get('telegram_channel')
+        
+        # Extract optional fields with defaults
+        media_types = data.get('media_types', [])
+        filtered_domains = data.get('filtered_domains', [])
+        days_back = data.get('telegram_hours', 24) // 24 or 1  # Convert hours to days, default to 1
+        
+        # Extract episode_id if available
+        episode_id = data.get('episode_id')
+        
+        # Create and return the config object
         return cls(
-            id=data.get('id', ''),
-            telegram_channel=data.get('telegram_channel', ''),
-            telegram_hours=data.get('telegram_hours', 24),
-            filtered_domains=data.get('filtered_domains', []),
-            media_types=data.get('media_types', ["image"])  # Default to only images
+            id=podcast_id,
+            telegram_channel=telegram_channel,
+            media_types=media_types,
+            filtered_domains=filtered_domains,
+            days_back=days_back,
+            episode_id=episode_id
         )
-    
-    @property
-    def days_back(self) -> int:
-        """Calculate days back from hours."""
-        days = self.telegram_hours // 24
-        return max(1, days)  # Ensure at least 1 day
 
 
 class ConfigManager:
@@ -85,6 +106,11 @@ class ConfigManager:
         # Check if a complete podcast config is provided directly
         if 'podcast_config' in self.event:
             config_data = self.event['podcast_config']
+            
+            # If episode_id is in the event but not in the podcast_config, add it
+            if 'episode_id' in self.event and 'episode_id' not in config_data:
+                config_data['episode_id'] = self.event['episode_id']
+                
             config = PodcastConfig.from_dict(config_data)
             
             # Validate the config
@@ -93,6 +119,8 @@ class ConfigManager:
                 return []
             
             logger.info(f"Using provided podcast config with ID: {config.id}")
+            if config.episode_id:
+                logger.info(f"Using episode ID: {config.episode_id}")
             return [config]
         
         # No valid configurations found

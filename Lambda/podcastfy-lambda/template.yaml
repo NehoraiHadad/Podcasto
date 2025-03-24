@@ -92,13 +92,6 @@ Resources:
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
 
-  PodcastGeneratorSecrets:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: PodcastGeneratorSecretsV2
-      Description: API keys for podcast generator
-      SecretString: !Sub '{"GEMINI_API_KEY":"${GeminiApiKey}","OPENAI_API_KEY":"${OpenAiApiKey}","SUPABASE_KEY":"${SupabaseKey}"}'
-
 Outputs:
   PodcastGeneratorFunctionArn:
     Description: "Podcast Generator Lambda Function ARN"

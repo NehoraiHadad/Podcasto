@@ -10,5 +10,7 @@ export const episodes = pgTable('episodes', {
   audio_url: varchar('audio_url').notNull(),
   duration: integer('duration'),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  published_at: timestamp('published_at', { withTimezone: true }).defaultNow()
+  published_at: timestamp('published_at', { withTimezone: true }),
+  status: text('status'),
+  metadata: text('metadata')
 }); 

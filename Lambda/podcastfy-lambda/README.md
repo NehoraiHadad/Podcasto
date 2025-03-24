@@ -33,7 +33,32 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-4. Edit the `.env` file with your Podcastfy API key
+4. Edit the `.env` file with your API keys and configuration:
+
+```
+# API Keys
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+
+# AWS Configuration
+S3_BUCKET_NAME=your_s3_bucket_name
+AWS_SAM_LOCAL=false
+AWS_ACCOUNT_ID=your_aws_account_id
+SQS_QUEUE_URL=your_sqs_queue_url
+SQS_QUEUE_ARN=your_sqs_queue_arn
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+
+# Local Storage
+STORAGE_DIR=/tmp/podcasts
+```
+
+> ⚠️ **IMPORTANT**: 
+> - Never commit your `.env` file to Git. It contains sensitive API keys and credentials.
+> - All values in the `.env` file are used as defaults when deploying with SAM CLI.
+> - For deployments, the template.yaml and samconfig.toml files will use these environment variables automatically.
 
 ## Local Development with S3 Upload
 
@@ -66,6 +91,12 @@ You can also use the SAM CLI to run the Lambda locally:
 # Run the Lambda with SAM CLI
 sam local invoke PodcastGeneratorFunction --event events/test-event-telegram.json --env-vars env.json
 ```
+
+The `env.json` file is configured to automatically use values from your environment variables (from `.env` file). This ensures that:
+
+1. You don't have to duplicate sensitive information
+2. The same values are used consistently across different execution methods
+3. You can easily update all configuration values in one place
 
 Note: When using SAM CLI, the Lambda still uses real S3 upload if you've modified the S3Client to remove the local simulation mode.
 
@@ -167,4 +198,41 @@ The function returns a JSON response with the following structure:
 
 ## Examples
 
-See the `events/` directory for example requests. 
+See the `events/` directory for example requests.
+
+## Code Refactoring
+
+The Lambda codebase has been significantly refactored to improve maintainability, reduce code duplication, and simplify the overall structure. The following key improvements were made:
+
+### 1. Standardized Response Handling
+
+- Created a unified `create_api_response` function in `utils/responses.py`
+- Eliminated duplicate response handling code throughout the codebase
+- Ensured consistent response format for all API endpoints
+
+### 2. Simplified Supabase Client
+
+- Created a reusable `_make_request` helper method to handle common request patterns
+- Standardized return values with a consistent format (success/error pattern)
+- Removed repetitive code in database operation methods
+- Added improved error handling and logging
+
+### 3. Streamlined Configuration Manager
+
+- Removed unused validation code and redundant methods
+- Focused on the essential functionality of retrieving podcast configurations
+- Improved integration with the Supabase client
+
+### 4. Enhanced SQS Handler
+
+- Updated to work with the new standardized client return values
+- Improved error handling and logging
+- Removed duplicated processing logic 
+
+### 5. Consistent Logging Format
+
+- Standardized log prefix format across all modules
+- Improved request tracing with consistent request ID usage
+- Enhanced error reporting and debugging capabilities
+
+These improvements make the codebase more maintainable, easier to understand, and less prone to errors. The code now follows a more consistent pattern throughout the application, with clearer separation of concerns and better error handling. 

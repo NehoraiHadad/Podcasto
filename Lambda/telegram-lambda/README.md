@@ -55,6 +55,40 @@ The following environment variables must be set:
 - `S3_BUCKET_NAME`: Your S3 bucket name (default: 'telegram-data-collector')
 - `LOG_LEVEL`: Logging level (default: 'INFO')
 - `AWS_SAM_LOCAL`: Set to 'true' when running locally
+- `SQS_QUEUE_URL`: Your SQS queue URL for podcast processing
+- `SUPABASE_URL`: Your Supabase URL
+- `SUPABASE_KEY`: Your Supabase API key
+
+### Setting up environment variables
+
+1. Create a `.env` file from the template:
+
+```bash
+cp .env.example .env
+```
+
+2. Edit the `.env` file with your credentials:
+
+```
+# Telegram API Credentials
+TELEGRAM_API_ID=your_telegram_api_id
+TELEGRAM_API_HASH=your_telegram_api_hash
+TELEGRAM_SESSION=your_telegram_session_string
+
+# AWS Configuration
+S3_BUCKET_NAME=your_s3_bucket_name
+AWS_SAM_LOCAL=false
+SQS_QUEUE_URL=your_sqs_queue_url
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+
+# Logging
+LOG_LEVEL=INFO
+```
+
+> ⚠️ **IMPORTANT**: Never commit your `.env` file to Git. It contains sensitive API keys and credentials.
 
 ## Generating a Telegram Session String
 
@@ -192,12 +226,22 @@ s3://bucket-name/
 
 To run the function locally:
 
-1. Set the environment variables in a `.env` file
-2. Set `AWS_SAM_LOCAL=true`
-3. Run the function with:
+1. Set up your environment variables in `.env` file
+2. The function will automatically use these environment variables:
+   ```bash
+   # Create an env.json file from your .env file
+   node scripts/generate-env-json.js # If you have this script, or similar
+   
+   # Or use the existing env.json which references environment variables
+   sam local invoke TelegramCollector --event events/test-event.json --env-vars env.json
+   ```
+
+3. For direct invocation (not using SAM):
    ```python
    python -c "from src.lambda_handler import lambda_handler; lambda_handler({'podcast_config': {'id': 'test', 'telegram_channel': 'your_channel'}}, None)"
    ```
+
+> **Note**: The `env.json` file is configured to automatically use values from your environment variables (from `.env` file). This ensures consistent configuration across different execution methods.
 
 ## Deployment with AWS SAM
 

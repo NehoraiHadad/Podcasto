@@ -6,7 +6,7 @@ import os
 import json
 import boto3
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import time
 
 from src.utils.logging import get_logger
@@ -27,41 +27,40 @@ class S3Client:
         self.retry_delay = 1  # seconds
         
         if not self.is_local:
-            self.s3_client = boto3.client('s3')
+            session = boto3.Session()
+            self.s3_client = session.client('s3')
         else:
             self.s3_client = None
             logger.info("Running in local environment, S3 operations will be simulated")
     
-    def upload_data(self, data: Dict[str, Any], podcast_id: str, episode_folder: Optional[str] = None) -> Optional[str]:
+    def upload_data(self, data: Dict[str, Any], podcast_id: str, episode_id: str) -> Optional[str]:
         """
         Upload data to S3.
         
         Args:
             data: The data to upload
             podcast_id: The ID of the podcast
-            episode_folder: The episode folder name. If None, a new one will be generated.
+            episode_id: The episode ID for consistent folder structure
         
         Returns:
-            The S3 key of the uploaded file or local path if running locally
+            S3 key of the uploaded file or local path if running locally
         """
-        # Use provided episode folder or generate a new one
-        if episode_folder is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            episode_folder = f"episode_{timestamp}"
-            
         filename = "content.json"
         
         # Convert data to JSON
         json_data = json.dumps(data, ensure_ascii=False, indent=2)
         
         if not self.is_local and self.s3_client:
-            return self._upload_to_s3(filename, json_data, podcast_id, episode_folder)
+            s3_path = self._upload_to_s3(filename, json_data, podcast_id, episode_id)
+            return s3_path
         else:
-            return self._save_locally(filename, json_data, podcast_id, episode_folder)
+            local_path = self._save_locally(filename, json_data, podcast_id, episode_id)
+            return local_path
     
-    def _upload_to_s3(self, filename: str, json_data: str, podcast_id: str, episode_folder: str) -> str:
+    def _upload_to_s3(self, filename: str, json_data: str, podcast_id: str, episode_id: str) -> str:
         """Upload data to S3 with retry logic."""
-        s3_key = f"{podcast_id}/{episode_folder}/{filename}"
+        # Use consistent folder structure: podcasts/{podcast_id}/{episode_id}/
+        s3_key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
         
         for attempt in range(self.max_retries):
             try:
@@ -78,12 +77,12 @@ class S3Client:
                     time.sleep(self.retry_delay * (2 ** attempt))  # Exponential backoff
                 else:
                     # Fall back to local storage on final failure
-                    return self._save_locally(filename, json_data, podcast_id, episode_folder)
+                    return self._save_locally(filename, json_data, podcast_id, episode_id)
     
-    def _save_locally(self, filename: str, json_data: str, podcast_id: str, episode_folder: str) -> str:
+    def _save_locally(self, filename: str, json_data: str, podcast_id: str, episode_id: str) -> str:
         """Save data locally."""
-        # Create directory structure if it doesn't exist
-        local_dir = f"/tmp/{podcast_id}/{episode_folder}"
+        # Create directory structure if it doesn't exist - use consistent structure with episode_id
+        local_dir = f"/tmp/podcasts/{podcast_id}/{episode_id}"
         os.makedirs(local_dir, exist_ok=True)
         
         # Save to local file
@@ -94,14 +93,14 @@ class S3Client:
         logger.info(f"Saved data locally: {local_path}")
         return local_path
     
-    def upload_file(self, local_path: str, podcast_id: str, episode_folder: str, file_type: str, filename: str) -> Optional[str]:
+    def upload_file(self, local_path: str, podcast_id: str, episode_id: str, file_type: str, filename: str) -> Optional[str]:
         """
         Upload a file to S3.
         
         Args:
             local_path: The local path of the file to upload
             podcast_id: The ID of the podcast
-            episode_folder: The episode folder name
+            episode_id: The episode ID for consistent folder structure
             file_type: The type of file (e.g., 'images')
             filename: The name of the file
         
@@ -109,10 +108,11 @@ class S3Client:
             The S3 URL if the upload was successful, None otherwise
         """
         if self.is_local or not self.s3_client:
-            logger.info(f"Simulating upload of {local_path} to s3://{self.s3_bucket_name}/{podcast_id}/{episode_folder}/{file_type}/{filename}")
+            logger.info(f"Simulating upload of {local_path} to s3://{self.s3_bucket_name}/podcasts/{podcast_id}/{episode_id}/{file_type}/{filename}")
             return f"local://{local_path}"
         
-        s3_key = f"{podcast_id}/{episode_folder}/{file_type}/{filename}"
+        # Use consistent folder structure: podcasts/{podcast_id}/{episode_id}/
+        s3_key = f"podcasts/{podcast_id}/{episode_id}/{file_type}/{filename}"
         
         for attempt in range(self.max_retries):
             try:

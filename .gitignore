@@ -3,7 +3,10 @@
 # Environment variables
 .env*
 env*
+env.json
 !.env.example
+!.env.*.example
+samconfig.toml
 
 *.session
 

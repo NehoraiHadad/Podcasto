@@ -11,6 +11,8 @@ export type Podcast = {
   created_at: Date | null;
   updated_at: Date | null;
   episodes_count?: number;
+  status?: string;
+  timestamp?: string;
 };
 
 export type NewPodcast = typeof podcasts.$inferInsert;
@@ -30,10 +32,40 @@ export async function getAllPodcasts(): Promise<Podcast[]> {
   
   return await Promise.all(results.map(async (podcast) => {
     const podcastEpisodes = await getPodcastEpisodes(podcast.id);
-    return {
+    
+    // Default podcast data
+    const podcastData: Podcast = {
       ...podcast,
-      episodes_count: podcastEpisodes.length
+      episodes_count: podcastEpisodes.length,
+      status: undefined,
+      timestamp: undefined
     };
+    
+    // Find the latest episode with status information
+    if (podcastEpisodes.length > 0) {
+      // Sort episodes by creation date, newest first
+      const sortedEpisodes = [...podcastEpisodes].sort((a, b) => {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      });
+      
+      const latestEpisode = sortedEpisodes[0];
+      
+      if (latestEpisode.status) {
+        podcastData.status = latestEpisode.status;
+        
+        // Get timestamp from metadata if available
+        if (latestEpisode.metadata) {
+          try {
+            const metadata = JSON.parse(latestEpisode.metadata);
+            podcastData.timestamp = metadata.generation_timestamp;
+          } catch (err) {
+            console.error('Error parsing episode metadata:', err);
+          }
+        }
+      }
+    }
+    
+    return podcastData;
   }));
 }
 

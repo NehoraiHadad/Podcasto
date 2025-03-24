@@ -7,27 +7,67 @@ from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 
 from src.utils.logging import get_logger
-from src.utils.common import get_safe_filename, setup_api_environment
 from src.clients.s3_client import S3Client
 
 logger = get_logger(__name__)
+
+def get_safe_filename(filename: str) -> str:
+    """
+    Convert a string to a safe filename by removing potentially problematic characters.
+    
+    Args:
+        filename: Original filename
+        
+    Returns:
+        Safe filename
+    """
+    # Replace problematic characters with underscores
+    safe_chars = "-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join(c if c in safe_chars else "_" for c in filename)
+
+def setup_api_environment(config: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Set up API keys in the environment.
+    
+    Args:
+        config: Dictionary containing API keys
+        
+    Returns:
+        Dictionary of API keys that were set
+    """
+    api_keys = {}
+    
+    # Set OpenAI API key if available
+    if 'openai_api_key' in config:
+        os.environ['OPENAI_API_KEY'] = config['openai_api_key']
+        api_keys['openai'] = config['openai_api_key']
+    
+    # Set Gemini API key if available
+    if 'gemini_api_key' in config:
+        os.environ['GEMINI_API_KEY'] = config['gemini_api_key']
+        api_keys['gemini'] = config['gemini_api_key']
+    
+    return api_keys
 
 class BaseGenerator:
     """
     Base class for podcast generators.
     """
-    def __init__(self, config_manager, storage_dir: str = None):
+    def __init__(self, podcast_config: Dict[str, Any], storage_dir: Optional[str] = None):
         """
         Initialize the base generator.
         
         Args:
-            config_manager: Configuration manager instance
-            storage_dir: Directory to store generated podcasts
+            podcast_config: Podcast configuration
+            storage_dir: Directory to store generated podcasts (optional)
         """
-        self.config_manager = config_manager
-        self.storage_dir = storage_dir or config_manager.storage_dir
+        self.podcast_config = podcast_config
+        self.storage_dir = storage_dir or os.environ.get('STORAGE_DIR', '/tmp/podcasts')
         self.s3_client = S3Client()
         
+        # Create storage directory if it doesn't exist
+        os.makedirs(self.storage_dir, exist_ok=True)
+
     def generate_podcast(
         self,
         audio_file: str,
@@ -53,35 +93,40 @@ class BaseGenerator:
                 
                 # Upload to S3
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
-                upload_result = self.s3_client.upload_podcast(output_path, podcast_id)
                 
-                if upload_result:
-                    s3_url, timestamp = upload_result
-                    
-                    # Upload metadata to S3 alongside the podcast using the same timestamp
-                    self.s3_client.upload_metadata(metadata, podcast_id, s3_url, timestamp)
-                    
+                # Get episode_id or use podcast_id as fallback
+                episode_id = self.podcast_config.get('episode_id', podcast_id)
+                
+                # S3 bucket from environment variable or use default
+                s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
+                
+                # Upload file to S3
+                key = f"podcasts/{podcast_id}/{episode_id}/{os.path.basename(output_path)}"
+                result = self.s3_client.upload_file(output_path, s3_bucket, key)
+                
+                if result.get('success', False):
+                    s3_url = result.get('url')
                     return output_path, s3_url
                 else:
-                    logger.error("Failed to upload podcast to S3")
+                    logger.error(f"Failed to upload podcast to S3: {result.get('error')}")
                     return output_path, None
             elif audio_file and os.path.exists(audio_file):
                 # File already at desired location
                 logger.info(f"Using existing podcast at {output_path}")
                 
-                # Upload to S3
+                # Upload to S3 (same logic as above)
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
-                upload_result = self.s3_client.upload_podcast(output_path, podcast_id)
+                episode_id = self.podcast_config.get('episode_id', podcast_id)
+                s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
                 
-                if upload_result:
-                    s3_url, timestamp = upload_result
-                    
-                    # Upload metadata to S3 alongside the podcast using the same timestamp
-                    self.s3_client.upload_metadata(metadata, podcast_id, s3_url, timestamp)
-                    
+                key = f"podcasts/{podcast_id}/{episode_id}/{os.path.basename(output_path)}"
+                result = self.s3_client.upload_file(output_path, s3_bucket, key)
+                
+                if result.get('success', False):
+                    s3_url = result.get('url')
                     return output_path, s3_url
                 else:
-                    logger.error("Failed to upload podcast to S3")
+                    logger.error(f"Failed to upload podcast to S3: {result.get('error')}")
                     return output_path, None
             else:
                 logger.error(f"No audio file was created")
@@ -111,5 +156,11 @@ class BaseGenerator:
         Returns:
             True if successful, False otherwise
         """
-        api_keys = setup_api_environment(self.config_manager)
+        # Extract API keys from podcast config or environment variables
+        config = {
+            'openai_api_key': self.podcast_config.get('openai_api_key', os.environ.get('OPENAI_API_KEY', '')),
+            'gemini_api_key': self.podcast_config.get('gemini_api_key', os.environ.get('GEMINI_API_KEY', ''))
+        }
+        
+        api_keys = setup_api_environment(config)
         return bool(api_keys) 

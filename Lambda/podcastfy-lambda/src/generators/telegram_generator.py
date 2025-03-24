@@ -21,7 +21,7 @@ class TelegramGenerator(BaseGenerator):
         telegram_data: Dict[str, Any],
         metadata: Dict[str, Any],
         conversation_config: Dict[str, Any] = None,
-        longform: bool = True,
+        longform: bool = False,
         max_num_chunks: Optional[int] = None,
         min_chunk_size: Optional[int] = None
     ) -> Optional[Tuple[str, Optional[str]]]:
@@ -77,7 +77,11 @@ class TelegramGenerator(BaseGenerator):
                 conversation_config["max_num_chunks"] = max_num_chunks
             if min_chunk_size is not None:
                 conversation_config["min_chunk_size"] = min_chunk_size
-            
+                
+            logger.info("Conversation config:")
+            for key, value in conversation_config.items():
+                logger.info(f"  {key}: {value}")
+                
             # Generate podcast using the podcastfy library
             audio_file = generate_podcast(
                 text=content,

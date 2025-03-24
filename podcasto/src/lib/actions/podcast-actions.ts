@@ -135,4 +135,125 @@ export async function createPodcast(data: PodcastCreationData) {
     
     return { error: 'An unexpected error occurred' };
   }
+}
+
+/**
+ * Triggers immediate podcast generation for a specific podcast.
+ * 
+ * @param podcastId - The ID of the podcast to generate
+ * @returns Object with success/error information
+ */
+export async function generatePodcastEpisode(podcastId: string) {
+  'use server';
+  
+  try {
+    // Validate the podcast ID
+    if (!podcastId) {
+      return { error: 'Podcast ID is required' };
+    }
+    
+    console.log(`[PODCAST_GEN] Starting generation for podcast ID: ${podcastId}`);
+    
+    // Import AWS SDK
+    const { LambdaClient, InvokeCommand } = await import('@aws-sdk/client-lambda');
+    
+    // Create Lambda client
+    const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    
+    // Get the Lambda function name from environment variables
+    const telegramLambdaName = process.env.TELEGRAM_LAMBDA_NAME;
+    const sqsQueueUrl = process.env.SQS_QUEUE_URL;
+    
+    console.log(`[PODCAST_GEN] Using Lambda function: ${telegramLambdaName}`);
+    console.log(`[PODCAST_GEN] Using SQS queue: ${sqsQueueUrl}`);
+    
+    if (!telegramLambdaName) {
+      console.error('TELEGRAM_LAMBDA_NAME environment variable not set');
+      return { error: 'Server configuration error: Lambda function name not set' };
+    }
+    
+    if (!sqsQueueUrl) {
+      console.error('SQS_QUEUE_URL environment variable not set');
+      return { error: 'Server configuration error: SQS queue URL not set' };
+    }
+    
+    // Fetch the podcast configuration
+    const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(podcastId);
+    
+    if (!podcastConfig) {
+      console.error(`[PODCAST_GEN] Podcast configuration not found for ID: ${podcastId}`);
+      return { error: 'Podcast configuration not found' };
+    }
+    
+    console.log(`[PODCAST_GEN] Found podcast config: ${JSON.stringify(podcastConfig, null, 2)}`);
+    
+    // Create a new episode record with 'pending' status - IMPORTANT: Do this BEFORE invoking Lambda
+    const timestamp = new Date().toISOString();
+    let episode;
+    
+    try {
+      // Create a new episode record with 'pending' status
+      const { episodesApi } = await import('@/lib/db/api');
+      
+      episode = await episodesApi.createEpisode({
+        podcast_id: podcastId,
+        title: `Episode ${new Date().toLocaleDateString()}`,
+        description: 'Processing...',
+        audio_url: '', // Empty URL initially
+        status: 'pending',
+        duration: 0,
+        language: 'english', // Default to English
+        metadata: JSON.stringify({
+          generation_timestamp: timestamp,
+          s3_key: `podcasts/${podcastId}/${timestamp}/podcast.mp3`
+        })
+      });
+      
+      console.log(`[PODCAST_GEN] Created pending episode: ${episode.id}`);
+    } catch (error) {
+      console.error(`[PODCAST_GEN] Error creating episode: ${error}`);
+      return { error: 'Failed to create episode record' };
+    }
+    
+    // Prepare the event payload - include the episode ID we just created
+    const payload = {
+      podcast_config: podcastConfig,
+      episode_id: episode.id, // Pass the episode ID explicitly 
+      sqs_queue_url: sqsQueueUrl,
+      trigger_source: "admin-panel"
+    };
+    
+    console.log(`[PODCAST_GEN] Invoking Lambda with payload: ${JSON.stringify(payload, null, 2)}`);
+    
+    // Invoke the Lambda function
+    const command = new InvokeCommand({
+      FunctionName: telegramLambdaName,
+      Payload: JSON.stringify(payload),
+      InvocationType: 'Event'
+    });
+    
+    console.log(`[PODCAST_GEN] Sending Lambda command`);
+    const response = await lambdaClient.send(command);
+    console.log(`[PODCAST_GEN] Lambda response received, status: ${response.StatusCode}`);
+    
+    // For Event invocations, the StatusCode is the main thing we check
+    if (response.StatusCode === 202) {  // 202 Accepted means the async invocation was accepted
+      // Revalidate the podcasts page to show the updated status
+      revalidatePath('/admin/podcasts');
+      
+      // Return success with episode information
+      return { 
+        success: true, 
+        message: 'Podcast generation has been triggered',
+        timestamp: timestamp,
+        episodeId: episode.id
+      };
+    }
+    
+    console.error(`[PODCAST_GEN] Lambda invocation failed with status: ${response.StatusCode}`);
+    return { error: 'Failed to trigger podcast generation' };
+  } catch (error) {
+    console.error('Error in generatePodcastEpisode:', error);
+    return { error: 'Failed to trigger podcast generation' };
+  }
 } 
