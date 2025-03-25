@@ -8,6 +8,10 @@ env.json
 !.env.*.example
 samconfig.toml
 
+# Test data and events
+**/events/test-*.json
+**/events/*-event.json
+
 *.session
 
 # Dependencies

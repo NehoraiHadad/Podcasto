@@ -15,6 +15,27 @@ from src.podcast_processor import PodcastProcessor
 
 logger = get_logger(__name__)
 
+# Log environment variables at module initialization for debugging
+def log_environment():
+    """Log important environment variables for debugging."""
+    env_vars = {
+        'S3_BUCKET_NAME': os.environ.get('S3_BUCKET_NAME', 'Not set'),
+        'STORAGE_DIR': os.environ.get('STORAGE_DIR', 'Not set'),
+        'AWS_REGION': os.environ.get('AWS_REGION', 'Not set'),
+        'AWS_LAMBDA_FUNCTION_NAME': os.environ.get('AWS_LAMBDA_FUNCTION_NAME', 'Not set')
+    }
+    
+    logger.info("Lambda environment variables:")
+    for key, value in env_vars.items():
+        # Don't log values that might contain secrets
+        if 'KEY' in key or 'SECRET' in key or 'PASSWORD' in key:
+            logger.info(f"  {key}: [Redacted]")
+        else:
+            logger.info(f"  {key}: {value}")
+
+# Log environment variables when module is loaded
+log_environment()
+
 @contextmanager
 def resource_manager():
     """Context manager for Supabase client resources."""
@@ -211,6 +232,10 @@ def process_direct_invocation(event: Dict[str, Any], request_id: Optional[str] =
         
         # Check if this is a content request or SQS message request
         if event.get('content_source') or event.get('urls') or event.get('text'):
+            # Log the episode_id if present in the event
+            if event.get('episode_id'):
+                logger.info(f"{log_prefix}Direct invocation with episode_id: {event.get('episode_id')}")
+            
             # Use podcast processor for direct content generation
             processor = PodcastProcessor(podcast_config, event, request_id)
             return processor.process()
@@ -222,6 +247,10 @@ def process_direct_invocation(event: Dict[str, Any], request_id: Optional[str] =
                 's3_path': event.get('s3_path'),
                 'content_url': event.get('content_url')
             }
+            
+            # Log the episode_id if present in the message
+            if message.get('episode_id'):
+                logger.info(f"{log_prefix}SQS message creation with episode_id: {message.get('episode_id')}")
             
             # Process the message directly
             sqs_handler = SQSHandler(podcast_config, supabase_client)

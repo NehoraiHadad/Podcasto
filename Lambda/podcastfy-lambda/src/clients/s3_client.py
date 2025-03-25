@@ -16,6 +16,28 @@ class S3Client:
     def __init__(self):
         """Initialize the S3 client."""
         self.s3_client = boto3.client('s3')
+        
+        # Check environment variables and S3 access
+        self._check_s3_access()
+    
+    def _check_s3_access(self):
+        """Check S3 access and environment variables."""
+        # Check if S3_BUCKET_NAME is set
+        s3_bucket = os.environ.get('S3_BUCKET_NAME')
+        if not s3_bucket:
+            logger.warning("S3_BUCKET_NAME environment variable is not set. Using default 'podcasto-podcasts'")
+            os.environ['S3_BUCKET_NAME'] = 'podcasto-podcasts'
+            s3_bucket = 'podcasto-podcasts'
+        
+        # Test S3 access
+        try:
+            # Try a simple operation to verify S3 access
+            self.s3_client.list_objects_v2(Bucket=s3_bucket, MaxKeys=1)
+            logger.info(f"Successfully connected to S3 bucket: {s3_bucket}")
+        except Exception as e:
+            logger.error(f"Error accessing S3 bucket {s3_bucket}: {str(e)}")
+            logger.error("This may cause file uploads to fail. Please check AWS credentials and permissions.")
+            # We don't raise an exception here to allow the Lambda to continue running
     
     def download_telegram_content(self, content_url: str, request_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -94,19 +116,67 @@ class S3Client:
         log_prefix = f"[{request_id}] " if request_id else ""
         
         try:
-            logger.info(f"{log_prefix}Uploading file from {local_path} to s3://{bucket}/{key}")
+            # Check if local file exists
+            if not os.path.exists(local_path):
+                error_msg = f"Local file does not exist: {local_path}"
+                logger.error(f"{log_prefix}{error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+                
+            # Check file size to make sure it's not empty
+            file_size = os.path.getsize(local_path)
+            if file_size == 0:
+                error_msg = f"File is empty (0 bytes): {local_path}"
+                logger.error(f"{log_prefix}{error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+                
+            logger.info(f"{log_prefix}Uploading file ({file_size} bytes) from {local_path} to s3://{bucket}/{key}")
             
-            self.s3_client.upload_file(local_path, bucket, key)
+            # Add retry logic
+            max_retries = 3
+            retry_delay = 1  # seconds
             
-            logger.info(f"{log_prefix}Successfully uploaded file to s3://{bucket}/{key}")
-            
-            return {
-                'success': True,
-                'url': f"s3://{bucket}/{key}"
-            }
+            for attempt in range(max_retries):
+                try:
+                    self.s3_client.upload_file(local_path, bucket, key)
+                    
+                    # Verify the upload by checking if the object exists
+                    try:
+                        self.s3_client.head_object(Bucket=bucket, Key=key)
+                        logger.info(f"{log_prefix}Successfully uploaded and verified file at s3://{bucket}/{key}")
+                        
+                        return {
+                            'success': True,
+                            'url': f"s3://{bucket}/{key}"
+                        }
+                    except Exception as verify_err:
+                        logger.warning(f"{log_prefix}Upload succeeded but verification failed: {str(verify_err)}")
+                        # Continue without verification if it fails
+                        return {
+                            'success': True,
+                            'url': f"s3://{bucket}/{key}"
+                        }
+                        
+                except Exception as upload_err:
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"{log_prefix}Upload attempt {attempt+1} failed: {str(upload_err)}. Retrying in {wait_time}s...")
+                        import time
+                        time.sleep(wait_time)
+                    else:
+                        # Final attempt failed
+                        raise upload_err
             
         except Exception as e:
-            logger.error(f"{log_prefix}Error uploading file to S3: {str(e)}")
+            # Log the full error details for debugging
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"{log_prefix}Error uploading file to S3: {str(e)}\n{error_details}")
             return {
                 'success': False,
                 'error': f"Error uploading file: {str(e)}"

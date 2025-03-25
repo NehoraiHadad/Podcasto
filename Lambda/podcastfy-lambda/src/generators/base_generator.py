@@ -94,39 +94,62 @@ class BaseGenerator:
                 # Upload to S3
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
                 
-                # Get episode_id or use podcast_id as fallback
-                episode_id = self.podcast_config.get('episode_id', podcast_id)
+                # Get episode_id or generate a new one if not provided (instead of using podcast_id as fallback)
+                episode_id = self.podcast_config.get('episode_id')
+                if not episode_id:
+                    # Generate a simple timestamp-based ID if none provided
+                    episode_id = f"episode_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    logger.info(f"No episode_id provided, generated: {episode_id}")
                 
                 # S3 bucket from environment variable or use default
                 s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
                 
-                # Upload file to S3
-                key = f"podcasts/{podcast_id}/{episode_id}/{os.path.basename(output_path)}"
+                # Upload file to S3 with proper path structure
+                filename = os.path.basename(output_path)
+                key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
+                
+                logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
+                    logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
                     return output_path, s3_url
                 else:
-                    logger.error(f"Failed to upload podcast to S3: {result.get('error')}")
+                    error_msg = result.get('error', 'Unknown error')
+                    logger.error(f"Failed to upload podcast to S3: {error_msg}")
                     return output_path, None
             elif audio_file and os.path.exists(audio_file):
                 # File already at desired location
                 logger.info(f"Using existing podcast at {output_path}")
                 
-                # Upload to S3 (same logic as above)
+                # Upload to S3 with the same proper structure as above
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
-                episode_id = self.podcast_config.get('episode_id', podcast_id)
+                
+                # Get episode_id or generate a new one if not provided
+                episode_id = self.podcast_config.get('episode_id')
+                if not episode_id:
+                    # Generate a simple timestamp-based ID if none provided
+                    episode_id = f"episode_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    logger.info(f"No episode_id provided, generated: {episode_id}")
+                
+                # S3 bucket from environment variable or use default
                 s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
                 
-                key = f"podcasts/{podcast_id}/{episode_id}/{os.path.basename(output_path)}"
+                # Upload file to S3 with proper path structure
+                filename = os.path.basename(output_path)
+                key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
+                
+                logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
+                    logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
                     return output_path, s3_url
                 else:
-                    logger.error(f"Failed to upload podcast to S3: {result.get('error')}")
+                    error_msg = result.get('error', 'Unknown error')
+                    logger.error(f"Failed to upload podcast to S3: {error_msg}")
                     return output_path, None
             else:
                 logger.error(f"No audio file was created")

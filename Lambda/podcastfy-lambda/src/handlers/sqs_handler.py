@@ -159,7 +159,8 @@ class SQSHandler:
                     'podcast_config_id': podcast_config_id,
                     'content_url': content_url,
                     'content_source': 'telegram',  # Explicitly set content source
-                    'telegram_data': content_result.get('content')
+                    'telegram_data': content_result.get('content'),
+                    'episode_id': episode_id  # Explicitly pass the episode_id
                 }
                 
                 logger.info(f"{log_prefix}Initializing PodcastProcessor to generate audio")
@@ -183,6 +184,16 @@ class SQSHandler:
                 # Update episode with the S3 URL
                 s3_url = process_result.get('s3_url')
                 if s3_url and episode:
+                    logger.info(f"{log_prefix}S3 URL for episode {episode['id']}: {s3_url}")
+                    
+                    # Validate S3 URL format
+                    if not s3_url.startswith("s3://"):
+                        logger.warning(f"{log_prefix}S3 URL has unexpected format: {s3_url}")
+                    
+                    # Make sure episode_id is in the S3 URL
+                    if episode_id not in s3_url:
+                        logger.warning(f"{log_prefix}S3 URL does not contain episode_id {episode_id}: {s3_url}")
+                    
                     update_result = self.supabase_client.update_episode_audio_url(
                         episode['id'], 
                         s3_url,
@@ -191,6 +202,8 @@ class SQSHandler:
                     
                     if not update_result.get('success', False):
                         logger.warning(f"{log_prefix}Failed to update episode audio URL: {update_result.get('error')}")
+                    else:
+                        logger.info(f"{log_prefix}Successfully updated episode {episode['id']} with S3 URL")
                 
                 # Success with audio generation
                 return {

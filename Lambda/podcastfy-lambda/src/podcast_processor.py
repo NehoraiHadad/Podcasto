@@ -24,25 +24,40 @@ class PodcastProcessor:
             event: Lambda event containing request parameters
             request_id: Optional request ID for tracing
         """
-        self.podcast_config = podcast_config
+        # Copy the podcast_config to avoid modifying the original
+        self.podcast_config = dict(podcast_config)
         self.event = event
         self.request_id = request_id
         self.log_prefix = f"[{request_id}] " if request_id else ""
+        
+        # Ensure episode_id is set in podcast_config if it's in the event
+        if 'episode_id' in event and event['episode_id']:
+            self.podcast_config['episode_id'] = event['episode_id']
+            logger.info(f"{self.log_prefix}Using episode_id from event: {event['episode_id']}")
+        
+        # If the episode_id is in the telegram_data metadata, also use that
+        if (event.get('telegram_data') and 
+            isinstance(event['telegram_data'], dict) and 
+            event['telegram_data'].get('episode_id')):
+            self.podcast_config['episode_id'] = event['telegram_data']['episode_id']
+            logger.info(f"{self.log_prefix}Using episode_id from telegram_data: {event['telegram_data']['episode_id']}")
         
         # Set storage directory from environment or use default
         self.storage_dir = os.environ.get('STORAGE_DIR', '/tmp/podcasts')
         os.makedirs(self.storage_dir, exist_ok=True)
         
         # Initialize generators
-        self.url_generator = UrlGenerator(podcast_config, self.storage_dir)
-        self.text_generator = TextGenerator(podcast_config, self.storage_dir)
-        self.telegram_generator = TelegramGenerator(podcast_config, self.storage_dir)
+        self.url_generator = UrlGenerator(self.podcast_config, self.storage_dir)
+        self.text_generator = TextGenerator(self.podcast_config, self.storage_dir)
+        self.telegram_generator = TelegramGenerator(self.podcast_config, self.storage_dir)
         
         # Get styles and techniques from podcast config
-        self.conversation_styles = podcast_config.get('conversation_styles', [])
-        self.engagement_techniques = podcast_config.get('engagement_techniques', [])
+        self.conversation_styles = self.podcast_config.get('conversation_styles', [])
+        self.engagement_techniques = self.podcast_config.get('engagement_techniques', [])
         
-        logger.info(f"{self.log_prefix}Initialized PodcastProcessor with podcast ID: {podcast_config.get('id')}")
+        logger.info(f"{self.log_prefix}Initialized PodcastProcessor with podcast ID: {self.podcast_config.get('id')}")
+        if self.podcast_config.get('episode_id'):
+            logger.info(f"{self.log_prefix}Using episode_id: {self.podcast_config.get('episode_id')}")
 
     def process(self) -> Dict[str, Any]:
         """
