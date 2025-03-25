@@ -38,7 +38,7 @@ export async function GET(
             targetEpisode = episode;
             break;
           }
-        } catch (error) {
+        } catch {
           // Skip episodes with invalid metadata
           continue;
         }
@@ -139,10 +139,11 @@ export async function GET(
                   });
                 }
               }
-            } catch (redirectError: any) {
-              if (redirectError.Code === 'PermanentRedirect' && redirectError.Endpoint) {
+            } catch (redirectError: unknown) {
+              const error = redirectError as { Code?: string; Endpoint?: string };
+              if (error.Code === 'PermanentRedirect' && error.Endpoint) {
                 // Extract the correct endpoint from the error
-                const correctEndpoint = redirectError.Endpoint;
+                const correctEndpoint = error.Endpoint;
                 console.log(`Correct S3 endpoint detected: ${correctEndpoint}`);
                 
                 // Set the status to pending as we couldn't check properly
@@ -152,12 +153,13 @@ export async function GET(
                 throw redirectError; // Re-throw if not a redirect error
               }
             }
-          } catch (listError: any) {
-            console.error('Error listing objects in S3:', listError);
+          } catch (listError: unknown) {
+            const error = listError as { Code?: string; Endpoint?: string };
+            console.error('Error listing objects in S3:', error);
             
             // If we got a PermanentRedirect error, extract the correct endpoint info
-            if (listError.Code === 'PermanentRedirect' && listError.Endpoint) {
-              console.log(`Bucket endpoint: ${listError.Endpoint}`);
+            if (error.Code === 'PermanentRedirect' && error.Endpoint) {
+              console.log(`Bucket endpoint: ${error.Endpoint}`);
             }
           }
         }

@@ -12,18 +12,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { PodcastActionsMenu } from './podcast-actions-menu';
-import { PodcastStatusIndicator } from './podcast-status-indicator';
 
 // Define the expected podcast type for the component
 interface Podcast {
   id: string;
   title: string;
-  language?: string;
+  description: string | null;
+  cover_image: string | null;
   created_at?: string;
-  status?: string;
-  timestamp?: string;
+  updated_at?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -44,10 +42,10 @@ export async function ServerPodcastsList() {
     const podcasts: Podcast[] = drizzlePodcasts.map(podcast => ({
       id: podcast.id,
       title: podcast.title,
-      language: podcast.language,
+      description: podcast.description,
+      cover_image: podcast.cover_image,
       created_at: podcast.created_at ? podcast.created_at.toISOString() : undefined,
-      status: podcast.status,
-      timestamp: podcast.timestamp,
+      updated_at: podcast.updated_at ? podcast.updated_at.toISOString() : undefined,
     }));
     
     if (!podcasts || podcasts.length === 0) {
@@ -75,8 +73,7 @@ export async function ServerPodcastsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -90,18 +87,7 @@ export async function ServerPodcastsList() {
                     </Link>
                   </TableCell>
                   <TableCell>
-                    {podcast.language && (
-                      <Badge variant="outline">{podcast.language}</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {podcast.status && podcast.timestamp ? (
-                      <PodcastStatusIndicator 
-                        podcastId={podcast.id} 
-                        timestamp={podcast.timestamp}
-                        initialStatus={podcast.status as any} 
-                      />
-                    ) : null}
+                    {podcast.description || 'No description'}
                   </TableCell>
                   <TableCell>
                     {podcast.created_at && format(new Date(podcast.created_at), 'MMM d, yyyy')}

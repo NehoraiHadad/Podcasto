@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Clock, CheckCircle, AlertCircle, Loader2
 } from 'lucide-react';
@@ -38,7 +38,7 @@ export function PodcastStatusIndicator({
   const [lastChecked, setLastChecked] = useState<Date>(new Date());
 
   // Function to check podcast status from API
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     if (!podcastId || !timestamp) return;
     
     try {
@@ -80,7 +80,7 @@ export function PodcastStatusIndicator({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [podcastId, timestamp, status, onStatusChange]);
   
   // Set up polling to check status
   useEffect(() => {
@@ -98,7 +98,7 @@ export function PodcastStatusIndicator({
     
     // Cleanup interval on unmount
     return () => clearInterval(interval);
-  }, [podcastId, timestamp, status]);
+  }, [podcastId, timestamp, status, checkStatus]);
   
   // Get status display details
   const getStatusDetails = () => {
