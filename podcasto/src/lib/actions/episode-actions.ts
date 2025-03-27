@@ -36,15 +36,26 @@ function parseS3Uri(s3Uri: string): { bucket: string; key: string } | null {
  */
 async function verifyS3ObjectExists(client: S3Client, bucket: string, key: string): Promise<boolean> {
   try {
+    console.log(`Attempting to verify S3 object exists - Bucket: ${bucket}, Key: ${key}`);
+    
     const command = new HeadObjectCommand({
       Bucket: bucket,
       Key: key,
     });
     
-    await client.send(command);
+    console.log('Sending HeadObjectCommand...');
+    const response = await client.send(command);
+    console.log('HeadObjectCommand response:', JSON.stringify(response));
     return true;
   } catch (error) {
     console.error(`Error verifying S3 object in bucket ${bucket} with key ${key}:`, error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return false;
   }
 }
@@ -54,10 +65,14 @@ async function verifyS3ObjectExists(client: S3Client, bucket: string, key: strin
  */
 export async function getEpisodeAudioUrl(episodeId: string): Promise<{ url: string; error?: string }> {
   try {
+    console.log('=== Start getEpisodeAudioUrl ===');
+    console.log('Episode ID:', episodeId);
+    
     // Fetch episode data
     const episode = await getEpisodeById(episodeId);
     
     if (!episode) {
+      console.error('Episode not found:', episodeId);
       return { 
         url: '', 
         error: 'Episode not found' 
@@ -93,17 +108,20 @@ export async function getEpisodeAudioUrl(episodeId: string): Promise<{ url: stri
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
     
     // Log config (without secret key)
-    console.log('AWS Config - Region:', region, 'Access Key ID:', accessKeyId ? "Configured" : "Missing");
+    console.log('AWS Config - Region:', region);
+    console.log('Access Key ID:', accessKeyId ? accessKeyId.substring(0, 5) + '...' : "Missing");
+    console.log('Secret Access Key:', secretAccessKey ? "Configured (length: " + secretAccessKey.length + ")" : "Missing");
     
     if (!region || !accessKeyId || !secretAccessKey) {
       console.error('Missing AWS configuration');
       return {
         url: '',
-        error: 'Missing AWS configuration'
+        error: `Missing AWS configuration: ${!region ? 'region' : ''} ${!accessKeyId ? 'accessKeyId' : ''} ${!secretAccessKey ? 'secretAccessKey' : ''}`
       };
     }
     
     // Create S3 client
+    console.log('Creating S3 client with region:', region);
     const s3Client = new S3Client({
       region,
       credentials: {
@@ -113,6 +131,7 @@ export async function getEpisodeAudioUrl(episodeId: string): Promise<{ url: stri
     });
     
     // Verify the object exists in S3
+    console.log('Verifying object exists in S3...');
     const objectExists = await verifyS3ObjectExists(s3Client, bucket, key);
     if (!objectExists) {
       console.error('S3 object does not exist or is not accessible');
@@ -123,18 +142,29 @@ export async function getEpisodeAudioUrl(episodeId: string): Promise<{ url: stri
     }
     
     // Create command to get the object
+    console.log('Creating GetObjectCommand...');
     const command = new GetObjectCommand({
       Bucket: bucket,
       Key: key,
     });
     
     // Generate a presigned URL that's valid for 1 hour (3600 seconds)
+    console.log('Generating presigned URL...');
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
     console.log('Generated presigned URL:', presignedUrl);
     
+    console.log('=== End getEpisodeAudioUrl - Success ===');
     return { url: presignedUrl };
   } catch (error) {
-    console.error('Error getting episode audio URL:', error);
+    console.error('=== Error getting episode audio URL ===');
+    console.error(error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return {
       url: '',
       error: `Failed to generate audio URL: ${error instanceof Error ? error.message : String(error)}`
