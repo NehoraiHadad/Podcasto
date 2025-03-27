@@ -93,7 +93,7 @@ export default async function EpisodeDetailPage({
                 episodeId={episode.id} 
                 audioUrl={playableAudioUrl}
                 audioUrlError={audioUrlError}
-                title={episode.title}
+                _title={episode.title}
               />
             </CardContent>
           </Card>

@@ -62,7 +62,7 @@ export async function GET(
       );
     }
     
-    let status = targetEpisode.status || 'pending';
+    const status = targetEpisode.status || 'pending';
     let message = 'Podcast generation is in progress.';
     
     // Set appropriate message based on the status

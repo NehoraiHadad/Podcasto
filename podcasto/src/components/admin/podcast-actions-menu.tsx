@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Edit, Trash2, Play, Plus, MoreHorizontal } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -134,7 +134,7 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
           podcastId={podcast.id}
           episodeId={episodeIdToShow}
           timestamp={timestampToShow}
-          initialStatus={(statusToShow || 'pending') as any}
+          initialStatus={statusToShow || 'pending'}
           onStatusChange={handleStatusChange}
         />
       )}

@@ -25,7 +25,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 interface AudioPlayerClientProps {
   episodeId: string;
   audioUrl: string;
-  title: string;
+  _title: string;
   audioUrlError?: string;
 }
 
@@ -105,7 +105,7 @@ function VolumeControls({
   );
 }
 
-export function AudioPlayerClient({ episodeId, audioUrl, title, audioUrlError }: AudioPlayerClientProps) {
+export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }: AudioPlayerClientProps) {
   // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -234,7 +234,7 @@ export function AudioPlayerClient({ episodeId, audioUrl, title, audioUrlError }:
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(err => {
+      audioRef.current.play().catch(_err => {
         setError('Could not play audio. Please try again later.');
       });
     }
