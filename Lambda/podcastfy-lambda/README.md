@@ -9,6 +9,7 @@ This Lambda function generates podcasts from various inputs (URLs, text, Telegra
 - Generate podcasts from Telegram message data
 - Customizable conversation styles and engagement techniques
 - Support for longform podcasts
+- Automatic upload of transcript files to S3 alongside audio files
 
 ## Setup
 
@@ -195,6 +196,30 @@ The function returns a JSON response with the following structure:
   }
 }
 ```
+
+### Transcript Upload
+
+During podcast generation, transcript files are created and stored in the `/tmp/podcastify-demo/transcripts` directory. The Lambda function automatically uploads these transcript files to S3 alongside the audio files.
+
+#### S3 Storage Structure
+
+Transcripts are stored in S3 using the following path structure:
+
+```
+s3://[bucket-name]/podcasts/[podcast-id]/[episode-id]/transcripts/[transcript-filename]
+```
+
+For example:
+```
+s3://podcasto-podcasts/podcasts/daily_news/episode_20250327123456/transcripts/transcript_96b61d9302754164b4806cc1f0d34f43.txt
+```
+
+This feature enables:
+- Preserving valuable transcript data after Lambda execution completes
+- Maintaining the relationship between podcasts, episodes, and their transcripts
+- Future features like transcript searching, analysis, or display alongside podcast content
+
+For more details, see the [transcript upload documentation](docs/transcript_upload.md).
 
 ## Examples
 

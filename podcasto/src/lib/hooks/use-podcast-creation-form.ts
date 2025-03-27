@@ -30,6 +30,7 @@ export function usePodcastCreationForm({
       title: '',
       creator: '',
       description: '',
+      coverImage: 'https://picsum.photos/400/300',
       podcastName: '',
       outputLanguage: 'english',
       creativityLevel: 0.7,

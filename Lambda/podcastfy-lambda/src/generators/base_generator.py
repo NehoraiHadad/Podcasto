@@ -3,7 +3,8 @@ Base generator for podcast creation.
 """
 import os
 import shutil
-from typing import Dict, Any, Optional, Tuple
+import glob
+from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime
 
 from src.utils.logging import get_logger
@@ -110,6 +111,9 @@ class BaseGenerator:
                 
                 logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
+
+                # Upload transcript files to S3
+                self.upload_transcripts(podcast_id, episode_id, s3_bucket)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
@@ -142,6 +146,9 @@ class BaseGenerator:
                 
                 logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
+
+                # Upload transcript files to S3
+                self.upload_transcripts(podcast_id, episode_id, s3_bucket)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
@@ -158,7 +165,68 @@ class BaseGenerator:
         except Exception as e:
             logger.error(f"Error processing podcast: {str(e)}")
             return None
+
+    def upload_transcripts(self, podcast_id: str, episode_id: str, s3_bucket: str) -> List[Dict[str, Any]]:
+        """
+        Upload transcript files to S3.
+        
+        Args:
+            podcast_id: Podcast ID
+            episode_id: Episode ID
+            s3_bucket: S3 bucket name
             
+        Returns:
+            List of upload results
+        """
+        try:
+            # Path to transcript files
+            transcript_dir = "/tmp/podcastify-demo/transcripts"
+            
+            if not os.path.exists(transcript_dir):
+                logger.warning(f"Transcript directory does not exist: {transcript_dir}")
+                return []
+            
+            # Find all transcript files
+            transcript_files = glob.glob(f"{transcript_dir}/*.txt")
+            
+            if not transcript_files:
+                logger.info(f"No transcript files found in {transcript_dir}")
+                return []
+            
+            logger.info(f"Found {len(transcript_files)} transcript files to upload")
+            
+            results = []
+            for transcript_file in transcript_files:
+                try:
+                    # Generate S3 key for the transcript file
+                    filename = os.path.basename(transcript_file)
+                    key = f"podcasts/{podcast_id}/{episode_id}/transcripts/{filename}"
+                    
+                    logger.info(f"Uploading transcript file {transcript_file} to S3: {key}")
+                    result = self.s3_client.upload_file(transcript_file, s3_bucket, key)
+                    
+                    results.append(result)
+                    
+                    if result.get('success', False):
+                        logger.info(f"Successfully uploaded transcript to S3: {result.get('url')}")
+                    else:
+                        error_msg = result.get('error', 'Unknown error')
+                        logger.error(f"Failed to upload transcript to S3: {error_msg}")
+                except Exception as e:
+                    logger.error(f"Error uploading transcript file {transcript_file}: {str(e)}")
+                    results.append({
+                        'success': False,
+                        'error': f"Error uploading transcript file: {str(e)}"
+                    })
+            
+            return results
+        except Exception as e:
+            logger.error(f"Error uploading transcript files: {str(e)}")
+            return [{
+                'success': False,
+                'error': f"Error uploading transcript files: {str(e)}"
+            }]
+
     def get_output_path(self, metadata: Dict[str, Any]) -> str:
         """
         Generate an output path for the podcast.

@@ -89,7 +89,7 @@ export function MetadataTabClient({ form }: MetadataTabClientProps) {
               />
             </FormControl>
             <FormDescription>
-              Optional - Add a URL for the podcast cover image
+              Optional - A default placeholder image is provided (picsum.photos/400/300)
             </FormDescription>
             <FormMessage />
           </FormItem>
