@@ -20,14 +20,16 @@ interface Podcast {
   title: string;
   description: string | null;
   cover_image: string | null;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  status?: string;
+  timestamp?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
 /**
  * Server component that fetches and displays a list of podcasts
- * Updated to follow Next.js 15 best practices for data fetching
+ * Updated to pass status information to PodcastActionsMenu
  */
 export async function ServerPodcastsList() {
   // Opt out of caching for this component
@@ -38,14 +40,16 @@ export async function ServerPodcastsList() {
     // Fetch podcasts from the database using Drizzle API
     const drizzlePodcasts = await podcastsApi.getAllPodcasts();
     
-    // Convert Drizzle podcasts to the expected format
+    // Convert Drizzle podcasts to the expected format, preserving status info
     const podcasts: Podcast[] = drizzlePodcasts.map(podcast => ({
       id: podcast.id,
       title: podcast.title,
       description: podcast.description,
       cover_image: podcast.cover_image,
-      created_at: podcast.created_at ? podcast.created_at.toISOString() : undefined,
-      updated_at: podcast.updated_at ? podcast.updated_at.toISOString() : undefined,
+      created_at: podcast.created_at ? podcast.created_at.toISOString() : null,
+      updated_at: podcast.updated_at ? podcast.updated_at.toISOString() : null,
+      status: podcast.status, // Include status
+      timestamp: podcast.timestamp, // Include timestamp for status tracking
     }));
     
     if (!podcasts || podcasts.length === 0) {

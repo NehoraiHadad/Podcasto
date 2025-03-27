@@ -95,31 +95,70 @@ class SupabaseClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def update_episode(self, episode_id: str, update_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an episode with the given data"""
+    def update_episode_status(self, episode_id: str, status: str) -> Dict[str, Any]:
+        """Update the status of an episode using the database function"""
         try:
-            self.client.table("episodes").update(update_data) \
-                .eq("id", episode_id) \
-                .execute()
-            return {"success": True}
+            logger.info(f"Updating episode status for ID: {episode_id} to {status}")
+            response = self.client.rpc(
+                "update_episode_status", 
+                {"episode_id": episode_id, "new_status": status}
+            ).execute()
+            
+            if response.data and response.data.get('success', False):
+                logger.info(f"Successfully updated episode status: {episode_id}")
+                return {"success": True, "data": response.data.get('data')}
+            else:
+                error = response.data.get('error') if response.data else "Unknown error"
+                logger.error(f"Failed to update episode status: {error}")
+                return {"success": False, "error": error}
         except Exception as e:
+            logger.error(f"Error updating episode status: {str(e)}")
             return {"success": False, "error": str(e)}
     
-    def update_episode_status(self, episode_id: str, status: str) -> Dict[str, Any]:
-        """Update the status of an episode"""
-        return self.update_episode(episode_id, {"status": status})
-    
     def update_episode_audio_url(self, episode_id: str, audio_url: str, status: str = 'completed', duration: int = 0) -> Dict[str, Any]:
-        """Update the audio URL, status, and duration of an episode"""
-        return self.update_episode(episode_id, {
-            "audio_url": audio_url,
-            "status": status,
-            "duration": duration
-        })
+        """Update the audio URL, status, and duration of an episode using the database function"""
+        try:
+            logger.info(f"Updating episode audio URL for ID: {episode_id}")
+            response = self.client.rpc(
+                "update_episode_audio_url", 
+                {
+                    "episode_id": episode_id, 
+                    "audio_url": audio_url,
+                    "new_status": status,
+                    "duration": duration
+                }
+            ).execute()
+            
+            if response.data and response.data.get('success', False):
+                logger.info(f"Successfully updated episode audio URL: {episode_id}")
+                return {"success": True, "data": response.data.get('data')}
+            else:
+                error = response.data.get('error') if response.data else "Unknown error"
+                logger.error(f"Failed to update episode audio URL: {error}")
+                return {"success": False, "error": error}
+        except Exception as e:
+            logger.error(f"Error updating episode audio URL: {str(e)}")
+            return {"success": False, "error": str(e)}
     
     def mark_episode_failed(self, episode_id: str, error_message: str) -> Dict[str, Any]:
-        """Mark an episode as failed with an error message"""
-        return self.update_episode(episode_id, {"status": "failed", "error": error_message})
+        """Mark an episode as failed with an error message using the database function"""
+        try:
+            logger.info(f"Marking episode as failed for ID: {episode_id}")
+            response = self.client.rpc(
+                "mark_episode_failed", 
+                {"episode_id": episode_id, "error_message": error_message}
+            ).execute()
+            
+            if response.data and response.data.get('success', False):
+                logger.info(f"Successfully marked episode as failed: {episode_id}")
+                return {"success": True, "data": response.data.get('data')}
+            else:
+                error = response.data.get('error') if response.data else "Unknown error"
+                logger.error(f"Failed to mark episode as failed: {error}")
+                return {"success": False, "error": error}
+        except Exception as e:
+            logger.error(f"Error marking episode as failed: {str(e)}")
+            return {"success": False, "error": str(e)}
     
     def close_session(self):
         """Close any resources - not needed with the official client"""

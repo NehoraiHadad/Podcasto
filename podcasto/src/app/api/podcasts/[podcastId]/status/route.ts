@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SQSClient, GetQueueAttributesCommand } from '@aws-sdk/client-sqs';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { episodesApi } from '@/lib/db/api';
 
 /**
  * API route to check podcast generation status
+ * Accepts podcastId in params and episodeId in query params (with timestamp fallback for compatibility)
  */
 export async function GET(
   request: NextRequest,
@@ -17,37 +17,47 @@ export async function GET(
       return NextResponse.json({ error: 'Podcast ID is required' }, { status: 400 });
     }
     
-    // Get the timestamp from query params
+    // Get the episodeId from query params (preferred) or timestamp (for compatibility)
     const searchParams = request.nextUrl.searchParams;
+    const episodeId = searchParams.get('episodeId');
     const timestamp = searchParams.get('timestamp');
     
-    if (!timestamp) {
-      return NextResponse.json({ error: 'Timestamp is required' }, { status: 400 });
+    if (!episodeId && !timestamp) {
+      return NextResponse.json({ error: 'Episode ID or timestamp is required' }, { status: 400 });
     }
     
-    // Get all episodes for this podcast
-    const podcastEpisodes = await episodesApi.getEpisodesByPodcastId(podcastId);
-    
-    // Find the episode with matching timestamp in metadata
+    // Try to find the episode directly by ID (most efficient)
     let targetEpisode = null;
-    for (const episode of podcastEpisodes) {
-      if (episode.metadata) {
-        try {
-          const metadata = JSON.parse(episode.metadata);
-          if (metadata.generation_timestamp === timestamp) {
-            targetEpisode = episode;
-            break;
+    
+    if (episodeId) {
+      targetEpisode = await episodesApi.getEpisodeById(episodeId);
+    }
+    
+    // Fall back to timestamp-based lookup for backward compatibility
+    if (!targetEpisode && timestamp) {
+      // Get all episodes for this podcast
+      const podcastEpisodes = await episodesApi.getEpisodesByPodcastId(podcastId);
+      
+      // Find the episode with matching timestamp in metadata
+      for (const episode of podcastEpisodes) {
+        if (episode.metadata) {
+          try {
+            const metadata = JSON.parse(episode.metadata);
+            if (metadata.generation_timestamp === timestamp) {
+              targetEpisode = episode;
+              break;
+            }
+          } catch {
+            // Skip episodes with invalid metadata
+            continue;
           }
-        } catch {
-          // Skip episodes with invalid metadata
-          continue;
         }
       }
     }
     
     if (!targetEpisode) {
       return NextResponse.json(
-        { error: 'Episode not found for the given timestamp', status: 'unknown' },
+        { error: 'Episode not found', status: 'unknown' },
         { status: 404 }
       );
     }
@@ -55,117 +65,16 @@ export async function GET(
     let status = targetEpisode.status || 'pending';
     let message = 'Podcast generation is in progress.';
     
-    // If the status is still pending, check if the file exists in S3
+    // Set appropriate message based on the status
     if (status === 'pending') {
-      try {
-        // Check if the podcast file exists in S3
-        // Use us-west-1 region as that's where our bucket is located
-        const s3Client = new S3Client({ 
-          region: 'us-west-1', // Hardcoded to match the bucket's actual region
-          forcePathStyle: false, // Use virtual-hosted style URLs
-          followRegionRedirects: true, // Follow region redirects automatically
-          useAccelerateEndpoint: false // Don't use accelerated endpoints
-        });
-        
-        const bucketName = process.env.S3_BUCKET_NAME;
-        
-        if (bucketName) {
-          // Use episode_id as the folder name if available in metadata
-          // Otherwise, fallback to timestamp for backward compatibility
-          let episodeId = timestamp;
-          if (targetEpisode.metadata) {
-            try {
-              const metadata = JSON.parse(targetEpisode.metadata);
-              if (metadata.episode_id) {
-                episodeId = metadata.episode_id;
-              }
-            } catch (error) {
-              console.warn('Failed to parse episode metadata for episode_id:', error);
-            }
-          }
-          
-          // Try to find the podcast file by listing objects in the folder
-          try {
-            // First, try with the episode_id
-            const listCommand = new ListObjectsV2Command({
-              Bucket: bucketName,
-              Prefix: `podcasts/${podcastId}/${episodeId}/`,
-              MaxKeys: 10
-            });
-            
-            // Use try/catch specifically for this request
-            try {
-              const listResult = await s3Client.send(listCommand);
-              
-              // Check if there's a podcast.mp3 file
-              const podcastFile = listResult.Contents?.find(item => 
-                item.Key?.endsWith('podcast.mp3')
-              );
-              
-              if (podcastFile && podcastFile.Key) {
-                // Found the podcast file
-                status = 'completed';
-                message = 'Podcast generation complete.';
-                
-                // Update the episode status - use the correct regional endpoint in the URL
-                await episodesApi.updateEpisode(targetEpisode.id, {
-                  status: 'completed',
-                  audio_url: `https://${bucketName}.s3-us-west-1.amazonaws.com/${podcastFile.Key}`
-                });
-              } else if (episodeId !== timestamp) {
-                // If not found and episodeId is different from timestamp,
-                // try again with the timestamp as fallback
-                const fallbackListCommand = new ListObjectsV2Command({
-                  Bucket: bucketName,
-                  Prefix: `podcasts/${podcastId}/${timestamp}/`,
-                  MaxKeys: 10
-                });
-                
-                const fallbackResult = await s3Client.send(fallbackListCommand);
-                
-                const fallbackFile = fallbackResult.Contents?.find(item => 
-                  item.Key?.endsWith('podcast.mp3')
-                );
-                
-                if (fallbackFile && fallbackFile.Key) {
-                  // Found the podcast file in the fallback location
-                  status = 'completed';
-                  message = 'Podcast generation complete.';
-                  
-                  // Update the episode status - use the correct regional endpoint in the URL
-                  await episodesApi.updateEpisode(targetEpisode.id, {
-                    status: 'completed',
-                    audio_url: `https://${bucketName}.s3-us-west-1.amazonaws.com/${fallbackFile.Key}`
-                  });
-                }
-              }
-            } catch (redirectError: unknown) {
-              const error = redirectError as { Code?: string; Endpoint?: string };
-              if (error.Code === 'PermanentRedirect' && error.Endpoint) {
-                // Extract the correct endpoint from the error
-                const correctEndpoint = error.Endpoint;
-                console.log(`Correct S3 endpoint detected: ${correctEndpoint}`);
-                
-                // Set the status to pending as we couldn't check properly
-                status = 'pending';
-                message = 'Podcast generation in progress. S3 redirect encountered.';
-              } else {
-                throw redirectError; // Re-throw if not a redirect error
-              }
-            }
-          } catch (listError: unknown) {
-            const error = listError as { Code?: string; Endpoint?: string };
-            console.error('Error listing objects in S3:', error);
-            
-            // If we got a PermanentRedirect error, extract the correct endpoint info
-            if (error.Code === 'PermanentRedirect' && error.Endpoint) {
-              console.log(`Bucket endpoint: ${error.Endpoint}`);
-            }
-          }
-        }
-      } catch (checkError) {
-        console.error('Error during S3 check:', checkError);
-      }
+      message = 'Podcast generation is in progress.';
+    } else if (status === 'completed') {
+      message = 'Podcast generation complete.';
+    } else if (status === 'error') {
+      message = 'Podcast generation failed.';
+    } else {
+      // Custom status
+      message = `Podcast status: ${status}`;
     }
     
     // Get SQS queue information
@@ -197,7 +106,8 @@ export async function GET(
     
     return NextResponse.json({ 
       podcastId, 
-      timestamp, 
+      episodeId: targetEpisode.id,
+      timestamp: timestamp,
       status, 
       message,
       queueInfo,

@@ -48,18 +48,26 @@ export async function getAllPodcasts(): Promise<Podcast[]> {
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
       });
       
+      // Get the newest episode, regardless of status
       const latestEpisode = sortedEpisodes[0];
       
+      // Only include status information if the episode's status is 'pending'
+      // or if the episode was created recently (within last 24 hours)
       if (latestEpisode.status) {
-        podcastData.status = latestEpisode.status;
+        const isRecent = latestEpisode.created_at && 
+          (Date.now() - new Date(latestEpisode.created_at).getTime() < 24 * 60 * 60 * 1000);
         
-        // Get timestamp from metadata if available
-        if (latestEpisode.metadata) {
-          try {
-            const metadata = JSON.parse(latestEpisode.metadata);
-            podcastData.timestamp = metadata.generation_timestamp;
-          } catch (err) {
-            console.error('Error parsing episode metadata:', err);
+        if (latestEpisode.status === 'pending' || isRecent) {
+          podcastData.status = latestEpisode.status;
+          
+          // Get timestamp from metadata if available
+          if (latestEpisode.metadata) {
+            try {
+              const metadata = JSON.parse(latestEpisode.metadata);
+              podcastData.timestamp = metadata.generation_timestamp;
+            } catch (err) {
+              console.error('Error parsing episode metadata:', err);
+            }
           }
         }
       }
