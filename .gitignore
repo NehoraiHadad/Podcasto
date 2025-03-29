@@ -124,3 +124,7 @@ ProjectDocs/**/*.temp
 
 node_modules/
 .next/
+
+# CloudFormation packaged templates
+**/packaged.yaml
+**/packaged.yaml.zip

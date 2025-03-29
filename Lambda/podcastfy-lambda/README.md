@@ -10,6 +10,7 @@ This Lambda function generates podcasts from various inputs (URLs, text, Telegra
 - Customizable conversation styles and engagement techniques
 - Support for longform podcasts
 - Automatic upload of transcript files to S3 alongside audio files
+- Completion notifications via Amazon SNS
 
 ## Setup
 
@@ -47,6 +48,7 @@ AWS_SAM_LOCAL=false
 AWS_ACCOUNT_ID=your_aws_account_id
 SQS_QUEUE_URL=your_sqs_queue_url
 SQS_QUEUE_ARN=your_sqs_queue_arn
+SNS_TOPIC_ARN=your_sns_topic_arn
 
 # Supabase Configuration
 SUPABASE_URL=your_supabase_url
@@ -60,6 +62,40 @@ STORAGE_DIR=/tmp/podcasts
 > - Never commit your `.env` file to Git. It contains sensitive API keys and credentials.
 > - All values in the `.env` file are used as defaults when deploying with SAM CLI.
 > - For deployments, the template.yaml and samconfig.toml files will use these environment variables automatically.
+
+## SNS Completion Notifications
+
+The Lambda function supports sending notifications when podcast creation is completed, either successfully or with an error. This is implemented through Amazon SNS. To use this feature:
+
+1. Create an SNS topic in the AWS console or using the AWS CLI:
+
+```bash
+aws sns create-topic --name podcast-completion-notification
+```
+
+2. Subscribe to the topic with your preferred endpoint (email, SMS, etc.):
+
+```bash
+aws sns subscribe --topic-arn <topic-arn> --protocol email --notification-endpoint your.email@example.com
+```
+
+3. Set the SNS topic ARN in your environment or when deploying the Lambda:
+
+```
+SNS_TOPIC_ARN=arn:aws:sns:your-region:your-account-id:podcast-completion-notification
+```
+
+The Lambda function will automatically send notifications at the following events:
+- When podcast creation completes successfully
+- When podcast creation fails with an error
+
+Notification messages include:
+- Podcast configuration ID
+- Episode ID
+- Status (success/error)
+- Timestamp
+- S3 path (for successful creations)
+- Error message (for failures)
 
 ## Local Development with S3 Upload
 
@@ -127,30 +163,42 @@ The Lambda function accepts POST requests with JSON bodies in the following form
 
 ```json
 {
-  "podcasts": [
-    {
-      "id": "podcast1",
-      "type": "url",
-      "urls": [
-        "https://example.com/article1",
-        "https://example.com/article2"
-      ],
-      "metadata": {
-        "title": "My Podcast",
-        "description": "A podcast about interesting topics"
-      },
-      "conversation_config": {
-        "podcast_name": "My Podcast",
-        "podcast_tagline": "A podcast about interesting topics",
-        "output_language": "en",
-        "conversation_style": ["Engaging", "Educational"],
-        "host_names": ["Host", "Co-host"],
-        "engagement_techniques": ["Storytelling", "Q&A format"],
-        "creativity": 0.7
-      },
-      "longform": true
-    }
-  ]
+  "podcast_config_id": "00000000-0000-0000-0000-000000000000",
+  "content_source": "url|text|telegram",
+  "urls": ["https://example.com/article1", "https://example.com/article2"],
+  "text": "Raw text content for the podcast",
+  "telegram_data": { /* Telegram data from collector Lambda */ },
+  "episode_id": "optional-episode-id"
+}
+```
+
+### Response Format
+
+The Lambda function returns responses in the following format:
+
+```json
+{
+  "statusCode": 200,
+  "body": {
+    "status": "success|error",
+    "message": "Optional message",
+    "local_path": "/tmp/podcasts/output.mp3",
+    "s3_url": "https://bucket.s3.amazonaws.com/podcasts/podcast-id/episode-id/output.mp3"
+  }
+}
+```
+
+## Error Handling
+
+Errors are returned with a non-200 status code and an error message in the body:
+
+```json
+{
+  "statusCode": 400,
+  "body": {
+    "status": "error",
+    "message": "Error message"
+  }
 }
 ```
 
@@ -169,33 +217,6 @@ The function supports three types of podcasts:
 3. **Telegram Podcasts (`type: "telegram"`)**
    - Generate podcasts from Telegram message data
    - Required fields: `telegram_data` (object)
-
-### Response Format
-
-The function returns a JSON response with the following structure:
-
-```json
-{
-  "statusCode": 200,
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "body": {
-    "message": "Podcast generation completed",
-    "results": {
-      "podcast1": {
-        "error": false,
-        "message": "Podcast generated successfully",
-        "output_path": "/tmp/podcasts/20230101120000_My_Podcast.mp3",
-        "metadata": {
-          "title": "My Podcast",
-          "description": "A podcast about interesting topics"
-        }
-      }
-    }
-  }
-}
-```
 
 ### Transcript Upload
 
