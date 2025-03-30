@@ -34,14 +34,6 @@ Parameters:
     Description: Supabase API Key
     Default: ""
     NoEcho: true
-  SNSTopicArn:
-    Type: String
-    Description: ARN of the SNS topic for completion notifications
-    Default: ""
-  SNSTopicName:
-    Type: String
-    Description: Name of the SNS topic (without ARN)
-    Default: "podcast-completion-notification"
   ImageUri:
     Type: String
     Description: Full URI of the Docker image for the Lambda function
@@ -60,7 +52,6 @@ Globals:
         S3_BUCKET_NAME: !Ref S3BucketName
         SUPABASE_URL: !Ref SupabaseUrl
         SUPABASE_KEY: !Ref SupabaseKey
-        SNS_TOPIC_ARN: !Ref SNSTopicArn
 
 Resources:
   PodcastGeneratorFunction:
@@ -77,8 +68,6 @@ Resources:
             BucketName: !Ref S3BucketName
         - SQSPollerPolicy:
             QueueName: "podcast-processing-queue"
-        - SNSPublishMessagePolicy:
-            TopicName: !Ref SNSTopicName
       Events:
         ApiEvent:
           Type: Api

@@ -10,7 +10,6 @@ This Lambda function generates podcasts from various inputs (URLs, text, Telegra
 - Customizable conversation styles and engagement techniques
 - Support for longform podcasts
 - Automatic upload of transcript files to S3 alongside audio files
-- Completion notifications via Amazon SNS
 
 ## Setup
 
@@ -48,7 +47,6 @@ AWS_SAM_LOCAL=false
 AWS_ACCOUNT_ID=your_aws_account_id
 SQS_QUEUE_URL=your_sqs_queue_url
 SQS_QUEUE_ARN=your_sqs_queue_arn
-SNS_TOPIC_ARN=your_sns_topic_arn
 
 # Supabase Configuration
 SUPABASE_URL=your_supabase_url
@@ -62,40 +60,6 @@ STORAGE_DIR=/tmp/podcasts
 > - Never commit your `.env` file to Git. It contains sensitive API keys and credentials.
 > - All values in the `.env` file are used as defaults when deploying with SAM CLI.
 > - For deployments, the template.yaml and samconfig.toml files will use these environment variables automatically.
-
-## SNS Completion Notifications
-
-The Lambda function supports sending notifications when podcast creation is completed, either successfully or with an error. This is implemented through Amazon SNS. To use this feature:
-
-1. Create an SNS topic in the AWS console or using the AWS CLI:
-
-```bash
-aws sns create-topic --name podcast-completion-notification
-```
-
-2. Subscribe to the topic with your preferred endpoint (email, SMS, etc.):
-
-```bash
-aws sns subscribe --topic-arn <topic-arn> --protocol email --notification-endpoint your.email@example.com
-```
-
-3. Set the SNS topic ARN in your environment or when deploying the Lambda:
-
-```
-SNS_TOPIC_ARN=arn:aws:sns:your-region:your-account-id:podcast-completion-notification
-```
-
-The Lambda function will automatically send notifications at the following events:
-- When podcast creation completes successfully
-- When podcast creation fails with an error
-
-Notification messages include:
-- Podcast configuration ID
-- Episode ID
-- Status (success/error)
-- Timestamp
-- S3 path (for successful creations)
-- Error message (for failures)
 
 ## Local Development with S3 Upload
 

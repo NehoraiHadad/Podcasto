@@ -11,13 +11,9 @@ from src.clients.supabase_client import SupabaseClient
 from src.handlers.sqs_handler import SQSHandler
 from src.utils.logging import get_logger
 from src.utils.response import create_response
-from src.utils.sns_notifier import SNSNotifier
 from src.podcast_processor import PodcastProcessor
 
 logger = get_logger(__name__)
-
-# Create SNS notifier
-sns_notifier = SNSNotifier()
 
 # Log environment variables at module initialization for debugging
 def log_environment():
@@ -26,8 +22,7 @@ def log_environment():
         'S3_BUCKET_NAME': os.environ.get('S3_BUCKET_NAME', 'Not set'),
         'STORAGE_DIR': os.environ.get('STORAGE_DIR', 'Not set'),
         'AWS_REGION': os.environ.get('AWS_REGION', 'Not set'),
-        'AWS_LAMBDA_FUNCTION_NAME': os.environ.get('AWS_LAMBDA_FUNCTION_NAME', 'Not set'),
-        'SNS_TOPIC_ARN': os.environ.get('SNS_TOPIC_ARN', 'Not set')
+        'AWS_LAMBDA_FUNCTION_NAME': os.environ.get('AWS_LAMBDA_FUNCTION_NAME', 'Not set')
     }
     
     logger.info("Lambda environment variables:")
@@ -37,12 +32,6 @@ def log_environment():
             logger.info(f"  {key}: [Redacted]")
         else:
             logger.info(f"  {key}: {value}")
-    
-    # Set SNS topic ARN if available
-    sns_topic_arn = os.environ.get('SNS_TOPIC_ARN')
-    if sns_topic_arn:
-        sns_notifier.set_topic_arn(sns_topic_arn)
-        logger.info(f"SNS notifier configured with topic ARN: {sns_topic_arn}")
 
 # Log environment variables when module is loaded
 log_environment()
@@ -188,28 +177,19 @@ def process_sqs_event(event: Dict[str, Any], request_id: Optional[str] = None) -
                 result = sqs_handler.process_message(message, request_id)
                 results.append(result)
                 
-                # Send completion notification if the processing was successful
+                # Log success or failure
                 if result.get('status') == 'success':
                     episode_id = message.get('episode_id') or podcast_config.get('episode_id')
                     s3_path = result.get('s3_url') or result.get('s3_path')
                     
                     if episode_id:
-                        sns_notifier.notify_completion(
-                            podcast_config_id=podcast_config.get('id'),
-                            episode_id=episode_id,
-                            status='success',
-                            additional_data={'s3_path': s3_path} if s3_path else None
-                        )
+                        logger.info(f"{log_prefix}Successfully processed episode {episode_id} with s3_path: {s3_path}")
                 else:
-                    # Send error notification
+                    # Log error
                     episode_id = message.get('episode_id') or podcast_config.get('episode_id')
+                    error_msg = result.get('message', 'Unknown error')
                     if episode_id:
-                        sns_notifier.notify_completion(
-                            podcast_config_id=podcast_config.get('id'),
-                            episode_id=episode_id,
-                            status='error',
-                            additional_data={'error': result.get('message')}
-                        )
+                        logger.error(f"{log_prefix}Error processing episode {episode_id}: {error_msg}")
                 
             except Exception as e:
                 logger.error(f"{log_prefix}Error processing SQS record: {str(e)}")
@@ -275,28 +255,19 @@ def process_direct_invocation(event: Dict[str, Any], request_id: Optional[str] =
             processor = PodcastProcessor(podcast_config, event, request_id)
             result = processor.process()
             
-            # Send completion notification if the processing was successful
+            # Log success or failure
             if result.get('status') == 'success':
                 episode_id = event.get('episode_id') or podcast_config.get('episode_id')
                 s3_path = result.get('s3_url') or result.get('s3_path')
                 
                 if episode_id:
-                    sns_notifier.notify_completion(
-                        podcast_config_id=podcast_config.get('id'),
-                        episode_id=episode_id,
-                        status='success',
-                        additional_data={'s3_path': s3_path} if s3_path else None
-                    )
+                    logger.info(f"{log_prefix}Successfully processed episode {episode_id} with s3_path: {s3_path}")
             else:
-                # Send error notification
+                # Log error
                 episode_id = event.get('episode_id') or podcast_config.get('episode_id')
+                error_msg = result.get('message', 'Unknown error')
                 if episode_id:
-                    sns_notifier.notify_completion(
-                        podcast_config_id=podcast_config.get('id'),
-                        episode_id=episode_id,
-                        status='error',
-                        additional_data={'error': result.get('message')}
-                    )
+                    logger.error(f"{log_prefix}Error processing episode {episode_id}: {error_msg}")
             
             return result
         else:
@@ -312,27 +283,18 @@ def process_direct_invocation(event: Dict[str, Any], request_id: Optional[str] =
             sqs_handler = SQSHandler(podcast_config, supabase_client)
             result = sqs_handler.process_message(message, request_id)
             
-            # Send completion notification if the processing was successful
+            # Log success or failure
             if result.get('status') == 'success':
                 episode_id = event.get('episode_id') or podcast_config.get('episode_id')
                 s3_path = result.get('s3_url') or result.get('s3_path')
                 
                 if episode_id:
-                    sns_notifier.notify_completion(
-                        podcast_config_id=podcast_config.get('id'),
-                        episode_id=episode_id,
-                        status='success',
-                        additional_data={'s3_path': s3_path} if s3_path else None
-                    )
+                    logger.info(f"{log_prefix}Successfully processed episode {episode_id} with s3_path: {s3_path}")
             else:
-                # Send error notification
+                # Log error
                 episode_id = event.get('episode_id') or podcast_config.get('episode_id')
+                error_msg = result.get('message', 'Unknown error')
                 if episode_id:
-                    sns_notifier.notify_completion(
-                        podcast_config_id=podcast_config.get('id'),
-                        episode_id=episode_id,
-                        status='error',
-                        additional_data={'error': result.get('message')}
-                    )
+                    logger.error(f"{log_prefix}Error processing episode {episode_id}: {error_msg}")
             
             return result 

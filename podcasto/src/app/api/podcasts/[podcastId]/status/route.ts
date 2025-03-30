@@ -77,32 +77,6 @@ export async function GET(
       message = `Podcast status: ${status}`;
     }
     
-    // Get SQS queue information
-    let queueInfo = {};
-    try {
-      // Get the SQS queue URL from environment variables
-      const sqsQueueUrl = process.env.SQS_QUEUE_URL;
-      
-      if (sqsQueueUrl) {
-        // Initialize SQS client
-        const sqsClient = new SQSClient({ region: process.env.AWS_REGION || 'us-east-1' });
-        
-        // Check the SQS queue status
-        const queueAttributesCommand = new GetQueueAttributesCommand({
-          QueueUrl: sqsQueueUrl,
-          AttributeNames: ['ApproximateNumberOfMessages', 'ApproximateNumberOfMessagesNotVisible']
-        });
-        
-        const queueAttributes = await sqsClient.send(queueAttributesCommand);
-        
-        queueInfo = {
-          messagesInQueue: queueAttributes.Attributes?.ApproximateNumberOfMessages || 0,
-          messagesInProcess: queueAttributes.Attributes?.ApproximateNumberOfMessagesNotVisible || 0,
-        };
-      }
-    } catch (sqsError) {
-      console.error('Error checking SQS queue:', sqsError);
-    }
     
     return NextResponse.json({ 
       podcastId, 
@@ -110,7 +84,6 @@ export async function GET(
       timestamp: timestamp,
       status, 
       message,
-      queueInfo,
       lastChecked: new Date().toISOString()
     });
     

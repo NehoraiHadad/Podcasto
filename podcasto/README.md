@@ -10,6 +10,7 @@ Podcasto transforms news content from Telegram channels into professional podcas
 - **User Authentication**: Sign in using your Google account or email and password.
 - **Personalized Content**: Customize your podcast feed based on your interests and preferred news sources.
 - **Cross-platform Accessibility**: Listen on any device with a modern web browser or email client.
+- **Automated Episode Processing**: Background service monitors podcast generation status, ensuring timely delivery and handling any failures gracefully.
 
 ## Technology Stack
 
