@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SQSClient, GetQueueAttributesCommand } from '@aws-sdk/client-sqs';
 import { episodesApi } from '@/lib/db/api';
 
 /**

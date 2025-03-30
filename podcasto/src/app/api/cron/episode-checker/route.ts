@@ -1,6 +1,6 @@
 import { db, episodes } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, not, or, isNull } from 'drizzle-orm';
+import { eq, and, not, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 // Status constants
