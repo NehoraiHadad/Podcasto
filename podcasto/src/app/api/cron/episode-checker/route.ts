@@ -26,8 +26,8 @@ interface EpisodeCheckResults {
 // Initialize post-processing service if environment variables are available
 function getPostProcessingService() {
   const aiApiKey = process.env.GEMINI_API_KEY;
-  const s3Region = process.env.AWS_S3_REGION;
-  const s3Bucket = process.env.AWS_S3_BUCKET;
+  const s3Region = process.env.AWS_REGION;
+  const s3Bucket = process.env.S3_BUCKET_NAME;
   const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
   const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
   
