@@ -61,26 +61,56 @@ class PodcastProcessor:
 
     def process(self) -> Dict[str, Any]:
         """
-        Process the podcast based on the configuration and event.
+        Process podcast creation based on the configured type.
         
         Returns:
             Dictionary with processing results
         """
-        try:
-            # Determine the content source type
-            content_source = self.podcast_config.get('content_source')
-            logger.info(f"{self.log_prefix}Processing podcast with content source: {content_source}")
-            
-            # Prepare metadata
-            metadata = {
-                'id': self.podcast_config.get('id'),
-                'title': self.podcast_config.get('title', 'Untitled Podcast'),
-                'description': self.podcast_config.get('description', '')
+        # Check podcast configuration
+        content_source = self.event.get('content_source', self.podcast_config.get('content_source'))
+        
+        if not content_source:
+            error_msg = "Missing content source in podcast configuration"
+            logger.error(f"{self.log_prefix}{error_msg}")
+            return {
+                'status': 'error',
+                'message': error_msg
             }
-            
+        
+        # Prepare metadata for the podcast
+        metadata = {
+            'id': self.podcast_config.get('id', ''),
+            'podcast_id': self.podcast_config.get('podcast_id', ''),  # Add actual podcast_id from config
+            'title': self.podcast_config.get('podcast_name', ''),
+            'creator': self.podcast_config.get('creator', ''),
+            'description': self.podcast_config.get('description', ''),
+            'language': self.podcast_config.get('language', 'en'),
+            'episode_id': self.podcast_config.get('episode_id', ''),
+            'podcast_name': self.podcast_config.get('podcast_name', ''),
+            'speaker1_role': self.podcast_config.get('speaker1_role', 'Host'),
+            'speaker2_role': self.podcast_config.get('speaker2_role', 'Guest'),
+            'conversation_styles': self.podcast_config.get('conversation_styles', []),
+            'engagement_techniques': self.podcast_config.get('engagement_techniques', []),
+            'creativity': float(self.podcast_config.get('creativity', 0.7)),
+            'user_instructions': self.podcast_config.get('user_instructions', ''),
+            'conversation_style': self.podcast_config.get('conversation_style', ['conversational']),
+            'longform': self.podcast_config.get('longform', False),
+            'telegram_content_url': self.podcast_config.get('telegram_content_url', ''),
+            'content_source': content_source
+        }
+        
+        # Override podcast_id if it's explicitly passed in the event
+        if self.event.get('podcast_id'):
+            metadata['podcast_id'] = self.event.get('podcast_id')
+            logger.info(f"{self.log_prefix}Using podcast_id from event: {self.event.get('podcast_id')}")
+        
+        logger.info(f"{self.log_prefix}Processing podcast with content source: {content_source}")
+        logger.info(f"{self.log_prefix}Metadata: {metadata}")
+        
+        try:
             # Get conversation config
             conversation_config = self.get_conversation_config(
-                podcast_name=self.podcast_config.get('title', 'Podcast'),
+                podcast_name=self.podcast_config.get('podcast_name', 'Podcast'),
                 podcast_tagline=self.podcast_config.get('description', ''),
                 output_language=self.podcast_config.get('language', 'en'),
                 conversation_style=self.podcast_config.get('conversation_style', ['conversational']),

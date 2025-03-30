@@ -82,17 +82,35 @@ class SupabaseClient:
             logger.error(f"Error getting podcast config with flexible lookup: {str(e)}")
             return {"success": False, "error": str(e)}
     
-    def get_episode(self, episode_id: str) -> Dict[str, Any]:
-        """Get an episode by ID"""
-        try:
-            response = self.client.table("episodes").select("*") \
-                .eq("id", episode_id) \
-                .execute()
+    def get_episode(self, episode_id: str, request_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get episode by ID.
+        
+        Args:
+            episode_id: Episode ID
+            request_id: Optional request ID for tracing
             
-            if response.data:
-                return {"success": True, "episode": response.data[0]}
-            return {"success": False, "error": "Episode not found"}
+        Returns:
+            Dictionary with success flag and episode data or error message
+        """
+        log_prefix = f"[{request_id}] " if request_id else ""
+        
+        try:
+            # Get the episode
+            response = self.client.table("episodes").select("*").eq("id", episode_id).execute()
+            
+            if response.data and len(response.data) > 0:
+                episode = response.data[0]
+                logger.info(f"{log_prefix}Found episode with ID: {episode_id}")
+                logger.info(f"{log_prefix}Episode podcast_id: {episode.get('podcast_id')}")
+                logger.info(f"{log_prefix}Episode data: {episode}")
+                return {"success": True, "episode": episode}
+            
+            # If not found, log the failure and return error
+            logger.error(f"{log_prefix}Episode not found with ID: {episode_id}")
+            return {"success": False, "error": f"Episode not found with ID: {episode_id}"}
         except Exception as e:
+            logger.error(f"{log_prefix}Error getting episode: {str(e)}")
             return {"success": False, "error": str(e)}
     
     def update_episode_status(self, episode_id: str, status: str) -> Dict[str, Any]:

@@ -17,12 +17,13 @@ class PodcastConfig:
     """
     Podcast configuration data structure.
     """
-    id: str
+    id: str  # This is the podcast_config_id
     telegram_channel: str
     media_types: List[str] = field(default_factory=list)
     filtered_domains: List[str] = field(default_factory=list)
     days_back: int = 1
     episode_id: Optional[str] = None
+    podcast_id: Optional[str] = None  # Actual podcast ID, separate from config ID
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PodcastConfig':
@@ -36,7 +37,7 @@ class PodcastConfig:
             A PodcastConfig instance
         """
         # Extract required fields
-        podcast_id = data.get('id')
+        podcast_config_id = data.get('id')
         telegram_channel = data.get('telegram_channel')
         
         # Extract optional fields with defaults
@@ -47,14 +48,18 @@ class PodcastConfig:
         # Extract episode_id if available
         episode_id = data.get('episode_id')
         
+        # Extract podcast_id if available (separate from config_id)
+        podcast_id = data.get('podcast_id')
+        
         # Create and return the config object
         return cls(
-            id=podcast_id,
+            id=podcast_config_id,
             telegram_channel=telegram_channel,
             media_types=media_types,
             filtered_domains=filtered_domains,
             days_back=days_back,
-            episode_id=episode_id
+            episode_id=episode_id,
+            podcast_id=podcast_id
         )
 
 
@@ -110,6 +115,10 @@ class ConfigManager:
             # If episode_id is in the event but not in the podcast_config, add it
             if 'episode_id' in self.event and 'episode_id' not in config_data:
                 config_data['episode_id'] = self.event['episode_id']
+
+            # If podcast_id is in the event but not in the podcast_config, add it
+            if 'podcast_id' in self.event and 'podcast_id' not in config_data:
+                config_data['podcast_id'] = self.event['podcast_id']
                 
             config = PodcastConfig.from_dict(config_data)
             
@@ -121,6 +130,8 @@ class ConfigManager:
             logger.info(f"Using provided podcast config with ID: {config.id}")
             if config.episode_id:
                 logger.info(f"Using episode ID: {config.episode_id}")
+            if config.podcast_id:
+                logger.info(f"Using podcast ID: {config.podcast_id}")
             return [config]
         
         # No valid configurations found

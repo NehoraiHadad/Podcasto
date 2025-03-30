@@ -115,7 +115,9 @@ class BaseGenerator:
                     logger.error(f"Error calculating audio duration: {str(e)}")
                 
                 # Upload to S3
-                podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
+                # Use the key 'podcast_id' from the metadata or use 'id' as fallback
+                # This is the actual podcast ID, not the config ID
+                actual_podcast_id = metadata.get("podcast_id", metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower()))
                 
                 # Get episode_id or generate a new one if not provided (instead of using podcast_id as fallback)
                 episode_id = self.podcast_config.get('episode_id')
@@ -129,13 +131,13 @@ class BaseGenerator:
                 
                 # Upload file to S3 with proper path structure
                 filename = os.path.basename(output_path)
-                key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
+                key = f"podcasts/{actual_podcast_id}/{episode_id}/{filename}"
                 
                 logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
 
                 # Upload transcript files to S3
-                self.upload_transcripts(podcast_id, episode_id, s3_bucket)
+                self.upload_transcripts(actual_podcast_id, episode_id, s3_bucket)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
@@ -174,7 +176,9 @@ class BaseGenerator:
                     logger.error(f"Error calculating audio duration: {str(e)}")
                 
                 # Upload to S3 with the same proper structure as above
-                podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
+                # Use the key 'podcast_id' from the metadata or use 'id' as fallback 
+                # This is the actual podcast ID, not the config ID
+                actual_podcast_id = metadata.get("podcast_id", metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower()))
                 
                 # Get episode_id or generate a new one if not provided
                 episode_id = self.podcast_config.get('episode_id')
@@ -188,13 +192,13 @@ class BaseGenerator:
                 
                 # Upload file to S3 with proper path structure
                 filename = os.path.basename(output_path)
-                key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
+                key = f"podcasts/{actual_podcast_id}/{episode_id}/{filename}"
                 
                 logger.info(f"Attempting to upload podcast to S3: {key}")
                 result = self.s3_client.upload_file(output_path, s3_bucket, key)
 
                 # Upload transcript files to S3
-                self.upload_transcripts(podcast_id, episode_id, s3_bucket)
+                self.upload_transcripts(actual_podcast_id, episode_id, s3_bucket)
                 
                 if result.get('success', False):
                     s3_url = result.get('url')
@@ -220,7 +224,7 @@ class BaseGenerator:
         Upload transcript files to S3.
         
         Args:
-            podcast_id: Podcast ID
+            podcast_id: Actual podcast ID (not config ID)
             episode_id: Episode ID
             s3_bucket: S3 bucket name
             

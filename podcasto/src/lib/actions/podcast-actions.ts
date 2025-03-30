@@ -218,6 +218,7 @@ export async function generatePodcastEpisode(podcastId: string) {
     // Prepare the event payload - include the episode ID we just created
     const payload = {
       podcast_config: podcastConfig,
+      podcast_id: podcastId,  // Pass the actual podcast ID explicitly 
       episode_id: episode.id, // Pass the episode ID explicitly 
       sqs_queue_url: sqsQueueUrl,
       trigger_source: "admin-panel"

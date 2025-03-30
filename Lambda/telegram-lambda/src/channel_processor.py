@@ -97,7 +97,9 @@ class ChannelProcessor:
                 logger.info(f"Using provided episode_id from config: {episode_id}")
             
             # Set media handler context with the episode_id
-            self.media_handler.set_context(self.config.id, episode_id, self.config.media_types)
+            media_id = self.config.podcast_id if hasattr(self.config, 'podcast_id') and self.config.podcast_id else self.config.id
+            self.media_handler.set_context(media_id, episode_id, self.config.media_types)
+            logger.info(f"Set media handler context with podcast_id: {media_id}, episode_id: {episode_id}")
             
             # Process messages
             processed_messages = await self._process_messages(messages)
@@ -120,9 +122,16 @@ class ChannelProcessor:
                 'episode_id': episode_id
             }
             
+            # Add podcast_id to result if available (separate from config_id)
+            if hasattr(self.config, 'podcast_id') and self.config.podcast_id:
+                result['podcast_id'] = self.config.podcast_id
+                logger.info(f"Added podcast_id to result: {self.config.podcast_id}")
+            
             # Upload results to S3 using episode_id instead of timestamp
-            s3_result = self.s3_client.upload_data(result, self.config.id, episode_id)
+            upload_id = self.config.podcast_id if hasattr(self.config, 'podcast_id') and self.config.podcast_id else self.config.id
+            s3_result = self.s3_client.upload_data(result, upload_id, episode_id)
             result['s3_path'] = s3_result
+            logger.info(f"Uploaded data to S3 with podcast_id: {upload_id}, episode_id: {episode_id}")
             
             return result
             

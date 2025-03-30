@@ -67,6 +67,7 @@ class SQSHandler:
             
             # Extract data directly from the message
             podcast_config_id = message.get('podcast_config_id')
+            podcast_id = message.get('podcast_id', podcast_config_id)  # Use podcast_id if provided, otherwise fall back to config_id
             episode_id = message.get('episode_id')
             s3_path = message.get('s3_path')
             content_url = message.get('content_url', s3_path)
@@ -77,6 +78,9 @@ class SQSHandler:
                     'status': 'error',
                     'message': 'Invalid SQS message: Missing podcast_config_id'
                 }
+            
+            # Log the podcast_id being used
+            logger.info(f"{log_prefix}Using podcast_id: {podcast_id} (config_id: {podcast_config_id})")
             
             # Find the corresponding episode in the database using ID directly
             episode = None
@@ -158,11 +162,17 @@ class SQSHandler:
                 # Create event object for PodcastProcessor
                 processor_event = {
                     'podcast_config_id': podcast_config_id,
+                    'podcast_id': podcast_id,  # Always include extracted podcast_id
                     'content_url': content_url,
                     'content_source': 'telegram',  # Explicitly set content source
                     'telegram_data': content_result.get('content'),
                     'episode_id': episode_id  # Explicitly pass the episode_id
                 }
+                
+                # Add podcast_id from episode if available (overrides message podcast_id)
+                if episode and episode.get('podcast_id'):
+                    processor_event['podcast_id'] = episode.get('podcast_id')
+                    logger.info(f"{log_prefix}Using podcast_id from episode: {episode.get('podcast_id')}")
                 
                 logger.info(f"{log_prefix}Initializing PodcastProcessor to generate audio")
                 processor = PodcastProcessor(self.podcast_config, processor_event, request_id)

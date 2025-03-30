@@ -32,12 +32,12 @@ class SQSClient:
             self.sqs_client = None
             logger.info("Running in local environment, SQS operations will be simulated")
     
-    def send_message(self, podcast_id: str, result_data: Dict[str, Any], timestamp: str) -> bool:
+    def send_message(self, podcast_config_id: str, result_data: Dict[str, Any], timestamp: str) -> bool:
         """
         Send a message to the SQS queue.
         
         Args:
-            podcast_id: The ID of the podcast
+            podcast_config_id: The ID of the podcast configuration
             result_data: The result data from the channel processor
             timestamp: The timestamp for consistent folder structure
         
@@ -51,10 +51,14 @@ class SQSClient:
         # Extract the episode_id from result_data if available
         episode_id = result_data.get('episode_id', timestamp)
         s3_path = result_data.get('s3_path', '')
+        
+        # Extract the podcast_id from result_data if available (separate from config_id)
+        podcast_id = result_data.get('podcast_id', podcast_config_id)
             
         # Create message with necessary data for podcast generation
         message = {
-            'podcast_config_id': podcast_id,
+            'podcast_config_id': podcast_config_id,
+            'podcast_id': podcast_id,  # Add actual podcast_id to the message
             'timestamp': timestamp,
             'episode_id': episode_id,
             's3_path': s3_path,

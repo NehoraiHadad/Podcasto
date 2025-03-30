@@ -29,8 +29,8 @@ export class GeminiProvider implements AIProvider {
     // Default models or use provided one
     this.titleSummaryModel = config.modelName || 'gemini-1.5-flash';
     
-    // Use gemini-2.0-flash-exp for image gen
-    this.imageGenModel = 'gemini-2.0-flash-exp';
+    // Use the correct model for image generation
+    this.imageGenModel = 'gemini-2.0-flash-exp-image-generation';
     
     // Default retry configuration
     this.retryConfig = DEFAULT_RETRY_CONFIG;
@@ -121,9 +121,9 @@ export class GeminiProvider implements AIProvider {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(this.apiKey);
         
-        // Use the experimental model that supports image generation
+        // Use the model that supports image generation
         const model = genAI.getGenerativeModel({ 
-          model: this.imageGenModel,
+          model: this.imageGenModel
         });
         
         // Add style context to description
@@ -134,9 +134,10 @@ export class GeminiProvider implements AIProvider {
           
           The image should be in ${style} style, suitable for a podcast cover.
           Make it visually appealing and relevant to the content.
+          The image must be generated as output.
         `;
         
-        // Use the simplest form of the API that works with the current SDK version
+        // Call generateContent with the prompt string directly
         const result = await model.generateContent(enhancedPrompt);
         
         // Extract image parts from response
@@ -144,10 +145,10 @@ export class GeminiProvider implements AIProvider {
         let imageData = null;
         let mimeType = 'image/jpeg';
         
-        // Safely access candidates if they exist
-        if (response.candidates && response.candidates.length > 0 && 
-            response.candidates[0].content && response.candidates[0].content.parts) {
-          for (const part of response.candidates[0].content.parts) {
+        // Safely access parts if they exist
+        const parts = response.candidates?.[0]?.content?.parts;
+        if (parts) {
+          for (const part of parts) {
             if (part.inlineData) {
               // Convert base64 data to Buffer
               const base64Data = part.inlineData.data;

@@ -64,14 +64,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     
                     # Send message to SQS
                     sqs_sent = sqs_client.send_message(
-                        podcast_id=config.id,
+                        podcast_config_id=config.id,
                         result_data=result,
                         timestamp=timestamp
                     )
                     
                     # Add SQS status to result
                     result['sqs_message_sent'] = sqs_sent
-                    logger.info(f"SQS message for podcast {config.id}: {'Sent' if sqs_sent else 'Failed'}")
+                    logger.info(f"SQS message for podcast config {config.id}: {'Sent' if sqs_sent else 'Failed'}")
                 
             except Exception as e:
                 logger.error(f"Error processing podcast config {config.id}: {str(e)}")
