@@ -116,13 +116,13 @@ export function usePodcastCreationForm({
 
   // Effect to check incomplete tabs when form values change
   useEffect(() => {
+    // Use watch to subscribe to form changes
     const subscription = form.watch(() => {
       checkIncompleteTabs();
-      // Trigger validation on every change
-      form.trigger();
+      // Removed form.trigger() to prevent infinite loop
     });
     return () => subscription.unsubscribe();
-  }, [form.watch, checkIncompleteTabs, form]);
+  }, [form, checkIncompleteTabs]);
 
   return {
     form,

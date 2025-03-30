@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -38,19 +38,7 @@ export function PodcastCreationForm() {
     onSubmitEnd: () => setIsSubmitting(false)
   });
 
-  // Debug form state
-  useEffect(() => {
-    const subscription = form.watch(() => {
-      console.log('Form State:', {
-        isValid: form.formState.isValid,
-        errors: form.formState.errors,
-        values: form.getValues(),
-        isDirty: form.formState.isDirty,
-        isSubmitting: form.formState.isSubmitting
-      });
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
+  // Debug useEffect hook removed
   
   return (
     <Form {...form}>
@@ -62,13 +50,6 @@ export function PodcastCreationForm() {
             {incompleteTabsMessage}
           </div>
         )}
-        
-        {/* Debug info */}
-        <div className="text-sm text-gray-500">
-          <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
-          <p>Form Dirty: {form.formState.isDirty ? 'Yes' : 'No'}</p>
-          <p>Has Errors: {Object.keys(form.formState.errors).length > 0 ? 'Yes' : 'No'}</p>
-        </div>
         
         <div className="flex justify-end space-x-4">
           <Button 
