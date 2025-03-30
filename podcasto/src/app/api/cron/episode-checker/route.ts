@@ -6,9 +6,9 @@ import { createPostProcessingService } from '@/lib/services/post-processing';
 
 // Status constants
 const PENDING_STATUS = 'pending';
-const COMPLETED_STATUS = 'completed';  // יש קובץ אודיו אבל עדיין לא עבר עיבוד AI
+const COMPLETED_STATUS = 'completed';  // There is an audio file but it has not yet been AI processed
 const FAILED_STATUS = 'failed';
-const PROCESSED_STATUS = 'processed';  // עבר עיבוד AI מלא
+const PROCESSED_STATUS = 'processed';  // AI processing has been completed
 
 // Time constants (in milliseconds)
 const MAX_PENDING_TIME = 30 * 60 * 1000; // 30 minutes
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     
     console.log(`[EPISODE_CHECKER] Post-processing ${postProcessingEnabled ? 'enabled' : 'disabled'}, service ${postProcessingService ? 'available' : 'unavailable'}`);
     
-    // בדיקה אחת מרוכזת במקום 3 בדיקות נפרדות
+    // Consolidated check instead of 3 separate checks
     await processAllEpisodes(postProcessingService, postProcessingEnabled, results);
     
     console.log('[EPISODE_CHECKER] Completed check with results:', JSON.stringify(results, null, 2));
@@ -125,8 +125,8 @@ async function processAllEpisodes(
   // Step 1: Get all episodes that need attention in one query
   console.log('[EPISODE_CHECKER] Fetching episodes that need attention');
   
-  // הערה: דריזל לא תומכת ישירות ב-OR כמו SQL רגיל, אז נצטרך לעשות יותר משאילתא אחת
-  // אבל אפשר לאחד את PENDING עם/בלי אודיו
+  // Note: Drizzle does not support direct OR like regular SQL, so we need to do more than one query
+  // But we can combine PENDING with/without audio
   const pendingEpisodes = await db.select()
     .from(episodes)
     .where(eq(episodes.status, PENDING_STATUS));
@@ -184,7 +184,7 @@ async function processAllEpisodes(
         
         // If post-processing is enabled, add it to the completed list for processing
         if (postProcessingEnabled && postProcessingService && episode.podcast_id) {
-          // השתמש בטיפול הקיים בהמשך
+          // Use existing handling later
           completedEpisodes.push(episode);
         }
       }
