@@ -53,6 +53,7 @@ Stores details about individual podcast episodes.
 | podcast_id | UUID       | Foreign Key to `podcasts`       |
 | title      | TEXT       | Episode title                   |
 | description   TEXT      | Episode description             |
+| cover_image | TEXT      | Image of the episode            |
 | language    |  TEXT     | Episode language                |
 | audio_url  | VARCHAR    | URL to the stored audio file    |
 | duration   | INTEGER    | Episode length in seconds       |

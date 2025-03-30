@@ -1,14 +1,14 @@
 import { db, episodes } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, not, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createPostProcessingService } from '@/lib/services/post-processing';
 
 // Status constants
 const PENDING_STATUS = 'pending';
-const COMPLETED_STATUS = 'completed';
+const COMPLETED_STATUS = 'completed';  // יש קובץ אודיו אבל עדיין לא עבר עיבוד AI
 const FAILED_STATUS = 'failed';
-const PROCESSED_STATUS = 'processed'; // New status for post-processed episodes
+const PROCESSED_STATUS = 'processed';  // עבר עיבוד AI מלא
 
 // Time constants (in milliseconds)
 const MAX_PENDING_TIME = 30 * 60 * 1000; // 30 minutes
@@ -19,6 +19,7 @@ interface EpisodeCheckResults {
   timed_out: number;
   completed: number;
   processed: number;
+  requires_processing: number;
   errors: string[];
 }
 
@@ -52,8 +53,8 @@ function getPostProcessingService() {
 }
 
 /**
- * Checks for episodes that have been pending for too long and marks them as failed
- * Also checks for episodes that have completed and triggers any necessary follow-up actions
+ * Checks for episodes that have been pending for too long and marks them as failed.
+ * Also processes any episodes that have completed audio generation but haven't been processed yet.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -75,21 +76,13 @@ export async function GET(request: NextRequest) {
     
     console.log('[EPISODE_CHECKER] Authorization successful');
     
-    // 2. Find all pending episodes
-    console.log('[EPISODE_CHECKER] Querying for pending episodes');
-    const pendingEpisodes = await db.select()
-      .from(episodes)
-      .where(eq(episodes.status, PENDING_STATUS));
-    
-    console.log(`[EPISODE_CHECKER] Found ${pendingEpisodes.length} pending episodes`);
-    
-    // 3. Process pending episodes
-    const now = new Date();
+    // Results tracking
     const results: EpisodeCheckResults = {
-      checked: pendingEpisodes.length,
+      checked: 0,
       timed_out: 0,
       completed: 0,
       processed: 0,
+      requires_processing: 0,
       errors: []
     };
     
@@ -99,117 +92,8 @@ export async function GET(request: NextRequest) {
     
     console.log(`[EPISODE_CHECKER] Post-processing ${postProcessingEnabled ? 'enabled' : 'disabled'}, service ${postProcessingService ? 'available' : 'unavailable'}`);
     
-    for (const episode of pendingEpisodes) {
-      console.log(`[EPISODE_CHECKER] Processing episode: ${episode.id}, title: ${episode.title}`);
-      
-      try {
-        // Check if the episode has been pending for too long
-        if (episode.created_at) {
-          const pendingTime = now.getTime() - new Date(episode.created_at).getTime();
-          console.log(`[EPISODE_CHECKER] Episode pending time: ${pendingTime}ms (max: ${MAX_PENDING_TIME}ms)`);
-          
-          // If pending for more than MAX_PENDING_TIME (30 minutes), mark as failed
-          if (pendingTime > MAX_PENDING_TIME) {
-            console.log(`[EPISODE_CHECKER] Episode ${episode.id} timed out, marking as failed`);
-            await db.update(episodes)
-              .set({ 
-                status: FAILED_STATUS,
-                description: 'Episode generation timed out'
-              })
-              .where(eq(episodes.id, episode.id));
-            
-            results.timed_out++;
-            continue;
-          }
-        }
-        
-        // Check if this episode has been completed but status wasn't updated
-        console.log(`[EPISODE_CHECKER] Checking audio URL for episode ${episode.id}: "${episode.audio_url}"`);
-        
-        if (episode.audio_url && episode.audio_url !== '') {
-          console.log(`[EPISODE_CHECKER] Episode ${episode.id} has audio URL but status is still "${episode.status}", updating to completed`);
-          
-          await db.update(episodes)
-            .set({ 
-              status: COMPLETED_STATUS,
-              description: 'Episode generated successfully'
-            })
-            .where(eq(episodes.id, episode.id));
-          
-          results.completed++;
-          
-          // If post-processing is enabled and service is available, process the episode
-          if (postProcessingEnabled && postProcessingService && episode.podcast_id) {
-            console.log(`[EPISODE_CHECKER] Starting post-processing for episode ${episode.id}`);
-            
-            try {
-              const success = await postProcessingService.processCompletedEpisode({
-                id: episode.id,
-                podcast_id: episode.podcast_id,
-                metadata: episode.metadata
-              });
-              
-              if (success) {
-                // Update episode status to 'processed'
-                await db.update(episodes)
-                  .set({ status: PROCESSED_STATUS })
-                  .where(eq(episodes.id, episode.id));
-                
-                results.processed++;
-                console.log(`[EPISODE_CHECKER] Successfully post-processed episode ${episode.id}`);
-              } else {
-                console.error(`[EPISODE_CHECKER] Failed to post-process episode ${episode.id}`);
-                results.errors.push(`Failed to post-process episode ${episode.id}`);
-              }
-            } catch (postProcessError) {
-              console.error(`[EPISODE_CHECKER] Error in post-processing for episode ${episode.id}:`, postProcessError);
-              results.errors.push(`Post-processing error for episode ${episode.id}: ${postProcessError?.toString() || 'Unknown error'}`);
-            }
-          }
-          
-          // Revalidate relevant paths to update the UI
-          console.log(`[EPISODE_CHECKER] Revalidating UI paths for episode ${episode.id}`);
-          revalidatePath('/admin/podcasts');
-          revalidatePath(`/podcasts/${episode.podcast_id}`);
-        } else {
-          console.log(`[EPISODE_CHECKER] Episode ${episode.id} still pending, no action needed`);
-        }
-      } catch (error) {
-        console.error(`[EPISODE_CHECKER] Error processing episode ${episode.id}:`, error);
-        results.errors.push(`Episode ${episode.id}: ${error?.toString() || 'Unknown error'}`);
-      }
-    }
-    
-    // 4. Look for any episodes that have audio_url but status isn't "completed"
-    console.log('[EPISODE_CHECKER] Checking for inconsistent episodes (audio URL exists but status not completed)');
-    
-    const inconsistentEpisodes = await db.select()
-      .from(episodes)
-      .where(
-        and(
-          not(eq(episodes.status, COMPLETED_STATUS)),
-          not(eq(episodes.status, FAILED_STATUS)),
-          not(eq(episodes.status, PROCESSED_STATUS)), // Also exclude processed episodes
-          not(eq(episodes.audio_url, '')),
-          not(isNull(episodes.audio_url))
-        )
-      );
-    
-    console.log(`[EPISODE_CHECKER] Found ${inconsistentEpisodes.length} inconsistent episodes`);
-    
-    for (const episode of inconsistentEpisodes) {
-      console.log(`[EPISODE_CHECKER] Fixing inconsistent episode ${episode.id}, setting status to completed`);
-      
-      await db.update(episodes)
-        .set({ status: COMPLETED_STATUS })
-        .where(eq(episodes.id, episode.id));
-      
-      results.completed++;
-      
-      // Revalidate paths
-      revalidatePath('/admin/podcasts');
-      revalidatePath(`/podcasts/${episode.podcast_id}`);
-    }
+    // בדיקה אחת מרוכזת במקום 3 בדיקות נפרדות
+    await processAllEpisodes(postProcessingService, postProcessingEnabled, results);
     
     console.log('[EPISODE_CHECKER] Completed check with results:', JSON.stringify(results, null, 2));
     
@@ -224,5 +108,130 @@ export async function GET(request: NextRequest) {
       success: false, 
       error: error?.toString() || 'Unknown error' 
     }, { status: 500 });
+  }
+}
+
+/**
+ * Process all episodes that need attention in a single DB call
+ */
+async function processAllEpisodes(
+  postProcessingService: ReturnType<typeof createPostProcessingService> | null,
+  postProcessingEnabled: boolean,
+  results: EpisodeCheckResults
+) {
+  const now = new Date();
+  const timeoutThreshold = new Date(now.getTime() - MAX_PENDING_TIME);
+  
+  // Step 1: Get all episodes that need attention in one query
+  console.log('[EPISODE_CHECKER] Fetching episodes that need attention');
+  
+  // הערה: דריזל לא תומכת ישירות ב-OR כמו SQL רגיל, אז נצטרך לעשות יותר משאילתא אחת
+  // אבל אפשר לאחד את PENDING עם/בלי אודיו
+  const pendingEpisodes = await db.select()
+    .from(episodes)
+    .where(eq(episodes.status, PENDING_STATUS));
+  
+  const completedEpisodes = postProcessingEnabled ? 
+    await db.select()
+      .from(episodes)
+      .where(eq(episodes.status, COMPLETED_STATUS)) : 
+    [];
+  
+  results.checked = pendingEpisodes.length + completedEpisodes.length;
+  
+  if (results.checked === 0) {
+    console.log('[EPISODE_CHECKER] No episodes need attention');
+    return;
+  }
+  
+  console.log(`[EPISODE_CHECKER] Found ${pendingEpisodes.length} pending and ${completedEpisodes.length} completed episodes to check`);
+  
+  // Step 2: Process all episodes
+  // 2a: Find timed out episodes and mark them as failed
+  for (const episode of pendingEpisodes) {
+    try {
+      // Check if pending for too long
+      if (episode.created_at && new Date(episode.created_at) < timeoutThreshold) {
+        await db.update(episodes)
+          .set({ 
+            status: FAILED_STATUS,
+            description: 'Episode generation timed out'
+          })
+          .where(eq(episodes.id, episode.id));
+        
+        results.timed_out++;
+        console.log(`[EPISODE_CHECKER] Episode ${episode.id} timed out, marked as failed`);
+        continue;
+      }
+      
+      // Check if has audio URL but still pending
+      if (episode.audio_url && episode.audio_url !== '') {
+        await db.update(episodes)
+          .set({ 
+            status: COMPLETED_STATUS,
+            description: 'Audio generated successfully, awaiting post-processing'
+          })
+          .where(eq(episodes.id, episode.id));
+        
+        results.completed++;
+        console.log(`[EPISODE_CHECKER] Episode ${episode.id} has audio, marked as completed`);
+        
+        // Revalidate paths
+        if (episode.podcast_id) {
+          revalidatePath('/admin/podcasts');
+          revalidatePath(`/podcasts/${episode.podcast_id}`);
+        }
+        
+        // If post-processing is enabled, add it to the completed list for processing
+        if (postProcessingEnabled && postProcessingService && episode.podcast_id) {
+          // השתמש בטיפול הקיים בהמשך
+          completedEpisodes.push(episode);
+        }
+      }
+    } catch (error) {
+      console.error(`[EPISODE_CHECKER] Error processing pending episode ${episode.id}:`, error);
+      results.errors.push(`Error processing episode ${episode.id}: ${error?.toString() || 'Unknown error'}`);
+    }
+  }
+  
+  // 2b: Process completed episodes if post-processing is enabled
+  if (postProcessingEnabled && postProcessingService && completedEpisodes.length > 0) {
+    console.log(`[EPISODE_CHECKER] Processing ${completedEpisodes.length} completed episodes`);
+    
+    for (const episode of completedEpisodes) {
+      if (!episode.podcast_id) {
+        console.warn(`[EPISODE_CHECKER] Episode ${episode.id} has no podcast_id, skipping processing`);
+        continue;
+      }
+      
+      try {
+        console.log(`[EPISODE_CHECKER] Processing episode ${episode.id}`);
+        const success = await postProcessingService.processCompletedEpisode({
+          id: episode.id,
+          podcast_id: episode.podcast_id,
+          metadata: episode.metadata
+        });
+        
+        if (success) {
+          // Update episode status to 'processed'
+          await db.update(episodes)
+            .set({ status: PROCESSED_STATUS })
+            .where(eq(episodes.id, episode.id));
+          
+          results.processed++;
+          console.log(`[EPISODE_CHECKER] Successfully post-processed episode ${episode.id}`);
+          
+          // Revalidate paths
+          revalidatePath('/admin/podcasts');
+          revalidatePath(`/podcasts/${episode.podcast_id}`);
+        } else {
+          console.error(`[EPISODE_CHECKER] Failed to post-process episode ${episode.id}`);
+          results.errors.push(`Failed to post-process episode ${episode.id}`);
+        }
+      } catch (error) {
+        console.error(`[EPISODE_CHECKER] Error in post-processing for episode ${episode.id}:`, error);
+        results.errors.push(`Post-processing error for episode ${episode.id}: ${error?.toString() || 'Unknown error'}`);
+      }
+    }
   }
 } 
