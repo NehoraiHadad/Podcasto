@@ -3,6 +3,7 @@ SQS message handler for the Podcastfy Lambda function.
 """
 import json
 from typing import Dict, Any, Optional
+import os
 
 from src.clients.s3_client import S3Client
 from src.clients.supabase_client import SupabaseClient
@@ -181,29 +182,36 @@ class SQSHandler:
                         'message': error_msg
                     }
                 
-                # Update episode with the S3 URL
+                # Extract S3 URL from process_result and validate
                 s3_url = process_result.get('s3_url')
-                if s3_url and episode:
-                    logger.info(f"{log_prefix}S3 URL for episode {episode['id']}: {s3_url}")
-                    
-                    # Validate S3 URL format
-                    if not s3_url.startswith("s3://"):
-                        logger.warning(f"{log_prefix}S3 URL has unexpected format: {s3_url}")
-                    
-                    # Make sure episode_id is in the S3 URL
-                    if episode_id not in s3_url:
-                        logger.warning(f"{log_prefix}S3 URL does not contain episode_id {episode_id}: {s3_url}")
-                    
-                    update_result = self.supabase_client.update_episode_audio_url(
-                        episode['id'], 
-                        s3_url,
-                        'completed'
-                    )
-                    
-                    if not update_result.get('success', False):
-                        logger.warning(f"{log_prefix}Failed to update episode audio URL: {update_result.get('error')}")
-                    else:
-                        logger.info(f"{log_prefix}Successfully updated episode {episode['id']} with S3 URL")
+                if not s3_url:
+                    logger.error(f"{log_prefix}S3 URL not found in process_result")
+                    return {'success': False, 'error': 'S3 URL not found in process_result'}
+                
+                # Check S3 URL format
+                if not s3_url.startswith('https://') or '.s3.' not in s3_url:
+                    logger.warning(f"{log_prefix}Invalid S3 URL format: {s3_url}")
+                
+                # Get episode ID from message
+                episode_id = message.get('episode_id')
+                if not episode_id:
+                    logger.warning(f"{log_prefix}Episode ID not found in message")
+                
+                # Get duration from process_result, default to 0 if not available
+                duration = process_result.get('duration', 0)
+                logger.info(f"{log_prefix}Using duration from process_result: {duration} seconds")
+
+                # Update episode in database with S3 URL and duration
+                update_result = self.supabase_client.update_episode_audio_url(
+                    episode_id=episode_id,
+                    audio_url=s3_url,
+                    duration=duration
+                )
+                
+                if not update_result.get('success', False):
+                    logger.warning(f"{log_prefix}Failed to update episode audio URL: {update_result.get('error')}")
+                else:
+                    logger.info(f"{log_prefix}Successfully updated episode {episode_id} with audio URL and duration")
                 
                 # Success with audio generation
                 return {

@@ -6,6 +6,7 @@ import shutil
 import glob
 from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime
+import subprocess  # Add subprocess import
 
 from src.utils.logging import get_logger
 from src.clients.s3_client import S3Client
@@ -92,6 +93,27 @@ class BaseGenerator:
                 shutil.copy2(audio_file, output_path)
                 logger.info(f"Successfully created podcast at {output_path}")
                 
+                # Calculate audio duration using ffmpeg
+                duration = 0
+                try:
+                    import ffmpeg
+                    logger.info(f"Calculating audio duration for file: {output_path}")
+                    probe = ffmpeg.probe(output_path)
+                    
+                    # Find the audio stream
+                    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+                    
+                    if audio_stream:
+                        # Get duration from the audio stream
+                        duration = int(float(audio_stream['duration']))
+                        logger.info(f"Audio duration calculated: {duration} seconds")
+                    else:
+                        # If no audio stream found, try to get duration from format
+                        duration = int(float(probe['format']['duration']))
+                        logger.info(f"Audio duration from format: {duration} seconds")
+                except Exception as e:
+                    logger.error(f"Error calculating audio duration: {str(e)}")
+                
                 # Upload to S3
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
                 
@@ -118,6 +140,9 @@ class BaseGenerator:
                 if result.get('success', False):
                     s3_url = result.get('url')
                     logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
+                    # Add duration and local_path to result for the SQS handler to use
+                    result['duration'] = duration
+                    result['local_path'] = output_path
                     return output_path, s3_url
                 else:
                     error_msg = result.get('error', 'Unknown error')
@@ -126,6 +151,27 @@ class BaseGenerator:
             elif audio_file and os.path.exists(audio_file):
                 # File already at desired location
                 logger.info(f"Using existing podcast at {output_path}")
+                
+                # Calculate audio duration using ffmpeg
+                duration = 0
+                try:
+                    import ffmpeg
+                    logger.info(f"Calculating audio duration for file: {audio_file}")
+                    probe = ffmpeg.probe(audio_file)
+                    
+                    # Find the audio stream
+                    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+                    
+                    if audio_stream:
+                        # Get duration from the audio stream
+                        duration = int(float(audio_stream['duration']))
+                        logger.info(f"Audio duration calculated: {duration} seconds")
+                    else:
+                        # If no audio stream found, try to get duration from format
+                        duration = int(float(probe['format']['duration']))
+                        logger.info(f"Audio duration from format: {duration} seconds")
+                except Exception as e:
+                    logger.error(f"Error calculating audio duration: {str(e)}")
                 
                 # Upload to S3 with the same proper structure as above
                 podcast_id = metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower())
@@ -153,6 +199,9 @@ class BaseGenerator:
                 if result.get('success', False):
                     s3_url = result.get('url')
                     logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
+                    # Add duration and local_path to result for the SQS handler to use
+                    result['duration'] = duration
+                    result['local_path'] = audio_file
                     return output_path, s3_url
                 else:
                     error_msg = result.get('error', 'Unknown error')

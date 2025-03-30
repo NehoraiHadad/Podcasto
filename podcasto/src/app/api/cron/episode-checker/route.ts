@@ -2,11 +2,13 @@ import { db, episodes } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, not, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { createPostProcessingService } from '@/lib/services/post-processing';
 
 // Status constants
 const PENDING_STATUS = 'pending';
 const COMPLETED_STATUS = 'completed';
 const FAILED_STATUS = 'failed';
+const PROCESSED_STATUS = 'processed'; // New status for post-processed episodes
 
 // Time constants (in milliseconds)
 const MAX_PENDING_TIME = 30 * 60 * 1000; // 30 minutes
@@ -16,7 +18,37 @@ interface EpisodeCheckResults {
   checked: number;
   timed_out: number;
   completed: number;
+  processed: number;
   errors: string[];
+}
+
+// Initialize post-processing service if environment variables are available
+function getPostProcessingService() {
+  const aiApiKey = process.env.GEMINI_API_KEY;
+  const s3Region = process.env.AWS_S3_REGION;
+  const s3Bucket = process.env.AWS_S3_BUCKET;
+  const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  
+  // Check if required environment variables are available
+  if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
+    console.error('[EPISODE_CHECKER] Missing required environment variables for post-processing');
+    return null;
+  }
+  
+  // Create and return the post-processing service
+  return createPostProcessingService({
+    s3: {
+      region: s3Region,
+      bucket: s3Bucket,
+      accessKeyId: s3AccessKeyId,
+      secretAccessKey: s3SecretAccessKey,
+    },
+    ai: {
+      provider: 'gemini',
+      apiKey: aiApiKey,
+    },
+  });
 }
 
 /**
@@ -57,8 +89,15 @@ export async function GET(request: NextRequest) {
       checked: pendingEpisodes.length,
       timed_out: 0,
       completed: 0,
+      processed: 0,
       errors: []
     };
+    
+    // Get post-processing service if enabled
+    const postProcessingEnabled = process.env.ENABLE_POST_PROCESSING === 'true';
+    const postProcessingService = postProcessingEnabled ? getPostProcessingService() : null;
+    
+    console.log(`[EPISODE_CHECKER] Post-processing ${postProcessingEnabled ? 'enabled' : 'disabled'}, service ${postProcessingService ? 'available' : 'unavailable'}`);
     
     for (const episode of pendingEpisodes) {
       console.log(`[EPISODE_CHECKER] Processing episode: ${episode.id}, title: ${episode.title}`);
@@ -99,6 +138,35 @@ export async function GET(request: NextRequest) {
           
           results.completed++;
           
+          // If post-processing is enabled and service is available, process the episode
+          if (postProcessingEnabled && postProcessingService && episode.podcast_id) {
+            console.log(`[EPISODE_CHECKER] Starting post-processing for episode ${episode.id}`);
+            
+            try {
+              const success = await postProcessingService.processCompletedEpisode({
+                id: episode.id,
+                podcast_id: episode.podcast_id,
+                metadata: episode.metadata
+              });
+              
+              if (success) {
+                // Update episode status to 'processed'
+                await db.update(episodes)
+                  .set({ status: PROCESSED_STATUS })
+                  .where(eq(episodes.id, episode.id));
+                
+                results.processed++;
+                console.log(`[EPISODE_CHECKER] Successfully post-processed episode ${episode.id}`);
+              } else {
+                console.error(`[EPISODE_CHECKER] Failed to post-process episode ${episode.id}`);
+                results.errors.push(`Failed to post-process episode ${episode.id}`);
+              }
+            } catch (postProcessError) {
+              console.error(`[EPISODE_CHECKER] Error in post-processing for episode ${episode.id}:`, postProcessError);
+              results.errors.push(`Post-processing error for episode ${episode.id}: ${postProcessError?.toString() || 'Unknown error'}`);
+            }
+          }
+          
           // Revalidate relevant paths to update the UI
           console.log(`[EPISODE_CHECKER] Revalidating UI paths for episode ${episode.id}`);
           revalidatePath('/admin/podcasts');
@@ -121,6 +189,7 @@ export async function GET(request: NextRequest) {
         and(
           not(eq(episodes.status, COMPLETED_STATUS)),
           not(eq(episodes.status, FAILED_STATUS)),
+          not(eq(episodes.status, PROCESSED_STATUS)), // Also exclude processed episodes
           not(eq(episodes.audio_url, '')),
           not(isNull(episodes.audio_url))
         )

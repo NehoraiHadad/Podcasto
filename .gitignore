@@ -128,3 +128,5 @@ node_modules/
 # CloudFormation packaged templates
 **/packaged.yaml
 **/packaged.yaml.zip
+
+.vscode/
