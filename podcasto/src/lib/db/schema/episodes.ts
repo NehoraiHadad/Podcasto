@@ -12,5 +12,6 @@ export const episodes = pgTable('episodes', {
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   published_at: timestamp('published_at', { withTimezone: true }),
   status: text('status'),
-  metadata: text('metadata')
+  metadata: text('metadata'),
+  cover_image: text('cover_image')
 }); 

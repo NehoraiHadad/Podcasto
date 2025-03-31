@@ -12,9 +12,9 @@ export interface RetryConfig {
  * Default retry configuration values
  */
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 5,
-  initialDelay: 1000, // 1 second
-  maxDelay: 30000, // 30 seconds
+  maxRetries: 3,
+  initialDelay: 2000, // 2 seconds
+  maxDelay: 20000, // 20 seconds
   backoffFactor: 2
 };
 

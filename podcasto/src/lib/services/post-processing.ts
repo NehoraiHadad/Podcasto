@@ -96,36 +96,27 @@ export class PostProcessingService {
       console.log(`[POST_PROCESSING] Generated title: "${title}"`);
       console.log(`[POST_PROCESSING] Generated summary (${summary.length} chars)`);
       
-      // 5. Generate image based on summary
-      const imageResult = await this.aiService.generateImage(summary);
-      
-      // 6. Upload image to S3 if available
-      let imageUrl = '';
-      if (imageResult.imageData) {
-        imageUrl = await this.uploadImageToS3(
-          episode.podcast_id, 
-          episode.id, 
-          imageResult.imageData, 
-          imageResult.mimeType
-        );
-        console.log(`[POST_PROCESSING] Generated and uploaded image: ${imageUrl}`);
-      } else {
-        console.warn(`[POST_PROCESSING] No image was generated for episode ${episode.id}`);
-      }
-      
-      // 7. Update episode with new data
+      // 5. Update episode with title and summary
       await episodesApi.updateEpisode(episode.id, {
         title,
         description: summary,
-        ...(imageUrl ? { cover_image: imageUrl } : {})
+        status: 'summary_completed' // New intermediate status
       });
       
-      // 8. Mark as processed
-      await episodesApi.updateEpisode(episode.id, {
-        status: 'processed'
+      // 6. Trigger async image generation instead of generating it inline
+      // This will be handled by a separate API route
+      fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/episodes/${episode.id}/generate-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({ summary })
+      }).catch(error => {
+        console.error(`[POST_PROCESSING] Failed to trigger image generation for episode ${episode.id}:`, error);
       });
       
-      console.log(`[POST_PROCESSING] Successfully processed episode ${episode.id}`);
+      console.log(`[POST_PROCESSING] Successfully processed episode ${episode.id} and triggered image generation`);
       return true;
     } catch (error) {
       console.error(`[POST_PROCESSING] Error processing episode ${episode.id}:`, error);
@@ -138,6 +129,60 @@ export class PostProcessingService {
         });
       } catch (updateError) {
         console.error(`[POST_PROCESSING] Failed to update episode status after error:`, updateError);
+      }
+      
+      return false;
+    }
+  }
+
+  /**
+   * Generate image for an episode
+   */
+  async generateEpisodeImage(episodeId: string, podcastId: string, summary: string): Promise<boolean> {
+    try {
+      console.log(`[POST_PROCESSING] Generating image for episode ${episodeId}`);
+      
+      // Generate image based on summary
+      const imageResult = await this.aiService.generateImage(summary);
+      
+      // Upload image to S3 if available
+      if (imageResult.imageData) {
+        const imageUrl = await this.uploadImageToS3(
+          podcastId, 
+          episodeId, 
+          imageResult.imageData, 
+          imageResult.mimeType
+        );
+        console.log(`[POST_PROCESSING] Generated and uploaded image: ${imageUrl}`);
+        
+        // Update episode with image URL
+        await episodesApi.updateEpisode(episodeId, {
+          cover_image: imageUrl,
+          status: 'processed' // Final status
+        });
+        
+        return true;
+      } else {
+        console.warn(`[POST_PROCESSING] No image was generated for episode ${episodeId}`);
+        
+        // Mark as processed even without image
+        await episodesApi.updateEpisode(episodeId, {
+          status: 'processed' // Final status
+        });
+        
+        return false;
+      }
+    } catch (error) {
+      console.error(`[POST_PROCESSING] Error generating image for episode ${episodeId}:`, error);
+      
+      // Update episode status but don't mark as failed - the summary is still valid
+      try {
+        await episodesApi.updateEpisode(episodeId, {
+          status: 'processed', // Still mark as processed, just without image
+          description: `Image generation failed: ${error instanceof Error ? error.message : String(error)}`
+        });
+      } catch (updateError) {
+        console.error(`[POST_PROCESSING] Failed to update episode status after image error:`, updateError);
       }
       
       return false;
