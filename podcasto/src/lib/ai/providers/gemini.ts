@@ -10,7 +10,7 @@ import {
 import { withRetry, RetryConfig, DEFAULT_RETRY_CONFIG } from '../utils/retry';
 
 /**
- * Extended generation config that supports responseModalities
+ * Extended generation config that supports additional Gemini features
  */
 interface ExtendedGenerationConfig {
   temperature?: number;
@@ -18,7 +18,7 @@ interface ExtendedGenerationConfig {
   topP?: number;
   maxOutputTokens?: number;
   stopSequences?: string[];
-  responseModalities?: string[];
+  // Removed responseModalities as it's not supported in Gemini 2.0
 }
 
 /**
@@ -147,9 +147,6 @@ export class GeminiProvider implements AIProvider {
         // Use the Gemini model with image generation capabilities
         const model = genAI.getGenerativeModel({
           model: this.imageGenModel,
-          generationConfig: {
-            responseModalities: ['Text', 'Image']
-          } as ExtendedGenerationConfig
         });
         
         // Call generateContent with the prompt
