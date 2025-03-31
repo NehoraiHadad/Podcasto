@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/episodes/*/generate-image/**/*.js": {
+    "app/api/episodes/[id]/generate-image/route.js": {
       "maxDuration": 60
     }
   }
