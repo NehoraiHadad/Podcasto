@@ -33,7 +33,7 @@ export class ImagenProvider {
         // Use Imagen model for image generation - we'll use Gemini Pro as a fallback
         // since the JavaScript SDK may not directly support Imagen yet
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-pro'
+          model: 'gemini-1.5-pro'
         });
         
         // Call generateContent with the prompt

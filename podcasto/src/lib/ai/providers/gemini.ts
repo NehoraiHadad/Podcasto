@@ -10,6 +10,18 @@ import {
 import { withRetry, RetryConfig, DEFAULT_RETRY_CONFIG } from '../utils/retry';
 
 /**
+ * Extended generation config that supports responseModalities
+ */
+interface ExtendedGenerationConfig {
+  temperature?: number;
+  topK?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+  stopSequences?: string[];
+  responseModalities?: string[];
+}
+
+/**
  * Gemini AI provider implementation
  */
 export class GeminiProvider implements AIProvider {
@@ -29,8 +41,8 @@ export class GeminiProvider implements AIProvider {
     // Default models or use provided one
     this.titleSummaryModel = config.modelName || 'gemini-1.5-flash';
     
-    // Use the correct model for image generation
-    this.imageGenModel = 'gemini-2.0-flash-exp-image-generation';
+    // Use the most up-to-date model for image generation
+    this.imageGenModel = 'gemini-2.0-flash-exp';
     
     // Default retry configuration
     this.retryConfig = DEFAULT_RETRY_CONFIG;
@@ -133,8 +145,11 @@ export class GeminiProvider implements AIProvider {
         `;
         
         // Use the Gemini model with image generation capabilities
-        const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.0-flash-exp'
+        const model = genAI.getGenerativeModel({
+          model: this.imageGenModel,
+          generationConfig: {
+            responseModalities: ['Text', 'Image']
+          } as ExtendedGenerationConfig
         });
         
         // Call generateContent with the prompt
