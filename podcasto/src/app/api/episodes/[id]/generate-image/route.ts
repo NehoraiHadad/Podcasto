@@ -57,52 +57,30 @@ export async function POST(
       status: 'processing'
     }, { status: 202 });
     
-    // Use waitUntil to continue processing after response is sent
-    waitUntil(async () => {
-      try {
-        // 4. Initialize post-processing service
-        const aiApiKey = process.env.GEMINI_API_KEY;
-        const s3Region = process.env.AWS_REGION;
-        const s3Bucket = process.env.S3_BUCKET_NAME;
-        const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-        const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-        
-        // Check if required environment variables are available
-        if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
-          console.error('[IMAGE_GENERATOR] Missing required environment variables');
-          return;
-        }
-        
-        // Create post-processing service
-        const postProcessingService = createPostProcessingService({
-          s3: {
-            region: s3Region,
-            bucket: s3Bucket,
-            accessKeyId: s3AccessKeyId,
-            secretAccessKey: s3SecretAccessKey,
-          },
-          ai: {
-            provider: 'gemini',
-            apiKey: aiApiKey,
-          },
-        });
-        
-        // 5. Generate image in background
-        const success = await postProcessingService.generateEpisodeImage(
-          resolvedParams.id,
-          episode.podcast_id as string,
-          summary
-        );
-        
-        if (success) {
-          console.log(`[IMAGE_GENERATOR] Successfully generated image for episode ${resolvedParams.id}`);
-        } else {
-          console.error(`[IMAGE_GENERATOR] Failed to generate image for episode ${resolvedParams.id}`);
-        }
-      } catch (error) {
-        console.error('[IMAGE_GENERATOR] Background processing error:', error);
-      }
-    });
+    // 4. Initialize post-processing service
+    const aiApiKey = process.env.GEMINI_API_KEY;
+    const s3Region = process.env.AWS_REGION;
+    const s3Bucket = process.env.S3_BUCKET_NAME;
+    const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    
+    // Check if required environment variables are available
+    if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
+      console.error('[IMAGE_GENERATOR] Missing required environment variables');
+      return response;
+    }
+    
+    // Use waitUntil with a Promise directly
+    waitUntil(generateImageInBackground(
+      resolvedParams.id,
+      episode.podcast_id as string,
+      summary,
+      aiApiKey,
+      s3Region,
+      s3Bucket,
+      s3AccessKeyId,
+      s3SecretAccessKey
+    ));
     
     return response;
   } catch (error) {
@@ -111,5 +89,48 @@ export async function POST(
       success: false,
       error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
+  }
+}
+
+// Add this async function outside of the POST handler
+async function generateImageInBackground(
+  episodeId: string,
+  podcastId: string, 
+  summary: string,
+  aiApiKey: string,
+  s3Region: string,
+  s3Bucket: string,
+  s3AccessKeyId: string,
+  s3SecretAccessKey: string
+) {
+  try {
+    // Create post-processing service
+    const postProcessingService = createPostProcessingService({
+      s3: {
+        region: s3Region,
+        bucket: s3Bucket,
+        accessKeyId: s3AccessKeyId,
+        secretAccessKey: s3SecretAccessKey,
+      },
+      ai: {
+        provider: 'gemini',
+        apiKey: aiApiKey,
+      },
+    });
+    
+    // Generate image in background
+    const success = await postProcessingService.generateEpisodeImage(
+      episodeId,
+      podcastId,
+      summary
+    );
+    
+    if (success) {
+      console.log(`[IMAGE_GENERATOR] Successfully generated image for episode ${episodeId}`);
+    } else {
+      console.error(`[IMAGE_GENERATOR] Failed to generate image for episode ${episodeId}`);
+    }
+  } catch (error) {
+    console.error('[IMAGE_GENERATOR] Background processing error:', error);
   }
 } 
