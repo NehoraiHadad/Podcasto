@@ -121,11 +121,6 @@ export class GeminiProvider implements AIProvider {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(this.apiKey);
         
-        // Use the model that supports image generation
-        const model = genAI.getGenerativeModel({ 
-          model: this.imageGenModel
-        });
-        
         // Add style context to description
         const style = options?.style || 'modern, professional';
         const enhancedPrompt = `
@@ -134,13 +129,29 @@ export class GeminiProvider implements AIProvider {
           
           The image should be in ${style} style, suitable for a podcast cover.
           Make it visually appealing and relevant to the content.
-          The image must be generated as output.
+          It must return an image.
         `;
         
-        // Call generateContent with the prompt string directly
-        const result = await model.generateContent(enhancedPrompt);
+        // Use the Gemini model with image generation capabilities
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-2.0-flash-exp'  // This model supports image generation
+        });
         
-        // Extract image parts from response
+        // Set up the generation configuration to request an image output
+        // We need to use any type here since the TypeScript definitions might not include responseModalities
+        const generationConfig: any = {
+          temperature: 0.4,
+          topK: 32,
+          topP: 1,
+          responseModalities: ['text', 'image'], // Explicitly request image output
+        };
+        
+        // Call generateContent with the proper configuration
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: enhancedPrompt }] }],
+          generationConfig,
+        });
+        
         const response = result.response;
         let imageData = null;
         let mimeType = 'image/jpeg';
