@@ -105,7 +105,10 @@ export class PostProcessingService {
       
       // 6. Trigger async image generation instead of generating it inline
       // This will be handled by a separate API route
-      fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/episodes/${episode.id}/generate-image`, {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const apiUrl = new URL(`/api/episodes/${episode.id}/generate-image`, baseUrl).toString();
+      
+      fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
