@@ -129,28 +129,16 @@ export class GeminiProvider implements AIProvider {
           
           The image should be in ${style} style, suitable for a podcast cover.
           Make it visually appealing and relevant to the content.
-          It must return an image.
+          Create a high-quality, detailed image that represents this podcast episode.
         `;
         
         // Use the Gemini model with image generation capabilities
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.0-flash-exp'  // This model supports image generation
+          model: 'gemini-2.0-flash-exp'
         });
         
-        // Set up the generation configuration to request an image output
-        // We need to use any type here since the TypeScript definitions might not include responseModalities
-        const generationConfig: any = {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          responseModalities: ['text', 'image'], // Explicitly request image output
-        };
-        
-        // Call generateContent with the proper configuration
-        const result = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: enhancedPrompt }] }],
-          generationConfig,
-        });
+        // Call generateContent with the prompt
+        const result = await model.generateContent(enhancedPrompt);
         
         const response = result.response;
         let imageData = null;
