@@ -29,8 +29,8 @@ export class GeminiProvider implements AIProvider {
     // Default models or use provided one
     this.titleSummaryModel = config.modelName || 'gemini-1.5-flash';
     
-    // Use Imagen model for image generation
-    this.imageGenModel = 'gemini-1.5-flash';
+    // Use the correct model for image generation
+    this.imageGenModel = 'gemini-2.0-flash-exp-image-generation';
     
     // Default retry configuration
     this.retryConfig = DEFAULT_RETRY_CONFIG;
@@ -121,7 +121,7 @@ export class GeminiProvider implements AIProvider {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(this.apiKey);
         
-        // Use the standard model for text generation
+        // Use the model that supports image generation
         const model = genAI.getGenerativeModel({ 
           model: this.imageGenModel
         });
@@ -129,12 +129,12 @@ export class GeminiProvider implements AIProvider {
         // Add style context to description
         const style = options?.style || 'modern, professional';
         const enhancedPrompt = `
-          Generate a podcast cover image with the following description:
+          Generate an image for a podcast episode with the following description:
           ${description}
           
           The image should be in ${style} style, suitable for a podcast cover.
           Make it visually appealing and relevant to the content.
-          The result must include an image.
+          The image must be generated as output.
         `;
         
         // Call generateContent with the prompt string directly
