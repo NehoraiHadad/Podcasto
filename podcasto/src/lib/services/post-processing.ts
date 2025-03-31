@@ -108,6 +108,7 @@ export class PostProcessingService {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
       const apiUrl = new URL(`/api/episodes/${episode.id}/generate-image`, baseUrl).toString();
       
+      // Fire and forget - we don't wait for the response
       fetch(apiUrl, {
         method: 'POST',
         headers: {

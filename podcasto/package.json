@@ -29,6 +29,7 @@
     "@shadcn/ui": "^0.0.4",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
+    "@vercel/functions": "^2.0.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",

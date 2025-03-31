@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
 import { createPostProcessingService } from '@/lib/services/post-processing';
+// Import waitUntil from Vercel Functions
+import { waitUntil } from '@vercel/functions';
+
+// Set longer execution time and specify runtime
+export const maxDuration = 60; // 60 seconds
+export const runtime = 'nodejs'; // Use Node.js runtime for better compatibility
 
 /**
  * Generate image for an episode (POST /api/episodes/:id/generate-image)
@@ -44,53 +50,61 @@ export async function POST(
       return NextResponse.json({ error: 'No summary provided' }, { status: 400 });
     }
     
-    // 4. Initialize post-processing service
-    const aiApiKey = process.env.GEMINI_API_KEY;
-    const s3Region = process.env.AWS_REGION;
-    const s3Bucket = process.env.S3_BUCKET_NAME;
-    const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    // Return immediately with a 202 Accepted response
+    const response = NextResponse.json({
+      success: true,
+      message: 'Image generation started',
+      status: 'processing'
+    }, { status: 202 });
     
-    // Check if required environment variables are available
-    if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
-      console.error('[IMAGE_GENERATOR] Missing required environment variables');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-    
-    // Create post-processing service
-    const postProcessingService = createPostProcessingService({
-      s3: {
-        region: s3Region,
-        bucket: s3Bucket,
-        accessKeyId: s3AccessKeyId,
-        secretAccessKey: s3SecretAccessKey,
-      },
-      ai: {
-        provider: 'gemini',
-        apiKey: aiApiKey,
-      },
+    // Use waitUntil to continue processing after response is sent
+    waitUntil(async () => {
+      try {
+        // 4. Initialize post-processing service
+        const aiApiKey = process.env.GEMINI_API_KEY;
+        const s3Region = process.env.AWS_REGION;
+        const s3Bucket = process.env.S3_BUCKET_NAME;
+        const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+        const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+        
+        // Check if required environment variables are available
+        if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
+          console.error('[IMAGE_GENERATOR] Missing required environment variables');
+          return;
+        }
+        
+        // Create post-processing service
+        const postProcessingService = createPostProcessingService({
+          s3: {
+            region: s3Region,
+            bucket: s3Bucket,
+            accessKeyId: s3AccessKeyId,
+            secretAccessKey: s3SecretAccessKey,
+          },
+          ai: {
+            provider: 'gemini',
+            apiKey: aiApiKey,
+          },
+        });
+        
+        // 5. Generate image in background
+        const success = await postProcessingService.generateEpisodeImage(
+          resolvedParams.id,
+          episode.podcast_id as string,
+          summary
+        );
+        
+        if (success) {
+          console.log(`[IMAGE_GENERATOR] Successfully generated image for episode ${resolvedParams.id}`);
+        } else {
+          console.error(`[IMAGE_GENERATOR] Failed to generate image for episode ${resolvedParams.id}`);
+        }
+      } catch (error) {
+        console.error('[IMAGE_GENERATOR] Background processing error:', error);
+      }
     });
     
-    // 5. Generate image
-    const success = await postProcessingService.generateEpisodeImage(
-      resolvedParams.id,
-      episode.podcast_id,
-      summary
-    );
-    
-    if (success) {
-      console.log(`[IMAGE_GENERATOR] Successfully generated image for episode ${resolvedParams.id}`);
-      return NextResponse.json({
-        success: true,
-        message: 'Image generated successfully'
-      });
-    } else {
-      console.error(`[IMAGE_GENERATOR] Failed to generate image for episode ${resolvedParams.id}`);
-      return NextResponse.json({
-        success: false,
-        message: 'Image generation failed'
-      }, { status: 500 });
-    }
+    return response;
   } catch (error) {
     console.error('[IMAGE_GENERATOR] Error:', error);
     return NextResponse.json({

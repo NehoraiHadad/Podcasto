@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/episodes/*/generate-image/**/*.js": {
+      "maxDuration": 60
+    }
+  },
+  "fluidCompute": {
+    "enabled": true
+  }
+} 
