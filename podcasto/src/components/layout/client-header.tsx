@@ -226,6 +226,13 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             >
               About
             </Link>
+            <Link
+              href="/contact"
+              className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
             {isAdmin && !isLoading && (
               <Link
                 href="/admin"

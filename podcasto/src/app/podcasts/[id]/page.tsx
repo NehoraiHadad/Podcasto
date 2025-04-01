@@ -40,10 +40,10 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
   
   return (
     <MainLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:flex md:flex-col md:h-[calc(100vh-4rem)]">
+        <div className="flex flex-col md:flex-row gap-8 md:h-full md:overflow-hidden">
           {/* Podcast Info */}
-          <div className="md:w-1/3">
+          <div className="md:w-1/3 md:overflow-y-auto md:pr-4">
             <div className="bg-gray-200 h-64 w-full rounded-lg relative mb-4 overflow-hidden">
               <PodcastImage
                 imageUrl={podcast.cover_image}
@@ -59,17 +59,17 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
           </div>
 
           {/* Episodes List */}
-          <div className="md:w-2/3">
+          <div className="md:w-2/3 md:flex md:flex-col md:overflow-hidden">
             <h2 className="text-xl font-bold mb-6">Episodes ({episodes.length})</h2>
             
             {episodes.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-6 md:overflow-y-auto md:pr-1">
                 {episodes.map((episode) => (
                   <Card key={episode.id} className="overflow-hidden border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
-                    <div className="p-3 sm:p-4">
-                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <div className="p-4 sm:p-5">
+                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
                         {episode.cover_image && (
-                          <div className="w-20 sm:w-28 h-20 sm:h-28 bg-gray-200 relative rounded-md overflow-hidden flex-shrink-0">
+                          <div className="w-full sm:w-28 h-36 sm:h-28 bg-gray-200 relative rounded-md overflow-hidden mb-3 sm:mb-0 sm:flex-shrink-0">
                           <PodcastImage
                             imageUrl={episode.cover_image}
                             title={episode.title}
@@ -78,15 +78,20 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <Link href={`/podcasts/${resolvedParams.id}/episodes/${episode.id}`} className="hover:underline">
-                            <CardTitle className="text-base font-semibold line-clamp-2">{episode.title}</CardTitle>
-                          </Link>
+                          <div className="flex justify-between items-start">
+                            <Link href={`/podcasts/${resolvedParams.id}/episodes/${episode.id}`} className="hover:underline flex-1">
+                              <CardTitle className="text-base font-semibold line-clamp-2">{episode.title}</CardTitle>
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 ml-3 flex-shrink-0" title="Share episode">
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                           {episode.description && (
-                            <p className="text-sm text-gray-600 line-clamp-2 mt-1 mb-1">
+                            <p className="text-sm text-gray-600 line-clamp-2 mt-2 mb-3">
                               {episode.description}
                             </p>
                           )}
-                          <div className="flex items-center justify-between mt-1 flex-wrap">
+                          <div className="flex items-center justify-between mb-4 flex-wrap">
                             <div className="flex flex-wrap items-center text-xs text-gray-500 gap-3">
                               {episode.duration && (
                                 <div className="flex items-center gap-1">
@@ -108,8 +113,8 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                             
                           </div>
                           
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mt-2">
-                            <div className="w-full sm:w-auto sm:flex-1 max-w-full sm:max-w-xs">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mt-3">
+                            <div className="w-full sm:w-auto sm:flex-1 max-w-full sm:max-w-xs mb-3 sm:mb-0">
                               <CompactAudioPlayer 
                                 episodeId={episode.id}
                                 title={episode.title}
@@ -120,15 +125,12 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="text-xs w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0"
+                              className="text-xs w-full sm:w-auto sm:ml-auto mt-3 sm:mt-0"
                               asChild
                             >
                               <Link href={`/podcasts/${resolvedParams.id}/episodes/${episode.id}`}>
                                 View Episode
                               </Link>
-                            </Button>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Share episode">
-                              <Share2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
