@@ -5,6 +5,8 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from './user-actions';
 import { podcastsApi, episodesApi, userRolesApi } from '@/lib/db/api';
+import { revalidatePath } from 'next/cache';
+import { CronResult } from "@/components/admin/cron-runner";
 
 /**
  * Interface for admin dashboard statistics
@@ -81,16 +83,6 @@ export const checkIsAdmin = cache(async ({
 });
 
 /**
- * Server action to require admin role for a route
- * Redirects to unauthorized page if user is not an admin
- * 
- * @returns The user object if the user is an admin
- */
-export const requireAdmin = async () => {
-  return checkIsAdmin({ redirectOnFailure: true });
-};
-
-/**
  * Server action to get the current user's role
  * 
  * @returns The user's role or null if not found
@@ -108,4 +100,69 @@ export const getUserRole = async (): Promise<string | null> => {
   }
   
   return userRoles[0].role;
-}; 
+};
+
+/**
+ * Manually triggers the CRON episode checker process
+ * This is a server action that requires admin permissions
+ */
+export async function runEpisodeChecker(): Promise<{
+  success: boolean;
+  message: string;
+  details?: {
+    results?: CronResult;
+    timestamp?: string;
+  };
+}> {
+  // Ensure the user is an admin
+  await checkIsAdmin({ redirectOnFailure: true });
+  
+  try {
+    // Construct the API URL for the episode checker
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const apiUrl = new URL('/api/cron/episode-checker', baseUrl).toString();
+    const cronSecret = process.env.CRON_SECRET;
+    
+    if (!cronSecret) {
+      return {
+        success: false,
+        message: 'CRON_SECRET environment variable is not configured'
+      };
+    }
+    
+    console.log('[MANUAL_CRON] Triggering episode checker at:', apiUrl);
+    
+    // Call the episode checker API with the CRON secret
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${cronSecret}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API returned ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    
+    console.log('[MANUAL_CRON] Episode checker completed with result:', result);
+    
+    // Revalidate admin pages
+    revalidatePath('/admin/episodes');
+    revalidatePath('/admin/podcasts');
+    
+    return {
+      success: true,
+      message: 'Successfully ran episode checker',
+      details: result
+    };
+  } catch (error) {
+    console.error('[MANUAL_CRON] Error running episode checker:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+} 

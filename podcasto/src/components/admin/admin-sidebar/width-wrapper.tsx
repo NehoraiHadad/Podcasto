@@ -18,7 +18,7 @@ export function WidthWrapper({ children }: WidthWrapperProps) {
   return (
     <div
       className={cn(
-        'h-screen transition-all duration-300 ease-in-out overflow-visible',
+        'h-full transition-all duration-300 ease-in-out overflow-visible',
         isCollapsed ? 'w-16' : 'w-64'
       )}
       data-state={isCollapsed ? 'collapsed' : 'expanded'}

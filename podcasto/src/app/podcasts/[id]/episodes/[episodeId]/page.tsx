@@ -57,8 +57,8 @@ export default async function EpisodeDetailPage({
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="w-full md:w-64 h-64 bg-gray-200 relative rounded-lg overflow-hidden">
                   <PodcastImage
-                    imageUrl={podcast.cover_image}
-                    title={podcast.title}
+                    imageUrl={episode.cover_image || podcast.cover_image}
+                    title={episode.title}
                     priority
                   />
                 </div>

@@ -206,11 +206,10 @@ async function processAllEpisodes(
       
       try {
         console.log(`[EPISODE_CHECKER] Processing episode ${episode.id}`);
-        const success = await postProcessingService.processCompletedEpisode({
-          id: episode.id,
-          podcast_id: episode.podcast_id,
-          metadata: episode.metadata
-        });
+        const success = await postProcessingService.processCompletedEpisode(
+          episode.podcast_id,
+          episode.id
+        );
         
         if (success) {
           // Update episode status to 'processed'

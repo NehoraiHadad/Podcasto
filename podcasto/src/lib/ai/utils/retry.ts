@@ -26,21 +26,64 @@ export interface ApiError {
   status?: number;
   message?: string;
   details?: string;
+  response?: {
+    status?: number;
+    data?: unknown;
+    headers?: Record<string, string>;
+  };
+  statusCode?: number;
+  reason?: string;
+  errorMessage?: string;
 }
 
 /**
  * Checks if an error is a rate limit error (HTTP 429)
  */
 export function isRateLimitError(error: ApiError): boolean {
-  if (error?.code === 429 || error?.status === 429) {
+  if (error?.code === 429 || error?.status === 429 || error?.statusCode === 429) {
     return true;
   }
   
-  if (typeof error?.message === 'string' && error.message.includes('resource exhausted')) {
+  const messageText = error?.message || error?.errorMessage || error?.reason || '';
+  if (typeof messageText === 'string' && 
+      (messageText.includes('resource exhausted') || 
+       messageText.includes('rate limit') || 
+       messageText.includes('quota exceeded'))) {
     return true;
   }
   
-  if (typeof error?.details === 'string' && error.details.includes('resource exhausted')) {
+  if (typeof error?.details === 'string' && 
+      (error.details.includes('resource exhausted') || 
+       error.details.includes('rate limit') || 
+       error.details.includes('quota exceeded'))) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Checks if an error is a temporary server error that should be retried
+ */
+export function isRetryableError(error: ApiError): boolean {
+  // Rate limit errors are retryable
+  if (isRateLimitError(error)) {
+    return true;
+  }
+  
+  // Server errors (5xx) are often temporary
+  const statusCode = error?.code || error?.status || error?.statusCode;
+  if (statusCode && statusCode >= 500 && statusCode < 600) {
+    return true;
+  }
+  
+  // Check error messages for indications of temporary issues
+  const messageText = error?.message || error?.errorMessage || error?.reason || '';
+  if (typeof messageText === 'string' && 
+      (messageText.includes('server error') || 
+       messageText.includes('timeout') || 
+       messageText.includes('temporarily unavailable') ||
+       messageText.includes('try again later'))) {
     return true;
   }
   
@@ -57,7 +100,7 @@ export function isRateLimitError(error: ApiError): boolean {
 export async function withRetry<T>(
   fn: () => Promise<T>, 
   config: RetryConfig = DEFAULT_RETRY_CONFIG,
-  errorPredicate: (error: ApiError) => boolean = isRateLimitError
+  errorPredicate: (error: ApiError) => boolean = isRetryableError
 ): Promise<T> {
   let retryCount = 0;
   let delay = config.initialDelay;
@@ -66,8 +109,21 @@ export async function withRetry<T>(
     try {
       return await fn();
     } catch (error) {
+      const apiError = error as ApiError;
+      
+      // Log detailed error information
+      console.error(`API error encountered:`, {
+        code: apiError.code || apiError.status || apiError.statusCode,
+        message: apiError.message || apiError.errorMessage || apiError.reason,
+        details: apiError.details,
+        hasResponse: !!apiError.response
+      });
+      
       // Check if we should retry based on the error
-      if (!errorPredicate(error as ApiError) || retryCount >= config.maxRetries) {
+      const shouldRetry = errorPredicate(apiError) && retryCount < config.maxRetries;
+      
+      if (!shouldRetry) {
+        console.error(`Not retrying: ${retryCount >= config.maxRetries ? 'Max retries exceeded' : 'Error not retryable'}`);
         throw error;
       }
       
@@ -77,7 +133,11 @@ export async function withRetry<T>(
         config.maxDelay
       );
       
-      console.log(`Rate limit exceeded. Retrying in ${delay}ms. Attempt ${retryCount + 1}/${config.maxRetries}`);
+      if (isRateLimitError(apiError)) {
+        console.log(`Rate limit exceeded. Retrying in ${delay}ms. Attempt ${retryCount + 1}/${config.maxRetries}`);
+      } else {
+        console.log(`Retryable error encountered. Retrying in ${delay}ms. Attempt ${retryCount + 1}/${config.maxRetries}`);
+      }
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, delay));

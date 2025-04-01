@@ -5,71 +5,63 @@ import type {
   ImageGenerationResult,
   TitleGenerationOptions,
   SummaryGenerationOptions,
-  TitleSummaryResult
+  TitleSummaryResult,
+  AIServiceConfig
 } from './types';
-import { GeminiProvider } from './providers/gemini';
-import { ImagenProvider } from './providers/imagen';
-
-/**
- * Supported AI providers
- */
-export type ProviderType = 'gemini' | 'openai' | 'imagen';
-
-/**
- * AI service configuration options
- */
-export interface AIServiceConfig {
-  provider: ProviderType;
-  apiKey: string;
-  baseUrl?: string;
-  modelName?: string;
-}
+import { ImageGenerator } from './providers';
+import { initializeProvider } from './utils/provider-initializer';
 
 /**
  * AI service for podcast post-processing
  */
 export class AIService {
   private provider: AIProvider;
-  private imagenProvider?: ImagenProvider;
+  private imageGenerator: ImageGenerator;
+  private fallbackProvider?: AIProvider;
+  private apiKey: string;
+  private fallbackApiKey?: string;
 
   /**
    * Create a new AI service with the specified provider
    */
   constructor(config: AIServiceConfig) {
-    this.provider = this.initializeProvider(config);
-    
-    // Initialize Imagen provider for image generation if using Gemini for other tasks
-    if (config.provider === 'gemini') {
-      this.imagenProvider = new ImagenProvider(config.apiKey);
-    }
-  }
+    this.apiKey = config.apiKey;
+    this.fallbackApiKey = config.fallbackApiKey;
 
-  /**
-   * Initialize the appropriate provider based on configuration
-   */
-  private initializeProvider(config: AIServiceConfig): AIProvider {
+    // Use the imported initializer function
     const providerConfig: AIProviderConfig = {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl,
       modelName: config.modelName
     };
+    this.provider = initializeProvider(config.provider, providerConfig);
 
-    switch (config.provider) {
-      case 'gemini':
-        return new GeminiProvider(providerConfig);
-      case 'imagen':
-        // Create a wrapper that implements AIProvider but uses ImagenProvider for images
-        const imagenProvider = new ImagenProvider(config.apiKey);
-        const geminiProvider = new GeminiProvider(providerConfig); // Use Gemini for text generation
-        return {
-          generateImage: (desc, opts) => imagenProvider.generateImage(desc, opts),
-          generateTitleAndSummary: (transcript, titleOptions, summaryOptions) => 
-            geminiProvider.generateTitleAndSummary(transcript, titleOptions, summaryOptions)
-        };
-      default:
-        // Default to Gemini if provider not recognized
-        return new GeminiProvider(providerConfig);
+    this.imageGenerator = new ImageGenerator(config.apiKey);
+
+    // Initialize fallback provider if configured
+    if (config.fallbackProvider && config.fallbackApiKey) {
+      const fallbackProviderConfig: AIProviderConfig = {
+        apiKey: config.fallbackApiKey,
+        baseUrl: config.baseUrl, // Assuming same base URL and model for fallback
+        modelName: config.modelName
+      };
+      this.fallbackProvider = initializeProvider(config.fallbackProvider, fallbackProviderConfig);
+      console.log(`[AI_SERVICE] Initialized fallback provider: ${config.fallbackProvider}`);
     }
+  }
+
+  /**
+   * Get the API key for the primary provider
+   */
+  getApiKey(): string {
+    return this.apiKey;
+  }
+
+  /**
+   * Get the API key for the fallback provider if available
+   */
+  getFallbackApiKey(): string | undefined {
+    return this.fallbackApiKey;
   }
 
   /**
@@ -80,11 +72,33 @@ export class AIService {
     titleOptions?: TitleGenerationOptions,
     summaryOptions?: SummaryGenerationOptions
   ): Promise<TitleSummaryResult> {
-    return await this.provider.generateTitleAndSummary(
-      transcript,
-      titleOptions,
-      summaryOptions
-    );
+    try {
+      console.log(`[AI_SERVICE] Generating title and summary using primary provider`);
+      return await this.provider.generateTitleAndSummary(
+        transcript,
+        titleOptions,
+        summaryOptions
+      );
+    } catch (error) {
+      console.error(`[AI_SERVICE] Error generating title/summary with primary provider:`, error);
+      
+      // Try fallback provider if available
+      if (this.fallbackProvider) {
+        console.log(`[AI_SERVICE] Attempting to use fallback provider for title/summary generation`);
+        try {
+          return await this.fallbackProvider.generateTitleAndSummary(
+            transcript,
+            titleOptions,
+            summaryOptions
+          );
+        } catch (fallbackError) {
+          console.error(`[AI_SERVICE] Fallback provider also failed for title/summary:`, fallbackError);
+        }
+      }
+      
+      // No fallback or fallback failed, re-throw the original error
+      throw error;
+    }
   }
 
   /**
@@ -94,20 +108,50 @@ export class AIService {
     description: string,
     options?: ImageGenerationOptions
   ): Promise<ImageGenerationResult> {
-    // Try to use Imagen provider if available, otherwise fallback to the default provider
-    if (this.imagenProvider) {
-      try {
-        const result = await this.imagenProvider.generateImage(description, options);
-        if (result.imageData) {
-          return result;
-        }
-      } catch (error) {
-        console.warn('Imagen image generation failed, falling back to default provider:', error);
-      }
-    }
+    console.log(`[AI_SERVICE] Starting image generation for prompt: "${description.substring(0, 50)}..."`);
     
-    // Use the default provider as fallback
-    return await this.provider.generateImage(description, options);
+    try {
+      // First try with the dedicated image generator
+      const result = await this.imageGenerator.generateImage(description, options);
+      if (result.imageData) {
+        return result;
+      }
+      
+      // If the image generator didn't produce an image, try the text provider
+      console.log(`[AI_SERVICE] Dedicated image generator returned no image, trying primary provider`);
+      const primaryResult = await this.provider.generateImage(description, options);
+      if (primaryResult.imageData) {
+        return primaryResult;
+      }
+      
+      // Try fallback provider as last resort
+      if (this.fallbackProvider) {
+        console.log(`[AI_SERVICE] Primary provider returned no image, trying fallback provider`);
+        const fallbackResult = await this.fallbackProvider.generateImage(description, options);
+        if (fallbackResult.imageData) {
+          return fallbackResult;
+        }
+      }
+      
+      // If we reached here, no successful image was generated
+      console.warn(`[AI_SERVICE] All providers failed to generate an image`);
+      return { imageData: null, mimeType: 'image/jpeg' };
+    } catch (error) {
+      console.error(`[AI_SERVICE] Error generating image:`, error);
+      
+      // Try fallback provider if available and not already tried
+      if (this.fallbackProvider) {
+        console.log(`[AI_SERVICE] Attempting to use fallback provider for image generation`);
+        try {
+          return await this.fallbackProvider.generateImage(description, options);
+        } catch (fallbackError) {
+          console.error(`[AI_SERVICE] Fallback provider also failed for image generation:`, fallbackError);
+        }
+      }
+      
+      // Return empty result after all failures
+      return { imageData: null, mimeType: 'image/jpeg' };
+    }
   }
 }
 
@@ -121,10 +165,10 @@ export function createAIService(config: AIServiceConfig): AIService {
 // Re-export types
 export type {
   AIProvider,
-  AIProviderConfig,
   ImageGenerationOptions,
   ImageGenerationResult,
   TitleGenerationOptions,
   SummaryGenerationOptions,
-  TitleSummaryResult
+  TitleSummaryResult,
+  AIServiceConfig
 } from './types'; 

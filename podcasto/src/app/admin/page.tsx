@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/actions/auth-actions';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServerAdminDashboard } from '@/components/admin/server-admin-dashboard';
+import { CronRunner } from '@/components/admin/cron-runner';
 
 export const metadata = {
   title: 'Admin Dashboard | podcasto',
@@ -30,9 +31,20 @@ export default async function AdminPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <ServerAdminDashboard />
-      </Suspense>
+      
+      <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-4">
+        <div className="lg:col-span-3">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <ServerAdminDashboard />
+          </Suspense>
+        </div>
+        
+        <div className="lg:col-span-1">
+          <div className="space-y-6">
+            <CronRunner />
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

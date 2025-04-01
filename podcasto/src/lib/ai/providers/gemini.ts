@@ -1,6 +1,5 @@
 import {
   AIProvider,
-  AIProviderConfig,
   ImageGenerationOptions,
   ImageGenerationResult,
   TitleGenerationOptions,
@@ -8,17 +7,17 @@ import {
   TitleSummaryResult
 } from '../types';
 import { withRetry, RetryConfig, DEFAULT_RETRY_CONFIG } from '../utils/retry';
+import { ImageGenerator } from './image-generator';
+import { GeminiTextGenerator } from './gemini-text-generation';
+import { listGeminiModels } from './gemini-model-utils';
 
 /**
- * Extended generation config that supports additional Gemini features
+ * Configuration for the Gemini provider
  */
-interface ExtendedGenerationConfig {
-  temperature?: number;
-  topK?: number;
-  topP?: number;
-  maxOutputTokens?: number;
-  stopSequences?: string[];
-  // Removed responseModalities as it's not supported in Gemini 2.0
+export interface GeminiConfig {
+  apiKey: string;
+  modelName?: string;
+  baseUrl?: string;
 }
 
 /**
@@ -27,25 +26,25 @@ interface ExtendedGenerationConfig {
 export class GeminiProvider implements AIProvider {
   private apiKey: string;
   private baseUrl?: string;
-  private titleSummaryModel: string;
-  private imageGenModel: string;
+  private textModel: string;
+  private imageGenerator: ImageGenerator;
+  private textGenerator: GeminiTextGenerator;
   private retryConfig: RetryConfig;
 
   /**
    * Initialize the Gemini provider
    */
-  constructor(config: AIProviderConfig) {
+  constructor(config: GeminiConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl;
     
-    // Default models or use provided one
-    this.titleSummaryModel = config.modelName || 'gemini-1.5-flash';
-    
-    // Use the most up-to-date model for image generation
-    this.imageGenModel = 'gemini-2.0-flash-exp';
-    
-    // Default retry configuration
+    // Default to Gemini 2.0 Flash for text
+    this.textModel = config.modelName || 'gemini-2.0-flash';
+    this.imageGenerator = new ImageGenerator(config.apiKey);
+    this.textGenerator = new GeminiTextGenerator(config.apiKey, this.textModel);
     this.retryConfig = DEFAULT_RETRY_CONFIG;
+    
+    console.log(`[GEMINI_PROVIDER] Using model: text=${this.textModel}`);
   }
 
   /**
@@ -60,7 +59,13 @@ export class GeminiProvider implements AIProvider {
       return await withRetry(async () => {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(this.apiKey);
-        const model = genAI.getGenerativeModel({ model: this.titleSummaryModel });
+        
+        // Important: Explicitly use API v1 for newer models
+        const model = genAI.getGenerativeModel({ 
+          model: this.textModel
+        }, { 
+          apiVersion: 'v1' 
+        });
 
         // Set up style based on options
         const titleStyle = titleOptions?.style || 'engaging';
@@ -128,59 +133,25 @@ export class GeminiProvider implements AIProvider {
     description: string,
     options?: ImageGenerationOptions
   ): Promise<ImageGenerationResult> {
-    try {
-      return await withRetry(async () => {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(this.apiKey);
-        
-        // Add style context to description
-        const style = options?.style || 'modern, professional';
-        const enhancedPrompt = `
-          Generate an image for a podcast episode with the following description:
-          ${description}
-          
-          The image should be in ${style} style, suitable for a podcast cover.
-          Make it visually appealing and relevant to the content.
-          Create a high-quality, detailed image that represents this podcast episode.
-        `;
-        
-        // Use the Gemini model with image generation capabilities
-        const model = genAI.getGenerativeModel({
-          model: this.imageGenModel,
-        });
-        
-        // Call generateContent with the prompt
-        const result = await model.generateContent(enhancedPrompt);
-        
-        const response = result.response;
-        let imageData = null;
-        let mimeType = 'image/jpeg';
-        
-        // Safely access parts if they exist
-        const parts = response.candidates?.[0]?.content?.parts;
-        if (parts) {
-          for (const part of parts) {
-            if (part.inlineData) {
-              // Convert base64 data to Buffer
-              const base64Data = part.inlineData.data;
-              imageData = Buffer.from(base64Data, 'base64');
-              mimeType = part.inlineData.mimeType || 'image/jpeg';
-              break;
-            }
-          }
-        }
-        
-        return {
-          imageData,
-          mimeType
-        };
-      }, this.retryConfig);
-    } catch (error) {
-      console.error('Error generating image:', error);
-      return {
-        imageData: null,
-        mimeType: 'image/jpeg'
-      };
-    }
+    // Delegate to the specialized image generator
+    return this.imageGenerator.generateImage(description, options);
+  }
+
+  /**
+   * List available models from the Gemini API
+   */
+  async listAvailableModels(): Promise<string[]> {
+    return listGeminiModels(this.apiKey);
+  }
+
+  /**
+   * Generate text from a prompt
+   */
+  async generateText(prompt: string, options?: {
+    temperature?: number;
+    maxTokens?: number;
+    modelName?: string;
+  }): Promise<string> {
+    return this.textGenerator.generateText(prompt, options);
   }
 } 

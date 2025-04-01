@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getURL } from '@/lib/utils/url';
 import { getCurrentUser as getUserFromUserActions, requireAuth as requireAuthFromUserActions } from './user-actions';
-import { checkIsAdmin as checkIsAdminFromAdminActions, requireAdmin as requireAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin-actions';
+import { checkIsAdmin as checkIsAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin-actions';
 import { resetPassword as resetPasswordFromPasswordActions, updatePassword as updatePasswordFromPasswordActions } from './auth-password-actions';
 
 // Wrapper functions for backward compatibility
@@ -19,8 +19,14 @@ export async function checkIsAdmin(options?: { redirectOnFailure?: boolean, redi
   return checkIsAdminFromAdminActions(options || {});
 }
 
+/**
+ * Server action to require admin role for a route
+ * Redirects to unauthorized page if user is not an admin
+ * 
+ * @returns The user object if the user is an admin
+ */
 export async function requireAdmin() {
-  return requireAdminFromAdminActions();
+  return checkIsAdmin({ redirectOnFailure: true });
 }
 
 export async function getUserRole() {

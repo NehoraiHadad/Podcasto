@@ -89,3 +89,62 @@ npm run dev
 ## License
 
 This project is distributed under the MIT License. See the `LICENSE` file for more details.
+
+## Troubleshooting
+
+### S3 Upload Permissions
+
+If you encounter an error like this:
+```
+Error saving generated image: AccessDenied: User: arn:aws:iam::XXXX:user/podcasto-s3-access is not authorized to perform: s3:PutObject on resource
+```
+
+You need to update your IAM user permissions:
+
+1. Go to AWS IAM console: https://console.aws.amazon.com/iam/
+2. Find the user mentioned in the error (e.g., podcasto-s3-access)
+3. Attach the policy from the `aws-s3-policy.json` file or create a new inline policy with the following content:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowS3BucketOperations",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": "arn:aws:s3:::podcasto-podcasts"
+    },
+    {
+      "Sid": "AllowS3ObjectOperations",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::podcasto-podcasts/*"
+    }
+  ]
+}
+```
+
+4. Save the policy and try uploading again.
+
+### Server Actions Body Size Limit
+
+If you see this error when submitting large forms:
+```
+Error: Body exceeded 1 MB limit.
+```
+
+This is fixed by updating the Next.js configuration in `next.config.ts` to increase the body size limit:
+
+```typescript
+serverActions: {
+  bodySizeLimit: '4mb',
+},
+```

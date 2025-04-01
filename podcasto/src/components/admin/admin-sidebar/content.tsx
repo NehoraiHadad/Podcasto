@@ -9,8 +9,7 @@ import {
   Users, 
   Settings, 
   PlusCircle,
-  BarChart,
-  Home
+  BarChart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from './context';
@@ -104,7 +103,7 @@ export function SidebarContent() {
   };
   
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col h-full">
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
           {navItems.map((item) => {
@@ -155,20 +154,6 @@ export function SidebarContent() {
           })}
         </ul>
       </nav>
-      
-      <div className="p-4 border-t border-gray-200">
-        <Link
-          href="/"
-          className={cn(
-            'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
-            'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-          )}
-          title={isCollapsed ? "Back to Site" : undefined}
-        >
-          <Home className="h-5 w-5" />
-          {!isCollapsed && <span className="ml-3">Back to Site</span>}
-        </Link>
-      </div>
     </div>
   );
 } 

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Radio } from 'lucide-react';
-import { SidebarProvider } from './context';
+import { Radio, Home } from 'lucide-react';
 import { SidebarContent } from './content';
 import { CollapseButton } from './collapse-button';
 import { WidthWrapper } from './width-wrapper';
 import { useSidebar } from './context';
+import { cn } from '@/lib/utils';
 
 /**
  * Header component for the sidebar
@@ -27,20 +27,44 @@ function SidebarHeader() {
 }
 
 /**
+ * Back to site footer link
+ */
+function BackToSiteLink() {
+  const { isCollapsed } = useSidebar();
+  
+  return (
+    <div className="border-t border-gray-200 p-4 mt-auto">
+      <Link
+        href="/"
+        className={cn(
+          'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+          'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        )}
+        title={isCollapsed ? "Back to Site" : undefined}
+      >
+        <Home className="h-5 w-5" />
+        {!isCollapsed && <span className="ml-3">Back to Site</span>}
+      </Link>
+    </div>
+  );
+}
+
+/**
  * Main admin sidebar component
  * This is the entry point for the admin sidebar
  */
 export function AdminSidebar() {
   return (
-    <SidebarProvider>
-      <WidthWrapper>
-        <div className="h-screen bg-white border-r border-gray-200 flex flex-col relative">
-          <SidebarHeader />
+    <WidthWrapper>
+      <div className="h-full bg-white border-r border-gray-200 flex flex-col relative">
+        <SidebarHeader />
+        <div className="flex-1 overflow-y-auto">
           <SidebarContent />
-          <CollapseButtonFixed />
         </div>
-      </WidthWrapper>
-    </SidebarProvider>
+        <BackToSiteLink />
+        <CollapseButtonFixed />
+      </div>
+    </WidthWrapper>
   );
 }
 

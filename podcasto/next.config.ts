@@ -7,7 +7,16 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
       },
+      {
+        protocol: 'https',
+        hostname: 'podcasto-podcasts.s3.amazonaws.com',
+      },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '4mb',
+    },
   },
 };
 

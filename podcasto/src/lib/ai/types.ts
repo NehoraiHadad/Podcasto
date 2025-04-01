@@ -12,6 +12,20 @@ export interface AIProviderConfig {
 }
 
 /**
+ * Supported AI providers
+ */
+export type ProviderType = 'gemini' | 'openai'; // TODO: Add other providers as needed
+
+/**
+ * AI service configuration options
+ */
+export interface AIServiceConfig extends AIProviderConfig {
+  provider: ProviderType;
+  fallbackProvider?: ProviderType;
+  fallbackApiKey?: string;
+}
+
+/**
  * Title generation configuration
  */
 export interface TitleGenerationOptions {
@@ -54,6 +68,7 @@ export interface ImageGenerationResult {
   imageData: Buffer | null;
   imageUrl?: string;
   mimeType: string;
+  generatedFromPrompt?: string;
 }
 
 /**
