@@ -75,10 +75,10 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                   height={48}
                   quality={100}
                   priority
-                  sizes="120px"
                   style={{
                     width: 'auto',
                     height: '32px',
+                    color: 'transparent'
                   }}
                   className="mb-0 md:mb-2"
                 />
