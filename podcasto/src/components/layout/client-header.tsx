@@ -71,12 +71,16 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                 <Image
                   src="/podcasto-logo.webp"
                   alt="podcasto"
-                  width={40}
-                  height={40}
+                  width={120}
+                  height={48}
                   quality={100}
                   priority
-                  sizes="(max-width: 768px) 40px, 40px"
-                  className="h-8 w-auto mb-1.5"
+                  sizes="120px"
+                  style={{
+                    width: 'auto',
+                    height: '32px',
+                  }}
+                  className="mb-0 md:mb-2"
                 />
               </Link>
             </div>

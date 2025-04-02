@@ -25,7 +25,10 @@ export function AuthLayout({
             alt="podcasto Logo"
             width={160}
             height={64}
-            className="h-24 w-auto"
+            style={{
+              width: 'auto',
+              height: '96px',
+            }}
             priority
             quality={100}
           />

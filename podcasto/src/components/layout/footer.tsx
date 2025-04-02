@@ -36,9 +36,12 @@ export function Footer() {
               <Image
                 src="/podcasto-logo.webp"
                 alt="podcasto Logo"
-                width={80}
-                height={32}
-                className="h-6 w-auto -mt-1"
+                width={100}
+                height={40}
+                style={{
+                  width: 'auto',
+                  height: '24px',
+                }}
                 priority
                 quality={100}
               />
