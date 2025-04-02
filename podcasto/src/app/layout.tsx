@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "podcasto - Daily News Podcasts",
   description: "Transform daily news content from Telegram channels into accessible podcasts",
   icons: {
-    icon: "/podcasto-logo.png",
+    icon: "/podcasto-lcon.webp",
   },
 };
 

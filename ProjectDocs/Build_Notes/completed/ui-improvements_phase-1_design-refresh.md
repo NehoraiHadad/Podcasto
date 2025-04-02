@@ -12,7 +12,7 @@ A polished, professional website with a clean, modern design using subtle colors
 ## Implementation Plan
 
 1. **Header Improvements**
-   - [x] Replace old logo with new podcasto-logo.png
+   - [x] Replace old logo with new podcasto-logo.webp
    - [x] Refine header styling with subtle colors and improved spacing
    - [x] Add backdrop blur effect for a modern look
    - [x] Improve mobile menu appearance
