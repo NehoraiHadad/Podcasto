@@ -69,11 +69,13 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center">
                 <Image
-                  src="/podcasto-logo.png"
+                  src="/podcasto-logo.webp"
                   alt="podcasto"
-                  width={32}
-                  height={32}
+                  width={40}
+                  height={40}
                   quality={100}
+                  priority
+                  sizes="(max-width: 768px) 40px, 40px"
                   className="h-8 w-auto mb-1.5"
                 />
               </Link>

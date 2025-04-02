@@ -34,7 +34,7 @@ export function Footer() {
           <div className="flex flex-row items-center justify-between">
             <div className="flex items-center">
               <Image
-                src="/podcasto-logo.png"
+                src="/podcasto-logo.webp"
                 alt="podcasto Logo"
                 width={80}
                 height={32}
