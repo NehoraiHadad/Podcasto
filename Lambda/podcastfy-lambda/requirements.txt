@@ -4,5 +4,4 @@ boto3[crt]==1.36.0
 botocore==1.36.0
 requests
 supabase
-ffmpeg
 ffmpeg-python

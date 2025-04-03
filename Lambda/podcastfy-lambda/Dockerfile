@@ -22,8 +22,8 @@ COPY src/ ./src/
 
 # Install all dependencies with latest versions
 RUN pip install --upgrade pip && \
-    # Install requirements with latest versions
-    pip install -r requirements.txt -t . 
+    # Install requirements into standard site-packages location
+    pip install -r requirements.txt
 
 # Command can be overwritten by providing a different command in the template directly
 CMD ["src/lambda_handler.lambda_handler"] 

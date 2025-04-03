@@ -11,7 +11,6 @@ from src.clients.supabase_client import SupabaseClient
 from src.handlers.sqs_handler import SQSHandler
 from src.utils.logging import get_logger
 from src.utils.response import create_response
-from src.podcast_processor import PodcastProcessor
 
 logger = get_logger(__name__)
 
@@ -51,43 +50,46 @@ def resource_manager():
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Lambda function entry point.
-    
+    Lambda function entry point for SQS events.
+
     Args:
-        event: The event dict from AWS Lambda
+        event: The SQS event dict from AWS Lambda
         context: The context object from AWS Lambda
-        
+
     Returns:
-        A dictionary with the Lambda response
+        A dictionary with the Lambda response indicating processing status.
+        Note: Returns 200 even if individual messages failed, as failure is
+        indicated within the 'results' list. Lambda errors trigger SQS retries.
     """
     request_id = context.aws_request_id if hasattr(context, 'aws_request_id') else None
     log_prefix = f"[{request_id}] " if request_id else ""
-    
-    logger.info(f"{log_prefix}Received event: {event}")
-    
-    try:
-        # Handle SQS event
-        if 'Records' in event and isinstance(event['Records'], list):
-            result = process_sqs_event(event, request_id)
-            return create_response(200, result)
-        
-        # Handle direct invocation
-        if 'podcast_config_id' in event:
-            result = process_direct_invocation(event, request_id)
-            return create_response(200, result)
-            
-        # Invalid event
-        logger.error(f"{log_prefix}Invalid event format: {event}")
+
+    logger.info(f"{log_prefix}Received SQS event.") # Simplified log
+
+    # Basic check for SQS structure - ensures Records is a non-empty list
+    if not isinstance(event.get('Records'), list) or not event['Records']:
+        logger.error(f"{log_prefix}Invalid or empty SQS event format received.") # Don't log the whole event potentially
+        # Return 400 Bad Request as the event structure is wrong
         return create_response(400, {
             'status': 'error',
-            'message': 'Invalid event format'
+            'message': 'Invalid or empty SQS event format'
         })
-        
+
+    logger.info(f"{log_prefix}Processing {len(event['Records'])} SQS records.")
+
+    try:
+        # Process the batch of SQS messages
+        result = process_sqs_event(event, request_id)
+        # Return 200 OK with the processing results (failures are inside 'results')
+        return create_response(200, result)
+
     except Exception as e:
-        logger.error(f"{log_prefix}Error in lambda_handler: {str(e)}")
+        # Catch any unhandled exceptions during processing
+        logger.exception(f"{log_prefix}Unhandled error processing SQS batch: {str(e)}")
+        # Return 500 Internal Server Error - this will cause SQS to retry/DLQ
         return create_response(500, {
             'status': 'error',
-            'message': f'Error: {str(e)}'
+            'message': f'Internal server error during SQS processing: {str(e)}'
         })
 
 def is_valid_uuid(val: str) -> bool:
@@ -201,100 +203,4 @@ def process_sqs_event(event: Dict[str, Any], request_id: Optional[str] = None) -
     return {
         'status': 'success',
         'results': results
-    }
-
-def process_direct_invocation(event: Dict[str, Any], request_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Process a direct Lambda invocation.
-    
-    Args:
-        event: The direct invocation event
-        request_id: Request ID for tracing
-        
-    Returns:
-        A dictionary with the processing results
-    """
-    log_prefix = f"[{request_id}] " if request_id else ""
-    logger.info(f"{log_prefix}Processing direct invocation")
-    
-    # Get podcast_config_id from event
-    podcast_config_id = event.get('podcast_config_id')
-    
-    # Validate UUID format
-    if not is_valid_uuid(podcast_config_id):
-        error_msg = f"Invalid UUID format for podcast_config_id: {podcast_config_id}"
-        logger.error(f"{log_prefix}{error_msg}")
-        return {
-            'status': 'error',
-            'message': error_msg
-        }
-    
-    with resource_manager() as supabase_client:
-        # Get podcast configuration using the flexible method
-        logger.info(f"{log_prefix}Getting podcast config for ID: {podcast_config_id}")
-        config_result = supabase_client.get_podcast_config_flexible(podcast_config_id)
-        if not config_result.get('success', False):
-            error_msg = f"Failed to get podcast config: {config_result.get('error')}"
-            logger.error(f"{log_prefix}{error_msg}")
-            return {
-                'status': 'error',
-                'message': error_msg
-            }
-        
-        podcast_config = config_result.get('config')
-        logger.info(f"{log_prefix}Successfully retrieved podcast config: {podcast_config.get('id')}")
-        
-        # Check if this is a content request or SQS message request
-        if event.get('content_source') or event.get('urls') or event.get('text'):
-            # Log the episode_id if present in the event
-            episode_id = event.get('episode_id')
-            if episode_id:
-                logger.info(f"{log_prefix}Direct invocation with episode_id: {episode_id}")
-            
-            # Use podcast processor for direct content generation
-            processor = PodcastProcessor(podcast_config, event, request_id)
-            result = processor.process()
-            
-            # Log success or failure
-            if result.get('status') == 'success':
-                episode_id = event.get('episode_id') or podcast_config.get('episode_id')
-                s3_path = result.get('s3_url') or result.get('s3_path')
-                
-                if episode_id:
-                    logger.info(f"{log_prefix}Successfully processed episode {episode_id} with s3_path: {s3_path}")
-            else:
-                # Log error
-                episode_id = event.get('episode_id') or podcast_config.get('episode_id')
-                error_msg = result.get('message', 'Unknown error')
-                if episode_id:
-                    logger.error(f"{log_prefix}Error processing episode {episode_id}: {error_msg}")
-            
-            return result
-        else:
-            # Create SQS message for processing
-            message = {
-                'podcast_config_id': podcast_config_id,
-                'episode_id': event.get('episode_id'),
-                's3_path': event.get('s3_path'),
-                'content_url': event.get('content_url')
-            }
-            
-            # Process the message
-            sqs_handler = SQSHandler(podcast_config, supabase_client)
-            result = sqs_handler.process_message(message, request_id)
-            
-            # Log success or failure
-            if result.get('status') == 'success':
-                episode_id = event.get('episode_id') or podcast_config.get('episode_id')
-                s3_path = result.get('s3_url') or result.get('s3_path')
-                
-                if episode_id:
-                    logger.info(f"{log_prefix}Successfully processed episode {episode_id} with s3_path: {s3_path}")
-            else:
-                # Log error
-                episode_id = event.get('episode_id') or podcast_config.get('episode_id')
-                error_msg = result.get('message', 'Unknown error')
-                if episode_id:
-                    logger.error(f"{log_prefix}Error processing episode {episode_id}: {error_msg}")
-            
-            return result 
+    } 

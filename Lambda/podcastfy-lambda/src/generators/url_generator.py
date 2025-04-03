@@ -23,8 +23,10 @@ class UrlGenerator(BaseGenerator):
         longform: bool = False,
         transcript_only: bool = False,
         max_num_chunks: Optional[int] = None,
-        min_chunk_size: Optional[int] = None
-    ) -> Optional[Tuple[str, Optional[str]]]:
+        min_chunk_size: Optional[int] = None,
+        llm_model_name: Optional[str] = None,
+        api_key_label: Optional[str] = None
+    ) -> Optional[Tuple[str, Optional[str], int]]:
         """
         Create a podcast from URLs.
         
@@ -36,9 +38,11 @@ class UrlGenerator(BaseGenerator):
             transcript_only: Whether to generate a transcript only
             max_num_chunks: Maximum number of chunks to process
             min_chunk_size: Minimum size of each chunk
+            llm_model_name: Optional LLM model name
+            api_key_label: Optional API key label
             
         Returns:
-            Tuple of (local_path, s3_url) for the generated podcast file or None if failed
+            Tuple of (local_path, s3_url, duration) for the generated podcast file or None if failed
         """
         try:
             logger.info("Creating podcast from URLs")
@@ -67,6 +71,9 @@ class UrlGenerator(BaseGenerator):
             # Generate podcast using the podcastfy library
             audio_file = generate_podcast(
                 urls=urls,
+                metadata=metadata,
+                llm_model_name=llm_model_name,
+                api_key_label=api_key_label,
                 conversation_config={
                     **conversation_config,
                     "text_to_speech": {

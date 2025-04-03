@@ -25,8 +25,9 @@ class TextGenerator(BaseGenerator):
         images: Optional[List[str]] = None,
         llm_model_name: Optional[str] = None,
         max_num_chunks: Optional[int] = None,
-        min_chunk_size: Optional[int] = None
-    ) -> Optional[Tuple[str, Optional[str]]]:
+        min_chunk_size: Optional[int] = None,
+        api_key_label: Optional[str] = None
+    ) -> Optional[Tuple[str, Optional[str], int]]:
         """
         Create a podcast from raw text.
         
@@ -40,9 +41,10 @@ class TextGenerator(BaseGenerator):
             llm_model_name: Name of the LLM model to use
             max_num_chunks: Maximum number of chunks to process
             min_chunk_size: Minimum size of each chunk
+            api_key_label: Label for the API key if needed
             
         Returns:
-            Tuple of (local_path, s3_url) for the generated podcast file or None if failed
+            Tuple of (local_path, s3_url, duration) for the generated podcast file or None if failed
         """
         try:
             logger.info("Creating podcast from text")
@@ -84,7 +86,8 @@ class TextGenerator(BaseGenerator):
                 transcript_only=transcript_only,
                 longform=longform,
                 image_paths=images,
-                llm_model_name=llm_model_name
+                llm_model_name=llm_model_name,
+                api_key_label=api_key_label
             )
             
             # Process generated file and upload to S3

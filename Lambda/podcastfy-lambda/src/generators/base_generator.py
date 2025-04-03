@@ -3,13 +3,12 @@ Base generator for podcast creation.
 """
 import os
 import shutil
-import glob
 from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime
-import subprocess  # Add subprocess import
 
 from src.utils.logging import get_logger
-from src.clients.s3_client import S3Client
+from src.utils.audio_utils import calculate_audio_duration
+from src.utils.s3_utils import upload_podcast_audio, upload_transcripts
 
 logger = get_logger(__name__)
 
@@ -65,7 +64,6 @@ class BaseGenerator:
         """
         self.podcast_config = podcast_config
         self.storage_dir = storage_dir or os.environ.get('STORAGE_DIR', '/tmp/podcasts')
-        self.s3_client = S3Client()
         
         # Create storage directory if it doesn't exist
         os.makedirs(self.storage_dir, exist_ok=True)
@@ -75,210 +73,78 @@ class BaseGenerator:
         audio_file: str,
         metadata: Dict[str, Any],
         output_path: str
-    ) -> Optional[Tuple[str, Optional[str]]]:
+    ) -> Optional[Tuple[str, Optional[str], int]]:
         """
-        Process the generated podcast file, uploading to S3 if available.
+        Process the generated podcast file, calculate duration, and upload to S3.
         
         Args:
             audio_file: Path to the generated audio file
-            metadata: Podcast metadata
-            output_path: Path to store the final podcast file
+            metadata: Podcast metadata (must include 'podcast_id' or 'id')
+            output_path: Target local path for the podcast file
             
         Returns:
-            Tuple of (local_path, s3_url) or None if failed
+            Tuple of (local_path, s3_url, duration) or None if processing failed.
         """
         try:
-            # Move the generated file to our output path if needed
-            if audio_file and os.path.exists(audio_file) and audio_file != output_path:
-                shutil.copy2(audio_file, output_path)
-                logger.info(f"Successfully created podcast at {output_path}")
-                
-                # Calculate audio duration using ffmpeg
-                duration = 0
-                try:
-                    import ffmpeg
-                    logger.info(f"Calculating audio duration for file: {output_path}")
-                    probe = ffmpeg.probe(output_path)
-                    
-                    # Find the audio stream
-                    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
-                    
-                    if audio_stream:
-                        # Get duration from the audio stream
-                        duration = int(float(audio_stream['duration']))
-                        logger.info(f"Audio duration calculated: {duration} seconds")
-                    else:
-                        # If no audio stream found, try to get duration from format
-                        duration = int(float(probe['format']['duration']))
-                        logger.info(f"Audio duration from format: {duration} seconds")
-                except Exception as e:
-                    logger.error(f"Error calculating audio duration: {str(e)}")
-                
-                # Upload to S3
-                # Use the key 'podcast_id' from the metadata or use 'id' as fallback
-                # This is the actual podcast ID, not the config ID
-                actual_podcast_id = metadata.get("podcast_id", metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower()))
-                
-                # Get episode_id or generate a new one if not provided (instead of using podcast_id as fallback)
-                episode_id = self.podcast_config.get('episode_id')
-                if not episode_id:
-                    # Generate a simple timestamp-based ID if none provided
-                    episode_id = f"episode_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                    logger.info(f"No episode_id provided, generated: {episode_id}")
-                
-                # S3 bucket from environment variable or use default
-                s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
-                
-                # Upload file to S3 with proper path structure
-                filename = os.path.basename(output_path)
-                key = f"podcasts/{actual_podcast_id}/{episode_id}/{filename}"
-                
-                logger.info(f"Attempting to upload podcast to S3: {key}")
-                result = self.s3_client.upload_file(output_path, s3_bucket, key)
-
-                # Upload transcript files to S3
-                self.upload_transcripts(actual_podcast_id, episode_id, s3_bucket)
-                
-                if result.get('success', False):
-                    s3_url = result.get('url')
-                    logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
-                    # Add duration and local_path to result for the SQS handler to use
-                    result['duration'] = duration
-                    result['local_path'] = output_path
-                    return output_path, s3_url
-                else:
-                    error_msg = result.get('error', 'Unknown error')
-                    logger.error(f"Failed to upload podcast to S3: {error_msg}")
-                    return output_path, None
-            elif audio_file and os.path.exists(audio_file):
-                # File already at desired location
-                logger.info(f"Using existing podcast at {output_path}")
-                
-                # Calculate audio duration using ffmpeg
-                duration = 0
-                try:
-                    import ffmpeg
-                    logger.info(f"Calculating audio duration for file: {audio_file}")
-                    probe = ffmpeg.probe(audio_file)
-                    
-                    # Find the audio stream
-                    audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
-                    
-                    if audio_stream:
-                        # Get duration from the audio stream
-                        duration = int(float(audio_stream['duration']))
-                        logger.info(f"Audio duration calculated: {duration} seconds")
-                    else:
-                        # If no audio stream found, try to get duration from format
-                        duration = int(float(probe['format']['duration']))
-                        logger.info(f"Audio duration from format: {duration} seconds")
-                except Exception as e:
-                    logger.error(f"Error calculating audio duration: {str(e)}")
-                
-                # Upload to S3 with the same proper structure as above
-                # Use the key 'podcast_id' from the metadata or use 'id' as fallback 
-                # This is the actual podcast ID, not the config ID
-                actual_podcast_id = metadata.get("podcast_id", metadata.get("id", metadata.get("title", "undefined").replace(" ", "_").lower()))
-                
-                # Get episode_id or generate a new one if not provided
-                episode_id = self.podcast_config.get('episode_id')
-                if not episode_id:
-                    # Generate a simple timestamp-based ID if none provided
-                    episode_id = f"episode_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                    logger.info(f"No episode_id provided, generated: {episode_id}")
-                
-                # S3 bucket from environment variable or use default
-                s3_bucket = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
-                
-                # Upload file to S3 with proper path structure
-                filename = os.path.basename(output_path)
-                key = f"podcasts/{actual_podcast_id}/{episode_id}/{filename}"
-                
-                logger.info(f"Attempting to upload podcast to S3: {key}")
-                result = self.s3_client.upload_file(output_path, s3_bucket, key)
-
-                # Upload transcript files to S3
-                self.upload_transcripts(actual_podcast_id, episode_id, s3_bucket)
-                
-                if result.get('success', False):
-                    s3_url = result.get('url')
-                    logger.info(f"Successfully uploaded podcast to S3: {s3_url}")
-                    # Add duration and local_path to result for the SQS handler to use
-                    result['duration'] = duration
-                    result['local_path'] = audio_file
-                    return output_path, s3_url
-                else:
-                    error_msg = result.get('error', 'Unknown error')
-                    logger.error(f"Failed to upload podcast to S3: {error_msg}")
-                    return output_path, None
-            else:
-                logger.error(f"No audio file was created")
+            final_audio_path = output_path
+            
+            # Ensure the final audio file exists
+            if not audio_file or not os.path.exists(audio_file):
+                logger.error(f"Generated audio file not found: {audio_file}")
                 return None
+            
+            # Copy/move the generated file if necessary
+            if audio_file != output_path:
+                try:
+                    # Ensure destination directory exists
+                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                    shutil.copy2(audio_file, output_path)
+                    logger.info(f"Copied generated audio to {output_path}")
+                except Exception as e:
+                    logger.error(f"Failed to copy {audio_file} to {output_path}: {str(e)}")
+                    return None # Cannot proceed without the file at the expected path
+            else:
+                final_audio_path = audio_file # Use the original path if no copy needed
+                logger.info(f"Using existing audio file at {final_audio_path}")
+
+            # Calculate audio duration
+            duration = calculate_audio_duration(final_audio_path)
+
+            # Prepare IDs and bucket for S3 upload
+            # Use 'podcast_id' from metadata first, then 'id', then generate from title
+            actual_podcast_id = metadata.get("podcast_id") or metadata.get("id")
+            if not actual_podcast_id:
+                 # Fallback using title, ensure it's reasonably safe
+                 title_fallback = metadata.get("title", f"podcast_{datetime.now().strftime('%Y%m%d%H%M%S')}")
+                 actual_podcast_id = get_safe_filename(title_fallback).lower()
+                 logger.warning(f"Missing 'podcast_id' or 'id' in metadata, using fallback: {actual_podcast_id}")
+            
+            # Get episode_id from config or generate a fallback
+            episode_id = self.podcast_config.get('episode_id')
+            if not episode_id:
+                episode_id = f"ep_{datetime.now().strftime('%Y%m%d%H%M%S')}" # Simpler fallback
+                logger.warning(f"Missing episode_id in config, using fallback: {episode_id}")
+            
+            s3_bucket = os.environ.get('S3_BUCKET_NAME')
+            if not s3_bucket:
+                logger.error("S3_BUCKET_NAME environment variable not set. Cannot upload.")
+                # Return local path and duration, but None for S3 URL
+                return final_audio_path, None, duration
+
+            # Upload audio file to S3
+            upload_result = upload_podcast_audio(final_audio_path, actual_podcast_id, episode_id, s3_bucket)
+            s3_url = upload_result.get('url') # Will be None if upload failed
+
+            # Upload associated transcript files (uses hardcoded path for now)
+            transcript_dir = "/tmp/podcastify-demo/transcripts" # Keep hardcoded path as per original logic
+            upload_transcripts(transcript_dir, actual_podcast_id, episode_id, s3_bucket)
+            
+            # Return the final local path, S3 URL (if successful), and duration
+            return final_audio_path, s3_url, duration
                 
         except Exception as e:
-            logger.error(f"Error processing podcast: {str(e)}")
+            logger.exception(f"Error processing podcast in BaseGenerator: {str(e)}") # Use exception log
             return None
-
-    def upload_transcripts(self, podcast_id: str, episode_id: str, s3_bucket: str) -> List[Dict[str, Any]]:
-        """
-        Upload transcript files to S3.
-        
-        Args:
-            podcast_id: Actual podcast ID (not config ID)
-            episode_id: Episode ID
-            s3_bucket: S3 bucket name
-            
-        Returns:
-            List of upload results
-        """
-        try:
-            # Path to transcript files
-            transcript_dir = "/tmp/podcastify-demo/transcripts"
-            
-            if not os.path.exists(transcript_dir):
-                logger.warning(f"Transcript directory does not exist: {transcript_dir}")
-                return []
-            
-            # Find all transcript files
-            transcript_files = glob.glob(f"{transcript_dir}/*.txt")
-            
-            if not transcript_files:
-                logger.info(f"No transcript files found in {transcript_dir}")
-                return []
-            
-            logger.info(f"Found {len(transcript_files)} transcript files to upload")
-            
-            results = []
-            for transcript_file in transcript_files:
-                try:
-                    # Generate S3 key for the transcript file
-                    filename = os.path.basename(transcript_file)
-                    key = f"podcasts/{podcast_id}/{episode_id}/transcripts/{filename}"
-                    
-                    logger.info(f"Uploading transcript file {transcript_file} to S3: {key}")
-                    result = self.s3_client.upload_file(transcript_file, s3_bucket, key)
-                    
-                    results.append(result)
-                    
-                    if result.get('success', False):
-                        logger.info(f"Successfully uploaded transcript to S3: {result.get('url')}")
-                    else:
-                        error_msg = result.get('error', 'Unknown error')
-                        logger.error(f"Failed to upload transcript to S3: {error_msg}")
-                except Exception as e:
-                    logger.error(f"Error uploading transcript file {transcript_file}: {str(e)}")
-                    results.append({
-                        'success': False,
-                        'error': f"Error uploading transcript file: {str(e)}"
-                    })
-            
-            return results
-        except Exception as e:
-            logger.error(f"Error uploading transcript files: {str(e)}")
-            return [{
-                'success': False,
-                'error': f"Error uploading transcript files: {str(e)}"
-            }]
 
     def get_output_path(self, metadata: Dict[str, Any]) -> str:
         """

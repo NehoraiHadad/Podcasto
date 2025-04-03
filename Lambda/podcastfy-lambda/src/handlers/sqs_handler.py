@@ -9,6 +9,7 @@ from src.clients.s3_client import S3Client
 from src.clients.supabase_client import SupabaseClient
 from src.clients.sqs_client import SQSClient
 from src.utils.logging import get_logger
+from src.podcast_processor import PodcastProcessor
 
 logger = get_logger(__name__)
 
@@ -30,236 +31,211 @@ class SQSHandler:
         # Use provided Supabase client or create a new one
         self.supabase_client = supabase_client or SupabaseClient()
     
-    def extract_podcast_config_id(self, message: Dict[str, Any]) -> Optional[str]:
-        """
-        Extract the podcast config ID from an SQS message.
-        
-        Args:
-            message: The SQS message
+    def _get_episode_data(self, episode_id: str, log_prefix: str) -> Optional[Dict[str, Any]]:
+        """Fetch episode data from Supabase and update status to content_collected."""
+        if not episode_id:
+            logger.info(f"{log_prefix}No episode_id provided in message.")
+            return None
             
-        Returns:
-            The podcast config ID, or None if not found
-        """
-        podcast_config_id = message.get('podcast_config_id')
+        episode_result = self.supabase_client.get_episode(episode_id)
+        if not episode_result.get('success', False):
+            logger.warning(f"{log_prefix}Failed to get episode {episode_id}: {episode_result.get('error')}")
+            return None
         
-        if podcast_config_id:
-            logger.info(f"Found podcast config ID: {podcast_config_id}")
-            return str(podcast_config_id)
+        episode = episode_result.get('episode')
+        logger.info(f"{log_prefix}Found episode {episode['id']}")
+        
+        # Update status to content_collected
+        update_result = self.supabase_client.update_episode_status(episode['id'], 'content_collected')
+        if not update_result.get('success', False):
+            logger.warning(f"{log_prefix}Failed to update episode status for {episode['id']}: {update_result.get('error')}")
+            # Continue processing even if status update fails
+        
+        return episode
+
+    def _download_content(self, content_path: str, request_id: str, log_prefix: str) -> Optional[Dict[str, Any]]:
+        """Download content from S3 using the provided path."""
+        if not content_path:
+            logger.error(f"{log_prefix}No content path (s3_path or content_url) provided.")
+            return None
             
-        logger.warning(f"No podcast_config_id found in message: {message}")
-        return None
-    
+        try:
+            content_result = self.s3_client.download_telegram_content(
+                content_url=content_path,
+                request_id=request_id
+            )
+            if not content_result.get('success', False):
+                logger.error(f"{log_prefix}{content_result.get('error', 'Failed to download content from S3')}")
+                return None
+            
+            if not content_result.get('content'):
+                 logger.error(f"{log_prefix}No content found in downloaded data from {content_path}")
+                 return None
+                 
+            return content_result.get('content') # Return only the actual content data
+
+        except ValueError as e:
+            logger.error(f"{log_prefix}Error downloading content from {content_path}: {str(e)}")
+            return None
+        except Exception as e: # Catch broader exceptions during download
+             logger.exception(f"{log_prefix}Unexpected error downloading content from {content_path}: {str(e)}")
+             return None
+             
+    def _process_content(self, processor_event: Dict[str, Any], request_id: str, log_prefix: str) -> Dict[str, Any]:
+        """Initialize and run the PodcastProcessor."""
+        try:
+            logger.info(f"{log_prefix}Initializing PodcastProcessor to generate audio")
+            processor = PodcastProcessor(self.podcast_config, processor_event, request_id)
+            process_result = processor.process()
+            return process_result
+        except Exception as e:
+            error_msg = f"Error generating podcast audio: {str(e)}"
+            logger.exception(f"{log_prefix}{error_msg}") # Log with stack trace
+            return {
+                'status': 'error',
+                'message': error_msg
+            }
+
+    def _update_episode_result(self, episode_id: str, process_result: Dict[str, Any], log_prefix: str):
+        """Update the episode in Supabase based on the processing result."""
+        if not episode_id:
+            logger.warning(f"{log_prefix}No episode_id available to update results.")
+            return
+
+        if process_result.get('status') == 'success':
+            s3_url = process_result.get('s3_url')
+            duration = process_result.get('duration', 0)
+
+            if not s3_url:
+                logger.error(f"{log_prefix}S3 URL not found in successful process_result for episode {episode_id}")
+                # Mark as failed if S3 URL is missing despite success status
+                self.supabase_client.mark_episode_failed(episode_id, "Processing succeeded but S3 URL was missing.")
+                return
+                
+            # Validate S3 URL format minimally
+            if not s3_url.startswith('https://') or '.s3.' not in s3_url:
+                logger.warning(f"{log_prefix}Potentially invalid S3 URL format for episode {episode_id}: {s3_url}")
+
+            logger.info(f"{log_prefix}Updating episode {episode_id} with Audio URL: {s3_url} and Duration: {duration}s")
+            update_result = self.supabase_client.update_episode_audio_url(
+                episode_id=episode_id,
+                audio_url=s3_url,
+                duration=duration
+            )
+            if not update_result.get('success', False):
+                logger.warning(f"{log_prefix}Failed to update episode audio URL for {episode_id}: {update_result.get('error')}")
+            else:
+                logger.info(f"{log_prefix}Successfully updated episode {episode_id} with audio URL and duration.")
+        else:
+            # Processing failed
+            error_msg = process_result.get('message', 'Unknown processing error')
+            logger.error(f"{log_prefix}Podcast processing failed for episode {episode_id}: {error_msg}")
+            self.supabase_client.mark_episode_failed(episode_id, error_msg)
+
     def process_message(self, message: Dict[str, Any], request_id: str = None) -> Dict[str, Any]:
         """
-        Process an SQS message.
+        Process an SQS message by orchestrating steps via helper methods.
         
         Args:
             message: The SQS message to process
             request_id: Request ID for tracing
             
         Returns:
-            A dictionary with the processing results
+            A dictionary with the overall processing status for this message.
         """
         log_prefix = f"[{request_id}] " if request_id else ""
+        logger.info(f"{log_prefix}Processing SQS message: {message}")
         
-        try:
-            logger.info(f"{log_prefix}Processing SQS message: {message}")
+        # 1. Extract common data
+        podcast_config_id = message.get('podcast_config_id')
+        podcast_id = message.get('podcast_id', podcast_config_id) # Use event's podcast_id first
+        episode_id = message.get('episode_id')
+
+        # Config ID is essential
+        if not podcast_config_id:
+             logger.critical(f"{log_prefix}FATAL: podcast_config_id missing. Message: {message}")
+             return {'status': 'error', 'message': 'Internal error: podcast_config_id missing'}
+
+        # 2. Determine content source and extract specific data
+        content_source = None
+        processor_event_data = {}
+        error_msg = None
+        
+        # Check config for URL source first
+        config_urls = self.podcast_config.get('urls')
+        config_source = self.podcast_config.get('content_source')
+
+        if config_source == 'url' or (isinstance(config_urls, list) and config_urls):
+            content_source = 'url'
+            processor_event_data = {'urls': config_urls}
+            logger.info(f"{log_prefix}Detected URL source type from podcast_config.")
+            # No download needed for URL type
+            telegram_content = None # Ensure telegram_content is None for URL type
             
-            # Extract data directly from the message
-            podcast_config_id = message.get('podcast_config_id')
-            podcast_id = message.get('podcast_id', podcast_config_id)  # Use podcast_id if provided, otherwise fall back to config_id
-            episode_id = message.get('episode_id')
+        # If not URL source from config, check message body for Text source
+        elif 'text' in message and isinstance(message.get('text'), str):
+            content_source = 'text'
+            processor_event_data = {'text': message['text']}
+            logger.info(f"{log_prefix}Detected Text source type from message body.")
+            # No download needed for Text type
+            telegram_content = None # Ensure telegram_content is None for Text type
+
+        # Otherwise, assume Telegram source based on message body content path
+        else:
             s3_path = message.get('s3_path')
             content_url = message.get('content_url', s3_path)
-            
-            if not podcast_config_id:
-                logger.error(f"{log_prefix}Invalid SQS message: Missing podcast_config_id")
-                return {
-                    'status': 'error',
-                    'message': 'Invalid SQS message: Missing podcast_config_id'
-                }
-            
-            # Log the podcast_id being used
-            logger.info(f"{log_prefix}Using podcast_id: {podcast_id} (config_id: {podcast_config_id})")
-            
-            # Find the corresponding episode in the database using ID directly
-            episode = None
-            if episode_id:
-                episode_result = self.supabase_client.get_episode(episode_id)
-                
-                if not episode_result.get('success', False):
-                    logger.warning(f"{log_prefix}Failed to get episode: {episode_result.get('error')}")
-                else:
-                    episode = episode_result.get('episode')
-                    logger.info(f"{log_prefix}Found episode {episode['id']} for podcast config {podcast_config_id}")
-                    # Update status to content_collected
-                    update_result = self.supabase_client.update_episode_status(episode['id'], 'content_collected')
-                    if not update_result.get('success', False):
-                        logger.warning(f"{log_prefix}Failed to update episode status: {update_result.get('error')}")
-            
-            # Download the content from S3 using the direct path
-            content_result = None
             content_path = content_url or s3_path
-            
             if content_path:
-                try:
-                    content_result = self.s3_client.download_telegram_content(
-                        content_url=content_path,
-                        request_id=request_id
-                    )
-                
-                    if not content_result.get('success', False):
-                        error_msg = content_result.get('error', 'Failed to download content from S3')
-                        logger.error(f"{log_prefix}{error_msg}")
-                        
-                        if episode:
-                            self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                            
-                        return {
-                            'status': 'error',
-                            'message': error_msg
-                        }
-                except ValueError as e:
-                    error_msg = f"Error downloading content: {str(e)}"
-                    logger.error(f"{log_prefix}{error_msg}")
-                    
-                    if episode:
-                        self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                        
-                    return {
-                        'status': 'error',
-                        'message': error_msg
-                    }
-            else:
-                error_msg = "No content path (s3_path or content_url) provided in SQS message"
-                logger.error(f"{log_prefix}{error_msg}")
-                
-                if episode:
-                    self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                    
-                return {
-                    'status': 'error',
-                    'message': error_msg
-                }
-            
-            # No content available
-            if not content_result or not content_result.get('content'):
-                error_msg = "No content provided in SQS message or S3"
-                logger.error(f"{log_prefix}{error_msg}")
-                
-                if episode:
-                    self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                    
-                return {
-                    'status': 'error',
-                    'message': error_msg
-                }
-                
-            # Process the content using PodcastProcessor
-            try:
-                from src.podcast_processor import PodcastProcessor
-                
-                # Create event object for PodcastProcessor
-                processor_event = {
-                    'podcast_config_id': podcast_config_id,
-                    'podcast_id': podcast_id,  # Always include extracted podcast_id
-                    'content_url': content_url,
-                    'content_source': 'telegram',  # Explicitly set content source
-                    'telegram_data': content_result.get('content'),
-                    'episode_id': episode_id  # Explicitly pass the episode_id
-                }
-                
-                # Add podcast_id from episode if available (overrides message podcast_id)
-                if episode and episode.get('podcast_id'):
-                    processor_event['podcast_id'] = episode.get('podcast_id')
-                    logger.info(f"{log_prefix}Using podcast_id from episode: {episode.get('podcast_id')}")
-                
-                logger.info(f"{log_prefix}Initializing PodcastProcessor to generate audio")
-                processor = PodcastProcessor(self.podcast_config, processor_event, request_id)
-                
-                # Process the content
-                process_result = processor.process()
-                
-                if process_result.get('status') != 'success':
-                    error_msg = f"Failed to process podcast content: {process_result.get('message')}"
-                    logger.error(f"{log_prefix}{error_msg}")
-                    
-                    if episode:
-                        self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                        
-                    return {
-                        'status': 'error',
-                        'message': error_msg
-                    }
-                
-                # Extract S3 URL from process_result and validate
-                s3_url = process_result.get('s3_url')
-                if not s3_url:
-                    logger.error(f"{log_prefix}S3 URL not found in process_result")
-                    return {'success': False, 'error': 'S3 URL not found in process_result'}
-                
-                # Check S3 URL format
-                if not s3_url.startswith('https://') or '.s3.' not in s3_url:
-                    logger.warning(f"{log_prefix}Invalid S3 URL format: {s3_url}")
-                
-                # Get episode ID from message
-                episode_id = message.get('episode_id')
-                if not episode_id:
-                    logger.warning(f"{log_prefix}Episode ID not found in message")
-                
-                # Get duration from process_result, default to 0 if not available
-                duration = process_result.get('duration', 0)
-                logger.info(f"{log_prefix}Using duration from process_result: {duration} seconds")
-
-                # Update episode in database with S3 URL and duration
-                update_result = self.supabase_client.update_episode_audio_url(
-                    episode_id=episode_id,
-                    audio_url=s3_url,
-                    duration=duration
-                )
-                
-                if not update_result.get('success', False):
-                    logger.warning(f"{log_prefix}Failed to update episode audio URL: {update_result.get('error')}")
+                content_source = 'telegram'
+                logger.info(f"{log_prefix}Assuming Telegram source type (path: {content_path}). Downloading content.")
+                # 3a. Download Telegram Content
+                telegram_content = self._download_content(content_path, request_id, log_prefix)
+                if telegram_content is None:
+                    error_msg = f"Failed to download or validate Telegram content from {content_path}"
                 else:
-                    logger.info(f"{log_prefix}Successfully updated episode {episode_id} with audio URL and duration")
-                
-                # Success with audio generation
-                return {
-                    'status': 'success',
-                    'message': 'Successfully processed SQS message and generated audio',
-                    'episode_id': episode['id'] if episode else None,
-                    'podcast_config_id': podcast_config_id,
-                    's3_url': s3_url
-                }
-                
-            except Exception as e:
-                error_msg = f"Error generating podcast audio: {str(e)}"
-                logger.error(f"{log_prefix}{error_msg}")
-                
-                if episode:
-                    self.supabase_client.mark_episode_failed(episode['id'], error_msg)
-                    
-                return {
-                    'status': 'error',
-                    'message': error_msg
-                }
-                
-            # Successfully processed message - This code will never be reached now
-            return {
-                'status': 'success',
-                'message': 'Successfully processed SQS message',
-                'episode_id': episode['id'] if episode else None,
-                'podcast_config_id': podcast_config_id
-            }
-                
-        except Exception as e:
-            error_msg = f"Error processing SQS message: {str(e)}"
-            logger.error(f"{log_prefix}{error_msg}")
-            return {
-                'status': 'error',
-                'message': error_msg
-            }
-            
+                    processor_event_data = {'telegram_data': telegram_content, 'content_url': content_url}
+            else:
+                 # If config didn't specify URL/Text and message has no path, it's an invalid state
+                 error_msg = "Invalid state: Source not URL/Text in config, and no content path in message."
+
+        # Handle errors from source detection/download
+        if error_msg:
+            logger.error(f"{log_prefix}{error_msg}. Message: {message}")
+            if episode_id:
+                self.supabase_client.mark_episode_failed(episode_id, error_msg)
+            return {'status': 'error', 'message': error_msg, 'podcast_config_id': podcast_config_id, 'episode_id': episode_id}
+
+        # 3b. Get Episode Data 
+        episode_data = self._get_episode_data(episode_id, log_prefix)
+
+        # 4. Prepare event for PodcastProcessor
+        processor_event = {
+            'podcast_config_id': podcast_config_id,
+            'podcast_id': episode_data.get('podcast_id') if episode_data else podcast_id,
+            'episode_id': episode_id,
+            'content_source': content_source,
+            **processor_event_data # Add source-specific data (urls, text, or telegram_data)
+        }
+        if episode_data and episode_data.get('podcast_id'):
+             logger.info(f"{log_prefix}Using podcast_id from fetched episode data: {episode_data.get('podcast_id')}")
+
+        # 5. Process Content
+        process_result = self._process_content(processor_event, request_id, log_prefix)
+
+        # 6. Update Episode Result in DB
+        self._update_episode_result(episode_id, process_result, log_prefix)
+
+        # 7. Return final status
+        final_status = {
+            'status': process_result.get('status', 'error'),
+            'message': process_result.get('message', 'Processing finished with errors'),
+            'podcast_config_id': podcast_config_id,
+            'episode_id': episode_id,
+            's3_url': process_result.get('s3_url')
+        }
+        logger.info(f"{log_prefix}Finished processing message. Final status: {final_status['status']}")
+        return final_status
+
     def send_message(self, message_body: Dict[str, Any], request_id: str = None) -> Dict[str, Any]:
         """
         Send a message to the SQS queue.

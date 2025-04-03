@@ -180,4 +180,61 @@ class S3Client:
             return {
                 'success': False,
                 'error': f"Error uploading file: {str(e)}"
-            } 
+            }
+
+    def download_s3_object(self, bucket: str, key: str, local_path: str, request_id: Optional[str] = None) -> bool:
+        """
+        Downloads a specific object from S3 to a local path.
+
+        Args:
+            bucket: S3 bucket name.
+            key: S3 object key.
+            local_path: The local file path to download to.
+            request_id: Optional request ID for tracing.
+
+        Returns:
+            True if download was successful, False otherwise.
+        """
+        log_prefix = f"[{request_id}] " if request_id else ""
+        try:
+            logger.info(f"{log_prefix}Attempting to download s3://{bucket}/{key} to {local_path}")
+            self.s3_client.download_file(bucket, key, local_path)
+            logger.info(f"{log_prefix}Successfully downloaded s3://{bucket}/{key}")
+            return True
+        except Exception as e:
+            # Log specific boto3 client errors if possible
+            if hasattr(e, 'response') and 'Error' in e.response:
+                error_code = e.response['Error'].get('Code')
+                error_message = e.response['Error'].get('Message')
+                logger.error(f"{log_prefix}S3 download error for s3://{bucket}/{key}: {error_code} - {error_message}")
+            else:
+                logger.error(f"{log_prefix}Error downloading s3://{bucket}/{key}: {str(e)}")
+            return False
+
+    def get_s3_object_content(self, bucket: str, key: str, request_id: Optional[str] = None) -> Optional[bytes]:
+        """
+        Downloads the raw content (bytes) of an S3 object.
+
+        Args:
+            bucket: S3 bucket name.
+            key: S3 object key.
+            request_id: Optional request ID for tracing.
+
+        Returns:
+            The object content as bytes, or None if download fails.
+        """
+        log_prefix = f"[{request_id}] " if request_id else ""
+        try:
+            logger.info(f"{log_prefix}Attempting to get content for s3://{bucket}/{key}")
+            response = self.s3_client.get_object(Bucket=bucket, Key=key)
+            content = response['Body'].read()
+            logger.info(f"{log_prefix}Successfully retrieved {len(content)} bytes for s3://{bucket}/{key}")
+            return content
+        except Exception as e:
+            if hasattr(e, 'response') and 'Error' in e.response:
+                error_code = e.response['Error'].get('Code')
+                error_message = e.response['Error'].get('Message')
+                logger.error(f"{log_prefix}S3 get_object error for s3://{bucket}/{key}: {error_code} - {error_message}")
+            else:
+                logger.error(f"{log_prefix}Error getting content for s3://{bucket}/{key}: {str(e)}")
+            return None 
