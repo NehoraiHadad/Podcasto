@@ -13,15 +13,22 @@ interface WidthWrapperProps {
  * Provides smooth transition animation between states
  */
 export function WidthWrapper({ children }: WidthWrapperProps) {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isMobileView, isOpen } = useSidebar();
   
   return (
     <div
       className={cn(
-        'h-full transition-all duration-300 ease-in-out overflow-visible',
-        isCollapsed ? 'w-16' : 'w-64'
+        'h-screen transition-all duration-300 ease-in-out',
+        {
+          'w-16': isCollapsed && !isMobileView,
+          'w-48': !isCollapsed && !isMobileView,
+          'w-0 invisible': isMobileView && !isOpen,
+          'w-3/4 max-w-xs': isMobileView && isOpen
+        }
       )}
       data-state={isCollapsed ? 'collapsed' : 'expanded'}
+      data-mobile={isMobileView ? 'true' : 'false'}
+      data-open={isOpen ? 'true' : 'false'}
     >
       {children}
     </div>

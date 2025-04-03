@@ -106,10 +106,10 @@ export class GeminiProvider implements AIProvider {
             summary: parsed.summary || 'No summary available.'
           };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (error) {
+        } catch (_error) {
           // If JSON parsing fails, try to extract title and summary using regex
-          const titleMatch = textResult.match(/\"title\":\s*\"([^\"]+)\"/);
-          const summaryMatch = textResult.match(/\"summary\":\s*\"([^\"]+)\"/);
+          const titleMatch = textResult.match(/"title":\s*"([^"]+)"/);
+          const summaryMatch = textResult.match(/"summary":\s*"([^"]+)"/);
           
           return {
             title: titleMatch ? titleMatch[1] : 'Untitled Episode',

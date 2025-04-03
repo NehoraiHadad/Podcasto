@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormValues, formSchema } from '@/components/admin/podcast-creation-form/types';
-import { createPodcast } from '@/lib/actions/podcast-actions';
+import { PodcastCreationValues, podcastCreationSchema } from '@/components/admin/podcast-form/types';
+import { createPodcast } from '@/lib/actions/podcast/create';
 
 type PodcastCreationFormProps = {
   onSuccess: () => void;
@@ -20,8 +20,8 @@ export function usePodcastCreationForm({
   const [incompleteTabsMessage, setIncompleteTabsMessage] = useState<string>('');
   
   // Initialize form with default values
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<PodcastCreationValues>({
+    resolver: zodResolver(podcastCreationSchema),
     defaultValues: {
       contentSource: 'telegram',
       telegramChannel: '',
@@ -30,7 +30,7 @@ export function usePodcastCreationForm({
       title: '',
       creator: '',
       description: '',
-      coverImage: 'https://picsum.photos/400/300',
+      cover_image: 'https://picsum.photos/400/300',
       podcastName: '',
       outputLanguage: 'english',
       creativityLevel: 0.7,
@@ -84,7 +84,7 @@ export function usePodcastCreationForm({
   }, [form]);
 
   // Handle form submission
-  const handleSubmit = form.handleSubmit(async (data: FormValues) => {
+  const handleSubmit = form.handleSubmit(async (data: PodcastCreationValues) => {
     // First check if all required fields are filled
     if (!checkIncompleteTabs()) {
       return;

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { PodcastCreationForm } from '@/components/admin/podcast-creation-form/PodcastCreationForm';
+import { PodcastCreationForm } from '@/components/admin/podcast-creation-form-new';
 
 export const metadata = {
   title: 'Create Podcast | Admin Dashboard | podcasto',

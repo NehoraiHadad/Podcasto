@@ -13,6 +13,38 @@ export type Podcast = {
   episodes_count?: number;
   status?: string;
   timestamp?: string;
+  
+  // Extended configuration fields from podcast_configs
+  content_source?: {
+    type: 'telegram' | 'urls';
+    config?: {
+      telegramChannel?: string;
+      telegramHours?: number;
+      urls?: string[];
+    }
+  };
+  
+  // Basic settings
+  creator?: string;
+  podcast_name?: string;
+  output_language?: 'english' | 'hebrew';
+  slogan?: string;
+  creativity_level?: number;
+  
+  // Advanced settings
+  is_long_podcast?: boolean;
+  discussion_rounds?: number;
+  min_chars_per_round?: number;
+  episode_frequency?: number;
+  
+  // Style and roles
+  conversation_style?: string;
+  speaker1_role?: string;
+  speaker2_role?: string;
+  
+  // Mixing techniques
+  mixing_techniques?: string[];
+  additional_instructions?: string;
 };
 
 export type NewPodcast = typeof podcasts.$inferInsert;
@@ -78,7 +110,7 @@ export async function getAllPodcasts(): Promise<Podcast[]> {
 }
 
 /**
- * Returns a podcast by ID with episode count
+ * Returns a podcast by ID with episode count and configuration
  */
 export async function getPodcastById(id: string): Promise<Podcast | null> {
   const podcast = await dbUtils.findById<typeof podcasts.$inferSelect>(podcasts, podcasts.id, id);
@@ -88,10 +120,54 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
   }
   
   const podcastEpisodes = await getPodcastEpisodes(podcast.id);
-  return {
+  
+  // Get podcast config if available
+  const podcastConfig = await import('./podcast-configs').then(
+    module => module.getPodcastConfigByPodcastId(id)
+  );
+  
+  // Base podcast object
+  const podcastWithCount: Podcast = {
     ...podcast,
     episodes_count: podcastEpisodes.length
   };
+  
+  // Add configuration data if available
+  if (podcastConfig) {
+    // Map config fields to podcast object
+    podcastWithCount.content_source = {
+      type: podcastConfig.content_source as 'telegram' | 'urls',
+      config: {
+        telegramChannel: podcastConfig.telegram_channel || '',
+        telegramHours: podcastConfig.telegram_hours || 24,
+        urls: podcastConfig.urls || []
+      }
+    };
+    
+    // Basic settings
+    podcastWithCount.creator = podcastConfig.creator;
+    podcastWithCount.podcast_name = podcastConfig.podcast_name;
+    podcastWithCount.output_language = podcastConfig.content_source === 'telegram' ? 'english' : 'hebrew';
+    podcastWithCount.slogan = podcastConfig.slogan || '';
+    podcastWithCount.creativity_level = podcastConfig.creativity_level ? podcastConfig.creativity_level / 100 : 0.7;
+    
+    // Advanced settings
+    podcastWithCount.is_long_podcast = podcastConfig.is_long_podcast;
+    podcastWithCount.discussion_rounds = podcastConfig.discussion_rounds;
+    podcastWithCount.min_chars_per_round = podcastConfig.min_chars_per_round;
+    podcastWithCount.episode_frequency = podcastConfig.episode_frequency ?? undefined;
+    
+    // Style and roles
+    podcastWithCount.conversation_style = podcastConfig.conversation_style ?? undefined;
+    podcastWithCount.speaker1_role = podcastConfig.speaker1_role ?? undefined;
+    podcastWithCount.speaker2_role = podcastConfig.speaker2_role ?? undefined;
+    
+    // Mixing techniques
+    podcastWithCount.mixing_techniques = podcastConfig.mixing_techniques ?? undefined;
+    podcastWithCount.additional_instructions = podcastConfig.additional_instructions ?? undefined;
+  }
+  
+  return podcastWithCount;
 }
 
 /**

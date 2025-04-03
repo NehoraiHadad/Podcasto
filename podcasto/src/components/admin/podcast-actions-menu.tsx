@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Edit, Trash2, Play, Plus, MoreHorizontal } from 'lucide-react';
+import { Trash2, Play, Plus, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { generatePodcastEpisode } from '@/lib/actions/podcast-actions';
+import { generatePodcastEpisode } from '@/lib/actions/podcast/generate';
+import { deletePodcast } from '@/lib/actions/podcast/delete';
 import { PodcastStatusIndicator } from './podcast-status-indicator';
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Podcast {
   id: string;
@@ -35,6 +47,7 @@ interface PodcastActionsMenuProps {
  * This isolates the interactive dropdown menu functionality
  */
 export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMenuProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   // TypeScript explicitly type the states to allow undefined values
@@ -42,12 +55,26 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
   const [generatedTimestamp, setGeneratedTimestamp] = useState<string | undefined>(undefined);
   const [generatedStatus, setGeneratedStatus] = useState<string | undefined>(undefined);
   const [showStatusIndicator, setShowStatusIndicator] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const handleDelete = async () => {
-    // This would typically call a server action to delete the podcast
-    if (confirm(`Are you sure you want to delete "${podcast.title}"?`)) {
-      // Call delete action here
-      console.log('Deleting podcast:', podcast.id);
+    try {
+      setIsDeleting(true);
+      const result = await deletePodcast(podcast.id);
+      
+      if (result.success) {
+        toast.success(`Podcast "${podcast.title}" deleted successfully`);
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to delete podcast');
+      }
+    } catch (error) {
+      console.error('Error deleting podcast:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
     }
   };
   
@@ -127,58 +154,104 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
      !showStatusIndicator) // Only use podcast status if not showing a generated one
   );
   
+  const isPending = podcast.status === 'pending';
+  
   return (
-    <div className="flex items-center gap-2">
-      {shouldShowStatus && (
-        <PodcastStatusIndicator 
-          podcastId={podcast.id}
-          episodeId={episodeIdToShow}
-          timestamp={timestampToShow}
-          initialStatus={statusToShow || 'pending'}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+    <>
+      <div className="flex items-center gap-2">
+        {shouldShowStatus && (
+          <PodcastStatusIndicator 
+            podcastId={podcast.id}
+            episodeId={episodeIdToShow}
+            timestamp={timestampToShow}
+            initialStatus={statusToShow || 'pending'}
+            onStatusChange={handleStatusChange}
+          />
+        )}
+        
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/podcasts/${podcast.id}`} className="flex items-center">
+                <Play className="mr-2 h-4 w-4" />
+                <span>View</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={handleGenerateEpisode}
+              disabled={isGenerating || (generatedStatus?.toLowerCase() === 'pending')}
+              className="flex items-center cursor-pointer"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              <span>{isGenerating ? 'Generating...' : 'Generate Episode Now'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/podcasts/${podcast.id}`}>
+                <Play className="mr-2 h-4 w-4" />
+                View Public Page
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/admin/podcasts/${podcast.id}/episodes`}>
+                <Play className="mr-2 h-4 w-4" />
+                View Episodes
+              </Link>
+            </DropdownMenuItem>
+            
+            {isPending && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled className="text-amber-500">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  Processing...
+                </DropdownMenuItem>
+              </>
+            )}
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-600"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href={`/admin/podcasts/${podcast.id}`} className="flex items-center">
-              <Play className="mr-2 h-4 w-4" />
-              <span>View</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/admin/podcasts/${podcast.id}/edit`} className="flex items-center">
-              <Edit className="mr-2 h-4 w-4" />
-              <span>Edit</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={handleGenerateEpisode}
-            disabled={isGenerating || (generatedStatus?.toLowerCase() === 'pending')}
-            className="flex items-center cursor-pointer"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            <span>{isGenerating ? 'Generating...' : 'Generate Episode Now'}</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            className="text-red-600 cursor-pointer" 
-            onClick={handleDelete}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            <span>Delete</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete the podcast "{podcast.title}" and all its episodes.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 } 

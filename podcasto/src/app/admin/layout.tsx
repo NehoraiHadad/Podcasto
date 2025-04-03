@@ -15,13 +15,11 @@ export default async function AdminLayout({
   
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
-        <div className="fixed h-screen z-10">
-          <AdminSidebar />
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <AdminSidebar />
         <SidebarContentWrapper>
           <AdminErrorBoundary>
-            <main className="p-6">{children}</main>
+            <main className="p-4 md:p-6">{children}</main>
           </AdminErrorBoundary>
         </SidebarContentWrapper>
       </div>

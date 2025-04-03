@@ -32,7 +32,7 @@ interface NavItem {
  */
 export function SidebarContent() {
   const pathname = usePathname();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, isMobileView, toggleSidebar } = useSidebar();
   
   const navItems: NavItem[] = [
     {
@@ -102,6 +102,13 @@ export function SidebarContent() {
     return item.children?.some(child => pathname === child.href) || false;
   };
   
+  // Handle link click on mobile
+  const handleMobileClick = () => {
+    if (isMobileView) {
+      toggleSidebar();
+    }
+  };
+  
   return (
     <div className="flex-1 flex flex-col h-full">
       <nav className="flex-1 overflow-y-auto py-4">
@@ -117,15 +124,17 @@ export function SidebarContent() {
                     'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
                     active
                       ? 'bg-gray-100 text-gray-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    isMobileView && 'py-3', // Larger touch target on mobile
                   )}
-                  title={isCollapsed ? item.title : undefined}
+                  title={isCollapsed && !isMobileView ? item.title : undefined}
+                  onClick={isMobileView ? handleMobileClick : undefined}
                 >
                   {item.icon}
-                  {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                  {(!isCollapsed || isMobileView) && <span className="ml-3">{item.title}</span>}
                 </Link>
                 
-                {!isCollapsed && item.children && (
+                {(!isCollapsed || isMobileView) && item.children && (
                   <ul className="mt-1 ml-6 space-y-1">
                     {item.children.map((child) => {
                       const childActive = pathname === child.href;
@@ -138,8 +147,10 @@ export function SidebarContent() {
                               'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
                               childActive
                                 ? 'bg-gray-100 text-gray-900'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                              isMobileView && 'py-3' // Larger touch target on mobile
                             )}
+                            onClick={isMobileView ? handleMobileClick : undefined}
                           >
                             {child.icon}
                             <span className="ml-3">{child.title}</span>

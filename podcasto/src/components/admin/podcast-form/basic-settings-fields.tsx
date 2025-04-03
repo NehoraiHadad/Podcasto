@@ -1,22 +1,30 @@
 'use client';
 
-import { UseFormReturn } from 'react-hook-form';
+import { Path, UseFormReturn } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { FormValues } from './types';
 
-interface BasicSettingsTabClientProps {
-  form: UseFormReturn<FormValues>;
+type FormValues = {
+  podcastName?: string;
+  outputLanguage?: string;
+  episodeFrequency?: number;
+  slogan?: string;
+  creativityLevel?: number;
+  [key: string]: unknown;
+};
+
+interface BasicSettingsFieldsProps<T extends FormValues> {
+  form: UseFormReturn<T>;
 }
 
-export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
+export function BasicSettingsFields<T extends FormValues>({ form }: BasicSettingsFieldsProps<T>) {
   return (
     <>
       <FormField
         control={form.control}
-        name="podcastName"
+        name={"podcastName" as const as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>
@@ -27,6 +35,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
               <Input 
                 placeholder="Enter podcast name" 
                 {...field}
+                value={String(field.value || '')}
                 className={form.formState.errors.podcastName ? 'border-red-500' : ''}
               />
             </FormControl>
@@ -37,7 +46,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
       
       <FormField
         control={form.control}
-        name="outputLanguage"
+        name={"outputLanguage" as const as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>
@@ -46,7 +55,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
             </FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              defaultValue={field.value}
+              defaultValue={String(field.value || '')}
             >
               <FormControl>
                 <SelectTrigger className={form.formState.errors.outputLanguage ? 'border-red-500' : ''}>
@@ -65,11 +74,11 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
       
       <FormField
         control={form.control}
-        name="episodeFrequency"
+        name={"episodeFrequency" as const as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>
-              Episode Frequency: {field.value} days
+              Episode Frequency: {String(field.value || 7)} days
               <span className="text-red-500 ml-1">*</span>
             </FormLabel>
             <FormControl>
@@ -79,7 +88,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
                   max={30}
                   step={1}
                   defaultValue={[7]}
-                  value={[field.value]}
+                  value={[Number(field.value) || 7]}
                   onValueChange={(values) => field.onChange(values[0])}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -99,7 +108,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
       
       <FormField
         control={form.control}
-        name="slogan"
+        name={"slogan" as const as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Slogan</FormLabel>
@@ -107,6 +116,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
               <Input 
                 placeholder="Enter podcast slogan" 
                 {...field} 
+                value={String(field.value || '')}
               />
             </FormControl>
             <FormDescription>
@@ -119,7 +129,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
       
       <FormField
         control={form.control}
-        name="creativityLevel"
+        name={"creativityLevel" as const as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>
@@ -132,7 +142,7 @@ export function BasicSettingsTabClient({ form }: BasicSettingsTabClientProps) {
                   min={0}
                   max={1}
                   step={0.1}
-                  value={[field.value]}
+                  value={[Number(field.value) || 0.5]}
                   onValueChange={(value) => field.onChange(value[0])}
                   className={form.formState.errors.creativityLevel ? 'border-red-500' : ''}
                 />
