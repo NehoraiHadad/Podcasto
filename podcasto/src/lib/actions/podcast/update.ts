@@ -144,6 +144,12 @@ async function updatePodcastConfig(data: PodcastUpdateData): Promise<ActionRespo
     // Get existing podcast config
     const existingConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(data.id);
     
+    // Log the input data for debugging
+    console.log("Updating podcast config with data:", {
+      id: data.id,
+      outputLanguage: data.outputLanguage
+    });
+    
     // Build the update config object
     const updateConfig = buildConfigUpdateObject(data, existingConfig, filteredUrls);
     console.log("Built config object:", JSON.stringify(updateConfig, null, 2));
@@ -152,12 +158,14 @@ async function updatePodcastConfig(data: PodcastUpdateData): Promise<ActionRespo
     try {
       if (existingConfig) {
         await podcastConfigsApi.updatePodcastConfigByPodcastId(data.id, updateConfig);
+        console.log("Updated existing podcast config, language field =", updateConfig.language);
       } else {
         // For new configs, ensure required fields are present
         const requiredFields = {
           content_source: data.contentSource || 'telegram',
           creator: data.creator || 'Unknown',
           podcast_name: data.podcastName || data.title,
+          language: data.outputLanguage || 'english',
           creativity_level: data.creativityLevel !== undefined ? Math.round(data.creativityLevel * 100) : 70,
           is_long_podcast: data.isLongPodcast ?? false,
           discussion_rounds: data.discussionRounds || 5,
@@ -212,6 +220,7 @@ function buildConfigUpdateObject(
     creator: { dataKey: 'creator', configKey: 'creator' },
     podcastName: { dataKey: 'podcastName', configKey: 'podcast_name' },
     slogan: { dataKey: 'slogan', configKey: 'slogan' },
+    outputLanguage: { dataKey: 'outputLanguage', configKey: 'language' },
     conversationStyle: { dataKey: 'conversationStyle', configKey: 'conversation_style' },
     speaker1Role: { dataKey: 'speaker1Role', configKey: 'speaker1_role' },
     speaker2Role: { dataKey: 'speaker2Role', configKey: 'speaker2_role' },
@@ -225,11 +234,22 @@ function buildConfigUpdateObject(
       const dataValue = data[dataKey as keyof PodcastUpdateData];
       const existingValue = existingConfig?.[configKey];
       
+      // Add debug logging for language field
+      if (dataKey === 'outputLanguage') {
+        console.log(`Mapping outputLanguage: dataValue=${dataValue}, existingValue=${existingValue}`);
+      }
+      
       // Only add the field if the value is not undefined and not null
       if (dataValue !== undefined && dataValue !== null) {
         updateConfig[configKey] = dataValue;
+        if (dataKey === 'outputLanguage') {
+          console.log(`Set ${configKey}=${dataValue} from input data`);
+        }
       } else if (existingValue !== undefined && existingValue !== null) {
         updateConfig[configKey] = existingValue;
+        if (dataKey === 'outputLanguage') {
+          console.log(`Set ${configKey}=${existingValue} from existing config`);
+        }
       }
     } catch (err) {
       console.error(`Error mapping field ${dataKey}:`, err);

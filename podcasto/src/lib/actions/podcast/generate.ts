@@ -139,7 +139,11 @@ async function createPendingEpisode(
 ): Promise<ActionResponse & { episodeId?: string }> {
   try {
     // Create a new episode record with 'pending' status
-    const { episodesApi } = await import('@/lib/db/api');
+    const { episodesApi, podcastConfigsApi } = await import('@/lib/db/api');
+    
+    // Get podcast config to retrieve language
+    const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(podcastId);
+    const language = podcastConfig?.language || 'english'; // Default to English if not set
     
     const episode = await episodesApi.createEpisode({
       podcast_id: podcastId,
@@ -148,7 +152,7 @@ async function createPendingEpisode(
       audio_url: '', // Empty URL initially
       status: 'pending',
       duration: 0,
-      language: 'english', // Default to English
+      language: language,
       metadata: JSON.stringify({
         generation_timestamp: timestamp,
         s3_key: `podcasts/${podcastId}/${timestamp}/podcast.mp3`

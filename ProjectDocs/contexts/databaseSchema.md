@@ -31,6 +31,7 @@ Stores configuration settings for podcast generation.
 | creator                | TEXT       | Name of the podcast creator                     |
 | podcast_name           | TEXT       | Display name of the podcast                     |
 | slogan                 | TEXT       | Podcast tagline                                 |
+| language               | TEXT       | Podcast language (english, hebrew)              |
 | creativity_level       | INTEGER    | AI creativity level (0-100)                     |
 | is_long_podcast        | BOOLEAN    | Whether the podcast is longform                 |
 | discussion_rounds      | INTEGER    | Number of discussion segments                   |
@@ -54,7 +55,7 @@ Stores details about individual podcast episodes.
 | title      | TEXT       | Episode title                   |
 | description   TEXT      | Episode description             |
 | cover_image | TEXT      | Image of the episode            |
-| language    |  TEXT     | Episode language                |
+| language    |  TEXT     | Episode language (inherited from podcast but can be overridden) |
 | audio_url  | VARCHAR    | URL to the stored audio file    |
 | duration   | INTEGER    | Episode length in seconds       |
 | created_at | TIMESTAMP  | Episode creation timestamp      |

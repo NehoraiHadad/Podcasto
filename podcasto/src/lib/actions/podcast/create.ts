@@ -67,6 +67,7 @@ async function createPodcastConfig(podcastId: string, data: PodcastCreationData)
       creator: data.creator,
       podcast_name: data.podcastName,
       slogan: data.slogan,
+      language: data.outputLanguage,
       creativity_level: Math.round(data.creativityLevel * 100),
       is_long_podcast: data.isLongPodcast,
       discussion_rounds: data.discussionRounds,

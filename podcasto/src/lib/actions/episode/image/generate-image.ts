@@ -1,0 +1,67 @@
+'use server';
+
+import { episodesApi } from '@/lib/db/api';
+import { requireAdmin } from '../../auth-actions';
+import { errorToString, logError } from '@/lib/utils/error-utils';
+import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';
+import { createPostProcessingWithConfig } from '@/lib/utils/post-processing-utils';
+
+/**
+ * Manually generate an image for an episode based on its description
+ * This is a server action that requires admin permissions
+ */
+export async function generateEpisodeImage(episodeId: string): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  // Ensure the user is an admin
+  await requireAdmin();
+  
+  try {
+    // Get the episode
+    const episode = await episodesApi.getEpisodeById(episodeId);
+    
+    if (!episode) {
+      throw new Error('Episode not found');
+    }
+    
+    if (!episode.podcast_id) {
+      throw new Error('Episode has no associated podcast');
+    }
+    
+    if (!episode.description) {
+      throw new Error('Episode has no description for image generation');
+    }
+    
+    // Create post-processing service with both S3 and AI config
+    const postProcessingService = await createPostProcessingWithConfig(true, true);
+    
+    // Generate the image
+    const success = await postProcessingService.generateEpisodeImage(
+      episodeId,
+      episode.podcast_id,
+      episode.description
+    );
+    
+    if (success) {
+      // Refresh the episode data to get the updated cover_image URL
+      const updatedEpisode = await episodesApi.getEpisodeById(episodeId);
+      
+      // Revalidate paths
+      revalidateEpisodePaths(episodeId, episode.podcast_id);
+      
+      return { 
+        success: true,
+        imageUrl: updatedEpisode?.cover_image || undefined
+      };
+    } else {
+      return { 
+        success: false,
+        error: 'Failed to generate image'
+      };
+    }
+  } catch (error) {
+    logError('generateEpisodeImage', error);
+    return { 
+      success: false,
+      error: errorToString(error)
+    };
+  }
+} 

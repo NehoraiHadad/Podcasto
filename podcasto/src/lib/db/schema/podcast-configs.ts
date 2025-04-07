@@ -11,6 +11,7 @@ export const podcastConfigs = pgTable('podcast_configs', {
   creator: text('creator').notNull(),
   podcast_name: text('podcast_name').notNull(),
   slogan: text('slogan'),
+  language: text('language').default('english'),
   creativity_level: integer('creativity_level').notNull(),
   is_long_podcast: boolean('is_long_podcast').notNull(),
   discussion_rounds: integer('discussion_rounds').notNull(),

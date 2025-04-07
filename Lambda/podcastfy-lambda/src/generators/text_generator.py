@@ -70,12 +70,16 @@ class TextGenerator(BaseGenerator):
             if min_chunk_size is not None:
                 conversation_config["min_chunk_size"] = min_chunk_size
             
-            # Generate podcast using the podcastfy library
-            audio_file = generate_podcast(
-                text=text,
-                conversation_config={
+            # Prepare arguments for generate_podcast
+            podcast_args = {
+                "text": text,
+                "metadata": metadata,
+                "llm_model_name": llm_model_name,
+                "api_key_label": api_key_label,
+                "conversation_config": {
                     **conversation_config,
                     "text_to_speech": {
+                        "tts_model": "gpt-4o-mini-tts",
                         "temp_audio_dir": "../../../../../../../../../../../../tmp/podcastify-demo/tmp",
                         "output_directories": {
                             "transcripts": "/tmp/podcastify-demo/transcripts",
@@ -83,12 +87,12 @@ class TextGenerator(BaseGenerator):
                         }
                     }
                 },
-                transcript_only=transcript_only,
-                longform=longform,
-                image_paths=images,
-                llm_model_name=llm_model_name,
-                api_key_label=api_key_label
-            )
+                "transcript_only": transcript_only,
+                "longform": longform
+            }
+            
+            # Generate podcast using the podcastfy library
+            audio_file = generate_podcast(**podcast_args)
             
             # Process generated file and upload to S3
             return self.generate_podcast(audio_file, metadata, output_path)

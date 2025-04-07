@@ -163,13 +163,13 @@ class TelegramGenerator(BaseGenerator):
             for key, value in conversation_config.items():
                 logger.info(f"  {key}: {value}")
                 
-            # Generate podcast using the podcastfy library, passing data URIs
-            logger.info(f"Calling generate_podcast with {len(image_data_uris)} image data URIs.")
-            audio_file = generate_podcast(
-                text=content,
-                conversation_config={
+            # Prepare arguments for generate_podcast
+            podcast_args = {
+                "text": content,
+                "conversation_config": {
                     **conversation_config,
                     "text_to_speech": {
+                        "tts_model": "gpt-4o-mini-tts",
                         "temp_audio_dir": "../../../../../../../../../../../../tmp/podcastify-demo/tmp",
                         "output_directories": {
                             "transcripts": "/tmp/podcastify-demo/transcripts",
@@ -177,10 +177,21 @@ class TelegramGenerator(BaseGenerator):
                         }
                     }
                 },
-                longform=longform,
-                image_paths=image_data_uris if image_data_uris else None
-            )
-            
+                "longform": longform
+            }
+
+            # Only add image_paths if longform is False and images exist
+            if not longform and image_data_uris:
+                podcast_args["image_paths"] = image_data_uris
+                logger.info(f"Calling generate_podcast with {len(image_data_uris)} image data URIs (longform=False).")
+            elif longform and image_data_uris:
+                 logger.info(f"Skipping image processing because longform is True.")
+            else:
+                 logger.info("Calling generate_podcast without images.")
+
+            # Generate podcast using the podcastfy library
+            audio_file = generate_podcast(**podcast_args)
+
             # Process generated file and upload to S3
             return self.generate_podcast(audio_file, metadata, output_path)
                 

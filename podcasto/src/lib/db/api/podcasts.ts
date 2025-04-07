@@ -147,7 +147,7 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
     // Basic settings
     podcastWithCount.creator = podcastConfig.creator;
     podcastWithCount.podcast_name = podcastConfig.podcast_name;
-    podcastWithCount.output_language = podcastConfig.content_source === 'telegram' ? 'english' : 'hebrew';
+    podcastWithCount.output_language = podcastConfig.language as 'english' | 'hebrew';
     podcastWithCount.slogan = podcastConfig.slogan || '';
     podcastWithCount.creativity_level = podcastConfig.creativity_level ? podcastConfig.creativity_level / 100 : 0.7;
     

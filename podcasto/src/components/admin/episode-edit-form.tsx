@@ -162,7 +162,7 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      The language of the episode (e.g., en-US, he-IL).
+                      The language of this episode (inherited from podcast settings but can be overridden here).
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
