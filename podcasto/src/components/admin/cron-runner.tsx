@@ -5,169 +5,179 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { runEpisodeChecker } from '@/lib/actions/admin-actions';
-
-export interface CronResult {
-  checked: number;
-  timed_out: number;
-  completed: number;
-  processed: number;
-  requires_processing: number;
-  errors: string[];
-}
+import { runEpisodeChecker, runPodcastScheduler, runAllCronJobs, CronOperationResult } from '@/lib/actions/admin-actions';
+import {
+  CronJobType,
+  CRON_JOB_OPTIONS,
+  EpisodeCheckerDetailedResult,
+  PodcastSchedulerDetailedResult,
+  FullCronDetailedResult 
+} from './cron-runner-constants';
+import { EpisodeCheckerResultDetails } from './episode-checker-result-details';
+import { PodcastSchedulerResultDetails } from './podcast-scheduler-result-details';
+import { FullCronResultDetails } from './full-cron-result-details';
 
 export function CronRunner() {
   const [isRunning, setIsRunning] = useState(false);
   const [lastRunTime, setLastRunTime] = useState<Date | null>(null);
-  const [lastResult, setLastResult] = useState<{
-    success: boolean;
-    message: string;
-    details?: {
-      results?: CronResult;
-      timestamp?: string;
-    };
-  } | null>(null);
+  const [lastResult, setLastResult] = useState<CronOperationResult | null>(null);
+  const [selectedJob, setSelectedJob] = useState<CronJobType>('episode-checker');
+
+  const getJobLabel = (type: CronJobType) => {
+    return CRON_JOB_OPTIONS.find(job => job.value === type)?.label || 'Unknown Job';
+  };
 
   const handleRunCron = async () => {
+    setIsRunning(true);
+    setLastResult(null);
+    setLastRunTime(null);
+    const jobLabel = getJobLabel(selectedJob);
+    
     try {
-      setIsRunning(true);
-      const result = await runEpisodeChecker();
+      let result: CronOperationResult;
+      toast.info(`Running ${jobLabel}...`);
+      
+      switch (selectedJob) {
+        case 'episode-checker':
+          result = await runEpisodeChecker();
+          break;
+        case 'podcast-scheduler':
+          result = await runPodcastScheduler();
+          break;
+        case 'full-cron':
+          result = await runAllCronJobs();
+          break;
+        default:
+          result = { success: false, message: 'Invalid job type selected' }; 
+      }
       
       setLastRunTime(new Date());
       setLastResult(result);
       
       if (result.success) {
-        toast.success('CRON process completed successfully');
+        toast.success(`${jobLabel} completed successfully.`);
       } else {
-        toast.error(`CRON process failed: ${result.message}`);
+        toast.error(`${jobLabel} failed: ${result.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error running CRON:', error);
-      toast.error('Failed to run CRON process');
-      
-      setLastResult({
-        success: false,
-        message: error instanceof Error ? error.message : 'An unknown error occurred'
-      });
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error(`Error running CRON job ${jobLabel}:`, error);
+      toast.error(`Failed to run ${jobLabel}: ${errorMessage}`);
+      setLastResult({ success: false, message: errorMessage });
     } finally {
       setIsRunning(false);
     }
   };
 
+  const selectedJobOption = CRON_JOB_OPTIONS.find(job => job.value === selectedJob);
+
+  // Prepare details variables with proper typing before rendering
+  let episodeCheckerDetails: { results: EpisodeCheckerDetailedResult, timestamp: string | Date | null } | null = null;
+  let podcastSchedulerDetails: { results: PodcastSchedulerDetailedResult, timestamp: string | Date | null } | null = null;
+  let fullCronDetails: { results: FullCronDetailedResult, timestamp: string | Date | null } | null = null;
+
+  if (lastResult?.details && typeof lastResult.details === 'object') {
+    const detailsTimestamp = lastResult.details.timestamp as string | Date | null; // Cast timestamp once
+    
+    if (selectedJob === 'episode-checker' && 'results' in lastResult.details && lastResult.details.results) {
+      episodeCheckerDetails = {
+        results: lastResult.details.results as EpisodeCheckerDetailedResult,
+        timestamp: detailsTimestamp
+      };
+    } else if (selectedJob === 'podcast-scheduler' && 'results' in lastResult.details && Array.isArray(lastResult.details.results)) {
+      podcastSchedulerDetails = {
+        results: lastResult.details.results as PodcastSchedulerDetailedResult,
+        timestamp: detailsTimestamp
+      };
+    } else if (selectedJob === 'full-cron' && 'results' in lastResult.details && Array.isArray(lastResult.details.results)) {
+      fullCronDetails = {
+        results: lastResult.details.results as FullCronDetailedResult,
+        timestamp: detailsTimestamp
+      };
+    }
+  }
+
   return (
-    <Card className="w-full shadow-md">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          <span>Manual CRON Runner</span>
-        </CardTitle>
+        <CardTitle>Manual CRON Runner</CardTitle>
         <CardDescription>
-          Manually run the episode checker CRON job to process pending episodes
+          Select and run scheduled tasks manually. Current: 
+          <span className="font-semibold">{selectedJobOption?.label}</span>
+          <p className="text-sm text-muted-foreground mt-1">
+            {selectedJobOption?.description}
+          </p>
         </CardDescription>
+        <Select 
+          value={selectedJob} 
+          onValueChange={(value) => setSelectedJob(value as CronJobType)}
+          disabled={isRunning}
+        >
+          <SelectTrigger className="w-full mt-4">
+            <SelectValue placeholder="Select a job" />
+          </SelectTrigger>
+          <SelectContent>
+            {CRON_JOB_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <div className="flex items-center gap-2">
+                  {option.icon}
+                  <span>{option.label}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
       
       <CardContent className="space-y-4">
+        <Button onClick={handleRunCron} disabled={isRunning} className="w-full sm:w-auto">
+          {isRunning ? (
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            selectedJobOption?.icon || <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          {isRunning ? 'Running...' : `Run ${selectedJobOption?.label || 'Job'}`}
+        </Button>
+
         {lastResult && (
-          <Alert variant={lastResult.success ? "default" : "destructive"}>
-            <div className="flex items-start gap-2">
-              {lastResult.success ? (
-                <CheckCircle className="h-4 w-4 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-4 w-4 mt-0.5" />
-              )}
-              <div>
-                <AlertTitle className="text-base">
-                  {lastResult.success ? 'Success' : 'Error'}
-                </AlertTitle>
-                <AlertDescription className="text-sm mt-1">
-                  {lastResult.message}
-                </AlertDescription>
-              </div>
-            </div>
+          <Alert variant={lastResult.success ? 'default' : 'destructive'}>
+            {lastResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+            <AlertTitle>{lastResult.success ? 'Run Completed' : 'Run Failed'}</AlertTitle>
+            <AlertDescription>
+              {lastResult.message}
+              
+              {/* Render detail components using the prepared, typed variables */} 
+              {episodeCheckerDetails && 
+                <EpisodeCheckerResultDetails 
+                  results={episodeCheckerDetails.results} 
+                  timestamp={episodeCheckerDetails.timestamp} 
+                />}
+              
+              {podcastSchedulerDetails && 
+                <PodcastSchedulerResultDetails 
+                  results={podcastSchedulerDetails.results} 
+                  timestamp={podcastSchedulerDetails.timestamp} 
+                />}
+              
+              {fullCronDetails && 
+                <FullCronResultDetails 
+                  results={fullCronDetails.results} 
+                  timestamp={fullCronDetails.timestamp} 
+                />}
+
+            </AlertDescription>
           </Alert>
         )}
-        
-        {lastResult?.details?.results && (
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="details">
-              <AccordionTrigger>Run Details</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2 mt-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-sm font-medium">Timestamp:</div>
-                    <div className="text-sm">
-                      {lastResult.details.timestamp ? 
-                        new Date(lastResult.details.timestamp).toLocaleString() : 
-                        'Not available'}
-                    </div>
-                    
-                    <div className="text-sm font-medium">Episodes Checked:</div>
-                    <div className="text-sm">{lastResult.details.results.checked}</div>
-                    
-                    <div className="text-sm font-medium">Timed Out:</div>
-                    <div className="text-sm">
-                      <Badge variant="outline" className="font-normal">
-                        {lastResult.details.results.timed_out}
-                      </Badge>
-                    </div>
-                    
-                    <div className="text-sm font-medium">Completed:</div>
-                    <div className="text-sm">
-                      <Badge variant="outline" className="font-normal">
-                        {lastResult.details.results.completed}
-                      </Badge>
-                    </div>
-                    
-                    <div className="text-sm font-medium">Processed:</div>
-                    <div className="text-sm">
-                      <Badge variant="outline" className="font-normal">
-                        {lastResult.details.results.processed}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {lastResult.details.results.errors.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Errors:</h4>
-                      <ul className="text-sm space-y-1">
-                        {lastResult.details.results.errors.map((error, index) => (
-                          <li key={index} className="text-destructive">
-                            {error}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
       </CardContent>
-      
-      <CardFooter className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          {lastRunTime ? (
-            <>Last run: {lastRunTime.toLocaleString()}</>
-          ) : (
-            <>Never run manually</>
-          )}
-        </div>
-        
-        <Button onClick={handleRunCron} disabled={isRunning}>
-          {isRunning ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>Run Now</>
-          )}
-        </Button>
-      </CardFooter>
+
+      {lastRunTime && (
+        <CardFooter className="text-xs text-muted-foreground">
+          <Clock className="mr-1 h-3 w-3" />
+          Last run finished: {lastRunTime.toLocaleString()}
+        </CardFooter>
+      )}
     </Card>
   );
 } 

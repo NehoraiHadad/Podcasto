@@ -1,0 +1,34 @@
+[33mcommit a0816d6e7e512d6be16189e921851c84b3624113[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: Nehorai Hadad <Nehorai.Hadad@gmail.com>
+Date:   Mon Apr 7 12:32:33 2025 +0300
+
+    brick episude-actions into small components
+
+Lambda/podcastfy-lambda/src/generators/telegram_generator.py
+Lambda/podcastfy-lambda/src/generators/text_generator.py
+Lambda/podcastfy-lambda/src/generators/url_generator.py
+ProjectDocs/Build_Notes/completed/episode-actions_phase-1_refactoring.md
+ProjectDocs/Build_Notes/completed/episode-image-actions_phase-2_refactoring.md
+ProjectDocs/Build_Notes/language-support_phase-1_podcast-language.md
+ProjectDocs/contexts/databaseSchema.md
+podcasto/src/components/admin/episode-edit-form.tsx
+podcasto/src/lib/actions/episode-actions.ts
+podcasto/src/lib/actions/episode/audio-actions.ts
+podcasto/src/lib/actions/episode/core-actions.ts
+podcasto/src/lib/actions/episode/image-actions.ts
+podcasto/src/lib/actions/episode/image/generate-image.ts
+podcasto/src/lib/actions/episode/image/generate-preview.ts
+podcasto/src/lib/actions/episode/image/index.ts
+podcasto/src/lib/actions/episode/image/save-preview.ts
+podcasto/src/lib/actions/episode/index.ts
+podcasto/src/lib/actions/podcast/create.ts
+podcasto/src/lib/actions/podcast/delete.ts
+podcasto/src/lib/actions/podcast/generate.ts
+podcasto/src/lib/actions/podcast/update.ts
+podcasto/src/lib/db/api/podcasts.ts
+podcasto/src/lib/db/schema/podcast-configs.ts
+podcasto/src/lib/services/storage-utils.ts
+podcasto/src/lib/utils/error-utils.ts
+podcasto/src/lib/utils/post-processing-utils.ts
+podcasto/src/lib/utils/revalidation-utils.ts
+podcasto/src/lib/utils/s3-utils.ts

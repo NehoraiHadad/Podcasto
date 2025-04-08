@@ -6,7 +6,6 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from './user-actions';
 import { podcastsApi, episodesApi, userRolesApi } from '@/lib/db/api';
 import { revalidatePath } from 'next/cache';
-import { CronResult } from "@/components/admin/cron-runner";
 
 /**
  * Interface for admin dashboard statistics
@@ -15,6 +14,13 @@ export interface AdminDashboardStats {
   totalPodcasts: number;
   totalEpisodes: number;
   totalUsers: number;
+}
+
+// Generalized result type for CRON operations
+export interface CronOperationResult {
+  success: boolean;
+  message: string;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -103,24 +109,19 @@ export const getUserRole = async (): Promise<string | null> => {
 };
 
 /**
- * Manually triggers the CRON episode checker process
- * This is a server action that requires admin permissions
+ * Helper function to call a CRON endpoint with proper authentication
+ * @param endpoint The API endpoint to call (e.g., '/api/cron/episode-checker')
+ * @param logPrefix Prefix for console logs
+ * @returns Result of the CRON operation
  */
-export async function runEpisodeChecker(): Promise<{
-  success: boolean;
-  message: string;
-  details?: {
-    results?: CronResult;
-    timestamp?: string;
-  };
-}> {
+async function callCronEndpoint(endpoint: string, logPrefix: string): Promise<CronOperationResult> {
   // Ensure the user is an admin
   await checkIsAdmin({ redirectOnFailure: true });
   
   try {
-    // Construct the API URL for the episode checker
+    // Construct the API URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const apiUrl = new URL('/api/cron/episode-checker', baseUrl).toString();
+    const apiUrl = new URL(endpoint, baseUrl).toString();
     const cronSecret = process.env.CRON_SECRET;
     
     if (!cronSecret) {
@@ -130,9 +131,9 @@ export async function runEpisodeChecker(): Promise<{
       };
     }
     
-    console.log('[MANUAL_CRON] Triggering episode checker at:', apiUrl);
+    console.log(`[${logPrefix}] Triggering endpoint at: ${apiUrl}`);
     
-    // Call the episode checker API with the CRON secret
+    // Call the API with the CRON secret
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
@@ -147,7 +148,7 @@ export async function runEpisodeChecker(): Promise<{
     
     const result = await response.json();
     
-    console.log('[MANUAL_CRON] Episode checker completed with result:', result);
+    console.log(`[${logPrefix}] Endpoint completed with result:`, result);
     
     // Revalidate admin pages
     revalidatePath('/admin/episodes');
@@ -155,14 +156,38 @@ export async function runEpisodeChecker(): Promise<{
     
     return {
       success: true,
-      message: 'Successfully ran episode checker',
+      message: `Successfully ran ${logPrefix.toLowerCase()}`,
       details: result
     };
   } catch (error) {
-    console.error('[MANUAL_CRON] Error running episode checker:', error);
+    console.error(`[${logPrefix}] Error running endpoint:`, error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
+}
+
+/**
+ * Manually triggers the CRON episode checker process
+ * This is a server action that requires admin permissions
+ */
+export async function runEpisodeChecker(): Promise<CronOperationResult> {
+  return callCronEndpoint('/api/cron/episode-checker', 'MANUAL_EPISODE_CHECKER');
+}
+
+/**
+ * Manually triggers the podcast scheduler process
+ * This is a server action that requires admin permissions
+ */
+export async function runPodcastScheduler(): Promise<CronOperationResult> {
+  return callCronEndpoint('/api/cron/podcast-scheduler', 'MANUAL_PODCAST_SCHEDULER');
+}
+
+/**
+ * Manually triggers the main CRON job which runs all scheduled tasks
+ * This simulates what happens when the external CRON scheduler runs
+ */
+export async function runAllCronJobs(): Promise<CronOperationResult> {
+  return callCronEndpoint('/api/cron/start-jobs', 'MANUAL_FULL_CRON');
 } 
