@@ -7,7 +7,8 @@ import {
   COMPLETED_STATUS,
   FAILED_STATUS,
   PROCESSED_STATUS,
-  MAX_PENDING_TIME_MS
+  MAX_PENDING_TIME_MS,
+  SUMMARY_COMPLETED_STATUS
 } from './constants';
 import { createPostProcessingService } from '@/lib/services/post-processing'; // Needed for type
 
@@ -161,6 +162,52 @@ export async function processSingleEpisode(
         return { status: 'no_change', episodeId: episode.id };
       }
     }
+
+    // --- Check SUMMARY_COMPLETED status ---
+    else if (episode.status === SUMMARY_COMPLETED_STATUS) {
+        // Trigger image generation if applicable
+        if (postProcessingEnabled && postProcessingService && episode.podcast_id) {
+          console.log(`${baseLogPrefix} Status is SUMMARY_COMPLETED, attempting image generation.`);
+          try {
+            // Directly call image generation as summary is already done
+            const success = await postProcessingService.generateEpisodeImage(
+              episode.podcast_id,
+              episode.id,
+              episode // Pass the episode object
+            );
+            
+            if (success) {
+              console.log(`${baseLogPrefix} Image generation successful, marking as PROCESSED.`);
+              // Status is updated implicitly by generateEpisodeImage or needs update here?
+              // Assuming generateEpisodeImage handles the final status update upon success.
+              // If not, uncomment the next lines:
+              // await db.update(episodes)
+              //   .set({ status: PROCESSED_STATUS })
+              //   .where(eq(episodes.id, episode.id));
+              
+              // Revalidate paths after processing
+              console.log(`${baseLogPrefix} Revalidating paths after image generation.`);
+              revalidatePath('/admin/podcasts');
+              revalidatePath(`/podcasts/${episode.podcast_id}`);
+              return { status: 'processed', episodeId: episode.id }; // Return 'processed' as image is the final step
+            } else {
+              const errorMsg = `Image generation failed for SUMMARY_COMPLETED episode.`;
+              console.error(`${baseLogPrefix} ${errorMsg}`);
+              // Return 'no_change' as status didn't change from SUMMARY_COMPLETED, but include error
+              return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+            }
+          } catch (error) {
+            const errorMsg = `Error during image generation for SUMMARY_COMPLETED episode: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            console.error(`${baseLogPrefix} ${errorMsg}`, error);
+            // Return 'no_change' as status didn't change from SUMMARY_COMPLETED, but include error
+            return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+          }
+        } else {
+          // SUMMARY_COMPLETED, but post-processing not enabled/applicable
+          console.log(`${baseLogPrefix} Status is SUMMARY_COMPLETED (image generation not applicable/enabled).`);
+          return { status: 'no_change', episodeId: episode.id };
+        }
+      }
 
     // --- Other statuses (FAILED, PROCESSED) --- 
     else {
