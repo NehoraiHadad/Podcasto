@@ -173,17 +173,11 @@ export async function processSingleEpisode(
             const success = await postProcessingService.generateEpisodeImage(
               episode.podcast_id,
               episode.id,
-              episode // Pass the episode object
+              episode.description || '' // Pass only the description (or empty string if null/undefined)
             );
             
             if (success) {
               console.log(`${baseLogPrefix} Image generation successful, marking as PROCESSED.`);
-              // Status is updated implicitly by generateEpisodeImage or needs update here?
-              // Assuming generateEpisodeImage handles the final status update upon success.
-              // If not, uncomment the next lines:
-              // await db.update(episodes)
-              //   .set({ status: PROCESSED_STATUS })
-              //   .where(eq(episodes.id, episode.id));
               
               // Revalidate paths after processing
               console.log(`${baseLogPrefix} Revalidating paths after image generation.`);
