@@ -1,7 +1,7 @@
 import { db, episodes } from '@/lib/db';
 import { eq, or } from 'drizzle-orm';
 import { InferSelectModel } from 'drizzle-orm';
-import { PENDING_STATUS, COMPLETED_STATUS } from './constants';
+import { PENDING_STATUS, COMPLETED_STATUS, SUMMARY_COMPLETED_STATUS } from './constants';
 
 // Define the type using InferSelectModel
 type Episode = InferSelectModel<typeof episodes>;
@@ -39,7 +39,8 @@ export async function findAllEpisodesToCheck(): Promise<Episode[]> {
       .where(
         or(
           eq(episodes.status, PENDING_STATUS),
-          eq(episodes.status, COMPLETED_STATUS)
+          eq(episodes.status, COMPLETED_STATUS),
+          eq(episodes.status, SUMMARY_COMPLETED_STATUS)
         )
       );
     return results;

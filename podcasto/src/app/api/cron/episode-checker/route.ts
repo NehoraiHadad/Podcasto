@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       };
 
       if (aggregatedResults.checked === 0) {
-        console.log(`${mainLogPrefix} No pending or completed episodes found for batch check.`);
+        console.log(`${mainLogPrefix} No pending or completed or summary completed episodes found for batch check.`);
         return NextResponse.json({
           success: true,
           message: 'No episodes needed checking.',
@@ -106,6 +106,9 @@ export async function GET(request: NextRequest) {
         if (episode.status === CheckerConstants.PENDING_STATUS && postProcessingEnabled && episode.audio_url) {
            // This case implies it *should* be completed and processed
            aggregatedResults.requires_processing++;
+        }
+        if (episode.status === CheckerConstants.SUMMARY_COMPLETED_STATUS && postProcessingEnabled && episode.audio_url) {
+          aggregatedResults.requires_processing++;
         }
         
         const result = await processSingleEpisode(episode, postProcessingService, postProcessingEnabled);
@@ -150,7 +153,3 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
-
-// Remove the old local function definitions (already done in previous step)
-// async function checkSpecificEpisode(...) { ... }
-// async function processAllEpisodes(...) { ... } 
