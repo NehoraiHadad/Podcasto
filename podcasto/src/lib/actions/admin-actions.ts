@@ -120,7 +120,7 @@ async function callCronEndpoint(endpoint: string, logPrefix: string): Promise<Cr
   
   try {
     // Construct the API URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const apiUrl = new URL(endpoint, baseUrl).toString();
     const cronSecret = process.env.CRON_SECRET;
     

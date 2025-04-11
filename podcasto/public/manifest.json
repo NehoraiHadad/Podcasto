@@ -1,0 +1,23 @@
+{
+  "name": "PodcasTo",
+  "short_name": "PodcasTo",
+  "description": "Your podcast companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9370DB",
+  "icons": [
+    {
+      "src": "/podcasto-lcon.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/podcasto-lcon.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+} 

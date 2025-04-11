@@ -12,9 +12,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "podcasto - Daily News Podcasts",
   description: "Transform daily news content from Telegram channels into accessible podcasts",
+  manifest: "/manifest.json",
   icons: {
     icon: "/podcasto-lcon.webp",
+    apple: "/podcasto-lcon.webp",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "podcasto",
+  },
+  themeColor: "#9370DB",
 };
 
 export default function RootLayout({
