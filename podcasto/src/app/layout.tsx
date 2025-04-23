@@ -14,13 +14,19 @@ export const metadata: Metadata = {
   description: "Transform daily news content from Telegram channels into accessible podcasts",
   manifest: "/manifest.json",
   icons: {
-    icon: "/Podcasto-icon.webp",
-    apple: "/Podcasto-icon.webp",
+    icon: "/podcasto-icon.webp",
+    apple: "/podcasto-icon.webp",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Podcasto",
+  },
+  applicationName: "Podcasto",
+  keywords: ["podcast", "news", "audio", "telegram"],
+  creator: "Podcasto Team",
+  formatDetection: {
+    telephone: false,
   },
 };
 
