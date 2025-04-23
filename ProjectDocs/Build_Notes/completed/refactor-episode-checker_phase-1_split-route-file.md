@@ -6,7 +6,7 @@
 
 ## Task Objective
 
-Refactor the `podcasto/src/app/api/cron/episode-checker/route.ts` file to improve maintainability, testability, and adherence to project code quality guidelines by separating concerns into distinct modules.
+Refactor the `Podcasto/src/app/api/cron/episode-checker/route.ts` file to improve maintainability, testability, and adherence to project code quality guidelines by separating concerns into distinct modules.
 
 ## Current State Assessment
 
@@ -24,29 +24,29 @@ This will lead to smaller, more manageable files aligned with project standards.
 ## Implementation Plan
 
 1.  **Create Module Directory:**
-    *   [x] Create a new directory: `podcasto/src/lib/episode-checker/`
+    *   [x] Create a new directory: `Podcasto/src/lib/episode-checker/`
 
 2.  **Create `types.ts`:**
-    *   [x] Create `podcasto/src/lib/episode-checker/types.ts`.
+    *   [x] Create `Podcasto/src/lib/episode-checker/types.ts`.
     *   [x] Move the `EpisodeCheckResults` interface from `route.ts` to `types.ts`.
     *   [x] Export the interface.
     *   [x] Update `route.ts` to import the type.
 
 3.  **Create `constants.ts`:**
-    *   [x] Create `podcasto/src/lib/episode-checker/constants.ts`.
+    *   [x] Create `Podcasto/src/lib/episode-checker/constants.ts`.
     *   [x] Move status constants (`PENDING_STATUS`, `COMPLETED_STATUS`, etc.) and time constants (`MAX_PENDING_TIME`) from `route.ts` to `constants.ts`.
     *   [x] Export the constants.
     *   [x] Update `route.ts` and other relevant new modules to import constants.
 
 4.  **Create `service-factory.ts`:**
-    *   [x] Create `podcasto/src/lib/episode-checker/service-factory.ts`.
+    *   [x] Create `Podcasto/src/lib/episode-checker/service-factory.ts`.
     *   [x] Move the `getPostProcessingService` function from `route.ts` to `service-factory.ts`.
     *   [x] Add necessary imports (`createPostProcessingService`).
     *   [x] Export the function.
     *   [x] Update `route.ts` to import and use this factory function.
 
 5.  **Create `finder.ts`:**
-    *   [x] Create `podcasto/src/lib/episode-checker/finder.ts`.
+    *   [x] Create `Podcasto/src/lib/episode-checker/finder.ts`.
     *   [x] Create a function `findEpisodeById(episodeId: string)` to fetch a single episode. Include necessary imports (`db`, `episodes`, `eq`).
     *   [x] Create a function `findAllEpisodesToCheck()` to fetch all pending or completed episodes suitable for batch checking. Include necessary imports (`db`, `episodes`, `or`, `eq`, constants).
     *   [x] Corrected `Episode` type import using `InferSelectModel`.
@@ -54,7 +54,7 @@ This will lead to smaller, more manageable files aligned with project standards.
     *   [x] Update `route.ts` to use these finder functions instead of direct DB calls in the handlers.
 
 6.  **Create `processor.ts`:**
-    *   [x] Create `podcasto/src/lib/episode-checker/processor.ts`.
+    *   [x] Create `Podcasto/src/lib/episode-checker/processor.ts`.
     *   [x] Define a result type, e.g., `ProcessingResult { status: 'timed_out' | 'completed' | 'processed' | 'failed' | 'no_change', error?: string, episodeId: string }`.
     *   [x] Create a core function `processSingleEpisode(episode: Episode, postProcessingService: PostProcessingService | null, postProcessingEnabled: boolean): Promise<ProcessingResult>`.
     *   [x] Move the logic from the existing `checkSpecificEpisode` and the loop inside `processAllEpisodes` (related to status checks, timeouts, DB updates, post-processing calls, revalidation) into `processSingleEpisode`.

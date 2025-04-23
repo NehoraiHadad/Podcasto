@@ -252,7 +252,7 @@ To run the function locally:
 
 2. Deploy the function:
    ```
-   sam deploy --stack-name podcasto-telegram-collector
+   sam deploy --stack-name Podcasto-telegram-collector
    ```
 
 3. Invoke the function:

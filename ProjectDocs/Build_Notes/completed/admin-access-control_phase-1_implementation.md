@@ -1,7 +1,7 @@
 # Admin Access Control Implementation
 
 ## Task Objective
-Implement a robust admin access control system for the podcasto application that allows only authorized users with admin role to access the admin interface and perform administrative actions.
+Implement a robust admin access control system for the Podcasto application that allows only authorized users with admin role to access the admin interface and perform administrative actions.
 
 ## Current State Assessment
 The admin interface has been created, but there is no proper access control system in place. Currently, any authenticated user can access the admin interface by navigating to the `/admin` route.

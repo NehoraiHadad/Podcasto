@@ -17,13 +17,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   
   if (!podcast) {
     return {
-      title: 'Podcast Not Found | podcasto',
+      title: 'Podcast Not Found | Podcasto',
       description: 'The requested podcast was not found',
     };
   }
   
   return {
-    title: `${podcast.title} | podcasto`,
+    title: `${podcast.title} | Podcasto`,
     description: podcast.description,
   };
 }

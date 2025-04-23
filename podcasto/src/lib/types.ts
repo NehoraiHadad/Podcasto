@@ -1,5 +1,5 @@
 /**
- * Common types for the podcasto application
+ * Common types for the Podcasto application
  */
 
 /**

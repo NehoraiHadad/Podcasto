@@ -25,9 +25,9 @@ class S3Client:
         # Check if S3_BUCKET_NAME is set
         s3_bucket = os.environ.get('S3_BUCKET_NAME')
         if not s3_bucket:
-            logger.warning("S3_BUCKET_NAME environment variable is not set. Using default 'podcasto-podcasts'")
-            os.environ['S3_BUCKET_NAME'] = 'podcasto-podcasts'
-            s3_bucket = 'podcasto-podcasts'
+            logger.warning("S3_BUCKET_NAME environment variable is not set. Using default 'Podcasto-podcasts'")
+            os.environ['S3_BUCKET_NAME'] = 'Podcasto-podcasts'
+            s3_bucket = 'Podcasto-podcasts'
         
         # Test S3 access
         try:

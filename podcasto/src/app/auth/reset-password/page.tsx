@@ -3,15 +3,15 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
 
 export const metadata: Metadata = {
-  title: "Reset Password | podcasto",
-  description: "Reset your podcasto account password",
+  title: "Reset Password | Podcasto",
+  description: "Reset your Podcasto account password",
 };
 
 export default function ResetPasswordPage() {
   return (
     <AuthLayout
       title="Reset Password"
-      description="Reset your podcasto account password"
+      description="Reset your Podcasto account password"
     >
       <ResetPasswordForm />
     </AuthLayout>

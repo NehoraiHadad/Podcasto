@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/actions/auth-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: 'My Profile | podcasto',
+  title: 'My Profile | Podcasto',
   description: 'Manage your profile and subscriptions',
 };
 

@@ -1,8 +1,8 @@
 import { MainLayout } from "@/components/layout/main-layout";
 
 export const metadata = {
-  title: "About podcasto",
-  description: "Learn about podcasto - your audio content platform",
+  title: "About Podcasto",
+  description: "Learn about Podcasto - your audio content platform",
 };
 
 export default function AboutPage() {
@@ -11,7 +11,7 @@ export default function AboutPage() {
       <section className="relative h-full bg-gradient-to-br from-indigo-50 to-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 text-center">
-            About podcasto
+            About Podcasto
           </h1>
           
           <div className="bg-white rounded-lg shadow-md p-6 md:p-8 mb-8">
@@ -19,7 +19,7 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p className="text-gray-600 mb-6">
-              podcasto transforms news and content from Telegram channels into professional podcasts, 
+              Podcasto transforms news and content from Telegram channels into professional podcasts, 
               delivering information directly to you in an accessible audio format.
             </p>
 
@@ -38,8 +38,8 @@ export default function AboutPage() {
             </h2>
             <p className="text-gray-600">
               Have questions or feedback? Reach out to our team at 
-              <a href="mailto:support@podcasto.app" className="text-indigo-600 hover:text-indigo-800 ml-1">
-                support@podcasto.app
+              <a href="mailto:support@Podcasto.app" className="text-indigo-600 hover:text-indigo-800 ml-1">
+                support@Podcasto.app
               </a>
             </p>
           </div>

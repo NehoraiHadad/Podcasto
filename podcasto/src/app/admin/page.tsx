@@ -5,7 +5,7 @@ import { ServerAdminDashboard } from '@/components/admin/server-admin-dashboard'
 import { CronRunner } from '@/components/admin/cron-runner';
 
 export const metadata = {
-  title: 'Admin Dashboard | podcasto',
+  title: 'Admin Dashboard | Podcasto',
   description: 'Manage podcasts and application settings',
 };
 

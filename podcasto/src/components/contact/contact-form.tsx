@@ -134,8 +134,8 @@ export function ContactForm() {
                 <Mail className="h-5 w-5 text-indigo-600 mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium text-gray-800">Email</h3>
-                  <a href="mailto:support@podcasto.app" className="text-indigo-600 hover:text-indigo-800">
-                    support@podcasto.app
+                  <a href="mailto:support@Podcasto.app" className="text-indigo-600 hover:text-indigo-800">
+                    support@Podcasto.app
                   </a>
                 </div>
               </div>

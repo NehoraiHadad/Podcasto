@@ -14,7 +14,7 @@ import { PlusCircle, Edit } from 'lucide-react';
 import { GenerateEpisodeButton } from '@/components/admin/generate-episode-button';
 
 export const metadata = {
-  title: 'Podcast Details | Admin Dashboard | podcasto',
+  title: 'Podcast Details | Admin Dashboard | Podcasto',
   description: 'View and edit podcast details',
 };
 

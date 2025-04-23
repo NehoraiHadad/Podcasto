@@ -1,6 +1,6 @@
 # Admin Components
 
-This directory contains components for the admin section of the podcasto application. The components have been optimized according to Next.js 15 best practices.
+This directory contains components for the admin section of the Podcasto application. The components have been optimized according to Next.js 15 best practices.
 
 ## Key Improvements
 

@@ -61,7 +61,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
   });
 
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-background border-b border-border/40 backdrop-blur-sm sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex justify-between h-16">
           {/* Logo and main navigation */}
@@ -69,8 +69,8 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center">
                 <Image
-                  src="/podcasto-logo.webp"
-                  alt="podcasto"
+                  src="/Podcasto-logo.webp"
+                  alt="Podcasto"
                   width={120}
                   height={48}
                   quality={100}
@@ -87,13 +87,13 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             <nav className="hidden md:ml-6 md:flex md:space-x-4 items-center">
               <Link
                 href="/podcasts"
-                className="text-gray-600 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2.5 text-base font-medium rounded-md transition-colors"
+                className="text-foreground/90 hover:text-primary hover:bg-primary/5 px-3 py-2.5 text-base font-medium rounded-md transition-colors"
               >
                 Podcasts
               </Link>
               <Link
                 href="/about"
-                className="text-gray-600 hover:text-indigo-600 hover:bg-gray-50 px-3 py-2.5 text-base font-medium rounded-md transition-colors"
+                className="text-foreground/90 hover:text-primary hover:bg-primary/5 px-3 py-2.5 text-base font-medium rounded-md transition-colors"
               >
                 About
               </Link>
@@ -103,20 +103,20 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
           {/* Right side buttons */}
           <div className="flex items-center">
             {isLoading ? (
-              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
             ) : user ? (
               <div className="ml-3 relative">
                 <div>
                   <button
                     type="button"
-                    className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     id="user-menu-button"
                     aria-expanded={isProfileMenuOpen}
                     aria-haspopup="true"
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   >
                     <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 font-medium">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
                       {user.email?.[0].toUpperCase() || 'U'}
                     </div>
                   </button>
@@ -124,7 +124,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                 {isProfileMenuOpen && (
                   <div
                     ref={profileMenuRef}
-                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-card ring-1 ring-border focus:outline-none z-10"
                     role="menu"
                     aria-orientation="vertical"
                     aria-labelledby="user-menu-button"
@@ -132,14 +132,14 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                   >
                     <Link
                       href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm text-foreground/90 hover:bg-primary/5 hover:text-primary"
                       onClick={() => setIsProfileMenuOpen(false)}
                     >
                       My Profile
                     </Link>
                     <AdminNavLink 
                       href="/admin"
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full inline-flex items-center gap-2"
+                      className="px-4 py-2 text-sm text-foreground/90 hover:bg-primary/5 hover:text-primary w-full inline-flex items-center gap-2"
                       isAdmin={isAdmin}
                       isLoading={isLoading}
                     >
@@ -148,7 +148,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
                     </AdminNavLink>
                     <button
                       onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-foreground/90 hover:bg-primary/5 hover:text-primary"
                     >
                       Logout
                     </button>
@@ -158,10 +158,10 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             ) : (
               <div className="flex space-x-2">
                 <Link href="/auth/login">
-                  <Button variant="outline">Login</Button>
+                  <Button variant="outline" className="border-primary/20 text-foreground hover:text-primary hover:border-primary/40">Login</Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button>Sign up</Button>
+                  <Button className="bg-primary hover:bg-primary/90">Sign up</Button>
                 </Link>
               </div>
             )}
@@ -170,7 +170,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             <div className="flex items-center md:hidden ml-4">
               <button
                 type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                className="inline-flex items-center justify-center p-2 rounded-md text-foreground/70 hover:text-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                 aria-controls="mobile-menu"
                 aria-expanded={isMobileMenuOpen}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -220,21 +220,21 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
           <div className="pt-2 pb-3 space-y-1">
             <Link
               href="/podcasts"
-              className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-md"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Podcasts
             </Link>
             <Link
               href="/about"
-              className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-md"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               About
             </Link>
             <Link
               href="/contact"
-              className="block px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-md"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Contact
@@ -242,7 +242,7 @@ export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps)
             {isAdmin && !isLoading && (
               <Link
                 href="/admin"
-                className="px-3 py-2 text-base font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 rounded-md flex items-center gap-2"
+                className="px-3 py-2 text-base font-medium text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-md flex items-center gap-2"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <LayoutDashboard className="h-5 w-5" />

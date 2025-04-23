@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata = {
-  title: 'Manage Podcasts | Admin Dashboard | podcasto',
+  title: 'Manage Podcasts | Admin Dashboard | Podcasto',
   description: 'Manage and create podcasts',
 };
 

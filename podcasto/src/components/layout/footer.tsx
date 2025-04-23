@@ -29,13 +29,13 @@ export function Footer() {
   
   return (
     <div className="w-full fixed bottom-0 left-0 right-0 z-10">
-      <footer className={`bg-white border-t border-gray-50 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'} w-full`}>
+      <footer className={`bg-background/80 backdrop-blur-sm border-t border-border/40 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'} w-full`}>
         <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-row items-center justify-between">
             <div className="flex items-center">
               <Image
-                src="/podcasto-logo.webp"
-                alt="podcasto Logo"
+                src="/Podcasto-logo.webp"
+                alt="Podcasto Logo"
                 width={100}
                 height={40}
                 style={{
@@ -45,7 +45,7 @@ export function Footer() {
                 priority
                 quality={100}
               />
-              <p className="text-xs text-gray-400 ml-3">
+              <p className="text-xs text-muted-foreground ml-3">
                 &copy; {currentYear}
               </p>
             </div>
@@ -54,7 +54,7 @@ export function Footer() {
               <div className="px-2 py-1">
                 <Link
                   href="/contact"
-                  className="text-gray-500 hover:text-indigo-500 transition-colors"
+                  className="text-foreground/70 hover:text-primary transition-colors text-sm"
                 >
                   Contact
                 </Link>

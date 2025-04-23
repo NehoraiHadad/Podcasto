@@ -21,9 +21,9 @@ export function AuthButton({
   const baseStyles = "flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variantStyles = {
-    primary: "text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 border border-transparent",
-    secondary: "text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:ring-indigo-500 border border-transparent",
-    outline: "text-gray-700 bg-white hover:bg-gray-50 focus:ring-indigo-500 border border-gray-300"
+    primary: "text-primary-foreground bg-primary hover:bg-primary/90 focus:ring-primary/50 border border-transparent",
+    secondary: "text-secondary-foreground bg-secondary hover:bg-secondary/90 focus:ring-secondary/50 border border-transparent",
+    outline: "text-foreground bg-background hover:bg-muted hover:text-primary focus:ring-primary/40 border border-border hover:border-primary/20"
   };
 
   const widthStyles = fullWidth ? "w-full" : "";

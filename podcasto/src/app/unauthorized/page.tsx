@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Unauthorized | podcasto',
+  title: 'Unauthorized | Podcasto',
   description: 'You do not have permission to access this page',
 };
 

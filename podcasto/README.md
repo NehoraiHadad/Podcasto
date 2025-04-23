@@ -25,8 +25,8 @@ Podcasto transforms news content from Telegram channels into professional podcas
 1. Clone the repository:
 
 ```bash
-git clone https://gitlab.com/your-username/podcasto.git
-cd podcasto
+git clone https://gitlab.com/your-username/Podcasto.git
+cd Podcasto
 ```
 
 2. Install dependencies:
@@ -96,13 +96,13 @@ This project is distributed under the MIT License. See the `LICENSE` file for mo
 
 If you encounter an error like this:
 ```
-Error saving generated image: AccessDenied: User: arn:aws:iam::XXXX:user/podcasto-s3-access is not authorized to perform: s3:PutObject on resource
+Error saving generated image: AccessDenied: User: arn:aws:iam::XXXX:user/Podcasto-s3-access is not authorized to perform: s3:PutObject on resource
 ```
 
 You need to update your IAM user permissions:
 
 1. Go to AWS IAM console: https://console.aws.amazon.com/iam/
-2. Find the user mentioned in the error (e.g., podcasto-s3-access)
+2. Find the user mentioned in the error (e.g., Podcasto-s3-access)
 3. Attach the policy from the `aws-s3-policy.json` file or create a new inline policy with the following content:
 
 ```json
@@ -116,7 +116,7 @@ You need to update your IAM user permissions:
         "s3:ListBucket",
         "s3:GetBucketLocation"
       ],
-      "Resource": "arn:aws:s3:::podcasto-podcasts"
+      "Resource": "arn:aws:s3:::Podcasto-podcasts"
     },
     {
       "Sid": "AllowS3ObjectOperations",
@@ -126,7 +126,7 @@ You need to update your IAM user permissions:
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": "arn:aws:s3:::podcasto-podcasts/*"
+      "Resource": "arn:aws:s3:::Podcasto-podcasts/*"
     }
   ]
 }

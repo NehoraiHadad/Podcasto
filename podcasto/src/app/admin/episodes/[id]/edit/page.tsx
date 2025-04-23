@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EpisodeEditForm } from '@/components/admin/episode-edit-form';
 
 export const metadata = {
-  title: 'Edit Episode | Admin Dashboard | podcasto',
+  title: 'Edit Episode | Admin Dashboard | Podcasto',
   description: 'Edit podcast episode details',
 };
 

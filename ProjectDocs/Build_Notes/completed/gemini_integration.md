@@ -1,6 +1,6 @@
 # Gemini AI Integration
 
-This document provides guidance on using the latest Gemini AI models within the podcasTo application.
+This document provides guidance on using the latest Gemini AI models within the Podcasto application.
 
 ## Model Usage
 

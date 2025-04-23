@@ -11,20 +11,24 @@ export default async function Home() {
 
   return (
     <MainLayout>
-      <section className="relative h-full bg-gradient-to-br from-indigo-50 to-white">
-        <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex items-center">
+      <section className="relative h-full bg-gradient-to-b from-background to-muted/30">
+        <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex items-center">
           <div className="flex flex-col md:flex-row items-center justify-between w-full">
             <div className="w-full md:w-1/2 md:pr-8 mb-6 md:mb-0 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
                 Your Podcast, Your Way
               </h1>
-              <p className="text-base md:text-lg text-gray-600 mb-6 max-w-lg mx-auto md:mx-0">
-                podcasto transforms news content from Telegram channels into professional podcasts, delivered directly to you.
+              <p className="text-base md:text-lg text-foreground/80 mb-8 max-w-lg mx-auto md:mx-0">
+                Podcasto transforms news content from Telegram channels into professional podcasts, delivered directly to you.
               </p>
               <div className="flex flex-col space-y-4">
                 {!user && (
                   <Link href="/auth/register" className="inline-block">
-                    <Button className="w-full md:w-auto px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
+                    <Button 
+                      variant="outline"
+                      size="lg" 
+                      className="w-full md:w-auto"
+                    >
                       Register Now
                     </Button>
                   </Link>
@@ -34,11 +38,11 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-            <div className="w-full md:w-1/2 relative mt-6 md:mt-0">
+            <div className="w-full md:w-1/2 relative mt-8 md:mt-0">
               {/* Server component that fetches podcasts */}
               <PodcastCarousel />
-              <div className="absolute -top-20 right-10 w-40 h-40 bg-indigo-300 rounded-full filter blur-3xl opacity-50"></div>
-              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-300 rounded-full filter blur-3xl opacity-50"></div>
+              <div className="absolute -top-20 right-10 w-40 h-40 bg-primary/30 rounded-full filter blur-3xl opacity-50"></div>
+              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-secondary/30 rounded-full filter blur-3xl opacity-50"></div>
             </div>
           </div>
         </div>

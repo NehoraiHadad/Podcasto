@@ -196,7 +196,7 @@ s3://[bucket-name]/podcasts/[podcast-id]/[episode-id]/transcripts/[transcript-fi
 
 For example:
 ```
-s3://podcasto-podcasts/podcasts/daily_news/episode_20250327123456/transcripts/transcript_96b61d9302754164b4806cc1f0d34f43.txt
+s3://Podcasto-podcasts/podcasts/daily_news/episode_20250327123456/transcripts/transcript_96b61d9302754164b4806cc1f0d34f43.txt
 ```
 
 This feature enables:

@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from '@/components/admin/episode-actions-menu';
 
 export const metadata = {
-  title: 'Episode Details | Admin Dashboard | podcasto',
+  title: 'Episode Details | Admin Dashboard | Podcasto',
   description: 'View podcast episode details',
 };
 

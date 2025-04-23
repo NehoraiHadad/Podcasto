@@ -13,10 +13,10 @@ type SidebarContextType = {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 // Storage key for sidebar collapsed state
-const STORAGE_KEY = 'podcasto-sidebar-collapsed';
+const STORAGE_KEY = 'Podcasto-sidebar-collapsed';
 
 // Custom event name for sidebar state changes
-const SIDEBAR_TOGGLE_EVENT = 'podcasto-sidebar-toggle';
+const SIDEBAR_TOGGLE_EVENT = 'Podcasto-sidebar-toggle';
 
 // Mobile breakpoint in pixels
 const MOBILE_BREAKPOINT = 768; // md breakpoint

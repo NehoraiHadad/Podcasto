@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'podcasto-podcasts.s3.amazonaws.com',
+        hostname: 'Podcasto-podcasts.s3.amazonaws.com',
       },
     ],
     // Advanced image optimization settings

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Inter } from "next/font/google";
@@ -10,19 +10,22 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "podcasto - Daily News Podcasts",
+  title: "Podcasto - Daily News Podcasts",
   description: "Transform daily news content from Telegram channels into accessible podcasts",
   manifest: "/manifest.json",
   icons: {
-    icon: "/podcasto-lcon.webp",
-    apple: "/podcasto-lcon.webp",
+    icon: "/Podcasto-icon.webp",
+    apple: "/Podcasto-icon.webp",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "podcasto",
+    title: "Podcasto",
   },
-  themeColor: "#9370DB",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#e279c7",
 };
 
 export default function RootLayout({
@@ -32,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" dir="ltr" className={`${inter.variable}`}>
-      <body className="antialiased min-h-screen bg-white text-gray-900">
+      <body className="antialiased min-h-screen bg-background text-foreground">
         {children}
         <Toaster position="bottom-right" richColors />
       </body>

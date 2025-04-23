@@ -1,6 +1,6 @@
 # Admin Access Control System
 
-This document explains how the admin access control system works in the podcasto application.
+This document explains how the admin access control system works in the Podcasto application.
 
 ## Database Structure
 

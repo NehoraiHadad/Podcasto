@@ -19,7 +19,7 @@ export async function generateMetadata({
   
   if (!episode) {
     return {
-      title: 'Episode Not Found | podcasto',
+      title: 'Episode Not Found | Podcasto',
       description: 'The requested episode was not found',
     };
   }
@@ -27,7 +27,7 @@ export async function generateMetadata({
   const podcast = await getPodcastById(resolvedParams.id);
   
   return {
-    title: `${episode.title} | ${podcast?.title || 'podcasto'}`,
+    title: `${episode.title} | ${podcast?.title || 'Podcasto'}`,
     description: episode.description || '',
   };
 }

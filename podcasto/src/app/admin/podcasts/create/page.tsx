@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PodcastCreationForm } from '@/components/admin/podcast-creation-form-new';
 
 export const metadata = {
-  title: 'Create Podcast | Admin Dashboard | podcasto',
+  title: 'Create Podcast | Admin Dashboard | Podcasto',
   description: 'Create a new podcast with custom settings',
 };
 

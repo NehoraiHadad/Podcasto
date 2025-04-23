@@ -6,7 +6,7 @@
 
 ## Task Objective
 
-Refactor the `podcasto/src/app/api/cron/podcast-scheduler/route.ts` file to improve maintainability and adhere to the project's code quality guidelines by splitting it into smaller, focused modules.
+Refactor the `Podcasto/src/app/api/cron/podcast-scheduler/route.ts` file to improve maintainability and adhere to the project's code quality guidelines by splitting it into smaller, focused modules.
 
 ## Current State Assessment
 
@@ -19,16 +19,16 @@ The podcast scheduling logic will be modularized. The main `route.ts` file will 
 ## Implementation Plan
 
 1.  **Create Module Directory:**
-    *   [x] Create a new directory: `podcasto/src/lib/podcast-scheduler/`
+    *   [x] Create a new directory: `Podcasto/src/lib/podcast-scheduler/`
 
 2.  **Create Types File:**
-    *   [x] Create `podcasto/src/lib/podcast-scheduler/types.ts`.
+    *   [x] Create `Podcasto/src/lib/podcast-scheduler/types.ts`.
     *   [x] Move the `PodcastScheduleData` and `PodcastSqlRow` interfaces from `route.ts` to `types.ts`.
     *   [x] Export the interfaces from `types.ts`.
     *   [x] Update `route.ts` to import these types from the new file.
 
 3.  **Extract Podcast Finder Logic:**
-    *   [x] Create `podcasto/src/lib/podcast-scheduler/finder.ts`.
+    *   [x] Create `Podcasto/src/lib/podcast-scheduler/finder.ts`.
     *   [x] Move the `findPodcastsNeedingEpisodes` function from `route.ts` to `finder.ts`.
     *   [x] Add necessary imports to `finder.ts` (e.g., `db`, `sql`, types from `./types`).
     *   [x] Export the `findPodcastsNeedingEpisodes` function from `finder.ts`.
@@ -36,7 +36,7 @@ The podcast scheduling logic will be modularized. The main `route.ts` file will 
     *   [x] Update `route.ts` to remove the old local function definition.
 
 4.  **Extract Episode Generation Logic:**
-    *   [x] Create `podcasto/src/lib/podcast-scheduler/generator.ts`.
+    *   [x] Create `Podcasto/src/lib/podcast-scheduler/generator.ts`.
     *   [x] Move the `generateEpisodesForPodcasts` function from `route.ts` to `generator.ts`.
     *   [x] Add necessary imports to `generator.ts` (e.g., `generatePodcastEpisode`, types from `./types`, `fetch`).
     *   [x] Export the `generateEpisodesForPodcasts` function from `generator.ts`.

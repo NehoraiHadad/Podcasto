@@ -1,13 +1,13 @@
 # Home Page and Login Implementation - Phase 1
 
 ## Task Objective
-Implement the home page and authentication flow with Supabase integration for the podcasto application.
+Implement the home page and authentication flow with Supabase integration for the Podcasto application.
 
 ## Current State Assessment
 The project has a basic Next.js 15 structure with App Router set up. There is no authentication implementation yet, and the home page is using the default Next.js template. The project has Supabase as a dependency but no integration has been implemented.
 
 ## Future State Goal
-A fully functional home page with a modern, responsive design that showcases the podcasto application's purpose. A complete authentication flow using Supabase that allows users to sign up, log in with email/password or Google OAuth, and access protected routes. The implementation should follow the authentication flow described in the project documentation.
+A fully functional home page with a modern, responsive design that showcases the Podcasto application's purpose. A complete authentication flow using Supabase that allows users to sign up, log in with email/password or Google OAuth, and access protected routes. The implementation should follow the authentication flow described in the project documentation.
 
 ## Implementation Plan
 

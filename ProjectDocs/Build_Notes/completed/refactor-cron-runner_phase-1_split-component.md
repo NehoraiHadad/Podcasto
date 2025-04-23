@@ -6,7 +6,7 @@
 
 ## Task Objective
 
-Refactor the `podcasto/src/components/admin/cron-runner.tsx` component to improve readability, maintainability, and adherence to DRY principles by extracting constants, types, and result rendering logic into separate modules/components.
+Refactor the `Podcasto/src/components/admin/cron-runner.tsx` component to improve readability, maintainability, and adherence to DRY principles by extracting constants, types, and result rendering logic into separate modules/components.
 
 ## Current State Assessment
 
@@ -19,25 +19,25 @@ The `CronRunner` component will be streamlined, focusing on state management, jo
 ## Implementation Plan
 
 1.  **Create `cron-runner-constants.ts`:**
-    *   [x] Create `podcasto/src/components/admin/cron-runner-constants.ts`.
+    *   [x] Create `Podcasto/src/components/admin/cron-runner-constants.ts`.
     *   [x] Move `CronResult`, `CronJobType`, `CronJobOption`, `CronJobResult` interfaces/types to this file.
     *   [x] Move the `cronJobOptions` array definition to this file.
     *   [x] Export all types, interfaces, and the options array.
     *   [x] Update `cron-runner.tsx` to import these from the new file.
 
 2.  **Create Result Detail Components:**
-    *   [x] Create `podcasto/src/components/admin/episode-checker-result-details.tsx`.
+    *   [x] Create `Podcasto/src/components/admin/episode-checker-result-details.tsx`.
         *   [x] Define props interface (e.g., `EpisodeCheckerResultDetailsProps { results: EpisodeCheckerDetailedResult, timestamp: ... }`).
         *   [x] Move the rendering logic for 'episode-checker' from `renderResultDetails` into this component.
         *   [x] Import necessary types/constants (`CronResult`, `Badge`, etc.).
         *   [x] Export the component.
-    *   [x] Create `podcasto/src/components/admin/podcast-scheduler-result-details.tsx`.
+    *   [x] Create `Podcasto/src/components/admin/podcast-scheduler-result-details.tsx`.
         *   [x] Define props interface (e.g., `PodcastSchedulerResultDetailsProps { results: PodcastSchedulerDetailedResult, timestamp: ... }`).
         *   [x] Move the rendering logic for 'podcast-scheduler' from `renderResultDetails` into this component.
         *   [x] Import necessary types/components (`Badge`, `CheckCircle`, `AlertCircle`, etc.).
         *   [x] Consider creating a sub-component for rendering individual podcast results row.
         *   [x] Export the component.
-    *   [x] Create `podcasto/src/components/admin/full-cron-result-details.tsx`.
+    *   [x] Create `Podcasto/src/components/admin/full-cron-result-details.tsx`.
         *   [x] Define props interface (e.g., `FullCronResultDetailsProps { results: FullCronDetailedResult, timestamp: ... }`).
         *   [x] Move the rendering logic for 'full-cron' from `renderResultDetails` into this component.
         *   [x] Import necessary types/components (`CronJobResult`, `Badge`, `Accordion`, etc.).

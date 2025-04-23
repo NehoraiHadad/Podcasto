@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ServerEpisodesList } from '@/components/admin/server-episodes-list';
 
 export const metadata = {
-  title: 'Manage Episodes | Admin Dashboard | podcasto',
+  title: 'Manage Episodes | Admin Dashboard | Podcasto',
   description: 'Manage and view podcast episodes',
 };
 

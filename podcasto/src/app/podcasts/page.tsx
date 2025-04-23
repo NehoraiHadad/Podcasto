@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getAllPodcasts, Podcast } from '@/lib/db/api/podcasts';
 import { PodcastImage } from '@/components/podcasts/podcast-image';
+import { Search } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Podcasts | podcasto',
+  title: 'Podcasts | Podcasto',
   description: 'Discover daily news podcasts',
 };
 
@@ -37,7 +38,7 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-4">Discover Podcasts</h1>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-foreground/80 mb-8">
             Listen to daily news podcasts on topics that interest you
           </p>
           <div className="max-w-md mx-auto">
@@ -46,24 +47,11 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
                 type="search"
                 name="search"
                 placeholder="Search podcasts..."
-                className="pl-10 pr-4 py-2 text-left"
+                className="pl-10 pr-4 py-2 text-left bg-background/80 backdrop-blur-sm border-border/60 focus:border-primary/40 focus:ring-primary/20"
                 defaultValue={resolvedSearchParams?.search || ''}
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  ></path>
-                </svg>
+                <Search className="w-5 h-5 text-muted-foreground" />
               </div>
               <Button type="submit" className="sr-only">Search</Button>
             </form>
@@ -72,14 +60,14 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
 
         {searchQuery && (
           <div className="mb-8 text-center">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {filteredPodcasts.length === 0 
                 ? `No results found for "${resolvedSearchParams?.search}"` 
                 : `Showing ${filteredPodcasts.length} result${filteredPodcasts.length === 1 ? '' : 's'} for "${resolvedSearchParams?.search}"`}
             </p>
             {filteredPodcasts.length === 0 && (
               <Link href="/podcasts">
-                <Button variant="link" className="mt-2">View all podcasts</Button>
+                <Button variant="link" className="mt-2 text-primary">View all podcasts</Button>
               </Link>
             )}
           </div>
@@ -88,32 +76,32 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPodcasts.length > 0 ? (
             filteredPodcasts.map((podcast) => (
-              <Card key={podcast.id} className="overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
+              <Card key={podcast.id} className="overflow-hidden border-border/60 card-hover">
+                <div className="h-48 bg-muted relative">
                   <PodcastImage
                     imageUrl={podcast.cover_image}
                     title={podcast.title}
                   />
                 </div>
                 <CardHeader>
-                  <CardTitle>{podcast.title}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-foreground">{podcast.title}</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     {podcast.episodes_count} episodes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-700">{podcast.description}</p>
+                  <p className="text-foreground/80">{podcast.description}</p>
                 </CardContent>
                 <CardFooter>
                   <Link href={`/podcasts/${podcast.id}`} className="w-full">
-                    <Button className="w-full">Listen Now</Button>
+                    <Button variant="outline" className="w-full">Listen Now</Button>
                   </Link>
                 </CardFooter>
               </Card>
             ))
           ) : (
             <div className="col-span-3 text-center py-12">
-              <p className="text-xl text-gray-500">No podcasts found. Please try again later.</p>
+              <p className="text-xl text-muted-foreground">No podcasts found. Please try again later.</p>
             </div>
           )}
         </div>
