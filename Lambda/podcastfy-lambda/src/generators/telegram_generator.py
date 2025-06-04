@@ -12,6 +12,7 @@ import mimetypes
 
 from src.utils.logging import get_logger
 from src.generators.base_generator import BaseGenerator, get_safe_filename
+from src.generators.google_tts_generator import generate_google_tts_audio
 from src.clients.s3_client import S3Client
 
 logger = get_logger(__name__)
@@ -165,38 +166,74 @@ class TelegramGenerator(BaseGenerator):
                 
             # Prepare arguments for generate_podcast
             podcast_args = {
-                "text": content,
-                "conversation_config": {
-                    **conversation_config,
-                    "text_to_speech": {
-                        "tts_model": "gpt-4o-mini-tts",
-                        "temp_audio_dir": "../../../../../../../../../../../../tmp/podcastify-demo/tmp",
-                        "output_directories": {
-                            "transcripts": "/tmp/podcastify-demo/transcripts",
-                            "audio": "/tmp/podcastify-demo/audio"
-                        }
-                    }
-                },
-                "longform": longform
+                "text": content, # Use the processed Telegram content
+                "conversation_config": conversation_config, # TTS config removed
+                "transcript_only": True, # Step 1: Generate transcript only
+                "longform": longform,
+                "metadata": metadata # Pass metadata for context if generate_podcast uses it
             }
 
             # Only add image_paths if longform is False and images exist
+            # This logic is preserved as images might be used in transcript generation context
             if not longform and image_data_uris:
                 podcast_args["image_paths"] = image_data_uris
-                logger.info(f"Calling generate_podcast with {len(image_data_uris)} image data URIs (longform=False).")
+                logger.info(f"Calling generate_podcast (for transcript) with {len(image_data_uris)} image data URIs (longform=False).")
             elif longform and image_data_uris:
-                 logger.info(f"Skipping image processing because longform is True.")
+                 logger.info(f"Skipping image processing for transcript generation because longform is True.")
             else:
-                 logger.info("Calling generate_podcast without images.")
+                 logger.info("Calling generate_podcast (for transcript) without images.")
 
-            # Generate podcast using the podcastfy library
-            audio_file = generate_podcast(**podcast_args)
+            logger.info("Generating transcript from Telegram content using podcastfy library...")
+            # Generate transcript using the podcastfy library
+            transcript_content = generate_podcast(**podcast_args)
 
-            # Process generated file and upload to S3
-            return self.generate_podcast(audio_file, metadata, output_path)
+            if not transcript_content:
+                logger.error("Transcript generation failed or returned empty content.")
+                return None
+
+            # TODO: Add file reading if generate_podcast with transcript_only=True returns a path.
+            # For now, assume transcript_content is the actual transcript string.
+            logger.info(f"Transcript generated. Length: {len(transcript_content)} characters.")
+
+            # Step 2: Generate audio using Google TTS
+            logger.info("Proceeding with Google Text-to-Speech generation.")
+            base_output_name, _ = os.path.splitext(os.path.basename(output_path))
+            google_tts_output_filename = f"google_tts_{base_output_name}.mp3" # Assuming MP3 output
+            google_tts_output_path = os.path.join(self.storage_dir, google_tts_output_filename)
+
+            google_api_key = self.podcast_config.get('gemini_api_key', os.environ.get('GEMINI_API_KEY'))
+            if not google_api_key:
+                logger.error("GEMINI_API_KEY not found in config or environment variables.")
+                return None
+
+            voice_name_speaker1 = self.podcast_config.get('voice_name_speaker1', 'Zephyr')
+            voice_name_speaker2 = self.podcast_config.get('voice_name_speaker2', 'Puck')
+            language_code = metadata.get('language', 'en-US')
+
+            logger.info(f"Calling Google TTS with parameters: voice1={voice_name_speaker1}, voice2={voice_name_speaker2}, lang={language_code}")
+
+            google_audio_file_path = generate_google_tts_audio(
+                google_api_key=google_api_key,
+                text_input=transcript_content,
+                output_filename=google_tts_output_path,
+                voice_name_speaker1=voice_name_speaker1,
+                voice_name_speaker2=voice_name_speaker2,
+                language_code=language_code
+                # Add other relevant parameters like sample_rate_hertz if needed
+            )
+
+            if not google_audio_file_path:
+                logger.error("Google TTS audio generation failed.")
+                return None
+
+            logger.info(f"Google TTS audio generated successfully at: {google_audio_file_path}")
+
+            # Step 3: Process the generated Google TTS audio file (e.g., upload to S3)
+            # The existing self.generate_podcast method handles S3 upload and returns the tuple.
+            return self.generate_podcast(google_audio_file_path, metadata, output_path)
                 
         except Exception as e:
-            logger.exception(f"Error creating podcast from Telegram data: {str(e)}")
+            logger.error(f"Error creating podcast from Telegram data: {str(e)}", exc_info=True)
             return None
 
     def _process_telegram_results(self, results: Dict[str, List[Dict[str, Any]]]) -> str:

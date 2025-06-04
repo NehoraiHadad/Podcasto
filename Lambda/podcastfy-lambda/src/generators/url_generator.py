@@ -6,6 +6,7 @@ from podcastfy.client import generate_podcast
 import os
 
 from src.utils.logging import get_logger
+from src.generators.google_tts_generator import generate_google_tts_audio
 from src.generators.base_generator import BaseGenerator
 
 logger = get_logger(__name__)
@@ -74,27 +75,62 @@ class UrlGenerator(BaseGenerator):
                 "metadata": metadata,
                 "llm_model_name": llm_model_name,
                 "api_key_label": api_key_label,
-                "conversation_config": {
-                    **conversation_config,
-                    "text_to_speech": {
-                        "model_name": "gpt-4o-mini-tts",
-                        "temp_audio_dir": "../../../../../../../../../../../../tmp/podcastify-demo/tmp",
-                        "output_directories": {
-                            "transcripts": "/tmp/podcastify-demo/transcripts",
-                            "audio": "/tmp/podcastify-demo/audio"
-                        }
-                    }
-                },
-                "transcript_only": transcript_only,
+                "conversation_config": conversation_config, # TTS config removed
+                "transcript_only": True, # Step 1: Generate transcript only
                 "longform": longform
             }
 
-            # Generate podcast using the podcastfy library
-            audio_file = generate_podcast(**podcast_args)
+            logger.info("Generating transcript from URLs using podcastfy library...")
+            # Generate transcript using the podcastfy library
+            # Assuming this now returns the transcript string directly or a path to it.
+            transcript_content = generate_podcast(**podcast_args)
+
+            if not transcript_content:
+                logger.error("Transcript generation failed or returned empty content.")
+                return None
+
+            # TODO: Add file reading if generate_podcast with transcript_only=True returns a path.
+            # For now, assume transcript_content is the actual transcript string.
+            logger.info(f"Transcript generated. Length: {len(transcript_content)} characters.")
+
+            # Step 2: Generate audio using Google TTS
+            logger.info("Proceeding with Google Text-to-Speech generation.")
+            # Construct a suitable filename for the Google TTS output
+            base_output_name, _ = os.path.splitext(os.path.basename(output_path))
+            google_tts_output_filename = f"google_tts_{base_output_name}.mp3" # Assuming MP3 output
+            google_tts_output_path = os.path.join(self.storage_dir, google_tts_output_filename)
+
+            google_api_key = self.podcast_config.get('gemini_api_key', os.environ.get('GEMINI_API_KEY'))
+            if not google_api_key:
+                logger.error("GEMINI_API_KEY not found in config or environment variables.")
+                return None
+
+            voice_name_speaker1 = self.podcast_config.get('voice_name_speaker1', 'Zephyr')
+            voice_name_speaker2 = self.podcast_config.get('voice_name_speaker2', 'Puck')
+            language_code = metadata.get('language', 'en-US')
+
+            logger.info(f"Calling Google TTS with parameters: voice1={voice_name_speaker1}, voice2={voice_name_speaker2}, lang={language_code}")
+
+            google_audio_file_path = generate_google_tts_audio(
+                google_api_key=google_api_key,
+                text_input=transcript_content,
+                output_filename=google_tts_output_path,
+                voice_name_speaker1=voice_name_speaker1,
+                voice_name_speaker2=voice_name_speaker2,
+                language_code=language_code
+                # Add other relevant parameters like sample_rate_hertz if needed
+            )
+
+            if not google_audio_file_path:
+                logger.error("Google TTS audio generation failed.")
+                return None
             
-            # Process generated file and upload to S3
-            return self.generate_podcast(audio_file, metadata, output_path)
+            logger.info(f"Google TTS audio generated successfully at: {google_audio_file_path}")
+
+            # Step 3: Process the generated Google TTS audio file (e.g., upload to S3)
+            # The existing self.generate_podcast method handles S3 upload and returns the tuple.
+            return self.generate_podcast(google_audio_file_path, metadata, output_path)
             
         except Exception as e:
-            logger.error(f"Error creating podcast from URLs: {str(e)}")
+            logger.error(f"Error creating podcast from URLs: {str(e)}", exc_info=True)
             return None 
