@@ -116,7 +116,7 @@ You need to update your IAM user permissions:
         "s3:ListBucket",
         "s3:GetBucketLocation"
       ],
-      "Resource": "arn:aws:s3:::Podcasto-podcasts"
+      "Resource": "arn:aws:s3:::podcasto-podcasts"
     },
     {
       "Sid": "AllowS3ObjectOperations",
@@ -126,7 +126,7 @@ You need to update your IAM user permissions:
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": "arn:aws:s3:::Podcasto-podcasts/*"
+      "Resource": "arn:aws:s3:::podcasto-podcasts/*"
     }
   ]
 }

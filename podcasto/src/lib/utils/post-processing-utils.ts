@@ -88,19 +88,33 @@ export async function createPostProcessingWithConfig(aiRequired: boolean = true,
       throw new Error(error);
     }
     
-    // Import required modules
-    const { createPostProcessingService } = await import('@/lib/services/post-processing');
-    
     // Ensure config has required properties and they're not undefined
-    if (!config.s3 && s3Required) {
+    if (s3Required && !config.s3) {
       throw new Error('S3 configuration is required but missing');
     }
     
-    if (!config.ai && aiRequired) {
+    if (aiRequired && !config.ai) {
       throw new Error('AI configuration is required but missing');
     }
+
+    // Import required modules
+    const { createPostProcessingService, createImageOnlyService, createS3OnlyService } = await import('@/lib/services/post-processing');
     
-    // Create and return the service with properly typed config
+    // If only AI is needed (for image preview), create image-only service
+    if (aiRequired && !s3Required) {
+      return createImageOnlyService({
+        ai: config.ai!
+      });
+    }
+    
+    // If only S3 is needed (for saving), create S3-only service
+    if (!aiRequired && s3Required) {
+      return createS3OnlyService({
+        s3: config.s3!
+      });
+    }
+    
+    // Create and return the full service with properly typed config
     return createPostProcessingService({
       s3: config.s3!,
       ai: config.ai!

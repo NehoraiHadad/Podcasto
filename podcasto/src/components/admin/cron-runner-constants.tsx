@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarCheck, PlaySquare, Calendar } from 'lucide-react';
+import { CalendarCheck, PlaySquare, Calendar, Bot } from 'lucide-react';
 
 /**
  * Interface for the detailed results specifically from the episode checker job.
@@ -11,6 +11,25 @@ export interface EpisodeCheckerDetailedResult {
   processed: number;
   requires_processing: number;
   errors: string[];
+}
+
+/**
+ * Interface for a single episode result from Google Audio Generator.
+ */
+export interface GoogleAudioGeneratorEpisodeResult {
+  episodeId: string;
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+/**
+ * Interface for the detailed results from the Google Audio Generator job.
+ */
+export interface GoogleAudioGeneratorDetailedResult {
+  processed: number;
+  errors: number;
+  results: GoogleAudioGeneratorEpisodeResult[];
 }
 
 /**
@@ -52,12 +71,13 @@ export type FullCronDetailedResult = FullCronIndividualJobResult[];
 export type CronDetailedResultType = 
   | EpisodeCheckerDetailedResult 
   | PodcastSchedulerDetailedResult 
+  | GoogleAudioGeneratorDetailedResult
   | FullCronDetailedResult;
 
 /**
  * Type defining the possible cron job identifiers.
  */
-export type CronJobType = 'episode-checker' | 'podcast-scheduler' | 'full-cron';
+export type CronJobType = 'episode-checker' | 'podcast-scheduler' | 'full-cron' | 'google-audio-generator';
 
 /**
  * Interface defining the structure for cron job selection options.
@@ -84,6 +104,12 @@ export const CRON_JOB_OPTIONS: CronJobOption[] = [
     label: 'Podcast Scheduler',
     description: 'Check for podcasts needing new episodes based on frequency and generate them.',
     icon: <CalendarCheck className="h-4 w-4" />
+  },
+  {
+    value: 'google-audio-generator',
+    label: 'Google Audio Generator',
+    description: 'Manually trigger Google TTS audio generation for episodes with collected content.',
+    icon: <Bot className="h-4 w-4" />
   },
   {
     value: 'full-cron',

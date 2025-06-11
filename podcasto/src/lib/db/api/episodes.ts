@@ -1,6 +1,6 @@
 import { db } from '../index';
 import { episodes, sentEpisodes } from '../schema';
-import { eq, and, desc, SQL } from 'drizzle-orm';
+import { eq, and, desc, SQL, inArray } from 'drizzle-orm';
 import * as dbUtils from '../utils';
 
 // Types
@@ -81,6 +81,16 @@ export async function markEpisodeAsSent(episodeId: string, userId: string): Prom
     episode_id: episodeId,
     user_id: userId
   });
+}
+
+/**
+ * Returns episodes by status
+ */
+export async function getEpisodesByStatus(statuses: string[]): Promise<Episode[]> {
+  return await db.select()
+    .from(episodes)
+    .where(inArray(episodes.status, statuses))
+    .orderBy(desc(episodes.created_at)) as Episode[];
 }
 
 /**

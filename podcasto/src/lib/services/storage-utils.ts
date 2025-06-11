@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { TranscriptFileUtils, createTranscriptFileUtils } from './transcript-utils';
+import { buildS3Url } from '@/lib/utils/s3-url-utils';
 
 /**
  * Configuration for S3 storage operations
@@ -18,6 +19,7 @@ export interface S3StorageConfig {
 export class S3StorageUtils {
   private s3Client: S3Client;
   private s3Bucket: string;
+  private s3Region: string;
   private transcriptUtils: TranscriptFileUtils;
 
   /**
@@ -33,6 +35,7 @@ export class S3StorageUtils {
     });
     
     this.s3Bucket = config.bucket;
+    this.s3Region = config.region;
     
     // Initialize transcript utilities
     this.transcriptUtils = createTranscriptFileUtils(this.s3Client, this.s3Bucket);
@@ -71,8 +74,12 @@ export class S3StorageUtils {
     
     await this.s3Client.send(command);
     
-    // Return the public URL
-    return `https://${this.s3Bucket}.s3.amazonaws.com/${imageKey}`;
+    // Return the public URL using the utility function
+    return await buildS3Url({
+      bucket: this.s3Bucket,
+      region: this.s3Region,
+      key: imageKey
+    });
   }
 
   /**

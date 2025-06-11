@@ -190,4 +190,12 @@ export async function runPodcastScheduler(): Promise<CronOperationResult> {
  */
 export async function runAllCronJobs(): Promise<CronOperationResult> {
   return callCronEndpoint('/api/cron/start-jobs', 'MANUAL_FULL_CRON');
+}
+
+/**
+ * Manually triggers the Google TTS audio generation process
+ * This uses the new Google-based audio generation API instead of Podcastfy
+ */
+export async function runGoogleAudioGenerator(): Promise<CronOperationResult> {
+  return callCronEndpoint('/api/episodes/generate-audio', 'MANUAL_GOOGLE_AUDIO_GENERATOR');
 } 

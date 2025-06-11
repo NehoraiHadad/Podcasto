@@ -21,6 +21,8 @@ Resources:
           SQS_QUEUE_URL: !Ref SQSQueueUrl
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_KEY: !Ref SupabaseKey
+          API_ENDPOINT: !Ref ApiEndpoint
+          INTERNAL_API_KEY: !Ref InternalApiKey
           LOG_LEVEL: DEBUG
       Policies:
         - S3CrudPolicy:
@@ -66,5 +68,16 @@ Parameters:
   SupabaseKey:
     Type: String
     Description: Supabase API Key
+    Default: ""
+    NoEcho: true
+    
+  ApiEndpoint:
+    Type: String
+    Description: Base URL for API endpoint (e.g., https://yourapp.vercel.app)
+    Default: ""
+    
+  InternalApiKey:
+    Type: String
+    Description: Internal API key for authentication
     Default: ""
     NoEcho: true 

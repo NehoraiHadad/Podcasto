@@ -30,13 +30,25 @@ export async function generateEpisodeImage(episodeId: string): Promise<{ success
       throw new Error('Episode has no description for image generation');
     }
     
-    // Create post-processing service with both S3 and AI config
+    // Create full post-processing service with both S3 and AI config
     const postProcessingService = await createPostProcessingWithConfig(true, true);
     
-    // Generate the image
-    const success = await postProcessingService.generateEpisodeImage(
-      episodeId,
+    // Type-safe check: full service has generateEpisodeImage method
+    if (!('generateEpisodeImage' in postProcessingService)) {
+      throw new Error('Service does not support full episode image generation');
+    }
+    
+    // TypeScript now knows this is the full service with all methods
+    const fullService = postProcessingService as Extract<typeof postProcessingService, { generateEpisodeImage: unknown }>;
+    
+    // Generate the image with properly typed service
+    const success = await (fullService.generateEpisodeImage as (
+      podcastId: string,
+      episodeId: string,
+      description: string
+    ) => Promise<boolean>)(
       episode.podcast_id,
+      episodeId,
       episode.description
     );
     

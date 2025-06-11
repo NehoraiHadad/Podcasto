@@ -6,6 +6,7 @@ import { EpisodeUpdater } from './episode-updater';
 import { ImageGenerationService } from './image-generation';
 import { ImageHandler } from './image-handler';
 import { S3StorageConfig } from './storage-utils';
+import { episodesApi } from '../db/api';
 
 /**
  * Episode data structure
@@ -277,4 +278,127 @@ export function createPostProcessingService(config: {
     storageUtils,
     aiService
   });
+}
+
+/**
+ * Create a limited post-processing service for image generation only (no S3)
+ */
+export function createImageOnlyService(config: {
+  ai: AIServiceConfig;
+}): Pick<PostProcessingService, 'generateEpisodeImagePreview' | 'generateImagePrompt'> {
+  if (!config.ai) {
+    throw new Error('ai config is required');
+  }
+  
+  if (!config.ai.apiKey) {
+    throw new Error('aiService is required');
+  }
+  
+  // Create AI service
+  const aiService = new AIService(config.ai);
+  
+  // Create a minimal service with only image preview capabilities
+  return {
+    async generateImagePrompt(summary: string, title?: string): Promise<string> {
+      const { ImageGenerationService } = await import('./image-generation');
+      const imageService = new ImageGenerationService({ aiService });
+      return imageService.generateImagePrompt(summary, title);
+    },
+    
+    async generateEpisodeImagePreview(summary: string, title?: string): Promise<{
+      success: boolean;
+      imageData: Buffer | null;
+      mimeType: string;
+      generatedFromPrompt?: string;
+      error?: string;
+    }> {
+      try {
+        const { ImageGenerationService } = await import('./image-generation');
+        const imageService = new ImageGenerationService({ aiService });
+        const result = await imageService.generateImagePreview(summary, title);
+        return {
+          success: !!result.imageData,
+          imageData: result.imageData,
+          mimeType: result.mimeType,
+          generatedFromPrompt: result.generatedFromPrompt
+        };
+      } catch (error) {
+        return {
+          success: false,
+          imageData: null,
+          mimeType: 'image/jpeg',
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    }
+  };
+}
+
+/**
+ * Create a limited post-processing service for S3 operations only (no AI)
+ */
+export function createS3OnlyService(config: {
+  s3: S3StorageConfig;
+}): Pick<PostProcessingService, 'saveGeneratedImage'> {
+  if (!config.s3) {
+    throw new Error('s3 config is required');
+  }
+  
+  // Create required services
+  const storageUtils = new S3StorageUtils(config.s3);
+  const episodeUpdater = new EpisodeUpdater();
+  
+  // Create a minimal service with only S3 save capabilities
+  return {
+    async saveGeneratedImage(
+      podcastId: string,
+      episodeId: string,
+      imageData: Buffer,
+      mimeType: string,
+      _episode: Episode,
+      _generatedFromPrompt?: string
+    ): Promise<{
+      success: boolean;
+      imageUrl?: string;
+      error?: string;
+    }> {
+      try {
+        console.log(`[S3_SERVICE] Saving generated image for episode ${episodeId}`);
+        
+        // Get the episode to save its original description
+        const episode = await episodesApi.getEpisodeById(episodeId);
+        
+        if (!episode) {
+          throw new Error('Episode not found');
+        }
+        
+        // Upload image to S3
+        const imageUrl = await storageUtils.uploadImageToS3(
+          podcastId, 
+          episodeId, 
+          imageData, 
+          mimeType
+        );
+        console.log(`[S3_SERVICE] Uploaded image to S3: ${imageUrl}`);
+        
+        // Update episode with image URL
+        await episodeUpdater.updateEpisodeWithImage(
+          episodeId, 
+          imageUrl, 
+          episode.description || undefined
+        );
+        
+        return {
+          success: true,
+          imageUrl
+        };
+      } catch (error) {
+        console.error(`[S3_SERVICE] Error saving generated image:`, error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    }
+  };
 } 

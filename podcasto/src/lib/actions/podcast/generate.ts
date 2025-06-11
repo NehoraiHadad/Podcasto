@@ -30,15 +30,15 @@ export async function generatePodcastEpisode(podcastId: string): Promise<Generat
     console.log(`[PODCAST_GEN] Starting generation for podcast ID: ${podcastId}`);
     
     // Check environment configuration
-    const configCheck = checkEnvironmentConfiguration();
-    if (!configCheck.success) {
-      return configCheck;
+    const envCheck = checkEnvironmentConfiguration();
+    if (!envCheck.success) {
+      return envCheck;
     }
     
-    // Fetch and validate podcast configuration
-    const podcastConfig = await fetchPodcastConfig(podcastId);
-    if (!podcastConfig.success) {
-      return podcastConfig;
+    // Get podcast config for generation parameters
+    const configResult = await fetchPodcastConfig(podcastId);
+    if (!configResult.success || !configResult.config) {
+      return { success: false, error: configResult.error || 'Failed to get podcast config' };
     }
     
     // Create a new episode record
@@ -48,12 +48,12 @@ export async function generatePodcastEpisode(podcastId: string): Promise<Generat
       return episodeResult;
     }
     
-    // Invoke Lambda function
+    // Invoke Telegram Lambda to collect data and trigger processing via SQS
     const lambdaResult = await invokeLambdaFunction({
       podcastId,
       episodeId: episodeResult.episodeId!,
-      podcastConfig: podcastConfig.config!,
-      timestamp,
+      podcastConfig: configResult.config,
+      timestamp
     });
     
     if (!lambdaResult.success) {
@@ -193,7 +193,9 @@ async function invokeLambdaFunction({
     
     // Create Lambda client
     const lambdaClient = new LambdaClient({ 
-      region: process.env.AWS_REGION || 'us-east-1' 
+              region: process.env.AWS_REGION || (() => {
+          throw new Error('AWS_REGION environment variable is required');
+        })() 
     });
     
     // Prepare the event payload - include the episode ID we just created

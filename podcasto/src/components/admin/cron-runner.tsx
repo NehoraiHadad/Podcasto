@@ -7,16 +7,18 @@ import { AlertCircle, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { runEpisodeChecker, runPodcastScheduler, runAllCronJobs, CronOperationResult } from '@/lib/actions/admin-actions';
+import { runEpisodeChecker, runPodcastScheduler, runAllCronJobs, runGoogleAudioGenerator, CronOperationResult } from '@/lib/actions/admin-actions';
 import {
   CronJobType,
   CRON_JOB_OPTIONS,
   EpisodeCheckerDetailedResult,
   PodcastSchedulerDetailedResult,
+  GoogleAudioGeneratorDetailedResult,
   FullCronDetailedResult 
 } from './cron-runner-constants';
 import { EpisodeCheckerResultDetails } from './episode-checker-result-details';
 import { PodcastSchedulerResultDetails } from './podcast-scheduler-result-details';
+import { GoogleAudioGeneratorResultDetails } from './google-audio-generator-result-details';
 import { FullCronResultDetails } from './full-cron-result-details';
 
 export function CronRunner() {
@@ -45,6 +47,9 @@ export function CronRunner() {
           break;
         case 'podcast-scheduler':
           result = await runPodcastScheduler();
+          break;
+        case 'google-audio-generator':
+          result = await runGoogleAudioGenerator();
           break;
         case 'full-cron':
           result = await runAllCronJobs();
@@ -76,6 +81,7 @@ export function CronRunner() {
   // Prepare details variables with proper typing before rendering
   let episodeCheckerDetails: { results: EpisodeCheckerDetailedResult, timestamp: string | Date | null } | null = null;
   let podcastSchedulerDetails: { results: PodcastSchedulerDetailedResult, timestamp: string | Date | null } | null = null;
+  let googleAudioGeneratorDetails: { results: GoogleAudioGeneratorDetailedResult, timestamp: string | Date | null } | null = null;
   let fullCronDetails: { results: FullCronDetailedResult, timestamp: string | Date | null } | null = null;
 
   if (lastResult?.details && typeof lastResult.details === 'object') {
@@ -89,6 +95,11 @@ export function CronRunner() {
     } else if (selectedJob === 'podcast-scheduler' && 'results' in lastResult.details && Array.isArray(lastResult.details.results)) {
       podcastSchedulerDetails = {
         results: lastResult.details.results as PodcastSchedulerDetailedResult,
+        timestamp: detailsTimestamp
+      };
+    } else if (selectedJob === 'google-audio-generator' && 'processed' in lastResult.details && 'errors' in lastResult.details && 'results' in lastResult.details) {
+      googleAudioGeneratorDetails = {
+        results: lastResult.details as unknown as GoogleAudioGeneratorDetailedResult,
         timestamp: detailsTimestamp
       };
     } else if (selectedJob === 'full-cron' && 'results' in lastResult.details && Array.isArray(lastResult.details.results)) {
@@ -159,6 +170,12 @@ export function CronRunner() {
                 <PodcastSchedulerResultDetails 
                   results={podcastSchedulerDetails.results} 
                   timestamp={podcastSchedulerDetails.timestamp} 
+                />}
+
+              {googleAudioGeneratorDetails && 
+                <GoogleAudioGeneratorResultDetails 
+                  results={googleAudioGeneratorDetails.results} 
+                  timestamp={googleAudioGeneratorDetails.timestamp} 
                 />}
               
               {fullCronDetails && 

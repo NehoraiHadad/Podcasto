@@ -41,8 +41,16 @@ export async function saveEpisodeImagePreview(
     // Create post-processing service with S3 config (AI not needed for saving)
     const postProcessingService = await createPostProcessingWithConfig(false, true);
     
+    // Type guard to ensure we have the correct service type
+    if (!('saveGeneratedImage' in postProcessingService)) {
+      throw new Error('Service does not support image saving');
+    }
+    
+    // TypeScript now knows this service has saveGeneratedImage method
+    const storageService = postProcessingService as Extract<typeof postProcessingService, { saveGeneratedImage: unknown }>;
+    
     // Save the image
-    const saveResult = await postProcessingService.saveGeneratedImage(
+    const saveResult = await storageService.saveGeneratedImage(
       episode.podcast_id,
       episodeId,
       buffer,

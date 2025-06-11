@@ -47,8 +47,16 @@ export async function generateEpisodeImagePreview(
     // Get the episode title
     const title = episode.title || undefined;
     
+    // Type guard to ensure we have the correct service type
+    if (!('generateEpisodeImagePreview' in postProcessingService)) {
+      throw new Error('Service does not support image preview generation');
+    }
+    
+    // TypeScript now knows this service has generateEpisodeImagePreview method
+    const imageService = postProcessingService as Extract<typeof postProcessingService, { generateEpisodeImagePreview: unknown }>;
+    
     // Generate the image preview
-    const previewResult = await postProcessingService.generateEpisodeImagePreview(
+    const previewResult = await imageService.generateEpisodeImagePreview(
       description,
       title
     );
