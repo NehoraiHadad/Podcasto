@@ -24,8 +24,8 @@ export class ImageGenerator {
   ): Promise<ImageGenerationResult> {
     try {
       return await withRetry(async () => {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(this.apiKey);
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: this.apiKey });
         
         // Add style context to description
         const style = options?.style || 'modern, professional';
@@ -53,38 +53,24 @@ IMPORTANT: Only generate an image based on this description. Do not provide any 
         
         console.log(`[IMAGE_GENERATOR] Using model: ${this.modelName}`);
         
-        // Initialize the generative model
-        const model = genAI.getGenerativeModel({
+        // Generate content using the new SDK
+        const response = await ai.models.generateContent({
           model: this.modelName,
+          contents: enhancedPrompt,
+          config: {
+            temperature: 1,
+            topP: 0.95,
+            topK: 40,
+            maxOutputTokens: 8192,
+            responseModalities: ['image', 'text'],
+            responseMimeType: 'text/plain'
+          }
         });
 
-        // Set generation config exactly as in the official example
-        const generationConfig = {
-          temperature: 1,
-          topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 8192,
-          responseModalities: [
-            "image",
-            "text",
-          ],
-          responseMimeType: "text/plain",
-        };
-
-        // Start a chat session following the official pattern
-        console.log('[IMAGE_GENERATOR] Starting chat session for image generation');
-        const chatSession = model.startChat({
-          generationConfig,
-          history: [],
-        });
-
-        // Send message to generate the image
-        console.log('[IMAGE_GENERATOR] Sending message to chat session');
-        const result = await chatSession.sendMessage(enhancedPrompt);
-        console.log('[IMAGE_GENERATOR] Received response from chat session');
+        console.log('[IMAGE_GENERATOR] Received response from AI');
         
         // Process the response candidates to extract image data
-        const candidates = result.response.candidates;
+        const candidates = response.candidates;
         if (!candidates || candidates.length === 0) {
           console.warn('[IMAGE_GENERATOR] No candidates found in response');
           return { 
@@ -101,7 +87,7 @@ IMPORTANT: Only generate an image based on this description. Do not provide any 
           
           for (let partIndex = 0; partIndex < candidate.content.parts.length; partIndex++) {
             const part = candidate.content.parts[partIndex];
-            if (part.inlineData) {
+            if (part.inlineData && part.inlineData.data) {
               console.log(`[IMAGE_GENERATOR] Found inline image data in candidate ${candidateIndex}, part ${partIndex}`);
               const imageData = Buffer.from(part.inlineData.data, 'base64');
               const mimeType = part.inlineData.mimeType || 'image/jpeg';

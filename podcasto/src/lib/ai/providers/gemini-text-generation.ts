@@ -39,16 +39,11 @@ export class GeminiTextGenerator {
   ): Promise<string> {
     try {
       return await withRetry(async () => {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(this.apiKey);
-        
-        // Get generative model from API
-        const model = genAI.getGenerativeModel({
-          model: this.textModel
-        });
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: this.apiKey });
         
         // Prepare generation config
-        const generationConfig: {
+        const config: {
           temperature?: number;
           topP?: number;
           topK?: number;
@@ -62,23 +57,15 @@ export class GeminiTextGenerator {
           stopSequences: options?.stopSequences
         };
         
-        // We need to remove responseSchema support as it causes errors with gemini-2.0-flash
-        // If we need schema support later, we'll need to use a different model
-        
-        // Generate content from the model
-        const result = await model.generateContent({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: prompt }]
-            }
-          ],
-          generationConfig
+        // Generate content using the new SDK
+        const response = await ai.models.generateContent({
+          model: this.textModel,
+          contents: prompt,
+          config
         });
         
         // Get the response text
-        const response = result.response;
-        const text = response.text();
+        const text = response.text || '';
         
         return text;
       }, this.retryConfig);

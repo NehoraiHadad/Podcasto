@@ -21,6 +21,25 @@ export interface GeminiConfig {
 }
 
 /**
+ * Schema for title and summary generation response
+ */
+const titleSummarySchema = {
+  type: "object" as const,
+  properties: {
+    title: {
+      type: "string" as const,
+      description: "A concise, engaging title for the podcast episode"
+    },
+    summary: {
+      type: "string" as const,
+      description: "A comprehensive summary of the podcast episode content"
+    }
+  },
+  required: ["title", "summary"],
+  propertyOrdering: ["title", "summary"]
+};
+
+/**
  * Gemini AI provider implementation
  */
 export class GeminiProvider implements AIProvider {
@@ -57,71 +76,35 @@ export class GeminiProvider implements AIProvider {
   ): Promise<TitleSummaryResult> {
     try {
       return await withRetry(async () => {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(this.apiKey);
-        
-        // Important: Explicitly use API v1 for newer models
-        const model = genAI.getGenerativeModel({ 
-          model: this.textModel
-        }, { 
-          apiVersion: 'v1' 
+        const { GoogleGenAI } = await import('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: this.apiKey });
+
+        const prompt = this.buildTitleSummaryPrompt(transcript, titleOptions, summaryOptions);
+
+        const response = await ai.models.generateContent({
+          model: this.textModel,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: titleSummarySchema,
+            temperature: 0.7,
+            maxOutputTokens: 500
+          }
         });
 
-        // Set up style based on options
-        const titleStyle = titleOptions?.style || 'engaging';
-        const summaryStyle = summaryOptions?.style || 'concise';
-        const language = titleOptions?.language || summaryOptions?.language || 'English';
+        // The SDK now automatically parses the structured response
+        const parsedResponse = JSON.parse(response.text || '{}');
         
-        // Limit transcript length to avoid token limits
-        const truncatedTranscript = transcript.length > 12000 
-          ? transcript.substring(0, 12000) + "..." 
-          : transcript;
-
-        // Create a prompt for title and summary generation
-        const prompt = `
-          You are a professional podcast editor who creates engaging titles and summaries.
-          
-          I have a podcast transcript, and I need you to:
-          1. Create a ${titleStyle} title (maximum ${titleOptions?.maxLength || 60} characters)
-          2. Write a ${summaryStyle} summary (maximum ${summaryOptions?.maxLength || 150} words)
-          
-          The title and summary should be in ${language}.
-          
-          Respond in JSON format with "title" and "summary" fields only.
-          
-          Here is the transcript:
-          --------
-          ${truncatedTranscript}
-          --------
-        `;
-
-        const result = await model.generateContent(prompt);
-        const textResult = result.response.text();
-        
-        // Parse JSON response
-        try {
-          const parsed = JSON.parse(textResult);
-          return {
-            title: parsed.title || 'Untitled Episode',
-            summary: parsed.summary || 'No summary available.'
-          };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (_error) {
-          // If JSON parsing fails, try to extract title and summary using regex
-          const titleMatch = textResult.match(/"title":\s*"([^"]+)"/);
-          const summaryMatch = textResult.match(/"summary":\s*"([^"]+)"/);
-          
-          return {
-            title: titleMatch ? titleMatch[1] : 'Untitled Episode',
-            summary: summaryMatch ? summaryMatch[1] : 'No summary available.'
-          };
-        }
+        return {
+          title: parsedResponse.title || 'Untitled Episode',
+          summary: parsedResponse.summary || 'No summary available.'
+        };
       }, this.retryConfig);
     } catch (error) {
-      console.error('Error generating title and summary:', error);
+      console.error('[GEMINI_PROVIDER] Error generating title and summary:', error);
       return {
         title: 'Untitled Episode',
-        summary: 'Failed to generate summary due to an error.'
+        summary: 'Error occurred while generating summary.'
       };
     }
   }
@@ -153,5 +136,39 @@ export class GeminiProvider implements AIProvider {
     modelName?: string;
   }): Promise<string> {
     return this.textGenerator.generateText(prompt, options);
+  }
+
+  private buildTitleSummaryPrompt(
+    transcript: string,
+    titleOptions?: TitleGenerationOptions,
+    summaryOptions?: SummaryGenerationOptions
+  ): string {
+    // Set up style based on options
+    const titleStyle = titleOptions?.style || 'engaging';
+    const summaryStyle = summaryOptions?.style || 'concise';
+    const language = titleOptions?.language || summaryOptions?.language || 'English';
+    
+    // Limit transcript length to avoid token limits
+    const truncatedTranscript = transcript.length > 12000 
+      ? transcript.substring(0, 12000) + "..." 
+      : transcript;
+
+    // Create a prompt for title and summary generation
+    return `
+      You are a professional podcast editor who creates engaging titles and summaries.
+      
+      I have a podcast transcript, and I need you to:
+      1. Create a ${titleStyle} title (maximum ${titleOptions?.maxLength || 60} characters)
+      2. Write a ${summaryStyle} summary (maximum ${summaryOptions?.maxLength || 150} words)
+      
+      The title and summary should be in ${language}.
+      
+      Respond in JSON format with "title" and "summary" fields only.
+      
+      Here is the transcript:
+      --------
+      ${truncatedTranscript}
+      --------
+    `;
   }
 } 
