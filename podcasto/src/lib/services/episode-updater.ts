@@ -29,6 +29,16 @@ export class EpisodeUpdater {
   }
 
   /**
+   * Mark episode as published with timestamp
+   */
+  async markEpisodeAsPublished(episodeId: string): Promise<void> {
+    await episodesApi.updateEpisode(episodeId, {
+      status: 'published',
+      published_at: new Date()
+    });
+  }
+
+  /**
    * Mark episode as failed with error message
    */
   async markEpisodeAsFailed(episodeId: string, error: unknown): Promise<void> {
@@ -104,10 +114,11 @@ export class EpisodeUpdater {
       metadata.original_description = originalDescription || episode.description;
     }
     
-    // Update episode with image URL and metadata
+    // Update episode with image URL and metadata, and mark as published
     await episodesApi.updateEpisode(episodeId, {
       cover_image: imageUrl,
-      status: 'processed', // Final status
+      status: 'published',
+      published_at: new Date(),
       metadata: JSON.stringify(metadata)
     });
   }

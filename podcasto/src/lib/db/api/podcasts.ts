@@ -1,5 +1,6 @@
+import { db } from '../index';
 import { podcasts, episodes } from '../schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import * as dbUtils from '../utils';
 
 // Types
@@ -57,6 +58,19 @@ export async function getPodcastEpisodes(podcastId: string): Promise<typeof epis
 }
 
 /**
+ * Returns only published episodes for a specific podcast (for user-facing pages)
+ */
+export async function getPublishedPodcastEpisodes(podcastId: string): Promise<typeof episodes.$inferSelect[]> {
+  return await db.select()
+    .from(episodes)
+    .where(and(
+      eq(episodes.podcast_id, podcastId),
+      eq(episodes.status, 'published')
+    ))
+    .orderBy(desc(episodes.published_at)) as typeof episodes.$inferSelect[];
+}
+
+/**
  * Returns all podcasts with episode counts
  */
 export async function getAllPodcasts(): Promise<Podcast[]> {
@@ -64,11 +78,12 @@ export async function getAllPodcasts(): Promise<Podcast[]> {
   
   return await Promise.all(results.map(async (podcast) => {
     const podcastEpisodes = await getPodcastEpisodes(podcast.id);
+    const publishedEpisodes = await getPublishedPodcastEpisodes(podcast.id);
     
-    // Default podcast data
+    // Default podcast data - use published episodes count for user-facing display
     const podcastData: Podcast = {
       ...podcast,
-      episodes_count: podcastEpisodes.length,
+      episodes_count: publishedEpisodes.length,
       status: undefined,
       timestamp: undefined
     };
@@ -119,17 +134,17 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
     return null;
   }
   
-  const podcastEpisodes = await getPodcastEpisodes(podcast.id);
+  const publishedEpisodes = await getPublishedPodcastEpisodes(podcast.id);
   
   // Get podcast config if available
   const podcastConfig = await import('./podcast-configs').then(
     module => module.getPodcastConfigByPodcastId(id)
   );
   
-  // Base podcast object
+  // Base podcast object - use published episodes count for user-facing display
   const podcastWithCount: Podcast = {
     ...podcast,
-    episodes_count: podcastEpisodes.length
+    episodes_count: publishedEpisodes.length
   };
   
   // Add configuration data if available
@@ -177,10 +192,10 @@ export async function getPodcastsPaginated(page: number = 1, pageSize: number = 
   const results = await dbUtils.getPaginated<typeof podcasts.$inferSelect>(podcasts, page, pageSize);
   
   return await Promise.all(results.map(async (podcast) => {
-    const podcastEpisodes = await getPodcastEpisodes(podcast.id);
+    const publishedEpisodes = await getPublishedPodcastEpisodes(podcast.id);
     return {
       ...podcast,
-      episodes_count: podcastEpisodes.length
+      episodes_count: publishedEpisodes.length
     };
   }));
 }
@@ -201,10 +216,10 @@ export async function updatePodcast(id: string, data: Partial<NewPodcast>): Prom
     return null;
   }
   
-  const podcastEpisodes = await getPodcastEpisodes(podcast.id);
+  const publishedEpisodes = await getPublishedPodcastEpisodes(podcast.id);
   return {
     ...podcast,
-    episodes_count: podcastEpisodes.length
+    episodes_count: publishedEpisodes.length
   };
 }
 

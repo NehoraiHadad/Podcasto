@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
           timed_out: result.status === 'timed_out' ? 1 : 0,
           completed: result.status === 'completed' ? 1 : 0,
           processed: result.status === 'processed' ? 1 : 0,
+        published: result.status === 'published' ? 1 : 0,
           requires_processing: 0, // Not tracked in single mode
           errors: result.error ? [result.error] : []
         }
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
         timed_out: 0,
         completed: 0,
         processed: 0,
+        published: 0,
         requires_processing: 0, // Will be incremented based on processor logic
         errors: []
       };
@@ -123,6 +125,9 @@ export async function GET(request: NextRequest) {
             break;
           case 'processed':
             aggregatedResults.processed++;
+            break;
+          case 'published':
+            aggregatedResults.published++;
             break;
           case 'failed': // Represents an error *during* processing this episode
             // Error message added below

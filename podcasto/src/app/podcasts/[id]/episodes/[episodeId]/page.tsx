@@ -45,6 +45,11 @@ export default async function EpisodeDetailPage({
   if (!episode || !podcast) {
     notFound();
   }
+
+  // Check if episode is published (for regular users)
+  if (episode.status !== 'published') {
+    notFound();
+  }
   
   // Get the playable audio URL from the server action
   const { url: playableAudioUrl, error: audioUrlError } = await getEpisodeAudioUrl(episode.id);

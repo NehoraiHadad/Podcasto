@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
-import { getPodcastById, getPodcastEpisodes } from '@/lib/db/api/podcasts';
+import { getPodcastById, getPublishedPodcastEpisodes } from '@/lib/db/api/podcasts';
 import { formatDuration } from '@/lib/utils';
 import { SubscribeButtonServer } from './subscribe-button-server';
 import { PodcastImage } from '@/components/podcasts/podcast-image';
@@ -38,7 +38,7 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
     notFound();
   }
   
-  const episodesData = await getPodcastEpisodes(resolvedParams.id);
+  const episodesData = await getPublishedPodcastEpisodes(resolvedParams.id);
   const episodes = sortEpisodesByDate(episodesData);
   
   return (

@@ -30,6 +30,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { updateEpisodeDetails } from '@/lib/actions/episode-actions';
 import { EpisodeImageManager } from './episode-image-manager';
+import { EpisodeGenerationControls } from './episode-generation-controls';
 
 // Define the form validation schema
 const formSchema = z.object({
@@ -148,6 +149,21 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
                   </FormItem>
                 )}
               />
+              
+              {/* AI Generation Controls */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">AI Generation</h3>
+                <p className="text-sm text-muted-foreground">
+                  Generate title and description using AI based on the episode transcript.
+                </p>
+                <EpisodeGenerationControls
+                  episodeId={episode.id}
+                  currentTitle={form.watch('title')}
+                  currentDescription={form.watch('description') || ''}
+                  onTitleGenerated={(title) => form.setValue('title', title, { shouldDirty: true, shouldValidate: true })}
+                  onDescriptionGenerated={(description) => form.setValue('description', description, { shouldDirty: true, shouldValidate: true })}
+                />
+              </div>
               
               <FormField
                 control={form.control}

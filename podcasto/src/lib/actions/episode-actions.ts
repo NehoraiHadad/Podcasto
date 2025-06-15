@@ -5,6 +5,7 @@
 import { getEpisodeAudioUrl, regenerateEpisodeAudio } from './episode/audio-actions';
 import { generateEpisodeImage, generateEpisodeImagePreview, saveEpisodeImagePreview } from './episode/image-actions';
 import { deleteEpisode, updateEpisodeDetails } from './episode/core-actions';
+import { generateEpisodeTitleAndDescription } from './episode/generation-actions';
 
 // Export each async function individually
 export { 
@@ -14,5 +15,6 @@ export {
   generateEpisodeImagePreview, 
   saveEpisodeImagePreview,
   deleteEpisode, 
-  updateEpisodeDetails
+  updateEpisodeDetails,
+  generateEpisodeTitleAndDescription
 }; 

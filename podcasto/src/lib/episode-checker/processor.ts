@@ -6,7 +6,7 @@ import {
   PENDING_STATUS,
   COMPLETED_STATUS,
   FAILED_STATUS,
-  PROCESSED_STATUS,
+  PUBLISHED_STATUS,
   MAX_PENDING_TIME_MS,
   SUMMARY_COMPLETED_STATUS
 } from './constants';
@@ -22,7 +22,7 @@ type PostProcessingService = ReturnType<typeof createPostProcessingService>;
  * Represents the outcome of processing a single episode.
  */
 export interface ProcessingResult {
-  status: 'timed_out' | 'completed' | 'processed' | 'failed' | 'no_change';
+  status: 'timed_out' | 'completed' | 'processed' | 'published' | 'failed' | 'no_change';
   error?: string;
   episodeId: string;
 }
@@ -88,16 +88,19 @@ export async function processSingleEpisode(
             );
             
             if (success) {
-              console.log(`${baseLogPrefix} Post-processing successful, marking as PROCESSED.`);
+              console.log(`${baseLogPrefix} Post-processing successful, marking as PUBLISHED.`);
               await db.update(episodes)
-                .set({ status: PROCESSED_STATUS })
+                .set({ 
+                  status: PUBLISHED_STATUS,
+                  published_at: new Date()
+                })
                 .where(eq(episodes.id, episode.id));
               
               // Revalidate paths again after processing
               console.log(`${baseLogPrefix} Revalidating paths after processing.`);
               revalidatePath('/admin/podcasts');
               revalidatePath(`/podcasts/${episode.podcast_id}`);
-              return { status: 'processed', episodeId: episode.id };
+              return { status: 'published', episodeId: episode.id };
             } else {
               const errorMsg = `Post-processing failed for newly completed episode.`;
               console.error(`${baseLogPrefix} ${errorMsg}`);
@@ -134,16 +137,19 @@ export async function processSingleEpisode(
           );
           
           if (success) {
-            console.log(`${baseLogPrefix} Post-processing successful, marking as PROCESSED.`);
+            console.log(`${baseLogPrefix} Post-processing successful, marking as PUBLISHED.`);
             await db.update(episodes)
-              .set({ status: PROCESSED_STATUS })
+              .set({ 
+                status: PUBLISHED_STATUS,
+                published_at: new Date()
+              })
               .where(eq(episodes.id, episode.id));
             
             // Revalidate paths after processing
             console.log(`${baseLogPrefix} Revalidating paths after processing.`);
             revalidatePath('/admin/podcasts');
             revalidatePath(`/podcasts/${episode.podcast_id}`);
-            return { status: 'processed', episodeId: episode.id };
+            return { status: 'published', episodeId: episode.id };
           } else {
             const errorMsg = `Post-processing failed for existing completed episode.`;
             console.error(`${baseLogPrefix} ${errorMsg}`);
@@ -177,13 +183,13 @@ export async function processSingleEpisode(
             );
             
             if (success) {
-              console.log(`${baseLogPrefix} Image generation successful, marking as PROCESSED.`);
+              console.log(`${baseLogPrefix} Image generation successful, marking as PUBLISHED.`);
               
               // Revalidate paths after processing
               console.log(`${baseLogPrefix} Revalidating paths after image generation.`);
               revalidatePath('/admin/podcasts');
               revalidatePath(`/podcasts/${episode.podcast_id}`);
-              return { status: 'processed', episodeId: episode.id }; // Return 'processed' as image is the final step
+              return { status: 'published', episodeId: episode.id }; // Return 'published' as image is the final step
             } else {
               const errorMsg = `Image generation failed for SUMMARY_COMPLETED episode.`;
               console.error(`${baseLogPrefix} ${errorMsg}`);

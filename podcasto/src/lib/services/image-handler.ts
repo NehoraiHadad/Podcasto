@@ -127,8 +127,8 @@ export class ImageHandler {
       } else {
         console.warn(`[IMAGE_HANDLER] No image was generated for episode ${episodeId}: ${previewResult.error}`);
         
-        // Mark as processed even without image
-        await this.episodeUpdater.markEpisodeAsProcessed(episodeId);
+        // Mark as published even without image (episode is still complete)
+        await this.episodeUpdater.markEpisodeAsPublished(episodeId);
         
         return false;
       }

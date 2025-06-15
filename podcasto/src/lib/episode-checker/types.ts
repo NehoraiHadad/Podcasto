@@ -6,6 +6,7 @@ export interface EpisodeCheckResults {
   timed_out: number;
   completed: number;
   processed: number;
+  published: number;
   requires_processing: number; // Track how many were identified as needing processing
   errors: string[];
 }
