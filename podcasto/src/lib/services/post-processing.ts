@@ -85,28 +85,64 @@ export class PostProcessingService {
     episode?: Episode;
   }> {
     try {
-      const episode = await this.getEpisode(podcastId, episodeId);
-      if (!episode) {
+      // Get episode data
+      const episode = await this.getEpisode(episodeId);
+      if (!episode || !episode.podcast_id) {
         return { success: false, message: 'Episode not found' };
       }
 
-      const transcript = await this.storageUtils.getTranscriptFromS3(podcastId, episodeId);
+      // Get transcript
+      const transcript = await this.storageUtils.getTranscriptFromS3(episode.podcast_id, episodeId);
       if (!transcript) {
         return { success: false, message: 'No transcript found for episode' };
       }
 
-      const processedResults = await this.processTranscriptAndUpdateEpisode(
-        podcastId, episodeId, transcript, episode, options
+      // Use episode language (which was copied from podcast config during creation)
+      const language = this.normalizeLanguageForAI(episode.language);
+      console.log(`[POST_PROCESSING] Processing episode ${episodeId} in ${language} (episode.language: ${episode.language})`);
+
+      // Preprocess transcript
+      const processedTranscript = this.transcriptProcessor.preprocessTranscript(transcript);
+      
+      console.log(`[POST_PROCESSING] Generating title and summary in ${language} for episode ${episodeId}`);
+      
+      // Generate title and summary directly with AI service
+      const { title, summary } = await this.aiService.generateTitleAndSummary(
+        processedTranscript,
+        { 
+          language,
+          style: 'engaging',
+          maxLength: 60 
+        },
+        { 
+          language,
+          style: 'concise',
+          maxLength: 150 
+        }
       );
 
+      // Update episode
+      await this.episodeUpdater.updateEpisodeWithSummary(
+        episodeId,
+        options?.skipTitleGeneration ? '' : title,
+        options?.skipSummaryGeneration ? '' : summary
+      );
+
+      const updatedEpisode = { 
+        id: episodeId, 
+        title, 
+        description: summary
+      };
+
+      // Generate image if needed
       if (!options?.skipImageGeneration) {
-        await this.generateEpisodeImage(podcastId, episodeId, episode, true);
+        await this.generateEpisodeImage(episode.podcast_id, episodeId, updatedEpisode, true);
       }
 
       return {
         success: true,
         message: 'Episode processed successfully',
-        episode: processedResults.episode
+        episode: updatedEpisode
       };
     } catch (error) {
       console.error(`[POST_PROCESSING] Error in processCompletedEpisode:`, error);
@@ -117,60 +153,28 @@ export class PostProcessingService {
     }
   }
 
-  private async getEpisode(podcastId: string, episodeId: string): Promise<Episode | null> {
+  /**
+   * Get episode by ID
+   */
+  private async getEpisode(episodeId: string): Promise<Episode | null> {
     try {
-      // Call your episodesApi here
-      return { id: episodeId, podcast_id: podcastId };
+      return await episodesApi.getEpisodeById(episodeId);
     } catch (error) {
       console.error(`[POST_PROCESSING] Error getting episode:`, error);
       return null;
     }
   }
 
-  private async processTranscriptAndUpdateEpisode(
-    podcastId: string,
-    episodeId: string,
-    transcript: string,
-    episode: Episode,
-    options?: {
-      forceReprocess?: boolean,
-      skipTitleGeneration?: boolean,
-      skipSummaryGeneration?: boolean
-    }
-  ): Promise<{
-    success: boolean;
-    message: string;
-    episode: Episode;
-  }> {
-    try {
-      // First, preprocess the transcript
-      const processedTranscript = this.transcriptProcessor.preprocessTranscript(transcript);
-      
-      // Generate title and summary with AI service
-      const { title, summary } = await this.aiService.generateTitleAndSummary(processedTranscript);
-
-      // Update episode with new information
-      await this.episodeUpdater.updateEpisodeWithSummary(
-        episodeId,
-        options?.skipTitleGeneration ? '' : title,
-        options?.skipSummaryGeneration ? '' : summary
-      );
-
-      return {
-        success: true,
-        message: 'Episode updated with title and summary',
-        episode: { 
-          id: episodeId, 
-          podcast_id: podcastId,
-          title, 
-          description: summary 
-        }
-      };
-    } catch (error) {
-      console.error(`[POST_PROCESSING] Error processing transcript:`, error);
-      throw error;
-    }
+  /**
+   * Normalize language value for AI generation
+   * Convert 'hebrew'/'english' to 'Hebrew'/'English' as expected by AI service
+   */
+  private normalizeLanguageForAI(language?: string | null): string {
+    if (!language) return 'English';
+    return language === 'hebrew' ? 'Hebrew' : 'English';
   }
+
+
 
   /**
    * Generate a detailed image prompt using the AI model

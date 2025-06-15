@@ -154,8 +154,20 @@ sqs.send_message(
 The `audio-generation-lambda` currently:
 1. ✅ Updates episode status to `processing` when starting
 2. ✅ Updates episode status to `completed` when finished (via `_update_episode_with_audio`)
-3. ❌ **Does NOT send any completion callbacks to Next.js API**
-4. ❌ **Does NOT trigger post-processing automatically**
+3. ❌ **Does NOT send any completion callbacks to Next.js API** ✅ FIXED
+4. ❌ **Does NOT trigger post-processing automatically** ✅ FIXED
+5. ❌ **Does NOT create transcript files** ✅ FIXED
+
+### Issue Discovered During Testing
+**Problem**: Post-processing failed with "No transcript found for episode"
+- The new `audio-generation-lambda` uses Google TTS directly from script
+- Unlike the old `podcastfy-lambda`, it doesn't create transcript files
+- Post-processing expects transcript files in S3 for title/summary generation
+
+**Solution**: Modified Lambda to upload generated script as transcript
+- Added `_upload_script_as_transcript()` method
+- Added `upload_transcript()` method to S3Client
+- Script is now saved as transcript file in S3 before audio generation
 
 ### Post-Processing Current Trigger
 Post-processing is currently triggered by:
@@ -222,6 +234,14 @@ After callback implementation:
 - [x] Add environment variable for API base URL
 - [x] Add environment variable for Lambda authentication secret
 - [x] Verify requests dependency exists in requirements.txt
+- [x] **FIX**: Add transcript upload functionality (`_upload_script_as_transcript()`)
+- [x] **FIX**: Add `upload_transcript()` method to S3Client
+
+### Step 2.5: Code Optimization ✅ COMPLETED
+- [x] **CLEANUP**: Removed redundant `PostProcessingService.generateTitleAndSummary()` private method
+- [x] **SIMPLIFY**: Integrated AI service call directly in `processCompletedEpisode()`
+- [x] **REDUCE LAYERS**: Eliminated unnecessary wrapper method that added no value
+- [x] **FINAL ARCHITECTURE**: PostProcessingService → AIService → Provider (3 layers instead of 4)
 
 ### Step 3: Deploy and Configure ✅ READY FOR DEPLOYMENT
 
@@ -276,14 +296,31 @@ vercel --prod
 # Or push to main branch for auto-deployment
 ```
 
-#### 3.5 Test Deployment
+#### 3.5 Re-Deploy Lambda with Transcript Fix
+**IMPORTANT**: The Lambda needs to be re-deployed with the transcript upload fix:
+
+```bash
+cd Lambda/audio-generation-lambda
+sam build
+sam deploy
+```
+
+#### 3.6 Test Deployment
 - [ ] Test callback endpoint health check
 - [ ] Verify Lambda can reach Next.js API
 - [ ] Test complete podcast generation flow
+- [ ] Verify transcript files are created in S3
+- [ ] Confirm post-processing works with new transcripts
 
 ### Step 4: Testing and Validation
+- [x] **ISSUE FOUND**: Post-processing failed due to missing transcript files
+- [x] **FIXED**: Added transcript upload functionality to Lambda
+- [x] **ISSUE FOUND**: Post-processing not using correct language source + code complexity
+- [x] **FIXED**: Refactored post-processing to use podcast config + simplified code structure
+- [ ] Re-deploy Lambda with transcript upload fix
 - [ ] Test complete flow with callback integration
 - [ ] Verify post-processing triggers immediately after audio completion
+- [ ] Verify Hebrew episodes get Hebrew titles and descriptions
 - [ ] Monitor callback success rates and error handling
 - [ ] Validate that CRON jobs still catch any missed episodes
 
@@ -337,6 +374,33 @@ curl -X POST "https://your-app.vercel.app/api/episodes/[episode-id]/completed" \
   -H "Content-Type: application/json" \
   -d '{"status":"completed","audio_url":"https://example.com/audio.wav","duration":300}'
 ```
+
+## Issues Found and Fixed During Implementation
+
+### Issue #1: Missing Transcript Files ✅ FIXED
+**Problem**: Post-processing failed with "No transcript found for episode"
+- The new `audio-generation-lambda` uses Google TTS directly from script
+- Unlike the old `podcastfy-lambda`, it doesn't create transcript files
+- Post-processing expects transcript files in S3 for title/summary generation
+
+**Solution**: Modified Lambda to upload generated script as transcript
+- Added `_upload_script_as_transcript()` method to Lambda
+- Added `upload_transcript()` method to S3Client
+- Script is now saved as transcript file in S3 before audio generation
+
+### Issue #2: Language Not Passed to AI ✅ FIXED
+**Problem**: Hebrew podcasts were getting English titles and descriptions
+- Post-processing wasn't using episode language parameter for AI calls
+- The language parameter was missing in `generateTitleAndSummary()` calls
+- Code had unnecessary complexity with duplicate methods
+
+**Solution**: Fixed language handling and simplified post-processing
+- Episode language is reliably set from podcast config during episode creation
+- Added `normalizeLanguageForAI()` helper to convert 'hebrew'/'english' to 'Hebrew'/'English' 
+- Simplified the flow: `processCompletedEpisode()` → `generateTitleAndSummary()`
+- Removed duplicate `processTranscriptAndUpdateEpisode()` method  
+- Cleaned up redundant code and improved error handling
+- **No unnecessary DB calls** - episode.language is already the correct value
 
 ## Risk Mitigation
 - Keep existing CRON jobs as safety nets (reduced frequency)

@@ -116,6 +116,58 @@ class S3Client:
             logger.error(f"[S3] {error_msg}")
             raise Exception(error_msg)
     
+    def upload_transcript(
+        self,
+        transcript_content: str,
+        podcast_id: str,
+        episode_id: str,
+        filename: str
+    ) -> Optional[str]:
+        """
+        Upload transcript content to S3
+        
+        Args:
+            transcript_content: The transcript text content
+            podcast_id: The podcast ID
+            episode_id: The episode ID
+            filename: Name of the transcript file
+            
+        Returns:
+            S3 URL of uploaded transcript or None if failed
+        """
+        try:
+            # Construct S3 key for transcript
+            s3_key = f"podcasts/{podcast_id}/{episode_id}/transcripts/{filename}"
+            
+            logger.info(f"[S3] Uploading transcript to s3://{self.bucket_name}/{s3_key}")
+            
+            # Upload transcript content to S3
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=s3_key,
+                Body=transcript_content.encode('utf-8'),
+                ContentType='text/plain',
+                Metadata={
+                    'podcast_id': podcast_id,
+                    'episode_id': episode_id,
+                    'content_type': 'podcast_transcript'
+                }
+            )
+            
+            # Generate public URL
+            s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
+            
+            logger.info(f"[S3] Successfully uploaded transcript: {s3_url}")
+            return s3_url
+            
+        except ClientError as e:
+            logger.error(f"[S3] Failed to upload transcript to S3: {e}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"[S3] Unexpected error uploading transcript: {e}")
+            return None
+
     def check_file_exists(self, s3_key: str) -> bool:
         """
         Check if a file exists in S3

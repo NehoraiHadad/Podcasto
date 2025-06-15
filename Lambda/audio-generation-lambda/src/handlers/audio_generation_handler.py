@@ -142,6 +142,9 @@ class AudioGenerationHandler:
             script = self._generate_script(telegram_data, podcast_config, request_id)
             audio_result = self._generate_audio(episode_id, podcast_id, script, podcast_config)
             
+            # Upload script as transcript to S3
+            self._upload_script_as_transcript(episode_id, podcast_id, script, request_id)
+            
             # Upload and update
             audio_url = self.s3_client.upload_audio(
                 audio_result['audio_buffer'], podcast_id, episode_id, 'wav'
@@ -242,6 +245,27 @@ class AudioGenerationHandler:
         
         # Send completion callback to trigger immediate post-processing
         self._send_completion_callback(episode_id, audio_url, audio_result.get('duration', 0))
+
+    def _upload_script_as_transcript(self, episode_id: str, podcast_id: str, script: str, request_id: str):
+        """Upload the generated script as a transcript file to S3"""
+        try:
+            # Create transcript filename with timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            transcript_filename = f"transcript_{timestamp}.txt"
+            
+            # Upload script as transcript to S3
+            transcript_url = self.s3_client.upload_transcript(
+                script, podcast_id, episode_id, transcript_filename
+            )
+            
+            if transcript_url:
+                logger.info(f"[AUDIO_GEN] [{request_id}] Successfully uploaded transcript for episode {episode_id}: {transcript_url}")
+            else:
+                logger.warning(f"[AUDIO_GEN] [{request_id}] Failed to upload transcript for episode {episode_id}")
+                
+        except Exception as e:
+            logger.warning(f"[AUDIO_GEN] [{request_id}] Error uploading transcript for episode {episode_id}: {str(e)}")
+            # Don't fail the entire process if transcript upload fails
 
     def _send_completion_callback(self, episode_id: str, audio_url: str, duration: int):
         """Send completion callback to Next.js API for immediate post-processing"""
