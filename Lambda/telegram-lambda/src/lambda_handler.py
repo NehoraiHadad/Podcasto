@@ -10,6 +10,7 @@ from src.config import ConfigManager
 from src.channel_processor import ChannelProcessor
 from src.result_formatter import ResultFormatter
 from src.clients.sqs_client import SQSClient
+from src.clients.supabase_client import SupabaseClient
 from src.utils.logging import get_logger, log_event, log_error
 
 logger = get_logger(__name__)
@@ -30,8 +31,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         log_event(logger, event)
         logger.info("Starting Telegram collector Lambda function")
         
-        # Initialize SQS client
+        # Initialize clients
         sqs_client = SQSClient()
+        supabase_client = SupabaseClient()
         
         # Parse configuration from event
         config_manager = ConfigManager(event)
@@ -59,60 +61,40 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 
                 # Check if processing was successful
                 if result.get('status') == 'success':
-                    # Extract timestamp from the S3 path
+                    # Extract information from the result
                     s3_path = result.get('s3_path', '')
                     timestamp = result.get('timestamp', '')
                     episode_id = result.get('episode_id', timestamp)
                     podcast_id = result.get('podcast_id', config.id)
                     
-                    # 1. Try immediate API call to generate podcast
-                    api_success = False
-                    try:
-                        import urllib3
-                        import json as json_lib
-                        
-                        http = urllib3.PoolManager()
-                        api_endpoint = os.getenv('API_ENDPOINT')
-                        
-                        if api_endpoint:
-                            response = http.request(
-                                'POST',
-                                f"{api_endpoint}/api/episodes/generate-audio",
-                                body=json_lib.dumps({
-                                    'episodeId': episode_id,
-                                    'podcastId': podcast_id,
-                                    's3Path': s3_path,
-                                    'timestamp': timestamp
-                                }),
-                                headers={
-                                    'Content-Type': 'application/json',
-                                    'Authorization': f"Bearer {os.getenv('INTERNAL_API_KEY', '')}"
-                                },
-                                timeout=5.0  # Quick timeout for immediate processing
-                            )
-                            
-                            if response.status == 200:
-                                api_success = True
-                                logger.info(f"Successfully triggered immediate podcast generation for {episode_id}")
+                    # Update episode status to content_collected after successful S3 upload
+                    if episode_id and s3_path:
+                        logger.info(f"Updating episode {episode_id} status after successful S3 upload to {s3_path}")
+                        try:
+                            status_updated = supabase_client.update_episode_status(episode_id, 'content_collected', podcast_id)
+                            if status_updated:
+                                logger.info(f"Episode {episode_id} status successfully updated to content_collected")
                             else:
-                                logger.warning(f"API call failed with status {response.status}, will fallback to SQS")
-                        else:
-                            logger.warning("API_ENDPOINT not configured, using SQS only")
-                            
-                    except Exception as e:
-                        logger.warning(f"Immediate API call failed: {str(e)}, will fallback to SQS")
+                                logger.error(f"Failed to update episode {episode_id} status to content_collected - check Supabase logs for details")
+                                logger.warning(f"Continuing with SQS message despite status update failure")
+                        except Exception as status_update_error:
+                            logger.error(f"Exception while updating episode {episode_id} status: {str(status_update_error)}")
+                            logger.error(f"Exception type: {type(status_update_error).__name__}")
+                            logger.warning(f"Continuing with SQS message despite status update failure")
+                    else:
+                        logger.warning(f"Missing episode_id ({episode_id}) or s3_path ({s3_path}) - skipping status update")
                     
-                    # 2. Always send to SQS as backup (even if API succeeded)
+                    # Send to SQS for asynchronous processing by audio generation lambda
+                    # This ensures the content is fully uploaded to S3 before audio generation begins
                     sqs_sent = sqs_client.send_message(
                         podcast_config_id=config.id,
                         result_data=result,
                         timestamp=timestamp
                     )
                     
-                    # Add status to result
-                    result['immediate_processing'] = api_success
+                    # Log the result
                     result['sqs_message_sent'] = sqs_sent
-                    logger.info(f"Podcast {episode_id}: Immediate={'Success' if api_success else 'Failed'}, SQS={'Sent' if sqs_sent else 'Failed'}")
+                    logger.info(f"Podcast {episode_id}: Content uploaded to S3, status updated, SQS message {'sent' if sqs_sent else 'failed'}")
                 
             except Exception as e:
                 logger.error(f"Error processing podcast config {config.id}: {str(e)}")

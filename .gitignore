@@ -7,11 +7,11 @@ env.json
 !.env.example
 !.env.*.example
 samconfig.toml
+secrets.json
 
 # Test data and events
 **/events/test-*.json
 **/events/*-event.json
-
 *.session
 
 # Dependencies
@@ -31,6 +31,7 @@ pnpm-lock.yaml
 /dist
 /build
 /.next/
+.next/
 /out/
 /.cache/
 storybook-static/
@@ -103,7 +104,6 @@ tmp/
 .cursor/
 
 # Project documentation
-# Allowing ProjectDocs to be committed, but ignoring specific temporary files
 ProjectDocs/**/*.tmp
 ProjectDocs/**/*.temp
 
@@ -116,17 +116,19 @@ ProjectDocs/**/*.temp
 .turbo
 .swc/
 
-# Misc
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-node_modules/
-.next/
-
 # CloudFormation packaged templates
 **/packaged.yaml
 **/packaged.yaml.zip
 
-.vscode/
+# Lambda deployment artifacts
+.aws-sam/
+*.zip
+
+# Test outputs
+test_podcast_output.wav
+test_*.wav
+
+.venv/
+
+node_modules
+vscode/

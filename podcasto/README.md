@@ -1,4 +1,4 @@
-# Podcasto
+# Podcasto - AI-Powered Podcast Generator
 
 Podcasto transforms news content from Telegram channels into professional podcasts, delivered directly to your inbox daily.
 
@@ -147,4 +147,49 @@ This is fixed by updating the Next.js configuration in `next.config.ts` to incre
 serverActions: {
   bodySizeLimit: '4mb',
 },
+```
+
+## Environment Variables Setup
+
+### Required Environment Variables for Vercel:
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key  
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# AWS Configuration for Lambda Integration
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AUDIO_GENERATION_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/YOUR_ACCOUNT/podcasto-audio-generation-dev
+
+# S3 Bucket Configuration
+S3_BUCKET_NAME=podcasto-storage
+```
+
+### AWS Lambda Setup:
+1. Deploy the Lambda using SAM CLI from `/Lambda/audio-generation-lambda/`
+2. Configure AWS Secrets Manager with GEMINI_API_KEY
+3. Update AUDIO_GENERATION_QUEUE_URL in Vercel environment variables
+
+## Architecture Flow:
+1. **Vercel Dashboard** → User triggers episode generation
+2. **Telegram Lambda** → Collects content and saves to S3
+3. **SQS Queue** → Message passing between services
+4. **Audio Generation Lambda** → Processes with 15-minute timeout
+5. **S3 Storage** → Final audio files
+
+## Development Commands:
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Deploy Lambda
+cd Lambda/audio-generation-lambda
+sam deploy --guided
 ```

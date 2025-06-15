@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { episodesApi, podcastConfigsApi } from '@/lib/db/api';
-import { GooglePodcastGenerator } from '@/lib/services/google-podcast-generator';
-import { S3Client } from '@/lib/services/s3-client';
-import { TelegramDataService } from '@/lib/services/telegram-data-service';
+import { episodesApi } from '@/lib/db/api';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 interface GenerateAudioRequest {
   episodeId: string;
   podcastId: string;
   telegramDataPath?: string;
-  s3Path?: string; // From SQS message
-  timestamp?: string; // From SQS message
+  s3Path?: string;
+  timestamp?: string;
 }
 
 /**
  * GET method - Manual trigger for CRON jobs
- * Finds pending episodes and processes them with Google TTS
+ * Finds pending episodes and sends them to AWS Lambda via existing SQS queue
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,19 +20,19 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
     const cronSecret = process.env.CRON_SECRET;
     
-    console.log('[GOOGLE_AUDIO_GEN] Manual trigger started - checking auth');
+    console.log('[AUDIO_TRIGGER] Manual trigger started - checking auth');
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      console.log('[GOOGLE_AUDIO_GEN] Auth failed:', { hasSecret: !!cronSecret, hasAuth: !!authHeader });
+      console.log('[AUDIO_TRIGGER] Auth failed:', { hasSecret: !!cronSecret, hasAuth: !!authHeader });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[GOOGLE_AUDIO_GEN] Auth successful, finding pending episodes');
+    console.log('[AUDIO_TRIGGER] Auth successful, finding pending episodes');
 
     // Find episodes that have content collected and need audio generation
     const pendingEpisodes = await episodesApi.getEpisodesByStatus(['content_collected']);
     
-    console.log(`[GOOGLE_AUDIO_GEN] Found ${pendingEpisodes?.length || 0} episodes with content_collected status`);
+    console.log(`[AUDIO_TRIGGER] Found ${pendingEpisodes?.length || 0} episodes with content_collected status`);
     
     if (!pendingEpisodes || pendingEpisodes.length === 0) {
       return NextResponse.json({
@@ -47,24 +45,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`[GOOGLE_AUDIO_GEN] Episodes to process:`, pendingEpisodes.map(e => ({ id: e.id, title: e.title, status: e.status })));
+    console.log(`[AUDIO_TRIGGER] Episodes to process:`, pendingEpisodes.map(e => ({ id: e.id, title: e.title, status: e.status })));
 
-    // Return immediate response and process in background
-    const responsePromise = Promise.resolve({
+    // Send episodes to existing SQS for processing by Lambda
+    const results = await sendEpisodesToSQS(pendingEpisodes);
+
+    return NextResponse.json({
       success: true,
-      message: `Started processing ${pendingEpisodes.length} episodes in background`,
+      message: `Sent ${results.successful} episodes to processing queue`,
       timestamp: new Date().toISOString(),
-      episodes: pendingEpisodes.map(e => ({ id: e.id, title: e.title })),
-      status: 'processing_started'
+      processed: results.successful,
+      errors: results.failed,
+      results: results.details
     });
 
-    // Start background processing (don't await)
-    processEpisodesInBackground(pendingEpisodes);
-
-    return NextResponse.json(await responsePromise);
-
   } catch (error) {
-    console.error('[GOOGLE_AUDIO_GEN] Error in manual trigger:', error);
+    console.error('[AUDIO_TRIGGER] Error in manual trigger:', error);
     return NextResponse.json(
       {
         success: false,
@@ -76,7 +72,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST method - Original SQS-triggered generation
+ * POST method - Individual episode trigger
+ * Sends a specific episode to AWS Lambda via existing SQS queue
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -94,37 +91,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[AUDIO_GEN] Starting audio generation for episode: ${episodeId}`);
+    console.log(`[AUDIO_TRIGGER] Starting audio generation trigger for episode: ${episodeId}`);
 
-    const result = await generateAudioForEpisode(body);
+    // Get episode data
+    const episode = await episodesApi.getEpisodeById(episodeId);
+    if (!episode) {
+      return NextResponse.json(
+        { success: false, error: 'Episode not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!episode.podcast_id) {
+      return NextResponse.json(
+        { success: false, error: 'Episode podcast_id is missing' },
+        { status: 400 }
+      );
+    }
+
+    // Send single episode to existing SQS  
+    const result = await sendEpisodeToSQS({
+      id: episode.id,
+      title: episode.title,
+      podcast_id: episode.podcast_id!
+    }, body.s3Path);
 
     const processingTime = Date.now() - startTime;
-    console.log(`[AUDIO_GEN] Successfully generated audio for episode ${episodeId} in ${processingTime}ms`);
+    console.log(`[AUDIO_TRIGGER] Successfully triggered audio generation for episode ${episodeId} in ${processingTime}ms`);
 
     return NextResponse.json({
-      success: true,
+      success: result.success,
       episodeId,
-      audioUrl: result.audioUrl,
-      duration: result.duration,
-      processingTime
+      message: result.success ? 'Episode sent to processing queue' : 'Failed to send episode to queue',
+      processingTime,
+      sqsMessageId: result.messageId
     });
 
   } catch (error) {
-    console.error(`[AUDIO_GEN] Error generating audio:`, error);
+    console.error(`[AUDIO_TRIGGER] Error triggering audio generation:`, error);
 
     // Update episode status to 'failed' if we have an episode ID
     if (episodeId) {
       try {
         await updateEpisodeStatus(episodeId, 'failed', error instanceof Error ? error.message : 'Unknown error');
       } catch (updateError) {
-        console.error(`[AUDIO_GEN] Failed to update episode status:`, updateError);
+        console.error(`[AUDIO_TRIGGER] Failed to update episode status:`, updateError);
       }
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Audio generation failed'
+        error: error instanceof Error ? error.message : 'Audio generation trigger failed'
       },
       { status: 500 }
     );
@@ -132,116 +150,147 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Process episodes in background without blocking the response
+ * Send multiple episodes to existing SQS for processing
  */
-async function processEpisodesInBackground(episodes: Array<{ id: string; title: string; podcast_id: string | null }>) {
-  let processed = 0;
-  let errors = 0;
+async function sendEpisodesToSQS(episodes: Array<{ id: string; title: string; podcast_id: string | null }>) {
+  let successful = 0;
+  let failed = 0;
+  const details = [];
 
-  console.log(`[GOOGLE_AUDIO_GEN] Background processing started for ${episodes.length} episodes`);
+  console.log(`[AUDIO_TRIGGER] Sending ${episodes.length} episodes to existing SQS queue`);
 
   for (const episode of episodes) {
     try {
-      console.log(`[GOOGLE_AUDIO_GEN] Processing episode: ${episode.id} - ${episode.title}`);
-      
-      // Call the internal generation function
-      await generateAudioForEpisode({
-        episodeId: episode.id,
-        podcastId: episode.podcast_id!
-      });
+      if (!episode.podcast_id) {
+        console.error(`[AUDIO_TRIGGER] Episode ${episode.id} missing podcast_id`);
+        failed++;
+        details.push({
+          episodeId: episode.id,
+          success: false,
+          error: 'Missing podcast_id'
+        });
+        continue;
+      }
 
-      processed++;
-      console.log(`[GOOGLE_AUDIO_GEN] Successfully processed episode: ${episode.id}`);
+      console.log(`[AUDIO_TRIGGER] Sending episode to SQS: ${episode.id} - ${episode.title}`);
+      
+      const result = await sendEpisodeToSQS({
+        id: episode.id,
+        title: episode.title,
+        podcast_id: episode.podcast_id!
+      });
+      
+      if (result.success) {
+        successful++;
+        details.push({
+          episodeId: episode.id,
+          success: true,
+          messageId: result.messageId
+        });
+        console.log(`[AUDIO_TRIGGER] Successfully sent episode ${episode.id} to SQS`);
+      } else {
+        failed++;
+        details.push({
+          episodeId: episode.id,
+          success: false,
+          error: result.error
+        });
+        await updateEpisodeStatus(episode.id, 'failed', result.error || 'Failed to send to SQS');
+      }
 
     } catch (error) {
-      console.error(`[GOOGLE_AUDIO_GEN] Error processing episode ${episode.id}:`, error);
-      errors++;
+      console.error(`[AUDIO_TRIGGER] Error sending episode ${episode.id} to SQS:`, error);
+      failed++;
+      details.push({
+        episodeId: episode.id,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
 
       // Update episode status to failed
       await updateEpisodeStatus(episode.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
-  console.log(`[GOOGLE_AUDIO_GEN] Background processing completed. Processed: ${processed}, Errors: ${errors}`);
+  console.log(`[AUDIO_TRIGGER] SQS sending completed. Successful: ${successful}, Failed: ${failed}`);
+
+  return {
+    successful,
+    failed,
+    details
+  };
 }
 
 /**
- * Internal function to generate audio for a single episode
+ * Send individual episode to existing SQS queue
+ * Uses the same format as telegram-lambda SQS messages
  */
-async function generateAudioForEpisode(params: GenerateAudioRequest) {
-  const { episodeId, s3Path, telegramDataPath } = params;
+async function sendEpisodeToSQS(
+  episode: { id: string; title: string; podcast_id: string },
+  s3Path?: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    // Initialize SQS client
+    const sqsClient = new SQSClient({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
 
-  // Update episode status to 'processing'
-  await updateEpisodeStatus(episodeId, 'processing');
+    // Use the existing SQS queue (same as telegram-lambda)
+    const queueUrl = process.env.SQS_QUEUE_URL;
+    if (!queueUrl) {
+      throw new Error('SQS_QUEUE_URL environment variable not set');
+    }
 
-  // Get episode and podcast configuration
-  const episode = await episodesApi.getEpisodeById(episodeId);
-  if (!episode) {
-    throw new Error('Episode not found');
+    // Prepare SQS message in the same format as telegram-lambda
+    // This ensures the audio generation lambda can distinguish these messages
+    const messageBody = {
+      podcast_config_id: episode.podcast_id,
+      podcast_id: episode.podcast_id,
+      episode_id: episode.id,
+      timestamp: new Date().toISOString(),
+      s3_path: s3Path || '', // Optional S3 path for Telegram data
+      content_url: s3Path || '', // Same as s3_path for compatibility
+      trigger_source: 'audio_generation_manual' // Identifier for audio generation requests
+    };
+
+    // Send message to existing SQS queue
+    const command = new SendMessageCommand({
+      QueueUrl: queueUrl,
+      MessageBody: JSON.stringify(messageBody),
+      MessageAttributes: {
+        'episode_id': {
+          DataType: 'String',
+          StringValue: episode.id
+        },
+        'podcast_id': {
+          DataType: 'String',
+          StringValue: episode.podcast_id
+        },
+        'trigger_source': {
+          DataType: 'String',
+          StringValue: 'audio_generation_manual'
+        }
+      }
+    });
+
+    const response = await sqsClient.send(command);
+    
+    return {
+      success: true,
+      messageId: response.MessageId
+    };
+
+  } catch (error) {
+    console.error(`[AUDIO_TRIGGER] SQS send error:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown SQS error'
+    };
   }
-
-  if (!episode.podcast_id) {
-    throw new Error('Episode podcast_id is missing');
-  }
-
-  const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(episode.podcast_id);
-  if (!podcastConfig) {
-    throw new Error('Podcast configuration not found');
-  }
-
-  // Get Telegram data from S3 - use path from SQS message if available
-  const telegramService = new TelegramDataService();
-  const dataPath = s3Path || telegramDataPath;
-  
-  const telegramData = await telegramService.getTelegramData(
-    episode.podcast_id!,
-    episodeId,
-    dataPath
-  );
-
-  if (!telegramData) {
-    throw new Error('No Telegram data found for this episode');
-  }
-
-  // Generate podcast using Google services
-  const generator = new GooglePodcastGenerator({
-    language: podcastConfig.language || 'english',
-    speaker1_role: podcastConfig.speaker1_role || 'host',
-    speaker2_role: podcastConfig.speaker2_role || 'expert',
-    podcast_name: podcastConfig.podcast_name || 'Podcast',
-    creativity_level: podcastConfig.creativity_level || 70,
-    additional_instructions: podcastConfig.additional_instructions || ''
-  });
-  
-  const result = await generator.generatePodcast({
-    episodeId,
-    podcastId: episode.podcast_id!,
-    telegramData,
-    language: podcastConfig.language || 'english'
-  });
-
-  // Upload to S3
-  const s3Client = new S3Client();
-  const s3Url = await s3Client.uploadAudio(
-    result.audioBuffer,
-    episode.podcast_id!,
-    episodeId,
-    'wav'
-  );
-
-  // Update episode with results
-  await episodesApi.updateEpisode(episodeId, {
-    audio_url: s3Url,
-    duration: result.duration,
-    status: 'completed',
-    description: result.description || episode.description,
-    title: result.title || episode.title
-  });
-
-  return {
-    audioUrl: s3Url,
-    duration: result.duration
-  };
 }
 
 /**
@@ -263,13 +312,6 @@ async function updateEpisodeStatus(
     updateData.metadata = JSON.stringify(metadata);
   }
 
-  if (status === 'processing') {
-    const episode = await episodesApi.getEpisodeById(episodeId);
-    const metadata = episode?.metadata ? JSON.parse(episode.metadata) : {};
-    metadata.processing_started_at = new Date().toISOString();
-    updateData.metadata = JSON.stringify(metadata);
-  }
-
   await episodesApi.updateEpisode(episodeId, updateData);
-  console.log(`[AUDIO_GEN] Updated episode ${episodeId} status to: ${status}`);
+  console.log(`[AUDIO_TRIGGER] Updated episode ${episodeId} status to: ${status}`);
 } 

@@ -15,8 +15,16 @@ interface TelegramData {
   total_messages?: number;
 }
 
+interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+}
+
 export class TelegramDataService {
   private bucketName: string;
+  private retryConfig: RetryConfig;
 
   constructor() {
     this.bucketName = process.env.S3_BUCKET_NAME || '';
@@ -24,12 +32,77 @@ export class TelegramDataService {
     if (!this.bucketName) {
       throw new Error('S3_BUCKET_NAME environment variable is required');
     }
+
+    // Configuration for exponential backoff retry
+    this.retryConfig = {
+      maxRetries: 6, // Total attempts = 1 initial + 6 retries = 7 attempts
+      initialDelayMs: 10000, // Start with 10 seconds
+      maxDelayMs: 300000, // Max 5 minutes between attempts
+      backoffMultiplier: 2 // Double the delay each time
+    };
   }
 
   /**
-   * Retrieves Telegram data from S3 for a specific episode
+   * Retrieves Telegram data from S3 for a specific episode with retry mechanism
    */
   async getTelegramData(
+    podcastId: string,
+    episodeId: string,
+    customPath?: string,
+    enableRetry: boolean = true
+  ): Promise<TelegramData | null> {
+    if (!enableRetry) {
+      return this.fetchTelegramDataOnce(podcastId, episodeId, customPath);
+    }
+
+    return this.fetchTelegramDataWithRetry(podcastId, episodeId, customPath);
+  }
+
+  /**
+   * Fetches Telegram data with exponential backoff retry logic
+   */
+  private async fetchTelegramDataWithRetry(
+    podcastId: string,
+    episodeId: string,
+    customPath?: string
+  ): Promise<TelegramData | null> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        console.log(`[TELEGRAM_DATA] Attempt ${attempt + 1}/${this.retryConfig.maxRetries + 1} for episode ${episodeId}`);
+        
+        const data = await this.fetchTelegramDataOnce(podcastId, episodeId, customPath);
+        
+        if (data) {
+          console.log(`[TELEGRAM_DATA] Successfully retrieved data on attempt ${attempt + 1}`);
+          return data;
+        }
+
+        // If no data but no error, treat as "not ready yet"
+        lastError = new Error('Telegram data not yet available');
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(`[TELEGRAM_DATA] Attempt ${attempt + 1} failed: ${lastError.message}`);
+      }
+
+      // Don't wait after the last attempt
+      if (attempt < this.retryConfig.maxRetries) {
+        const delayMs = this.calculateRetryDelay(attempt);
+        console.log(`[TELEGRAM_DATA] Waiting ${delayMs / 1000}s before retry...`);
+        await this.sleep(delayMs);
+      }
+    }
+
+    console.error(`[TELEGRAM_DATA] All retry attempts exhausted for episode ${episodeId}`);
+    throw lastError || new Error('Failed to retrieve Telegram data after all retries');
+  }
+
+  /**
+   * Single attempt to fetch Telegram data (original logic)
+   */
+  private async fetchTelegramDataOnce(
     podcastId: string,
     episodeId: string,
     customPath?: string
@@ -72,13 +145,28 @@ export class TelegramDataService {
     } catch (error) {
       console.error(`[TELEGRAM_DATA] Error retrieving data:`, error);
       
-      // Try alternative paths if primary fails
+      // Try alternative paths if primary fails and no custom path was provided
       if (!customPath) {
         return await this.tryAlternativePaths(podcastId, episodeId);
       }
       
-      return null;
+      throw error; // Re-throw for retry mechanism
     }
+  }
+
+  /**
+   * Calculates delay for exponential backoff
+   */
+  private calculateRetryDelay(attemptNumber: number): number {
+    const delay = this.retryConfig.initialDelayMs * Math.pow(this.retryConfig.backoffMultiplier, attemptNumber);
+    return Math.min(delay, this.retryConfig.maxDelayMs);
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
