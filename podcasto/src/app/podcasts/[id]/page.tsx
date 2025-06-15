@@ -9,7 +9,9 @@ import { formatDuration } from '@/lib/utils';
 import { SubscribeButtonServer } from './subscribe-button-server';
 import { PodcastImage } from '@/components/podcasts/podcast-image';
 import { CompactAudioPlayer } from '@/components/podcasts/compact-audio-player';
-import { CalendarIcon, Clock, Share2 } from 'lucide-react';
+import { Clock, Share2 } from 'lucide-react';
+import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { sortEpisodesByDate } from '@/lib/utils/episode-utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
@@ -36,7 +38,8 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
     notFound();
   }
   
-  const episodes = await getPodcastEpisodes(resolvedParams.id);
+  const episodesData = await getPodcastEpisodes(resolvedParams.id);
+  const episodes = sortEpisodesByDate(episodesData);
   
   return (
     <MainLayout>
@@ -78,7 +81,7 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start mb-2">
                             <Link href={`/podcasts/${resolvedParams.id}/episodes/${episode.id}`} className="hover:underline flex-1">
                               <CardTitle className="text-base font-semibold line-clamp-2">{episode.title}</CardTitle>
                             </Link>
@@ -86,31 +89,26 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </div>
+                          <div className="mb-3">
+                            <EpisodeDateBadge
+                              publishedAt={episode.published_at}
+                              createdAt={episode.created_at}
+                              variant="default"
+                              showRelativeTime={true}
+                            />
+                          </div>
                           {episode.description && (
                             <p className="text-sm text-gray-600 line-clamp-2 mt-2 mb-3">
                               {episode.description}
                             </p>
                           )}
-                          <div className="flex items-center justify-between mb-4 flex-wrap">
-                            <div className="flex flex-wrap items-center text-xs text-gray-500 gap-3">
-                              {episode.duration && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{formatDuration(episode.duration)}</span>
-                                </div>
-                              )}
-                              {episode.created_at && (
-                                <div className="flex items-center gap-1">
-                                  <CalendarIcon className="h-3 w-3" />
-                                  <span>{new Date(episode.created_at).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}</span>
-                                </div>
-                              )}
-                            </div>
-                            
+                          <div className="flex items-center mb-4">
+                            {episode.duration && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDuration(episode.duration)}</span>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mt-3">

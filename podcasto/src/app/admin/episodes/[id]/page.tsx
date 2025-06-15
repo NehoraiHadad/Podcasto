@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from '@/components/admin/episode-actions-menu';
+import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 
 export const metadata = {
   title: 'Episode Details | Admin Dashboard | Podcasto',
@@ -130,6 +131,16 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Duration</p>
               <p>{formatDuration(episode.duration)}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Episode Date</p>
+              <EpisodeDateBadge
+                publishedAt={episode.published_at}
+                createdAt={episode.created_at}
+                variant="detailed"
+                showRelativeTime={true}
+              />
             </div>
             
             <div className="space-y-1">

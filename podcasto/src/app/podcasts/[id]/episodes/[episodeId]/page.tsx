@@ -8,6 +8,7 @@ import { PodcastImage } from '@/components/podcasts/podcast-image';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 import { formatDuration } from '@/lib/utils';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
+import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 
 export async function generateMetadata({ 
   params 
@@ -64,23 +65,17 @@ export default async function EpisodeDetailPage({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-gray-500 mb-1">{podcast.title}</p>
-                  <CardTitle className="text-2xl mb-2">{episode.title}</CardTitle>
+                  <CardTitle className="text-2xl mb-3">{episode.title}</CardTitle>
+                  <div className="mb-4">
+                    <EpisodeDateBadge
+                      publishedAt={episode.published_at}
+                      createdAt={episode.created_at}
+                      variant="detailed"
+                      showRelativeTime={true}
+                    />
+                  </div>
                   <div className="text-sm text-gray-500 mb-4">
-                    {episode.duration ? formatDuration(episode.duration) : 'Unknown length'} | 
-                    {episode.published_at 
-                      ? new Date(episode.published_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }) 
-                      : episode.created_at 
-                        ? new Date(episode.created_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })
-                        : 'No date'
-                    }
+                    {episode.duration ? formatDuration(episode.duration) : 'Unknown length'}
                   </div>
                   {episode.description && (
                     <p className="text-gray-700">{episode.description}</p>

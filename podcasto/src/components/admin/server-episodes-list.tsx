@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { format } from 'date-fns';
+
 import { unstable_noStore as noStore } from 'next/cache';
 import { episodesApi, podcastsApi } from '@/lib/db/api';
 
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from './episode-actions-menu';
+import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { sortEpisodesByDate } from '@/lib/utils/episode-utils';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -48,22 +50,24 @@ export async function ServerEpisodesList() {
     const allPodcasts = await podcastsApi.getAllPodcasts();
     const podcastsMap = new Map(allPodcasts.map(podcast => [podcast.id, podcast.title]));
     
-    // Convert episodes to the expected format
-    const episodes: Episode[] = allEpisodes.map(episode => ({
-      id: episode.id,
-      podcast_id: episode.podcast_id || '',
-      title: episode.title,
-      description: episode.description,
-      language: episode.language,
-      audio_url: episode.audio_url,
-      duration: episode.duration,
-      created_at: episode.created_at ? episode.created_at.toISOString() : null,
-      published_at: episode.published_at ? episode.published_at.toISOString() : null,
-      status: episode.status,
-      metadata: episode.metadata,
-      cover_image: episode.cover_image,
-      podcast_title: episode.podcast_id ? podcastsMap.get(episode.podcast_id) || 'Unknown Podcast' : 'Unknown Podcast',
-    }));
+    // Convert episodes to the expected format and sort by date
+    const episodes: Episode[] = sortEpisodesByDate(
+      allEpisodes.map(episode => ({
+        id: episode.id,
+        podcast_id: episode.podcast_id || '',
+        title: episode.title,
+        description: episode.description,
+        language: episode.language,
+        audio_url: episode.audio_url,
+        duration: episode.duration,
+        created_at: episode.created_at ? episode.created_at.toISOString() : null,
+        published_at: episode.published_at ? episode.published_at.toISOString() : null,
+        status: episode.status,
+        metadata: episode.metadata,
+        cover_image: episode.cover_image,
+        podcast_title: episode.podcast_id ? podcastsMap.get(episode.podcast_id) || 'Unknown Podcast' : 'Unknown Podcast',
+      }))
+    );
     
     if (!episodes || episodes.length === 0) {
       return (
@@ -163,9 +167,12 @@ export async function ServerEpisodesList() {
                     {renderStatus(episode.status)}
                   </TableCell>
                   <TableCell>
-                    {episode.published_at 
-                      ? format(new Date(episode.published_at), 'MMM d, yyyy')
-                      : 'Not published'}
+                    <EpisodeDateBadge
+                      publishedAt={episode.published_at}
+                      createdAt={episode.created_at}
+                      variant="compact"
+                      showRelativeTime={true}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <EpisodeActionsMenu episode={episode} />
