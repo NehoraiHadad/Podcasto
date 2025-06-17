@@ -26,7 +26,7 @@ class GeminiScriptGenerator:
         self.model = "gemini-2.0-flash"
 
     def generate_script(
-        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any] = None
+        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None
     ) -> str:
         """
         Generate a natural conversation script from Telegram data
@@ -34,6 +34,7 @@ class GeminiScriptGenerator:
         Args:
             telegram_data: Raw Telegram data with messages
             podcast_config: Podcast configuration including language and speaker info
+            episode_id: Episode ID for voice-aware script generation
 
         Returns:
             Generated conversation script as string
@@ -48,15 +49,17 @@ class GeminiScriptGenerator:
 
         logger.info(f"[GEMINI_SCRIPT] Generating script in language: {language}")
         logger.info(f"[GEMINI_SCRIPT] Speaker genders: Speaker1={speaker1_gender}, Speaker2={speaker2_gender}")
+        if episode_id:
+            logger.info(f"[GEMINI_SCRIPT] Episode ID for voice-aware generation: {episode_id}")
 
         # Generate script using AI with configured language and gender awareness
-        script = self._generate_ai_script(telegram_data, config)
+        script = self._generate_ai_script(telegram_data, config, episode_id)
 
         logger.info(f"[GEMINI_SCRIPT] Generated script with {len(script)} characters")
         return script
 
     def _generate_ai_script(
-        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any]
+        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None
     ) -> str:
         """Generate natural conversation script using Gemini AI with gender awareness"""
 
@@ -81,6 +84,7 @@ class GeminiScriptGenerator:
             podcast_name,
             target_duration,
             additional_instructions,
+            episode_id,
         )
 
         try:
@@ -132,8 +136,43 @@ class GeminiScriptGenerator:
         podcast_name: str,
         target_duration: int,
         additional_instructions: str,
+        episode_id: str = None,
     ) -> str:
         """Build the conversation script generation prompt with gender awareness"""
+        
+        # Get voice information for this episode
+        voice_info = ""
+        if episode_id:
+            from .voice_config import VoiceConfigManager
+            voice_manager = VoiceConfigManager()
+            
+            # Get the actual voices that will be used
+            speaker1_voice = voice_manager.get_voice_for_speaker(
+                language=language, 
+                gender=speaker1_gender, 
+                speaker_role=speaker1_role,
+                episode_id=episode_id,
+                randomize=False  # Speaker 1 is always fixed
+            )
+            
+            speaker2_voice = voice_manager.get_voice_for_speaker(
+                language=language, 
+                gender=speaker2_gender, 
+                speaker_role=speaker2_role,
+                episode_id=episode_id,
+                randomize=True  # Speaker 2 is randomized
+            )
+            
+            voice_info = f"""
+VOICE SELECTION FOR THIS EPISODE:
+- {speaker1_role} will use voice: {speaker1_voice} (consistent across all episodes)
+- {speaker2_role} will use voice: {speaker2_voice} (unique to this episode)
+
+VOICE-AWARE SCRIPT GUIDANCE:
+- Consider that {speaker1_role}'s voice ({speaker1_voice}) should maintain consistency with the podcast brand
+- {speaker2_role}'s voice ({speaker2_voice}) brings fresh variety to this specific episode
+- Tailor the conversation style to work well with these specific voice characteristics
+"""
         
         # Build gender-aware language instructions
         if language.lower() in ['he', 'hebrew', 'heb']:
@@ -159,6 +198,8 @@ Your task is to create an engaging, conversational podcast script between two sp
 - {speaker2_role}: A {speaker2_gender} speaker
 
 {language_instructions}
+
+{voice_info}
 
 SPEAKER GENDER AWARENESS:
 - Remember that {speaker1_role} is {speaker1_gender} - ensure all language, grammar, and expressions are appropriate

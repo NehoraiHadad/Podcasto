@@ -139,7 +139,7 @@ class AudioGenerationHandler:
                 raise ValueError("No Telegram data found for episode")
             
             # Generate script and audio
-            script = self._generate_script(telegram_data, podcast_config, request_id)
+            script = self._generate_script(telegram_data, podcast_config, request_id, episode_id)
             audio_result = self._generate_audio(episode_id, podcast_id, script, podcast_config)
             
             # Upload script as transcript to S3
@@ -190,13 +190,13 @@ class AudioGenerationHandler:
         
         return podcast_config
 
-    def _generate_script(self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any], request_id: str) -> str:
+    def _generate_script(self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> str:
         """Generate conversation script using Gemini"""
         script_generator = GeminiScriptGenerator()
         configured_language = podcast_config.get('language', 'en')
         logger.info(f"[AUDIO_GEN] [{request_id}] Using podcast language: {configured_language}")
         
-        return script_generator.generate_script(telegram_data, podcast_config)
+        return script_generator.generate_script(telegram_data, podcast_config, episode_id)
 
     def _generate_audio(self, episode_id: str, podcast_id: str, script: str, podcast_config: Dict[str, Any]) -> Dict[str, Any]:
         """Generate audio using Google Gemini TTS with gender-aware voices"""

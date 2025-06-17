@@ -86,4 +86,36 @@ Improve the audio generation lambda with two key enhancements:
 - Generate multiple episodes with the same podcast configuration to verify Speaker 1 consistency
 - Generate episodes with different episode_ids to verify Speaker 2 variation
 - Test Hebrew content generation to ensure no placeholder text appears
-- Verify gender-appropriate voice selection for both male and female speakers 
+- Verify gender-appropriate voice selection for both male and female speakers
+
+## UPDATE: Voice-Aware Script Generation ✅ ADDED
+
+### Issue Identified:
+The script generation functions (`generate_script`, `_generate_ai_script`, `_build_script_prompt`) were not receiving voice randomization information, meaning the AI couldn't tailor the script to the specific voices that would be used.
+
+### Solution Implemented:
+1. **Updated `AudioGenerationHandler._generate_script()`** to pass `episode_id` parameter
+2. **Updated `GeminiScriptGenerator.generate_script()`** to accept `episode_id` parameter
+3. **Updated `_generate_ai_script()`** to pass `episode_id` to prompt builder
+4. **Enhanced `_build_script_prompt()`** to include voice-specific information:
+   - Queries `VoiceConfigManager` to get actual voice names that will be used
+   - Adds voice information to the AI prompt
+   - Provides guidance about voice characteristics and consistency
+
+### Voice Information Added to Script Prompt:
+```
+VOICE SELECTION FOR THIS EPISODE:
+- Host will use voice: Algenib (consistent across all episodes)
+- Expert will use voice: Aoede (unique to this episode)
+
+VOICE-AWARE SCRIPT GUIDANCE:
+- Consider that Host's voice (Algenib) should maintain consistency with the podcast brand
+- Expert's voice (Aoede) brings fresh variety to this specific episode
+- Tailor the conversation style to work well with these specific voice characteristics
+```
+
+### Benefits:
+- **Script-Voice Alignment**: AI can now tailor conversation style to specific voice characteristics
+- **Brand Consistency Awareness**: AI knows Speaker 1 voice is consistent and can write accordingly
+- **Episode Uniqueness**: AI knows Speaker 2 voice is unique to this episode
+- **Better Audio Quality**: Script and voice selection work together harmoniously 
