@@ -220,7 +220,8 @@ class AudioGenerationHandler:
                 speaker1_role=speaker1_role,
                 speaker2_role=speaker2_role,
                 speaker1_gender=speaker1_gender,
-                speaker2_gender=speaker2_gender
+                speaker2_gender=speaker2_gender,
+                episode_id=episode_id
             )
         except Exception as e:
             logger.error(f"[AUDIO_GEN] Audio generation failed: {str(e)}")
