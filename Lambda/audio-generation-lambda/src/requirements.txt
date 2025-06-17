@@ -11,5 +11,4 @@ supabase>=2.14.0
 requests>=2.31.0
 
 # Hebrew text processing dependencies
-cachier>=2.2.0
 beautifulsoup4>=4.11.0

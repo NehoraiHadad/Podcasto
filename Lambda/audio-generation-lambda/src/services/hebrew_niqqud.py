@@ -5,11 +5,11 @@ Based on Dicta API integration for Hebrew text vocalization
 """
 import re
 import json
+import time
 from functools import wraps
-from typing import Optional
+from typing import Optional, Dict
 
 import requests
-from cachier import cachier
 
 from utils.logging import get_logger
 
@@ -41,6 +41,9 @@ class HebrewNiqqudProcessor:
         """Initialize the Hebrew niqqud processor"""
         self.dicta_url = 'https://nakdan-2-0.loadbalancer.dicta.org.il/api'
         self.max_chunk_length = 10000
+        self._cache: Dict[str, str] = {}
+        self._cache_timestamps: Dict[str, float] = {}
+        self._cache_ttl = 3600  # 1 hour cache TTL
         
     def remove_niqqud(self, text: str) -> str:
         """Remove existing niqqud from Hebrew text"""
@@ -97,9 +100,25 @@ class HebrewNiqqudProcessor:
             return result
         return word_data.get('word', '')
     
-    @cachier()
+    def _get_cache_key(self, text: str) -> str:
+        """Generate cache key for text"""
+        return f"niqqud_{hash(text.strip())}"
+    
+    def _is_cache_valid(self, cache_key: str) -> bool:
+        """Check if cache entry is still valid"""
+        if cache_key not in self._cache_timestamps:
+            return False
+        return time.time() - self._cache_timestamps[cache_key] < self._cache_ttl
+    
     def fetch_dicta_raw(self, text: str) -> str:
-        """Fetch niqqud from Dicta API"""
+        """Fetch niqqud from Dicta API with simple caching"""
+        cache_key = self._get_cache_key(text)
+        
+        # Check cache first
+        if self._is_cache_valid(cache_key):
+            logger.info("[NIQQUD] Using cached result")
+            return self._cache[cache_key]
+        
         payload = {
             "task": "nakdan",
             "genre": "modern",
@@ -125,6 +144,10 @@ class HebrewNiqqudProcessor:
             if len(self.remove_niqqud(result)) * 1.2 > len(result):
                 logger.warning("[NIQQUD] Failed to add sufficient niqqud")
                 raise requests.RequestException("Undotted response")
+            
+            # Cache the result
+            self._cache[cache_key] = result
+            self._cache_timestamps[cache_key] = time.time()
             
             logger.info(f"[NIQQUD] Successfully processed text with niqqud")
             return result

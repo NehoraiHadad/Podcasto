@@ -20,7 +20,7 @@ Integrate Hebrew niqqud (diacritical marks) processing module into the audio gen
 
 ### Step 1: Dependencies and Module Creation
 - [x] **Task 1.1**: Add required dependencies to requirements.txt
-  - Added `cachier>=2.2.0` for API response caching
+  - ~~Added `cachier>=2.2.0` for API response caching~~ (Removed due to Windows dependency conflict)
   - Added `beautifulsoup4>=4.11.0` for HTML parsing support
 - [x] **Task 1.2**: Create Hebrew niqqud processing module
   - Created `hebrew_niqqud.py` with `HebrewNiqqudProcessor` class
@@ -56,8 +56,14 @@ Integrate Hebrew niqqud (diacritical marks) processing module into the audio gen
   - Implemented response parsing and word extraction
   - Added validation for successful niqqud addition
 - [x] **Task 5.2**: Add caching mechanism
-  - Implemented `@cachier()` decorator for API response caching
+  - ~~Implemented `@cachier()` decorator for API response caching~~ (Replaced with simple in-memory cache)
   - Added text chunking for large content processing
+
+### Step 6: Fix Lambda Build Issues
+- [x] **Task 6.1**: Resolve dependency conflicts
+  - Removed `cachier` dependency due to Windows-specific `pywin32` requirement
+  - Implemented simple in-memory caching with TTL (1 hour)
+  - Fixed Lambda build process for Linux environment
 
 ## Technical Implementation Details
 
@@ -65,7 +71,8 @@ Integrate Hebrew niqqud (diacritical marks) processing module into the audio gen
 1. **HebrewNiqqudProcessor Class**:
    - Handles Hebrew text detection and processing
    - Integrates with Dicta API for vocalization
-   - Provides text chunking and caching mechanisms
+   - Provides text chunking and simple caching mechanisms
+   - In-memory cache with TTL to avoid Lambda cold start issues
 
 2. **TTS Client Enhancement**:
    - Seamless integration with existing audio generation flow
@@ -82,13 +89,21 @@ Integrate Hebrew niqqud (diacritical marks) processing module into the audio gen
 - **Processing Mode**: Modern Hebrew genre
 - **Features**: Morphological analysis, keeping diacritical marks
 - **Chunking**: 10,000 character limit per API call
+- **Caching**: Simple in-memory cache with 1-hour TTL
+
+### Build Fix:
+- **Issue**: `cachier` dependency tried to install Windows-specific `pywin32` package
+- **Solution**: Replaced with lightweight in-memory caching mechanism
+- **Result**: Lambda builds successfully on Linux environment
 
 ## Completion Status
 - ✅ All implementation tasks completed
 - ✅ Module created and integrated
 - ✅ Error handling implemented
 - ✅ Language-specific processing added
-- ✅ Dependencies updated
+- ✅ Dependencies updated and fixed
+- ✅ Lambda build issues resolved
+- ✅ Successfully builds and deploys
 
 ## Next Steps
 1. Test the integration with Hebrew podcast content
@@ -98,6 +113,7 @@ Integrate Hebrew niqqud (diacritical marks) processing module into the audio gen
 
 ## Notes
 - The implementation only processes Hebrew text, other languages are unaffected
-- Caching is implemented to reduce API calls and improve performance
+- Simple in-memory caching reduces API calls within Lambda execution context
 - Fallback mechanism ensures system reliability even if Dicta API is unavailable
-- Text chunking handles large podcast scripts efficiently 
+- Text chunking handles large podcast scripts efficiently
+- Fixed Windows dependency conflict for proper Lambda deployment 
