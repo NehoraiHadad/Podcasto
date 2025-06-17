@@ -145,15 +145,19 @@ class GeminiScriptGenerator:
         # Get voice information for this episode
         voice_info = ""
         if episode_id:
-            from .voice_config import VoiceConfigManager
+            from services.voice_config import VoiceConfigManager
             voice_manager = VoiceConfigManager()
             
-            # Get the actual voices that will be used
-            speaker1_voice = voice_manager.get_voice_for_speaker(
-                speaker_role="speaker1", gender=speaker1_gender, randomize=False
-            )
-            speaker2_voice = voice_manager.get_voice_for_speaker(
-                speaker_role="speaker2", gender=speaker2_gender, randomize=True, episode_id=episode_id
+            # Get distinct voices that will be used for both speakers
+            # NOTE: Using generic role names to match TTS client expectations
+            speaker1_voice, speaker2_voice = voice_manager.get_distinct_voices_for_speakers(
+                language=language,
+                speaker1_gender=speaker1_gender,
+                speaker2_gender=speaker2_gender,
+                speaker1_role=speaker1_role,  # Use actual role names for consistency
+                speaker2_role=speaker2_role,  # Use actual role names for consistency
+                episode_id=episode_id,
+                randomize_speaker2=True
             )
             
             voice_info = f"""
@@ -198,7 +202,7 @@ SPEAKER CONFIGURATION:
 {voice_info}
 
 CONTENT TO DISCUSS:
-{self._format_telegram_content(telegram_data)}
+{telegram_data}
 
 ADDITIONAL INSTRUCTIONS:
 {additional_instructions}
@@ -246,6 +250,7 @@ Generate a complete, engaging podcast script now:"""
         placeholder_patterns = [
             "שם המשפחה",  # family name in Hebrew
             "שם פרטי",     # first name in Hebrew
+            "[שם האורח]"   # name placeholder
             "[insert",     # common bracket placeholders
             "[name]",      # name placeholder
             "[family name]", # family name placeholder

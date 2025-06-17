@@ -53,8 +53,15 @@ class TelegramDataClient:
             content = response['Body'].read().decode('utf-8')
             telegram_data = json.loads(content)
             
-            logger.info(f"[TELEGRAM_DATA] Successfully retrieved data for episode {episode_id}")
-            logger.info(f"[TELEGRAM_DATA] Total messages: {telegram_data.get('total_messages', 0)}")
+            # Validate and log data structure
+            if self.validate_telegram_data(telegram_data):
+                message_count = self._count_messages(telegram_data)
+                logger.info(f"[TELEGRAM_DATA] Successfully retrieved data for episode {episode_id}")
+                logger.info(f"[TELEGRAM_DATA] Data structure: {self._describe_structure(telegram_data)}")
+                logger.info(f"[TELEGRAM_DATA] Total messages: {message_count}")
+            else:
+                logger.warning(f"[TELEGRAM_DATA] Retrieved data for episode {episode_id} but structure validation failed")
+                logger.warning(f"[TELEGRAM_DATA] Data keys: {list(telegram_data.keys()) if isinstance(telegram_data, dict) else type(telegram_data)}")
             
             return telegram_data
             
@@ -160,23 +167,80 @@ class TelegramDataClient:
             True if valid, False otherwise
         """
         if not isinstance(data, dict):
+            logger.warning("[TELEGRAM_DATA] Data is not a dictionary")
+            return False
+        
+        # Check for different valid structures
+        has_results = 'results' in data
+        has_messages = 'messages' in data
+        
+        if not has_results and not has_messages:
+            # Look for any array that might contain messages
+            for key, value in data.items():
+                if isinstance(value, list) and value and isinstance(value[0], dict):
+                    if any(field in value[0] for field in ['text', 'message', 'content']):
+                        logger.info(f"[TELEGRAM_DATA] Found messages in '{key}' field")
+                        return True
+            logger.warning("[TELEGRAM_DATA] No valid message structure found")
             return False
             
-        # Check for expected structure
-        if 'results' not in data and 'total_messages' not in data:
-            return False
-            
-        # Validate results structure if present
-        if 'results' in data:
+        # Validate results structure (channel-based)
+        if has_results:
             results = data['results']
             if not isinstance(results, dict):
+                logger.warning("[TELEGRAM_DATA] 'results' is not a dictionary")
                 return False
                 
             # Check that at least one channel has messages
+            total_messages = 0
             for channel, messages in results.items():
-                if isinstance(messages, list) and len(messages) > 0:
-                    return True
+                if isinstance(messages, list):
+                    total_messages += len(messages)
                     
-            return False
+            if total_messages == 0:
+                logger.warning("[TELEGRAM_DATA] No messages found in any channel")
+                return False
             
-        return True 
+            logger.info(f"[TELEGRAM_DATA] Validated results structure: {len(results)} channels, {total_messages} total messages")
+            return True
+                    
+        # Validate direct messages structure
+        if has_messages:
+            messages = data['messages']
+            if isinstance(messages, list) and len(messages) > 0:
+                logger.info(f"[TELEGRAM_DATA] Validated direct messages structure: {len(messages)} messages")
+                return True
+            else:
+                logger.warning("[TELEGRAM_DATA] 'messages' field is empty or not a list")
+                return False
+                
+        return False
+    
+    def _count_messages(self, data: Dict[str, Any]) -> int:
+        """Count total messages in telegram data"""
+        total = 0
+        
+        if 'results' in data:
+            for channel, messages in data['results'].items():
+                if isinstance(messages, list):
+                    total += len(messages)
+        elif 'messages' in data:
+            if isinstance(data['messages'], list):
+                total = len(data['messages'])
+        else:
+            # Count messages in any array field
+            for key, value in data.items():
+                if isinstance(value, list):
+                    total += len(value)
+                    
+        return total
+    
+    def _describe_structure(self, data: Dict[str, Any]) -> str:
+        """Describe the structure of telegram data"""
+        if 'results' in data:
+            channels = list(data['results'].keys())
+            return f"channel-based ({len(channels)} channels: {channels})"
+        elif 'messages' in data:
+            return "direct messages array"
+        else:
+            return f"custom structure with keys: {list(data.keys())}" 

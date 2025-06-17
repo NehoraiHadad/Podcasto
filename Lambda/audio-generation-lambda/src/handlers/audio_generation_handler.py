@@ -4,9 +4,6 @@ Processes SQS messages to generate podcast audio using Google TTS
 """
 import json
 import os
-import logging
-import boto3
-import tempfile
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 
@@ -151,11 +148,18 @@ class AudioGenerationHandler:
                 raise ValueError("No Telegram data found for episode")
             
             # Analyze content and get dynamic speaker role
+            logger.info(f"[AUDIO_GEN] [{request_id}] Starting content analysis for episode {episode_id}")
             content_analysis = self.content_analyzer.analyze_content(telegram_data)
-            logger.info(f"[AUDIO_GEN] [{request_id}] Content analysis: {content_analysis.content_type} -> {content_analysis.speaker2_role}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Content analysis complete:")
+            logger.info(f"[AUDIO_GEN] [{request_id}] - Type: {content_analysis.content_type.value}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] - Role: {content_analysis.specific_role}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] - Confidence: {content_analysis.confidence:.2f}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] - Gender assignment: {self.content_analyzer.get_gender_for_category(content_analysis.content_type)}")
             
             # Update podcast config with dynamic role
+            logger.info(f"[AUDIO_GEN] [{request_id}] Applying dynamic role to podcast config")
             dynamic_config = self._apply_dynamic_role(podcast_config, content_analysis)
+            logger.info(f"[AUDIO_GEN] [{request_id}] Dynamic config created with speaker2_role: {dynamic_config.get('speaker2_role')}")
             
             # Generate script with dynamic roles
             script = self._generate_script(telegram_data, dynamic_config, request_id, episode_id)
