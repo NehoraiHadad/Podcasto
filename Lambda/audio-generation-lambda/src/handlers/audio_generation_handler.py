@@ -5,7 +5,9 @@ Processes SQS messages to generate podcast audio using Google TTS
 import json
 import os
 import logging
-from typing import Dict, Any, Optional
+import boto3
+import tempfile
+from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 
 from clients.supabase_client import SupabaseClient
@@ -13,6 +15,7 @@ from clients.s3_client import S3Client
 from clients.telegram_data_client import TelegramDataClient
 from services.google_podcast_generator import GooglePodcastGenerator
 from services.gemini_script_generator import GeminiScriptGenerator
+from services.content_analyzer import ContentAnalyzer
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -32,9 +35,18 @@ class AudioGenerationHandler:
     """Main handler for audio generation Lambda function"""
     
     def __init__(self):
+        """Initialize handler with required clients and services"""
         self.supabase_client = SupabaseClient()
         self.s3_client = S3Client()
         self.telegram_client = TelegramDataClient()
+        
+        # Get API keys from environment
+        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        if not self.gemini_api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is required")
+        
+        # Initialize content analyzer
+        self.content_analyzer = ContentAnalyzer(self.gemini_api_key)
         
     def process_event(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         """Process SQS event containing episode generation requests"""
@@ -138,19 +150,30 @@ class AudioGenerationHandler:
             if not telegram_data:
                 raise ValueError("No Telegram data found for episode")
             
-            # Generate script and audio
-            script = self._generate_script(telegram_data, podcast_config, request_id, episode_id)
-            audio_result = self._generate_audio(episode_id, podcast_id, script, podcast_config)
+            # Analyze content and get dynamic speaker role
+            content_analysis = self.content_analyzer.analyze_content(telegram_data)
+            logger.info(f"[AUDIO_GEN] [{request_id}] Content analysis: {content_analysis.content_type} -> {content_analysis.speaker2_role}")
+            
+            # Update podcast config with dynamic role
+            dynamic_config = self._apply_dynamic_role(podcast_config, content_analysis)
+            
+            # Generate script with dynamic roles
+            script = self._generate_script(telegram_data, dynamic_config, request_id, episode_id)
+            
+            # Generate audio
+            audio_data, duration = self._generate_audio(
+                script, dynamic_config, request_id, episode_id
+            )
             
             # Upload script as transcript to S3
             self._upload_script_as_transcript(episode_id, podcast_id, script, request_id)
             
             # Upload and update
             audio_url = self.s3_client.upload_audio(
-                audio_result['audio_buffer'], podcast_id, episode_id, 'wav'
+                audio_data, podcast_id, episode_id, 'wav'
             )
             
-            self._update_episode_with_audio(episode_id, audio_url, audio_result, episode)
+            self._update_episode_with_audio(episode_id, audio_url, audio_data, duration, episode)
             
             logger.info(f"[AUDIO_GEN] [{request_id}] Successfully generated audio for episode {episode_id}")
             
@@ -158,7 +181,10 @@ class AudioGenerationHandler:
                 'status': 'success',
                 'episode_id': episode_id,
                 'audio_url': audio_url,
-                'duration': audio_result.get('duration', 0)
+                'duration': duration,
+                'content_type': content_analysis.content_type.value,
+                'speaker2_role': content_analysis.speaker2_role.value,
+                'confidence': content_analysis.confidence
             }
             
         except Exception as e:
@@ -198,7 +224,7 @@ class AudioGenerationHandler:
         
         return script_generator.generate_script(telegram_data, podcast_config, episode_id)
 
-    def _generate_audio(self, episode_id: str, podcast_id: str, script: str, podcast_config: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with gender-aware voices"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
         
@@ -227,25 +253,21 @@ class AudioGenerationHandler:
             logger.error(f"[AUDIO_GEN] Audio generation failed: {str(e)}")
             raise
         
-        return {
-            'audio_buffer': audio_data,
-            'duration': duration,
-            'format': 'wav'
-        }
+        return audio_data, duration
 
-    def _update_episode_with_audio(self, episode_id: str, audio_url: str, audio_result: Dict[str, Any], episode: Dict[str, Any]):
+    def _update_episode_with_audio(self, episode_id: str, audio_url: str, audio_data: bytes, duration: float, episode: Dict[str, Any]):
         """Update episode with audio results and send completion callback"""
         # Update episode in database
         self.supabase_client.update_episode(episode_id, {
             'audio_url': audio_url,
-            'duration': audio_result.get('duration', 0),
+            'duration': duration,
             'status': 'completed',
-            'description': audio_result.get('description') or episode.get('description'),
-            'title': audio_result.get('title') or episode.get('title')
+            'description': episode.get('description'),
+            'title': episode.get('title')
         })
         
         # Send completion callback to trigger immediate post-processing
-        self._send_completion_callback(episode_id, audio_url, audio_result.get('duration', 0))
+        self._send_completion_callback(episode_id, audio_url, duration)
 
     def _upload_script_as_transcript(self, episode_id: str, podcast_id: str, script: str, request_id: str):
         """Upload the generated script as a transcript file to S3"""
@@ -268,7 +290,7 @@ class AudioGenerationHandler:
             logger.warning(f"[AUDIO_GEN] [{request_id}] Error uploading transcript for episode {episode_id}: {str(e)}")
             # Don't fail the entire process if transcript upload fails
 
-    def _send_completion_callback(self, episode_id: str, audio_url: str, duration: int):
+    def _send_completion_callback(self, episode_id: str, audio_url: str, duration: float):
         """Send completion callback to Next.js API for immediate post-processing"""
         try:
             import requests
@@ -327,4 +349,22 @@ class AudioGenerationHandler:
             logger.info(f"[AUDIO_GEN] Updated episode {episode_id} status to {status}")
             
         except Exception as e:
-            logger.error(f"[AUDIO_GEN] Failed to update episode status: {str(e)}") 
+            logger.error(f"[AUDIO_GEN] Failed to update episode status: {str(e)}")
+
+    def _apply_dynamic_role(self, podcast_config: Dict[str, Any], content_analysis) -> Dict[str, Any]:
+        """Apply dynamic speaker role to podcast configuration"""
+        dynamic_config = podcast_config.copy()
+        
+        # Update speaker2_role with analyzed role
+        dynamic_config['speaker2_role'] = content_analysis.speaker2_role.value
+        
+        # Add content analysis metadata
+        dynamic_config['content_analysis'] = {
+            'content_type': content_analysis.content_type.value,
+            'confidence': content_analysis.confidence,
+            'reasoning': content_analysis.reasoning
+        }
+        
+        logger.info(f"[AUDIO_GEN] Updated speaker2_role: {dynamic_config['speaker2_role']}")
+        
+        return dynamic_config 
