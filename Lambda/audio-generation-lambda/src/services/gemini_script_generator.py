@@ -169,11 +169,17 @@ This voice information should influence the conversation style and personality t
             content_info = f"""
 CONTENT ANALYSIS:
 - Content Type: {content_analysis.get('content_type', 'general')}
-- Speaker Role Selection: {speaker2_role} (confidence: {content_analysis.get('confidence', 0.5):.2f})
-- Analysis Reasoning: {content_analysis.get('reasoning', 'Dynamic role selection based on content')}
+- Specific Speaker Role: {content_analysis.get('specific_role', speaker2_role)}
+- Role Description: {content_analysis.get('role_description', 'Expert in the field')}
+- Analysis Confidence: {content_analysis.get('confidence', 0.5):.2f}
+- Selection Reasoning: {content_analysis.get('reasoning', 'Dynamic role selection based on content')}
 
-The {speaker2_role} should demonstrate expertise and knowledge specific to {content_analysis.get('content_type', 'general')} topics."""
+The {content_analysis.get('specific_role', speaker2_role)} should demonstrate expertise as: {content_analysis.get('role_description', 'an expert in the field')}. 
+Focus on insights and analysis that match this specific expertise area within {content_analysis.get('content_type', 'general')} topics."""
 
+        # Get the specific role from content analysis or fallback to configured role
+        actual_speaker2_role = content_analysis.get('specific_role', speaker2_role) if content_analysis else speaker2_role
+        
         # Build comprehensive prompt
         conversation_prompt = f"""
 You are an expert podcast script writer specializing in natural, engaging conversations between two speakers.
@@ -187,7 +193,7 @@ PODCAST INFORMATION:
 
 SPEAKER CONFIGURATION:
 - Speaker 1: {speaker1_role} ({speaker1_gender})
-- Speaker 2: {speaker2_role} ({speaker2_gender})
+- Speaker 2: {actual_speaker2_role} ({speaker2_gender})
 
 {voice_info}
 
@@ -198,9 +204,9 @@ ADDITIONAL INSTRUCTIONS:
 {additional_instructions}
 
 SCRIPT REQUIREMENTS:
-1. Create a natural, flowing conversation between {speaker1_role} and {speaker2_role}
+1. Create a natural, flowing conversation between {speaker1_role} and {actual_speaker2_role}
 2. The {speaker1_role} should guide the conversation and ask insightful questions
-3. The {speaker2_role} should provide expert analysis and insights appropriate to their role and the content type
+3. The {actual_speaker2_role} should provide expert analysis and insights appropriate to their specific role and expertise
 4. Use natural speech patterns, including appropriate pauses, emphasis, and conversational elements
 5. Target approximately {target_duration} minutes of spoken content
 6. Maintain audience engagement throughout
@@ -218,7 +224,7 @@ Use this exact format for the script:
 
 {speaker1_role}: [First speaker's dialogue]
 
-{speaker2_role}: [Second speaker's dialogue]
+{actual_speaker2_role}: [Second speaker's dialogue]
 
 {speaker1_role}: [Continue conversation...]
 

@@ -183,7 +183,8 @@ class AudioGenerationHandler:
                 'audio_url': audio_url,
                 'duration': duration,
                 'content_type': content_analysis.content_type.value,
-                'speaker2_role': content_analysis.speaker2_role.value,
+                'speaker2_role': content_analysis.specific_role,
+                'role_description': content_analysis.role_description,
                 'confidence': content_analysis.confidence
             }
             
@@ -352,19 +353,27 @@ class AudioGenerationHandler:
             logger.error(f"[AUDIO_GEN] Failed to update episode status: {str(e)}")
 
     def _apply_dynamic_role(self, podcast_config: Dict[str, Any], content_analysis) -> Dict[str, Any]:
-        """Apply dynamic speaker role to podcast configuration"""
+        """Apply dynamic speaker role to podcast configuration using hybrid approach"""
         dynamic_config = podcast_config.copy()
         
-        # Update speaker2_role with analyzed role
-        dynamic_config['speaker2_role'] = content_analysis.speaker2_role.value
+        # Update speaker2_role with AI-generated specific role
+        dynamic_config['speaker2_role'] = content_analysis.specific_role
+        
+        # Get gender for voice selection based on content category
+        speaker2_gender = self.content_analyzer.get_gender_for_category(content_analysis.content_type)
+        dynamic_config['speaker2_gender'] = speaker2_gender
         
         # Add content analysis metadata
         dynamic_config['content_analysis'] = {
             'content_type': content_analysis.content_type.value,
+            'specific_role': content_analysis.specific_role,
+            'role_description': content_analysis.role_description,
             'confidence': content_analysis.confidence,
-            'reasoning': content_analysis.reasoning
+            'reasoning': content_analysis.reasoning,
+            'assigned_gender': speaker2_gender
         }
         
         logger.info(f"[AUDIO_GEN] Updated speaker2_role: {dynamic_config['speaker2_role']}")
+        logger.info(f"[AUDIO_GEN] Assigned gender: {speaker2_gender} for category: {content_analysis.content_type.value}")
         
         return dynamic_config 

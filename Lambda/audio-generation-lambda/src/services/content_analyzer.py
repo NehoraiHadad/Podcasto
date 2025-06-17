@@ -52,30 +52,47 @@ class SpeakerRole(str, Enum):
 
 @dataclass
 class ContentAnalysisResult:
-    """Result of content analysis"""
+    """Result of content analysis with hybrid approach"""
     content_type: ContentType
-    speaker2_role: SpeakerRole
+    specific_role: str  # AI-generated specific role name
+    role_description: str  # Description of the role's expertise
     confidence: float
     reasoning: str
 
 
 class ContentAnalyzer:
-    """Analyzes content and determines appropriate speaker roles"""
+    """Analyzes content and determines appropriate speaker roles using hybrid approach"""
     
-    # Content type to speaker role mapping
-    ROLE_MAPPING = {
-        ContentType.NEWS: SpeakerRole.NEWS_ANCHOR,
-        ContentType.TECHNOLOGY: SpeakerRole.TECH_EXPERT,
-        ContentType.FINANCE: SpeakerRole.FINANCIAL_ANALYST,
-        ContentType.POLITICS: SpeakerRole.POLITICAL_COMMENTATOR,
-        ContentType.SPORTS: SpeakerRole.SPORTS_COMMENTATOR,
-        ContentType.HEALTH: SpeakerRole.HEALTH_EXPERT,
-        ContentType.SCIENCE: SpeakerRole.SCIENCE_COMMUNICATOR,
-        ContentType.ENTERTAINMENT: SpeakerRole.ENTERTAINMENT_CRITIC,
-        ContentType.BUSINESS: SpeakerRole.BUSINESS_ANALYST,
-        ContentType.EDUCATION: SpeakerRole.EDUCATOR,
-        ContentType.LIFESTYLE: SpeakerRole.LIFESTYLE_GURU,
-        ContentType.GENERAL: SpeakerRole.EXPERT,
+    # Content type to default gender mapping for voice selection
+    CATEGORY_GENDER_MAPPING = {
+        ContentType.NEWS: "female",
+        ContentType.TECHNOLOGY: "male", 
+        ContentType.FINANCE: "male",
+        ContentType.POLITICS: "female",
+        ContentType.SPORTS: "male",
+        ContentType.HEALTH: "female",
+        ContentType.SCIENCE: "male",
+        ContentType.ENTERTAINMENT: "female",
+        ContentType.BUSINESS: "male",
+        ContentType.EDUCATION: "female",
+        ContentType.LIFESTYLE: "female",
+        ContentType.GENERAL: "male",
+    }
+    
+    # Role generation guidelines per category
+    ROLE_GUIDELINES = {
+        ContentType.NEWS: "News reporter, correspondent, anchor, or journalist specialist",
+        ContentType.TECHNOLOGY: "Tech expert, software engineer, AI researcher, or tech analyst",
+        ContentType.FINANCE: "Financial analyst, economist, market expert, or investment advisor",
+        ContentType.POLITICS: "Political analyst, policy expert, or government affairs specialist",
+        ContentType.SPORTS: "Sports analyst, commentator, or athletic expert",
+        ContentType.HEALTH: "Medical expert, health specialist, or wellness advisor",
+        ContentType.SCIENCE: "Research scientist, academic expert, or science communicator",
+        ContentType.ENTERTAINMENT: "Entertainment critic, media analyst, or cultural commentator",
+        ContentType.BUSINESS: "Business analyst, industry expert, or corporate strategist",
+        ContentType.EDUCATION: "Educational expert, academic, or learning specialist",
+        ContentType.LIFESTYLE: "Lifestyle expert, personal development coach, or wellness guru",
+        ContentType.GENERAL: "Subject matter expert or knowledgeable analyst",
     }
     
     def __init__(self, api_key: str):
@@ -86,15 +103,15 @@ class ContentAnalyzer:
     
     def analyze_content(self, telegram_data: Dict[str, Any]) -> ContentAnalysisResult:
         """
-        Analyze Telegram content and determine appropriate speaker role
+        Analyze Telegram content and determine appropriate speaker role using hybrid approach
         
         Args:
             telegram_data: Raw Telegram data with messages
             
         Returns:
-            ContentAnalysisResult with content type and speaker role
+            ContentAnalysisResult with content type and specific role
         """
-        logger.info("[CONTENT_ANALYZER] Starting content analysis")
+        logger.info("[CONTENT_ANALYZER] Starting hybrid content analysis")
         
         try:
             # Extract content for analysis
@@ -104,7 +121,7 @@ class ContentAnalyzer:
             analysis_result = self._analyze_with_gemini(content_text)
             
             logger.info(f"[CONTENT_ANALYZER] Content classified as: {analysis_result.content_type}")
-            logger.info(f"[CONTENT_ANALYZER] Selected speaker role: {analysis_result.speaker2_role}")
+            logger.info(f"[CONTENT_ANALYZER] Specific role: {analysis_result.specific_role}")
             
             return analysis_result
             
@@ -113,10 +130,15 @@ class ContentAnalyzer:
             # Return default values on error
             return ContentAnalysisResult(
                 content_type=ContentType.GENERAL,
-                speaker2_role=SpeakerRole.EXPERT,
+                specific_role="Expert Analyst",
+                role_description="General subject matter expert",
                 confidence=0.5,
                 reasoning="Error in analysis, using default role"
             )
+    
+    def get_gender_for_category(self, content_type: ContentType) -> str:
+        """Get the default gender for a content category"""
+        return self.CATEGORY_GENDER_MAPPING.get(content_type, "male")
     
     def _extract_content_text(self, telegram_data: Dict[str, Any]) -> str:
         """Extract text content from Telegram data for analysis"""
@@ -140,9 +162,9 @@ class ContentAnalyzer:
             return ""
     
     def _analyze_with_gemini(self, content_text: str) -> ContentAnalysisResult:
-        """Analyze content using Gemini with structured output"""
+        """Analyze content using Gemini with structured output for hybrid approach"""
         
-        # Define the response schema
+        # Define the response schema for hybrid approach
         response_schema = {
             "type": "object",
             "properties": {
@@ -150,6 +172,14 @@ class ContentAnalyzer:
                     "type": "string",
                     "enum": [ct.value for ct in ContentType],
                     "description": "The primary category of the content"
+                },
+                "specific_role": {
+                    "type": "string", 
+                    "description": "Specific, creative role name that fits the content (e.g., 'AI Research Scientist', 'Crypto Market Analyst')"
+                },
+                "role_description": {
+                    "type": "string",
+                    "description": "Brief description of the role's expertise and background"
                 },
                 "confidence": {
                     "type": "number",
@@ -159,11 +189,11 @@ class ContentAnalyzer:
                 },
                 "reasoning": {
                     "type": "string",
-                    "description": "Brief explanation of why this content type was selected"
+                    "description": "Brief explanation of why this content type and role were selected"
                 }
             },
-            "required": ["content_type", "confidence", "reasoning"],
-            "propertyOrdering": ["content_type", "confidence", "reasoning"]
+            "required": ["content_type", "specific_role", "role_description", "confidence", "reasoning"],
+            "propertyOrdering": ["content_type", "specific_role", "role_description", "confidence", "reasoning"]
         }
         
         # Build the analysis prompt
@@ -182,13 +212,13 @@ class ContentAnalyzer:
             # Parse the response
             result_data = json.loads(response.text)
             
-            # Map content type to speaker role
+            # Create result with hybrid data
             content_type = ContentType(result_data['content_type'])
-            speaker2_role = self.ROLE_MAPPING.get(content_type, SpeakerRole.EXPERT)
             
             return ContentAnalysisResult(
                 content_type=content_type,
-                speaker2_role=speaker2_role,
+                specific_role=result_data['specific_role'],
+                role_description=result_data['role_description'],
                 confidence=result_data['confidence'],
                 reasoning=result_data['reasoning']
             )
@@ -198,7 +228,7 @@ class ContentAnalyzer:
             raise
     
     def _build_analysis_prompt(self, content_text: str) -> str:
-        """Build the content analysis prompt"""
+        """Build the content analysis prompt for hybrid approach"""
         
         # Truncate content if too long
         max_content_length = 2000
@@ -206,7 +236,7 @@ class ContentAnalyzer:
             content_text = content_text[:max_content_length] + "..."
         
         prompt = f"""
-You are a content classification expert. Analyze the following content and determine its primary category.
+You are a content classification expert. Analyze the following content and determine its primary category, then create a specific, engaging speaker role.
 
 CONTENT TO ANALYZE:
 {content_text}
@@ -225,13 +255,38 @@ AVAILABLE CATEGORIES:
 - lifestyle: Personal development, travel, food, fashion
 - general: Mixed content or content that doesn't fit other categories
 
-INSTRUCTIONS:
-1. Analyze the content's main theme and subject matter
-2. Select the most appropriate category from the list above
-3. Provide a confidence score (0.0-1.0) based on how clear the categorization is
-4. Give a brief reasoning for your classification
+ROLE CREATION GUIDELINES:
+After selecting the category, create a SPECIFIC role that matches the exact content:
 
-Consider the language and cultural context of the content when making your decision.
+For TECHNOLOGY content:
+- Examples: "AI Research Scientist", "Cybersecurity Expert", "Mobile App Developer", "Cloud Computing Specialist"
+- Focus on the specific tech area discussed
+
+For NEWS content:
+- Examples: "Political Correspondent", "International Affairs Reporter", "Economic News Analyst"
+- Match the news domain
+
+For FINANCE content:
+- Examples: "Cryptocurrency Analyst", "Stock Market Expert", "Real Estate Investment Advisor"
+- Specify the financial area
+
+For other categories, follow similar patterns - be specific to the actual content discussed.
+
+INSTRUCTIONS:
+1. Select the primary category from the list above
+2. Create a specific, professional role name that precisely matches the content
+3. Write a brief role description explaining their expertise
+4. Provide confidence score based on how clear the categorization is
+5. Give reasoning for both category and role selection
+
+ROLE NAMING RULES:
+- Use professional, credible titles
+- Be specific to the content's focus area
+- Avoid generic terms when possible
+- Make it sound like a real expert you'd want to hear from
+- Consider Hebrew content context when relevant
+
+Consider the language and cultural context of the content when making your decisions.
 """
         
         return prompt 
