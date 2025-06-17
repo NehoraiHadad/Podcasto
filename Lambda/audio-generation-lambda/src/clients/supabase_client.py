@@ -2,7 +2,6 @@
 Supabase client for Lambda audio generation function
 """
 import os
-import json
 from typing import Dict, Any, Optional, List
 from supabase import create_client, Client
 

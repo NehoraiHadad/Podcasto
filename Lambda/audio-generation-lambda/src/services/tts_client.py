@@ -8,8 +8,8 @@ from google import genai
 from google.genai import types
 from utils.logging import get_logger
 from utils.wav_utils import convert_to_wav, calculate_wav_duration
-from .voice_config import VoiceConfigManager
-from .hebrew_niqqud import HebrewNiqqudProcessor
+from services.voice_config import VoiceConfigManager
+from services.hebrew_niqqud import HebrewNiqqudProcessor
 
 logger = get_logger(__name__)
 
@@ -55,20 +55,18 @@ class GeminiTTSClient:
         Returns:
             Tuple of (audio_data_bytes, duration_seconds)
         """
-        # Get voice configuration for language
-        voice_config = self.voice_manager.get_voice_config_for_language(language)
-        
-        # Select voices based on gender with randomization logic
-        # Speaker 1 is always fixed for consistency
-        voice1 = self.voice_manager.get_voice_for_speaker(
-            language, speaker1_gender, speaker1_role, episode_id, randomize=False
+        # Select distinct voices for both speakers to ensure they are different
+        voice1, voice2 = self.voice_manager.get_distinct_voices_for_speakers(
+            language=language,
+            speaker1_gender=speaker1_gender,
+            speaker2_gender=speaker2_gender,
+            speaker1_role=speaker1_role,
+            speaker2_role=speaker2_role,
+            episode_id=episode_id,
+            randomize_speaker2=bool(episode_id)
         )
         
-        # Speaker 2 is randomized if episode_id is provided
-        voice2 = self.voice_manager.get_voice_for_speaker(
-            language, speaker2_gender, speaker2_role, episode_id, randomize=bool(episode_id)
-        )
-        
+        # Get language-specific instruction for TTS
         instruction = self.voice_manager.get_instruction_for_language(language)
         
         logger.info(f"[TTS_CLIENT] Using voices: {speaker1_role}={voice1} ({speaker1_gender}), {speaker2_role}={voice2} ({speaker2_gender})")
@@ -192,7 +190,7 @@ class GeminiTTSClient:
                 )
                 
                 # Import chunk manager for validation
-                from .audio_chunk_manager import AudioChunkManager
+                from services.audio_chunk_manager import AudioChunkManager
                 chunk_manager = AudioChunkManager()
                 
                 # Validate audio data before returning

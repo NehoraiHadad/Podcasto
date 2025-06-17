@@ -5,9 +5,9 @@ Main orchestrator for multi-speaker podcast generation using modular components
 from typing import Tuple, Callable, Optional
 from utils.logging import get_logger
 from utils.wav_utils import concatenate_wav_files
-from .voice_config import VoiceConfigManager
-from .audio_chunk_manager import AudioChunkManager
-from .tts_client import GeminiTTSClient
+from services.voice_config import VoiceConfigManager
+from services.audio_chunk_manager import AudioChunkManager
+from services.tts_client import GeminiTTSClient
 
 logger = get_logger(__name__)
 

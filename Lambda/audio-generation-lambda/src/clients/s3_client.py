@@ -3,7 +3,7 @@ S3 client for Lambda audio generation function
 """
 import os
 import boto3
-from typing import Dict, Any, Optional
+from typing import  Optional
 from botocore.exceptions import ClientError
 
 from utils.logging import get_logger

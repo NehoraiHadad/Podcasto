@@ -2,7 +2,7 @@
 Voice Configuration Module
 Handles voice mappings and selection for different languages and genders
 """
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 import hashlib
 import random
 from utils.logging import get_logger
@@ -16,8 +16,8 @@ class VoiceConfigManager:
         """Initialize voice configuration mappings"""
         self.voice_config = {
             'hebrew': {
-                'male': 'Algenib',      # Gravelly - distinctive male voice
-                'female': 'Aoede',      # Breezy - clear female voice
+                'male': 'Alnilam',       # Firm - distinctive male voice (changed from Algenib)
+                'female': 'Aoede',       # Breezy - clear female voice
                 'instruction': "קרא בקול רם בטון חם ומזמין. חשוב מאוד: קרא בעברית בטבעיות!"
             },
             'english': {
@@ -41,7 +41,6 @@ class VoiceConfigManager:
             'Callirrhoe': 'female',  # Easy-going
             'Despina': 'female',     # Smooth
             'Erinome': 'female',     # Clear
-            'Gacrux': 'female',      # Mature (Note: varies by language)
             'Kore': 'female',        # Firm
             'Laomedeia': 'female',   # Upbeat
             'Leda': 'female',        # Youthful
@@ -58,6 +57,7 @@ class VoiceConfigManager:
             'Charon': 'male',        # Informative
             'Enceladus': 'male',     # Breathy
             'Fenrir': 'male',        # Excitable
+            'Gacrux': 'male',        # Mature (FIXED: was incorrectly listed as female)
             'Iapetus': 'male',       # Clear
             'Orus': 'male',          # Firm
             'Puck': 'male',          # Upbeat
@@ -94,6 +94,109 @@ class VoiceConfigManager:
         
         return config
     
+    def get_distinct_voices_for_speakers(
+        self,
+        language: str,
+        speaker1_gender: str,
+        speaker2_gender: str,
+        speaker1_role: str = "Speaker1",
+        speaker2_role: str = "Speaker2", 
+        episode_id: str = None,
+        randomize_speaker2: bool = False
+    ) -> Tuple[str, str]:
+        """
+        Get distinct voices for two speakers, ensuring they are different
+        
+        Args:
+            language: Target language
+            speaker1_gender: First speaker gender
+            speaker2_gender: Second speaker gender
+            speaker1_role: First speaker role name
+            speaker2_role: Second speaker role name
+            episode_id: Episode ID for deterministic randomization
+            randomize_speaker2: Whether to randomize second speaker voice
+            
+        Returns:
+            Tuple of (speaker1_voice, speaker2_voice)
+        """
+        # Start with default voice selection
+        if randomize_speaker2 and episode_id:
+            # Speaker 1 uses fixed voice, Speaker 2 uses randomized voice
+            speaker1_voice = self.get_voice_for_speaker(
+                language, speaker1_gender, speaker1_role, episode_id, randomize=False
+            )
+            speaker2_voice = self._get_random_voice_for_gender(
+                speaker2_gender, episode_id, speaker2_role
+            )
+        else:
+            # Both use fixed configuration
+            config = self.get_voice_config_for_language(language)
+            speaker1_voice = config.get(speaker1_gender.lower(), config.get('male', 'Gacrux'))
+            speaker2_voice = config.get(speaker2_gender.lower(), config.get('female', 'Leda'))
+        
+        # Ensure voices are different
+        if speaker1_voice == speaker2_voice:
+            logger.warning(f"[VOICE_CONFIG] Same voice detected ({speaker1_voice}), selecting alternative")
+            speaker2_voice = self._get_alternative_voice(
+                speaker2_gender, speaker1_voice, episode_id, speaker2_role
+            )
+        
+        logger.info(f"[VOICE_CONFIG] Selected distinct voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+        return speaker1_voice, speaker2_voice
+    
+    def _get_alternative_voice(
+        self, 
+        gender: str, 
+        avoid_voice: str, 
+        episode_id: str = None, 
+        speaker_role: str = "Speaker"
+    ) -> str:
+        """
+        Get an alternative voice for the specified gender, avoiding a specific voice
+        
+        Args:
+            gender: Target gender
+            avoid_voice: Voice to avoid
+            episode_id: Episode ID for deterministic selection
+            speaker_role: Speaker role for logging
+            
+        Returns:
+            Alternative voice name
+        """
+        gender_key = gender.lower()
+        
+        # Get appropriate voice list based on gender
+        if gender_key == 'female':
+            voice_list = self.female_voices.copy()
+        elif gender_key == 'male':
+            voice_list = self.male_voices.copy()
+        else:
+            logger.warning(f"[VOICE_CONFIG] Unknown gender '{gender}', using male voices")
+            voice_list = self.male_voices.copy()
+        
+        # Remove the voice to avoid
+        if avoid_voice in voice_list:
+            voice_list.remove(avoid_voice)
+        
+        if not voice_list:
+            logger.error(f"[VOICE_CONFIG] No alternative voices available for gender '{gender}'")
+            # Return a safe fallback that's different from avoid_voice
+            return 'Leda' if avoid_voice != 'Leda' else 'Gacrux'
+        
+        # Use deterministic selection if episode_id provided
+        if episode_id:
+            seed_string = f"{episode_id}_{speaker_role}_{gender}_alt"
+            seed_hash = hashlib.md5(seed_string.encode()).hexdigest()
+            seed = int(seed_hash[:8], 16)
+            random.seed(seed)
+            selected_voice = random.choice(voice_list)
+        else:
+            # Use first available alternative
+            selected_voice = voice_list[0]
+        
+        logger.debug(f"[VOICE_CONFIG] Alternative voice selected: {selected_voice} (avoiding {avoid_voice})")
+        return selected_voice
+
     def get_voice_for_speaker(
         self, 
         language: str, 

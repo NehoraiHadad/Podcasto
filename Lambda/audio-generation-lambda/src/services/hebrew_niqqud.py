@@ -4,10 +4,9 @@ Handles Hebrew text diacritical marks (niqqud) processing for improved TTS accur
 Based on Dicta API integration for Hebrew text vocalization
 """
 import re
-import json
 import time
 from functools import wraps
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 import requests
 
@@ -37,13 +36,12 @@ DAGESH = '\u05bc'
 class HebrewNiqqudProcessor:
     """Hebrew text processor for adding niqqud (diacritical marks)"""
     
-    def __init__(self):
+    def __init__(self, cache_ttl: int = 3600):
         """Initialize the Hebrew niqqud processor"""
         self.dicta_url = 'https://nakdan-2-0.loadbalancer.dicta.org.il/api'
         self.max_chunk_length = 10000
-        self._cache: Dict[str, str] = {}
-        self._cache_timestamps: Dict[str, float] = {}
-        self._cache_ttl = 3600  # 1 hour cache TTL
+        self.cache_ttl = cache_ttl
+        self._cache: Dict[str, Dict[str, Any]] = {}
         
     def remove_niqqud(self, text: str) -> str:
         """Remove existing niqqud from Hebrew text"""
@@ -102,22 +100,40 @@ class HebrewNiqqudProcessor:
     
     def _get_cache_key(self, text: str) -> str:
         """Generate cache key for text"""
-        return f"niqqud_{hash(text.strip())}"
+        return f"niqqud_{hash(text)}"
     
-    def _is_cache_valid(self, cache_key: str) -> bool:
+    def _is_cache_valid(self, cache_entry: Dict[str, Any]) -> bool:
         """Check if cache entry is still valid"""
-        if cache_key not in self._cache_timestamps:
-            return False
-        return time.time() - self._cache_timestamps[cache_key] < self._cache_ttl
+        return time.time() - cache_entry['timestamp'] < self.cache_ttl
+    
+    def _get_from_cache(self, text: str) -> Optional[str]:
+        """Get result from cache if valid"""
+        cache_key = self._get_cache_key(text)
+        if cache_key in self._cache:
+            entry = self._cache[cache_key]
+            if self._is_cache_valid(entry):
+                logger.info(f"[NIQQUD] Cache hit for text: {len(text)} characters")
+                return entry['result']
+            else:
+                # Remove expired entry
+                del self._cache[cache_key]
+        return None
+    
+    def _store_in_cache(self, text: str, result: str) -> None:
+        """Store result in cache"""
+        cache_key = self._get_cache_key(text)
+        self._cache[cache_key] = {
+            'result': result,
+            'timestamp': time.time()
+        }
+        logger.info(f"[NIQQUD] Cached result for text: {len(text)} characters")
     
     def fetch_dicta_raw(self, text: str) -> str:
-        """Fetch niqqud from Dicta API with simple caching"""
-        cache_key = self._get_cache_key(text)
-        
+        """Fetch niqqud from Dicta API with caching"""
         # Check cache first
-        if self._is_cache_valid(cache_key):
-            logger.info("[NIQQUD] Using cached result")
-            return self._cache[cache_key]
+        cached_result = self._get_from_cache(text)
+        if cached_result is not None:
+            return cached_result
         
         payload = {
             "task": "nakdan",
@@ -145,9 +161,8 @@ class HebrewNiqqudProcessor:
                 logger.warning("[NIQQUD] Failed to add sufficient niqqud")
                 raise requests.RequestException("Undotted response")
             
-            # Cache the result
-            self._cache[cache_key] = result
-            self._cache_timestamps[cache_key] = time.time()
+            # Store in cache
+            self._store_in_cache(text, result)
             
             logger.info(f"[NIQQUD] Successfully processed text with niqqud")
             return result
