@@ -9,6 +9,7 @@ from google.genai import types
 from utils.logging import get_logger
 from utils.wav_utils import convert_to_wav, calculate_wav_duration
 from .voice_config import VoiceConfigManager
+from .hebrew_niqqud import HebrewNiqqudProcessor
 
 logger = get_logger(__name__)
 
@@ -24,6 +25,7 @@ class GeminiTTSClient:
         self.client = genai.Client(api_key=api_key)
         self.model = "gemini-2.5-pro-preview-tts"
         self.voice_manager = VoiceConfigManager()
+        self.niqqud_processor = HebrewNiqqudProcessor()
         
         # Optimized generation settings to prevent silent audio
         self.temperature = 0.8  # CRITICAL: Higher temperature prevents silent generation
@@ -87,12 +89,15 @@ class GeminiTTSClient:
             ),
         ]
         
+        # Process Hebrew text with niqqud for improved pronunciation
+        processed_script = self.niqqud_processor.process_script_for_tts(script_content, language)
+        
         # Prepare content with language-specific instructions
-        full_prompt = f"{instruction}\n\n{script_content}"
+        full_prompt = f"{instruction}\n\n{processed_script}"
         
         # Add specific language guidance for Hebrew
         if language.lower() in ['he', 'hebrew', 'heb']:
-            full_prompt = f"IMPORTANT: Read this conversation in Hebrew. Speak naturally in Hebrew.\n\n{full_prompt}"
+            full_prompt = f"IMPORTANT: Read this conversation in Hebrew. Speak naturally in Hebrew with proper pronunciation.\n\n{full_prompt}"
         
         contents = [
             types.Content(
