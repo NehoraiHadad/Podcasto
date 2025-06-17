@@ -65,12 +65,21 @@ class GeminiScriptGenerator:
 
         # Get configuration
         speaker1_role = podcast_config.get("speaker1_role", "Host")
-        speaker2_role = podcast_config.get("speaker2_role", "Expert")
+        language = podcast_config.get("language", "en")
+        
+        # Analyze content to determine appropriate speaker2 role
+        # Allow override from config, but default to content-based analysis
+        if podcast_config.get("dynamic_speaker2_role", True):
+            speaker2_role = self._analyze_content_and_determine_speaker2_role(telegram_data, language)
+            logger.info(f"[GEMINI_SCRIPT] Dynamic role selection: {speaker2_role}")
+        else:
+            speaker2_role = podcast_config.get("speaker2_role", "Expert")
+            logger.info(f"[GEMINI_SCRIPT] Fixed role from config: {speaker2_role}")
+        
         speaker1_gender = podcast_config.get("speaker1_gender", "male")
         speaker2_gender = podcast_config.get("speaker2_gender", "female")
         podcast_name = podcast_config.get("podcast_name", "Daily Podcast")
         target_duration = podcast_config.get("target_duration_minutes", 10)
-        language = podcast_config.get("language", "en")
         additional_instructions = podcast_config.get("additional_instructions", "")
 
         # Build the prompt with raw telegram data and gender awareness
@@ -194,12 +203,18 @@ VOICE-AWARE SCRIPT GUIDANCE:
         prompt = f"""You are an AI scriptwriter for a podcast called "{podcast_name}". 
 
 Your task is to create an engaging, conversational podcast script between two speakers:
-- {speaker1_role}: A {speaker1_gender} speaker
-- {speaker2_role}: A {speaker2_gender} speaker
+- {speaker1_role}: A {speaker1_gender} speaker (consistent host)
+- {speaker2_role}: A {speaker2_gender} speaker (content-specific expert)
 
 {language_instructions}
 
 {voice_info}
+
+SPEAKER ROLE AWARENESS:
+- {speaker1_role} ({speaker1_gender}) is the consistent host across all episodes - maintains podcast brand and identity
+- {speaker2_role} ({speaker2_gender}) is specifically chosen for this episode's content - brings specialized expertise
+- {speaker2_role} should demonstrate deep knowledge and insights relevant to the content themes
+- Make {speaker2_role}'s expertise feel authentic and valuable to the discussion
 
 SPEAKER GENDER AWARENESS:
 - Remember that {speaker1_role} is {speaker1_gender} - ensure all language, grammar, and expressions are appropriate
@@ -223,18 +238,26 @@ Let the content determine the natural length of the conversation. Some rich cont
 CONVERSATION GUIDELINES:
 1. Create a natural, flowing conversation between a {speaker1_gender} {speaker1_role} and a {speaker2_gender} {speaker2_role}
 2. {speaker1_role} ({speaker1_gender}) acts as the host - introduces topics, asks questions, provides transitions
-3. {speaker2_role} ({speaker2_gender}) acts as the expert/analyst - provides insights, explanations, and deeper analysis
-4. Use gender-appropriate language patterns, reactions, and expressions for each speaker
-5. Discuss content themes intelligently rather than just reading messages
-6. Give appropriate time to each topic based on its value and interest level:
+3. {speaker2_role} ({speaker2_gender}) acts as the content expert - provides specialized insights, explanations, and deeper analysis
+4. Tailor {speaker2_role}'s responses to their expertise:
+   - Tech Expert: Focus on technical implications, innovation trends, market impact
+   - Business Analyst: Emphasize market dynamics, financial implications, strategic insights
+   - Political Commentator: Discuss policy implications, political context, governance impact
+   - Financial Advisor: Highlight economic consequences, investment perspectives, market effects
+   - Health Expert: Address medical implications, public health considerations, research insights
+   - Sports Analyst: Cover performance analysis, team dynamics, competitive insights
+   - Security Analyst: Focus on defense implications, strategic considerations, threat analysis
+5. Use gender-appropriate language patterns, reactions, and expressions for each speaker
+6. Discuss content themes intelligently rather than just reading messages
+7. Give appropriate time to each topic based on its value and interest level:
    - Rich, complex content: Deep dive with follow-up questions
    - Simple updates: Brief mention and quick analysis
    - Controversial or surprising content: Extended discussion
-7. Include natural reactions that feel authentic for each speaker's gender and role
-8. Add follow-up questions that explore implications and connections
-9. Create smooth transitions between different content areas
-10. Make it engaging with appropriate enthusiasm and intellectual curiosity
-11. End naturally when the content has been fully explored
+8. Include natural reactions that feel authentic for each speaker's gender and role
+9. Add follow-up questions that explore implications and connections
+10. Create smooth transitions between different content areas
+11. Make it engaging with appropriate enthusiasm and intellectual curiosity
+12. End naturally when the content has been fully explored
 
 GENDER-SPECIFIC LANGUAGE REQUIREMENTS:
 - In Hebrew: Use correct verb forms, adjectives, and particle agreements for each speaker's gender
@@ -316,3 +339,113 @@ Begin the script now:"""
                 # raise Exception(f"Script contains placeholder text: '{pattern}'. Please regenerate.")
         
         logger.debug("[GEMINI_SCRIPT] Script validation passed - no obvious placeholders detected")
+
+    def _analyze_content_and_determine_speaker2_role(
+        self, telegram_data: Dict[str, Any], language: str = "en"
+    ) -> str:
+        """
+        Analyze the content and determine the most appropriate role for speaker 2
+        
+        Args:
+            telegram_data: Raw Telegram data to analyze
+            language: Target language for role names
+            
+        Returns:
+            Appropriate speaker2 role based on content analysis
+        """
+        
+        # Hebrew role mappings
+        if language.lower() in ['he', 'hebrew', 'heb']:
+            role_mappings = {
+                'technology': 'מומחה טכנולוגיה',
+                'business': 'אנליסט עסקי', 
+                'politics': 'פרשן פוליטי',
+                'finance': 'יועץ פיננסי',
+                'health': 'מומחה בריאות',
+                'sports': 'פרשן ספורט',
+                'entertainment': 'מבקר תרבות',
+                'science': 'מדען',
+                'education': 'חוקר חינוך',
+                'military': 'אנליסט ביטחון',
+                'legal': 'יועץ משפטי',
+                'real_estate': 'מומחה נדלן',
+                'travel': 'מומחה תיירות',
+                'food': 'מבקר קולינרי',
+                'default': 'מומחה'
+            }
+        else:
+            role_mappings = {
+                'technology': 'Tech Expert',
+                'business': 'Business Analyst',
+                'politics': 'Political Commentator', 
+                'finance': 'Financial Advisor',
+                'health': 'Health Expert',
+                'sports': 'Sports Analyst',
+                'entertainment': 'Culture Critic',
+                'science': 'Scientist',
+                'education': 'Education Researcher',
+                'military': 'Security Analyst',
+                'legal': 'Legal Advisor',
+                'real_estate': 'Real Estate Expert',
+                'travel': 'Travel Expert',
+                'food': 'Culinary Critic',
+                'default': 'Expert'
+            }
+        
+        # Extract text content for analysis
+        content_text = ""
+        try:
+            if isinstance(telegram_data, dict) and 'results' in telegram_data:
+                for message in telegram_data['results']:
+                    if isinstance(message, dict):
+                        text = message.get('text', '')
+                        media_desc = message.get('media_description', '')
+                        content_text += f" {text} {media_desc}"
+        except Exception as e:
+            logger.warning(f"[GEMINI_SCRIPT] Error extracting content for role analysis: {str(e)}")
+            return role_mappings['default']
+        
+        content_lower = content_text.lower()
+        
+        # Technology keywords
+        tech_keywords = ['ai', 'artificial intelligence', 'machine learning', 'tech', 'software', 'hardware', 'startup', 'app', 'digital', 'cyber', 'blockchain', 'crypto', 'programming', 'code', 'algorithm', 'data', 'cloud', 'internet', 'mobile', 'computer', 'innovation', 'technology', 'טכנולוגיה', 'בינה מלאכותית', 'תוכנה', 'חדשנות', 'דיגיטלי', 'אפליקציה', 'סטארטאפ']
+        
+        # Business keywords  
+        business_keywords = ['business', 'economy', 'market', 'stock', 'investment', 'company', 'corporate', 'revenue', 'profit', 'startup', 'entrepreneur', 'ipo', 'merger', 'acquisition', 'עסקים', 'כלכלה', 'שוק', 'מניות', 'השקעה', 'חברה', 'רווח', 'יזמות']
+        
+        # Politics keywords
+        politics_keywords = ['politics', 'government', 'election', 'minister', 'parliament', 'knesset', 'prime minister', 'policy', 'law', 'legislation', 'vote', 'campaign', 'political', 'פוליטיקה', 'ממשלה', 'בחירות', 'שר', 'כנסת', 'ראש ממשלה', 'חוק', 'חקיקה', 'הצבעה']
+        
+        # Finance keywords
+        finance_keywords = ['finance', 'bank', 'loan', 'credit', 'debt', 'mortgage', 'insurance', 'pension', 'tax', 'budget', 'inflation', 'currency', 'exchange rate', 'פיננסים', 'בנק', 'הלוואה', 'אשראי', 'חוב', 'משכנתא', 'ביטוח', 'פנסיה', 'מס', 'תקציב', 'אינפלציה']
+        
+        # Health keywords
+        health_keywords = ['health', 'medical', 'doctor', 'hospital', 'medicine', 'treatment', 'disease', 'vaccine', 'covid', 'virus', 'pandemic', 'healthcare', 'בריאות', 'רפואי', 'רופא', 'בית חולים', 'תרופה', 'טיפול', 'מחלה', 'חיסון', 'וירוס', 'מגפה']
+        
+        # Sports keywords
+        sports_keywords = ['sport', 'football', 'basketball', 'soccer', 'tennis', 'olympics', 'championship', 'team', 'player', 'coach', 'match', 'game', 'league', 'ספורט', 'כדורגל', 'כדורסל', 'טניס', 'אולימפיאדה', 'אליפות', 'קבוצה', 'שחקן', 'מאמן', 'משחק', 'ליגה']
+        
+        # Military/Security keywords
+        military_keywords = ['military', 'army', 'defense', 'security', 'war', 'conflict', 'terror', 'idf', 'soldier', 'operation', 'attack', 'weapon', 'ביטחון', 'צבא', 'הגנה', 'מלחמה', 'סכסוך', 'טרור', 'צהל', 'חייל', 'מבצע', 'התקפה', 'נשק']
+        
+        # Count keyword matches
+        keyword_counts = {
+            'technology': sum(1 for keyword in tech_keywords if keyword in content_lower),
+            'business': sum(1 for keyword in business_keywords if keyword in content_lower),
+            'politics': sum(1 for keyword in politics_keywords if keyword in content_lower),
+            'finance': sum(1 for keyword in finance_keywords if keyword in content_lower),
+            'health': sum(1 for keyword in health_keywords if keyword in content_lower),
+            'sports': sum(1 for keyword in sports_keywords if keyword in content_lower),
+            'military': sum(1 for keyword in military_keywords if keyword in content_lower),
+        }
+        
+        # Find the category with the most matches
+        max_category = max(keyword_counts.items(), key=lambda x: x[1])
+        
+        if max_category[1] > 0:  # If we found relevant keywords
+            selected_role = role_mappings[max_category[0]]
+            logger.info(f"[GEMINI_SCRIPT] Content analysis: {max_category[0]} ({max_category[1]} matches) → {selected_role}")
+            return selected_role
+        else:
+            logger.info(f"[GEMINI_SCRIPT] No specific content category detected, using default role")
+            return role_mappings['default']

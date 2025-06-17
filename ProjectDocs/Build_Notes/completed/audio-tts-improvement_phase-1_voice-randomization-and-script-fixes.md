@@ -118,4 +118,46 @@ VOICE-AWARE SCRIPT GUIDANCE:
 - **Script-Voice Alignment**: AI can now tailor conversation style to specific voice characteristics
 - **Brand Consistency Awareness**: AI knows Speaker 1 voice is consistent and can write accordingly
 - **Episode Uniqueness**: AI knows Speaker 2 voice is unique to this episode
-- **Better Audio Quality**: Script and voice selection work together harmoniously 
+- **Better Audio Quality**: Script and voice selection work together harmoniously
+
+## UPDATE: Dynamic Speaker2 Role Selection ✅ ADDED
+
+### New Feature:
+Added intelligent content analysis to automatically select the most appropriate `speaker2_role` based on episode content, making each episode more contextually relevant and engaging.
+
+### Implementation:
+1. **Content Analysis Function** `_analyze_content_and_determine_speaker2_role()`:
+   - Analyzes Telegram content for keywords in multiple categories
+   - Supports both Hebrew and English role names
+   - Returns contextually appropriate expert role
+
+2. **Role Categories & Keywords**:
+   - **Technology**: AI, machine learning, software, startups → "מומחה טכנולוגיה" / "Tech Expert"
+   - **Business**: Economy, market, investment, companies → "אנליסט עסקי" / "Business Analyst"  
+   - **Politics**: Government, elections, Knesset, policy → "פרשן פוליטי" / "Political Commentator"
+   - **Finance**: Banking, loans, taxes, budget → "יועץ פיננסי" / "Financial Advisor"
+   - **Health**: Medical, hospitals, vaccines, COVID → "מומחה בריאות" / "Health Expert"
+   - **Sports**: Football, basketball, Olympics, teams → "פרשן ספורט" / "Sports Analyst"
+   - **Military/Security**: Army, defense, IDF, operations → "אנליסט ביטחון" / "Security Analyst"
+
+3. **Configuration Control**:
+   - `dynamic_speaker2_role: true` (default) - Uses content analysis
+   - `dynamic_speaker2_role: false` - Uses fixed role from config
+   - Backwards compatible with existing configurations
+
+4. **Enhanced AI Prompting**:
+   - Provides role-specific guidance for different expert types
+   - Tailors conversation style to the selected expertise
+   - Maintains authentic expert knowledge in discussions
+
+### Examples:
+- **Tech Content**: Speaker2 becomes "מומחה טכנולוגיה" focusing on innovation trends and market impact
+- **Political Content**: Speaker2 becomes "פרשן פוליטי" discussing policy implications and governance
+- **Health Content**: Speaker2 becomes "מומחה בריאות" addressing medical implications and research insights
+
+### Benefits:
+- **Contextual Relevance**: Each episode gets an expert perfectly matched to its content
+- **Authentic Expertise**: AI generates more credible and specialized insights
+- **Dynamic Variety**: Different expert perspectives across episodes keep content fresh
+- **Hebrew Support**: Proper Hebrew role names with correct gender grammar
+- **Flexible Configuration**: Can be enabled/disabled per podcast configuration 
