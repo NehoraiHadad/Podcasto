@@ -98,9 +98,9 @@ class AudioChunkManager:
                 return False
             
             # Check for reasonable duration (not too long either)
-            # if duration > 660:  # More than 11 minutes for a chunk is suspicious
-            #     logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} duration too long: {duration}s")
-            #     return False
+            if duration > 300:  # More than 5 minutes for a chunk is suspicious
+                logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} duration too long: {duration}s")
+                return False
             
             # Basic WAV format validation
             if len(audio_data) >= 44:  # Has WAV header

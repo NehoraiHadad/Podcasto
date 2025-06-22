@@ -188,7 +188,7 @@ class HebrewNiqqudProcessor:
             Processed script with niqqud (for Hebrew) or original script
         """
         # Only process Hebrew text
-        if language.lower() not in ['he', 'hebrew', 'heb']:
+        if language.lower() not in ['he', 'hebrew', 'heb', 'עברית']:
             logger.info(f"[NIQQUD] Skipping niqqud processing for language: {language}")
             return script_content
         

@@ -13,6 +13,8 @@ from clients.telegram_data_client import TelegramDataClient
 from services.google_podcast_generator import GooglePodcastGenerator
 from services.gemini_script_generator import GeminiScriptGenerator
 from services.content_analyzer import ContentAnalyzer
+from services.telegram_content_extractor import TelegramContentExtractor
+from services.hebrew_niqqud import HebrewNiqqudProcessor
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -36,6 +38,7 @@ class AudioGenerationHandler:
         self.supabase_client = SupabaseClient()
         self.s3_client = S3Client()
         self.telegram_client = TelegramDataClient()
+        self.content_extractor = TelegramContentExtractor()
         
         # Get API keys from environment
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
@@ -147,6 +150,11 @@ class AudioGenerationHandler:
             if not telegram_data:
                 raise ValueError("No Telegram data found for episode")
             
+            # Extract clean content for AI processing
+            logger.info(f"[AUDIO_GEN] [{request_id}] Extracting clean content from Telegram data")
+            clean_content = self.content_extractor.extract_clean_content(telegram_data)
+            logger.info(f"[AUDIO_GEN] [{request_id}] Clean content extracted: {clean_content['summary']['total_messages']} messages")
+            
             # Analyze content and get dynamic speaker role
             logger.info(f"[AUDIO_GEN] [{request_id}] Starting content analysis for episode {episode_id}")
             content_analysis = self.content_analyzer.analyze_content(telegram_data)
@@ -161,16 +169,26 @@ class AudioGenerationHandler:
             dynamic_config = self._apply_dynamic_role(podcast_config, content_analysis)
             logger.info(f"[AUDIO_GEN] [{request_id}] Dynamic config created with speaker2_role: {dynamic_config.get('speaker2_role')}")
             
-            # Generate script with dynamic roles
-            script = self._generate_script(telegram_data, dynamic_config, request_id, episode_id)
+            # Generate script with clean content instead of raw data
+            script = self._generate_script(clean_content, dynamic_config, request_id, episode_id)
             
-            # Generate audio
-            audio_data, duration = self._generate_audio(
-                script, dynamic_config, request_id, episode_id
+            # Process Hebrew script with niqqud if needed
+            processed_script, niqqud_script = self._process_hebrew_script(
+                script, dynamic_config.get('language', 'en'), request_id
             )
             
-            # Upload script as transcript to S3
-            self._upload_script_as_transcript(episode_id, podcast_id, script, request_id)
+            # Generate audio using processed script
+            # If we got a niqqud script, it means the text was pre-processed
+            is_pre_processed = niqqud_script is not None
+            audio_data, duration = self._generate_audio(
+                processed_script, dynamic_config, request_id, episode_id, is_pre_processed, content_analysis
+            )
+            
+            # Upload both original and niqqud scripts as transcripts to S3
+            self._upload_script_as_transcript(
+                episode_id, podcast_id, script, niqqud_script, 
+                dynamic_config.get('language', 'en'), request_id
+            )
             
             # Upload and update
             audio_url = self.s3_client.upload_audio(
@@ -189,7 +207,8 @@ class AudioGenerationHandler:
                 'content_type': content_analysis.content_type.value,
                 'speaker2_role': content_analysis.specific_role,
                 'role_description': content_analysis.role_description,
-                'confidence': content_analysis.confidence
+                'confidence': content_analysis.confidence,
+                'has_niqqud': niqqud_script is not None
             }
             
         except Exception as e:
@@ -221,15 +240,16 @@ class AudioGenerationHandler:
         
         return podcast_config
 
-    def _generate_script(self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> str:
-        """Generate conversation script using Gemini"""
+    def _generate_script(self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> str:
+        """Generate conversation script using Gemini with clean content"""
         script_generator = GeminiScriptGenerator()
         configured_language = podcast_config.get('language', 'en')
         logger.info(f"[AUDIO_GEN] [{request_id}] Using podcast language: {configured_language}")
+        logger.info(f"[AUDIO_GEN] [{request_id}] Sending clean content with {len(clean_content.get('messages', []))} messages")
         
-        return script_generator.generate_script(telegram_data, podcast_config, episode_id)
+        return script_generator.generate_script(clean_content, podcast_config, episode_id)
 
-    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> Tuple[bytes, float]:
+    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False, content_analysis: Any = None) -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with gender-aware voices"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
         
@@ -243,6 +263,12 @@ class AudioGenerationHandler:
         
         logger.info(f"[AUDIO_GEN] Language: {language}")
         logger.info(f"[AUDIO_GEN] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
+        logger.info(f"[AUDIO_GEN] Using pre-processed script: {is_pre_processed}")
+        
+        # Get content type from analysis for enhanced TTS
+        content_type = 'general'
+        if content_analysis and hasattr(content_analysis, 'content_type'):
+            content_type = content_analysis.content_type.value
         
         try:
             audio_data, duration = generator.generate_podcast_audio(
@@ -252,7 +278,9 @@ class AudioGenerationHandler:
                 speaker2_role=speaker2_role,
                 speaker1_gender=speaker1_gender,
                 speaker2_gender=speaker2_gender,
-                episode_id=episode_id
+                episode_id=episode_id,
+                is_pre_processed=is_pre_processed,
+                content_type=content_type
             )
         except Exception as e:
             logger.error(f"[AUDIO_GEN] Audio generation failed: {str(e)}")
@@ -274,25 +302,79 @@ class AudioGenerationHandler:
         # Send completion callback to trigger immediate post-processing
         self._send_completion_callback(episode_id, audio_url, duration)
 
-    def _upload_script_as_transcript(self, episode_id: str, podcast_id: str, script: str, request_id: str):
-        """Upload the generated script as a transcript file to S3"""
-        try:
-            # Create transcript filename with timestamp
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            transcript_filename = f"transcript_{timestamp}.txt"
+    def _process_hebrew_script(self, script: str, language: str, request_id: str) -> Tuple[str, Optional[str]]:
+        """
+        Process Hebrew script with niqqud if needed
+        
+        Args:
+            script: Original script content
+            language: Language code
+            request_id: Request ID for logging
             
-            # Upload script as transcript to S3
-            transcript_url = self.s3_client.upload_transcript(
-                script, podcast_id, episode_id, transcript_filename
+        Returns:
+            Tuple of (processed_script_for_tts, niqqud_script_for_storage)
+        """
+        # Only process Hebrew text
+        if language.lower() not in ['he', 'hebrew', 'heb', 'עברית']:
+            logger.info(f"[AUDIO_GEN] [{request_id}] Non-Hebrew language ({language}), skipping niqqud processing")
+            return script, None
+        
+        try:
+            logger.info(f"[AUDIO_GEN] [{request_id}] Processing Hebrew script with niqqud")
+            
+            # Initialize niqqud processor
+            niqqud_processor = HebrewNiqqudProcessor()
+            
+            # Check if text contains Hebrew characters
+            if not niqqud_processor.is_hebrew_text(script):
+                logger.info(f"[AUDIO_GEN] [{request_id}] No Hebrew text detected, skipping niqqud processing")
+                return script, None
+            
+            # Process the entire script with niqqud once
+            niqqud_script = niqqud_processor.process_script_for_tts(script, language)
+            
+            logger.info(f"[AUDIO_GEN] [{request_id}] Successfully processed Hebrew script with niqqud")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Original: {len(script)} chars -> Niqqud: {len(niqqud_script)} chars")
+            
+            return niqqud_script, niqqud_script
+            
+        except Exception as e:
+            logger.error(f"[AUDIO_GEN] [{request_id}] Error processing Hebrew script: {str(e)}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Falling back to original script")
+            return script, None
+
+    def _upload_script_as_transcript(self, episode_id: str, podcast_id: str, original_script: str, 
+                                   niqqud_script: Optional[str], language: str, request_id: str):
+        """Upload both original and niqqud scripts as transcript files to S3"""
+        try:
+            # Create timestamp for filenames
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Upload original script as transcript
+            original_filename = f"transcript_{timestamp}.txt"
+            original_url = self.s3_client.upload_transcript(
+                original_script, podcast_id, episode_id, original_filename
             )
             
-            if transcript_url:
-                logger.info(f"[AUDIO_GEN] [{request_id}] Successfully uploaded transcript for episode {episode_id}: {transcript_url}")
+            if original_url:
+                logger.info(f"[AUDIO_GEN] [{request_id}] Successfully uploaded original transcript: {original_url}")
             else:
-                logger.warning(f"[AUDIO_GEN] [{request_id}] Failed to upload transcript for episode {episode_id}")
+                logger.warning(f"[AUDIO_GEN] [{request_id}] Failed to upload original transcript")
+            
+            # Upload niqqud script if available
+            if niqqud_script and language.lower() in ['he', 'hebrew', 'heb', 'עברית']:
+                niqqud_filename = f"transcript_niqqud_{timestamp}.txt"
+                niqqud_url = self.s3_client.upload_transcript(
+                    niqqud_script, podcast_id, episode_id, niqqud_filename
+                )
+                
+                if niqqud_url:
+                    logger.info(f"[AUDIO_GEN] [{request_id}] Successfully uploaded niqqud transcript: {niqqud_url}")
+                else:
+                    logger.warning(f"[AUDIO_GEN] [{request_id}] Failed to upload niqqud transcript")
                 
         except Exception as e:
-            logger.warning(f"[AUDIO_GEN] [{request_id}] Error uploading transcript for episode {episode_id}: {str(e)}")
+            logger.warning(f"[AUDIO_GEN] [{request_id}] Error uploading transcripts: {str(e)}")
             # Don't fail the entire process if transcript upload fails
 
     def _send_completion_callback(self, episode_id: str, audio_url: str, duration: float):

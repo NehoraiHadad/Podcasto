@@ -82,6 +82,26 @@ class MessageProcessor:
         if not text:
             return ""
             
+        # Remove comment count patterns like "[9 תגובות]", "[5 comments]"
+        text = re.sub(r'\[\d+\s*תגובות?\]', '', text)
+        text = re.sub(r'\[\d+\s*comments?\]', '', text, re.IGNORECASE)
+        
+        # Remove click-here and interaction prompts
+        interaction_patterns = [
+            r'\[כדי להגיב לכתבה לחצו כאן\]',
+            r'\[לחצו כאן לתגובה\]',
+            r'\[להגיב לחצו כאן\]',
+            r'\[click here to comment\]',
+            r'\[לקריאה נוספת\]',
+            r'\[קרא עוד\]',
+            r'\[read more\]',
+            r'\[המשך קריאה\]',
+            r'\[לכתבה המלאה\]'
+        ]
+        
+        for pattern in interaction_patterns:
+            text = re.sub(pattern, '', text, re.IGNORECASE)
+            
         # Remove URLs from blocked domains
         for domain in self.blocked_domains:
             text = re.sub(
@@ -97,8 +117,11 @@ class MessageProcessor:
             text
         )
         
-        # Clean up whitespace
+        # Clean up whitespace more thoroughly
+        text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)  # Replace 3+ newlines with 2
         text = re.sub(r'\n\s*\n', '\n\n', text)  # Remove multiple newlines
+        text = re.sub(r'[ \t]+', ' ', text)  # Replace multiple spaces/tabs with single space
+        text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)  # Trim lines
         text = text.strip()
         
         return text
@@ -200,5 +223,24 @@ class MessageProcessor:
         if len(text.split()) < 3:
             return False
             
+        # Skip messages that are only metadata or interaction prompts
+        metadata_patterns = [
+            r'^\[\d+\s*תגובות?\]$',
+            r'^\[\d+\s*comments?\]$',
+            r'^\[כדי להגיב לכתבה לחצו כאן\]$',
+            r'^\[לחצו כאן לתגובה\]$',
+            r'^\[להגיב לחצו כאן\]$',
+            r'^\[click here to comment\]$',
+            r'^\[לקריאה נוספת\]$',
+            r'^\[קרא עוד\]$',
+            r'^\[read more\]$',
+            r'^\[המשך קריאה\]$',
+            r'^\[לכתבה המלאה\]$'
+        ]
+        
+        for pattern in metadata_patterns:
+            if re.match(pattern, text.strip(), re.IGNORECASE):
+                return False
+        
         # Include all other messages
         return True 

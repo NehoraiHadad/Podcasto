@@ -18,17 +18,35 @@ class VoiceConfigManager:
             'hebrew': {
                 'male': 'Alnilam',       # Firm - distinctive male voice (changed from Algenib)
                 'female': 'Aoede',       # Breezy - clear female voice
-                'instruction': "קרא בקול רם בטון חם ומזמין. חשוב מאוד: קרא בעברית בטבעיות!"
+                'instruction': "קרא בקול רם בטון חם ומזמין בסגנון פודקאסט דינמי. חשוב מאוד: קרא בעברית בטבעיות עם הפסקות טבעיות ואינטונציה מעניינת!",
+                # Natural language style descriptors for Hebrew content
+                'speech_config': {
+                    'pace_style': 'at a slightly slower, more deliberate pace for Hebrew clarity',
+                    'tone_style': 'with natural vocal variation and warm intonation',
+                    'volume_style': 'speaking clearly and audibly with enhanced volume'
+                }
             },
             'english': {
                 'male': 'Gacrux',       # Mature - clear male voice
                 'female': 'Leda',       # Youthful - clear female voice  
-                'instruction': "Read aloud in a warm, welcoming conversational tone:"
+                'instruction': "Read aloud in a warm, welcoming podcast conversational tone with natural pacing and engaging delivery:",
+                # Natural language style descriptors for English content
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and professional warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
             },
             'default': {
                 'male': 'Gacrux',       # Mature - works for most languages
                 'female': 'Leda',       # Youthful - works for most languages
-                'instruction': "Read aloud in a warm, welcoming tone:"
+                'instruction': "Read aloud in a warm, welcoming podcast tone with engaging delivery:",
+                # Default natural language style descriptors
+                'speech_config': {
+                    'pace_style': 'at a comfortable, slightly measured pace for clarity',
+                    'tone_style': 'with natural vocal variation',
+                    'volume_style': 'speaking clearly with slightly enhanced presence'
+                }
             }
         }
         
@@ -72,6 +90,45 @@ class VoiceConfigManager:
         # Available voices lists by gender
         self.male_voices = [voice for voice, gender in self.voice_gender_mapping.items() if gender == 'male']
         self.female_voices = [voice for voice, gender in self.voice_gender_mapping.items() if gender == 'female']
+        
+        # Content-type specific natural language style adjustments
+        self.content_type_speech_adjustments = {
+            # News content - authoritative and clear
+            'news': {
+                'pace_style': 'at a standard, professional news pace',
+                'tone_style': 'with neutral authority and clear articulation',
+                'volume_style': 'speaking with clear, authoritative delivery',
+                'style_instruction': "Deliver as professional news content with authority and clarity in an engaging podcast format."
+            },
+            # Technology content - measured and informative
+            'technology': {
+                'pace_style': 'at a slightly slower, methodical pace for technical precision',
+                'tone_style': 'with focused, informative clarity',
+                'volume_style': 'speaking with focused, controlled delivery',
+                'style_instruction': "Present technical information clearly and methodically in an accessible podcast style."
+            },
+            # Entertainment content - dynamic and engaging
+            'entertainment': {
+                'pace_style': 'at a slightly faster, more dynamic and energetic pace',
+                'tone_style': 'with higher energy and engaging enthusiasm',
+                'volume_style': 'speaking with expressive, animated volume',
+                'style_instruction': "Deliver with enthusiasm and dynamic engagement in an entertaining podcast style."
+            },
+            # Finance content - confident and measured
+            'finance': {
+                'pace_style': 'at a measured, confident pace for financial precision',
+                'tone_style': 'with slightly lower, authoritative confidence',
+                'volume_style': 'speaking with controlled, professional delivery',
+                'style_instruction': "Present financial information with confidence and precision in a professional podcast format."
+            },
+            # Default content adjustments
+            'general': {
+                'pace_style': 'at a comfortable, natural listening pace',
+                'tone_style': 'with natural conversational warmth',
+                'volume_style': 'speaking with balanced, pleasant volume',
+                'style_instruction': "Maintain a natural, conversational podcast tone throughout with engaging delivery."
+            }
+        }
     
     def get_voice_config_for_language(self, language: str) -> Dict[str, Any]:
         """
@@ -370,4 +427,87 @@ class VoiceConfigManager:
             return self.female_voices.copy()
         else:
             logger.warning(f"[VOICE_CONFIG] Unknown gender '{gender}', returning empty list")
-            return [] 
+            return []
+
+    def get_speech_config_for_language(self, language: str) -> Dict[str, Any]:
+        """
+        Get natural language speech style descriptors for a language
+        
+        Args:
+            language: Target language
+            
+        Returns:
+            Dictionary with pace_style, tone_style, volume_style descriptors
+        """
+        config = self.get_voice_config_for_language(language)
+        speech_config = config.get('speech_config', {})
+        
+        logger.debug(f"[VOICE_CONFIG] Speech style config for {language}: {speech_config}")
+        return speech_config
+    
+    def get_content_aware_speech_adjustments(self, content_type: str) -> Dict[str, Any]:
+        """
+        Get content-type specific natural language style adjustments
+        
+        Args:
+            content_type: Type of content (news, technology, entertainment, etc.)
+            
+        Returns:
+            Dictionary with content-specific natural language style descriptors
+        """
+        content_key = content_type.lower()
+        adjustments = self.content_type_speech_adjustments.get(content_key, 
+                                                             self.content_type_speech_adjustments['general'])
+        
+        logger.debug(f"[VOICE_CONFIG] Content style adjustments for {content_type}: {adjustments}")
+        return adjustments
+    
+    def build_enhanced_speech_config(self, language: str, content_type: str = 'general') -> Dict[str, Any]:
+        """
+        Build comprehensive speech style configuration combining language and content-type descriptors
+        
+        Args:
+            language: Target language
+            content_type: Type of content for specialized adjustments
+            
+        Returns:
+            Combined speech configuration with natural language style descriptors
+        """
+        # Get base language style configuration
+        base_config = self.get_speech_config_for_language(language)
+        
+        # Get content-specific style adjustments
+        content_adjustments = self.get_content_aware_speech_adjustments(content_type)
+        
+        # Combine configurations with content adjustments taking priority
+        enhanced_config = {
+            'pace_style': content_adjustments.get('pace_style', base_config.get('pace_style', 'at a comfortable, natural pace')),
+            'tone_style': content_adjustments.get('tone_style', base_config.get('tone_style', 'with natural vocal variation')),
+            'volume_style': content_adjustments.get('volume_style', base_config.get('volume_style', 'speaking with balanced volume')),
+            'style_instruction': content_adjustments.get('style_instruction', 
+                                                       "Maintain a natural, conversational tone throughout."),
+            'language_code': self._get_language_code_for_speech(language)
+        }
+        
+        logger.info(f"[VOICE_CONFIG] Enhanced speech style config for {language}/{content_type}: {enhanced_config}")
+        return enhanced_config
+    
+    def _get_language_code_for_speech(self, language: str) -> str:
+        """
+        Get BCP-47 language code for speech configuration
+        
+        Args:
+            language: Language identifier
+            
+        Returns:
+            BCP-47 formatted language code
+        """
+        lang_key = self._normalize_language(language)
+        
+        language_codes = {
+            'hebrew': 'he-IL',
+            'english': 'en-US',
+            'default': 'en-US'
+        }
+        
+        return language_codes.get(lang_key, 'en-US') 

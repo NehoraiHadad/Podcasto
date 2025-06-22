@@ -156,7 +156,7 @@ class TelegramDataClient:
         logger.warning(f"[TELEGRAM_DATA] No Telegram data found for episode {episode_id}")
         return None
     
-    def validate_telegram_data(self, data: Dict[str, Any]) -> bool:
+    def validate_telegram_data(self, data: Any) -> bool:
         """
         Validate that Telegram data has the expected structure
         

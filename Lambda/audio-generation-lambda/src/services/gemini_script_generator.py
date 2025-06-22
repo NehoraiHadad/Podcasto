@@ -23,16 +23,16 @@ class GeminiScriptGenerator:
             raise ValueError("GEMINI_API_KEY environment variable is required")
 
         self.client = genai.Client(api_key=api_key)
-        self.model = "gemini-2.0-flash"
+        self.model = "gemini-2.5-flash"
 
     def generate_script(
-        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None
     ) -> str:
         """
-        Generate a natural conversation script from Telegram data
+        Generate a natural conversation script from clean content
 
         Args:
-            telegram_data: Raw Telegram data with messages
+            clean_content: Clean content with messages and summary
             podcast_config: Podcast configuration including language and speaker info
             episode_id: Episode ID for voice-aware script generation
 
@@ -47,21 +47,26 @@ class GeminiScriptGenerator:
         speaker1_gender = config.get("speaker1_gender", "male")
         speaker2_gender = config.get("speaker2_gender", "female")
 
+        # Log clean content info
+        message_count = len(clean_content.get('messages', []))
+        summary = clean_content.get('summary', {})
+        
         logger.info(f"[GEMINI_SCRIPT] Generating script in language: {language}")
         logger.info(f"[GEMINI_SCRIPT] Speaker genders: Speaker1={speaker1_gender}, Speaker2={speaker2_gender}")
+        logger.info(f"[GEMINI_SCRIPT] Clean content: {message_count} messages, date range: {summary.get('date_range', 'unknown')}")
         if episode_id:
             logger.info(f"[GEMINI_SCRIPT] Episode ID for voice-aware generation: {episode_id}")
 
-        # Generate script using AI with configured language and gender awareness
-        script = self._generate_ai_script(telegram_data, config, episode_id)
+        # Generate script using AI with clean content (including TTS markup)
+        script = self._generate_ai_script(clean_content, config, episode_id)
 
-        logger.info(f"[GEMINI_SCRIPT] Generated script with {len(script)} characters")
+        logger.info(f"[GEMINI_SCRIPT] Generated script with embedded TTS markup: {len(script)} characters")
         return script
 
     def _generate_ai_script(
-        self, telegram_data: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None
     ) -> str:
-        """Generate natural conversation script using Gemini AI with gender awareness"""
+        """Generate natural conversation script using Gemini AI with clean content"""
 
         # Get configuration
         speaker1_role = podcast_config.get("speaker1_role", "Host")
@@ -73,9 +78,16 @@ class GeminiScriptGenerator:
         language = podcast_config.get("language", "en")
         additional_instructions = podcast_config.get("additional_instructions", "")
 
-        # Build the prompt with raw telegram data and gender awareness
+        # Get content type for TTS markup instructions
+        content_type = 'general'
+        if podcast_config.get('content_analysis'):
+            content_analysis = podcast_config['content_analysis']
+            if hasattr(content_analysis, 'content_type'):
+                content_type = content_analysis.content_type.value
+        
+        # Build the prompt with clean content
         prompt = self._build_script_prompt(
-            telegram_data=telegram_data,
+            clean_content=clean_content,
             language=language,
             speaker1_role=speaker1_role,
             speaker2_role=speaker2_role,
@@ -85,7 +97,8 @@ class GeminiScriptGenerator:
             target_duration=target_duration,
             additional_instructions=additional_instructions,
             episode_id=episode_id,
-            content_analysis=podcast_config.get('content_analysis')
+            content_analysis=podcast_config.get('content_analysis'),
+            content_type=content_type
         )
 
         try:
@@ -128,7 +141,7 @@ class GeminiScriptGenerator:
 
     def _build_script_prompt(
         self,
-        telegram_data: Dict[str, Any],
+        clean_content: Dict[str, Any],
         language: str,
         speaker1_role: str,
         speaker2_role: str,
@@ -139,8 +152,9 @@ class GeminiScriptGenerator:
         additional_instructions: str,
         episode_id: str = None,
         content_analysis: str = None,
+        content_type: str = 'general'
     ) -> str:
-        """Build the conversation script generation prompt with gender awareness"""
+        """Build the conversation script generation prompt with clean content"""
         
         # Get voice information for this episode
         voice_info = ""
@@ -184,55 +198,76 @@ Focus on insights and analysis that match this specific expertise area within {c
         # Get the specific role from content analysis or fallback to configured role
         actual_speaker2_role = content_analysis.get('specific_role', speaker2_role) if content_analysis else speaker2_role
         
+        # Extract channel information for natural naming
+        channels = clean_content.get('summary', {}).get('channels', [])
+        channel_context = f" (discussing content from {', '.join(channels)})" if channels else ""
+
         # Build comprehensive prompt
         conversation_prompt = f"""
 You are an expert podcast script writer specializing in natural, engaging conversations between two speakers.
 
 {content_info}
 
-PODCAST INFORMATION:
-- Podcast Name: {podcast_name}
-- Target Duration: {target_duration} minutes
-- Language: {language}
-
-SPEAKER CONFIGURATION:
-- Speaker 1: {speaker1_role} ({speaker1_gender})
-- Speaker 2: {actual_speaker2_role} ({speaker2_gender})
-
 {voice_info}
 
-CONTENT TO DISCUSS:
-{telegram_data}
+CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 
-ADDITIONAL INSTRUCTIONS:
+**PODCAST DETAILS:**
+- Podcast Name: {podcast_name}
+- Language: {language}
+- Target Duration: {target_duration} minutes
+- Episode Context: {channel_context}
+
+**SPEAKERS:**
+- **{speaker1_role}**: {speaker1_gender} voice, consistent host persona
+- **{actual_speaker2_role}**: {speaker2_gender} voice, expert knowledge in the topic
+
+**TTS MARKUP INSTRUCTIONS:**
+IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
+
+1. **Natural Pauses**: Use [pause], [pause short], [pause long] for:
+   - Between speakers: "{speaker1_role}: [pause short] ..."
+   - Before questions: "...really? [pause] What do you think?"
+   - After important points: "That's crucial. [pause] Let me explain..."
+
+2. **Emphasis**: Use [emphasis]...[/emphasis] for:
+   - Key terms and names
+   - Important statistics or facts
+   - Breaking news or urgent information
+
+3. **Content-Specific Markup**:
+   {f"- **News Content**: Add [emphasis] around breaking news, important names" if content_type == 'news' else ""}
+   {f"- **Technology Content**: Add [pause short] around technical terms like AI, API, blockchain" if content_type == 'technology' else ""}
+   {f"- **Entertainment Content**: Use more dynamic [emphasis] for exciting moments" if content_type == 'entertainment' else ""}
+   {f"- **Finance Content**: Add [pause] before important numbers and statistics" if content_type == 'finance' else ""}
+
+4. **Conversation Flow**: Natural markers like:
+   - "אז, [pause short] בואו נדבר על..."
+   - "כן, [pause] זה נכון"
+   - "Well, [pause] that's interesting"
+   - End sentences with: "...point. [pause short]"
+
+**SCRIPT REQUIREMENTS:**
+1. Write in {language} language
+2. Create natural, flowing conversation with realistic interruptions and reactions
+3. Include TTS markup naturally within the dialogue
+4. Make the conversation engaging and informative
+5. Ensure both speakers have distinct personalities and speaking styles
+6. Include natural conversation elements: agreements, clarifications, examples
+
+**CONTENT TO DISCUSS:**
+{self._format_clean_content_for_prompt(clean_content)}
+
 {additional_instructions}
 
-SCRIPT REQUIREMENTS:
-1. Create a natural, flowing conversation between {speaker1_role} and {actual_speaker2_role}
-2. The {speaker1_role} should guide the conversation and ask insightful questions
-3. The {actual_speaker2_role} should provide expert analysis and insights appropriate to their specific role and expertise
-4. Use natural speech patterns, including appropriate pauses, emphasis, and conversational elements
-5. Target approximately {target_duration} minutes of spoken content
-6. Maintain audience engagement throughout
-7. Include smooth transitions between topics
-8. End with a natural conclusion
+**OUTPUT FORMAT:**
+Provide ONLY the conversation script with embedded TTS markup. No explanations or metadata.
+Use this format:
+{speaker1_role}: [pause short] Opening statement...
+{actual_speaker2_role}: [pause] Response with [emphasis]key point[/emphasis]...
 
-PLACEHOLDER PROHIBITION:
-- NEVER use placeholder text like "שם המשפחה", "[Name]", "[Details]", or similar
-- ALL content must be complete and ready for immediate use
-- If specific information is missing, create realistic examples or skip those details
-- Every sentence must be fully formed and ready to be spoken
-
-FORMAT:
-Use this exact format for the script:
-
-{speaker1_role}: [First speaker's dialogue]
-
-{actual_speaker2_role}: [Second speaker's dialogue]
-
-{speaker1_role}: [Continue conversation...]
-
-Generate a complete, engaging podcast script now:"""
+Begin the conversation now:
+"""
 
         return conversation_prompt
 
@@ -275,3 +310,57 @@ Generate a complete, engaging podcast script now:"""
                 # raise Exception(f"Script contains placeholder text: '{pattern}'. Please regenerate.")
         
         logger.debug("[GEMINI_SCRIPT] Script validation passed - no obvious placeholders detected")
+    
+    def _format_clean_content_for_prompt(self, clean_content: Dict[str, Any]) -> str:
+        """
+        Format clean content into readable text for the AI prompt
+        
+        Args:
+            clean_content: Clean content with messages and summary
+            
+        Returns:
+            Formatted content string for AI processing
+        """
+        messages = clean_content.get('messages', [])
+        summary = clean_content.get('summary', {})
+        
+        if not messages:
+            return "No content available for discussion."
+        
+        # Build formatted content
+        formatted_parts = []
+        
+        # Add summary info
+        total_messages = summary.get('total_messages', len(messages))
+        channels = summary.get('channels', [])
+        
+        if channels:
+            channel_info = f"from {', '.join(channels)}" if len(channels) > 1 else f"from {channels[0]}"
+        else:
+            channel_info = "from various sources"
+        
+        formatted_parts.append(f"Summary: {total_messages} messages {channel_info}")
+        formatted_parts.append("")  # Empty line
+        
+        # Add messages with chronological order
+        for i, message in enumerate(messages, 1):
+            date_part = ""
+            if 'date' in message:
+                try:
+                    # Extract just date (without time) for readability
+                    date_str = message['date'].split('T')[0]
+                    date_part = f" ({date_str})"
+                except:
+                    pass
+            
+            channel_part = ""
+            if 'channel' in message:
+                channel_part = f" [{message['channel']}]"
+            
+            text = message.get('text', '').strip()
+            if text:
+                formatted_parts.append(f"{i}.{date_part}{channel_part} {text}")
+        
+        return '\n'.join(formatted_parts)
+
+
