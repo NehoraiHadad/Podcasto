@@ -38,7 +38,7 @@ interface Episode {
   id: string;
   podcast_id: string;
   title: string;
-  audio_url: string;
+  audio_url: string | null;
   cover_image?: string | null;
   status?: string | null;
   [key: string]: string | number | boolean | null | undefined;
