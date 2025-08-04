@@ -80,6 +80,21 @@ export async function POST(request: NextRequest) {
   let episodeId: string | undefined;
 
   try {
+    console.log('[AUDIO_TRIGGER] Manual audio generation triggered');
+    
+    // Get episodes that are ready for audio generation
+    const pendingEpisodes = await episodesApi.getEpisodesByStatus(['content_collected', 'script_ready']);
+    
+    console.log(`[AUDIO_TRIGGER] Found ${pendingEpisodes?.length || 0} episodes with content_collected or script_ready status`);
+    
+    if (!pendingEpisodes || pendingEpisodes.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No episodes with content_collected or script_ready status found',
+        count: 0
+      });
+    }
+
     // Parse request body
     const body: GenerateAudioRequest = await request.json();
     episodeId = body.episodeId;
