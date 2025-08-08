@@ -54,7 +54,7 @@ interface Episode {
   title: string;
   description: string | null;
   language: string | null;
-  audio_url: string;
+  audio_url: string | null;
   duration: number | null;
   created_at: Date | null;
   published_at: Date | null;
