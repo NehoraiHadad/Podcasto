@@ -210,11 +210,15 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
               <CardTitle>Audio Player</CardTitle>
             </CardHeader>
             <CardContent>
-              <audio
-                src={episode.audio_url}
-                controls
-                className="w-full"
-              />
+              {episode.audio_url ? (
+                <audio
+                  src={episode.audio_url ?? undefined}
+                  controls
+                  className="w-full"
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground">No audio available</div>
+              )}
             </CardContent>
           </Card>
         </div>
