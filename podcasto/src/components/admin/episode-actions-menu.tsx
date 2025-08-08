@@ -134,12 +134,19 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
           )}
           
           {/* Audio file direct link */}
-          <DropdownMenuItem asChild>
-            <a href={episode.audio_url} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+          {episode.audio_url ? (
+            <DropdownMenuItem asChild>
+              <a href={episode.audio_url ?? undefined} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                <span>Audio File</span>
+              </a>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem disabled>
               <ExternalLink className="mr-2 h-4 w-4" />
-              <span>Audio File</span>
-            </a>
-          </DropdownMenuItem>
+              <span className="text-muted-foreground">Audio File (unavailable)</span>
+            </DropdownMenuItem>
+          )}
           
           <DropdownMenuSeparator />
           

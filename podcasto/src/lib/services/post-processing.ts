@@ -19,7 +19,7 @@ export interface Episode {
   status?: string | null;
   language?: string | null;
   metadata?: string | null;
-  audio_url?: string;
+  audio_url?: string | null;
   duration?: number | null;
   published_at?: Date | null;
   created_at?: Date | null;
