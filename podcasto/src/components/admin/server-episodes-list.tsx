@@ -1,23 +1,10 @@
-import Link from 'next/link';
-import Image from 'next/image';
+// Server component: no direct use of Link/Image here
 
 import { unstable_noStore as noStore } from 'next/cache';
 import { episodesApi, podcastsApi } from '@/lib/db/api';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { EpisodeActionsMenu } from './episode-actions-menu';
-import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { sortEpisodesByDate } from '@/lib/utils/episode-utils';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { AlertCircle } from 'lucide-react';
+import { EpisodesTableWrapper } from './episodes-table-wrapper';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -79,141 +66,7 @@ export async function ServerEpisodesList() {
       );
     }
     
-    // Format duration from seconds to mm:ss
-    const formatDuration = (durationInSeconds: number | null): string => {
-      if (!durationInSeconds) return 'Unknown';
-      const minutes = Math.floor(durationInSeconds / 60);
-      const seconds = durationInSeconds % 60;
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-    
-    // Helper to extract error message from metadata
-    const getErrorMessage = (metadata: string | null): string | null => {
-      if (!metadata) return null;
-      try {
-        const meta = JSON.parse(metadata);
-        return meta.error || null;
-      } catch {
-        return null;
-      }
-    };
-    
-    // Format status with badge and error tooltip if failed
-    const renderStatus = (status: string | null, metadata: string | null) => {
-      if (!status) return <Badge variant="outline">Unknown</Badge>;
-      if (status.toLowerCase() === 'failed') {
-        const errorMsg = getErrorMessage(metadata);
-        return (
-          <div className="flex items-center gap-1">
-            <Badge variant="destructive">Failed</Badge>
-            {errorMsg && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="ml-1 cursor-pointer text-red-500">
-                    <AlertCircle size={16} />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={4}>
-                  <span className="max-w-xs break-words whitespace-pre-line">{errorMsg}</span>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        );
-      }
-      switch (status.toLowerCase()) {
-        case 'published':
-          return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Published</Badge>;
-        case 'pending':
-          return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
-        case 'processing':
-          return <Badge variant="secondary">Processing</Badge>;
-        default:
-          return <Badge variant="outline">{status}</Badge>;
-      }
-    };
-    
-    return (
-      <div className="space-y-4">
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cover</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Podcast</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Published Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {episodes.map((episode) => (
-                <TableRow key={episode.id}>
-                  <TableCell>
-                    {episode.cover_image ? (
-                      <div className="relative h-10 w-10 overflow-hidden rounded-md">
-                        <Image 
-                          src={episode.cover_image} 
-                          alt={`${episode.title} cover`}
-                          width={40}
-                          height={40}
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">No image</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <Link href={`/admin/episodes/${episode.id}`} className="hover:underline">
-                      {episode.title}
-                    </Link>
-                    {episode.cover_image && (
-                      <div className="mt-1">
-                        <a 
-                          href={episode.cover_image} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          View full image
-                        </a>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/admin/podcasts/${episode.podcast_id}`} className="hover:underline">
-                      {episode.podcast_title}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {formatDuration(episode.duration)}
-                  </TableCell>
-                  <TableCell>
-                    {renderStatus(episode.status, episode.metadata)}
-                  </TableCell>
-                  <TableCell>
-                    <EpisodeDateBadge
-                      publishedAt={episode.published_at}
-                      createdAt={episode.created_at}
-                      variant="compact"
-                      showRelativeTime={true}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <EpisodeActionsMenu episode={episode} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
+    return <EpisodesTableWrapper episodes={episodes} />;
   } catch (error) {
     console.error('Error in ServerEpisodesList:', error);
     return (
