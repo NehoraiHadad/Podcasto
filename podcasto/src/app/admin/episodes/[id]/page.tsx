@@ -155,14 +155,18 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Audio URL</p>
-              <a 
-                href={episode.audio_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline break-all"
-              >
-                {episode.audio_url}
-              </a>
+              {episode.audio_url ? (
+                <a 
+                  href={episode.audio_url ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline break-all"
+                >
+                  {episode.audio_url}
+                </a>
+              ) : (
+                <span className="text-sm text-muted-foreground">No audio</span>
+              )}
             </div>
           </CardContent>
         </Card>
