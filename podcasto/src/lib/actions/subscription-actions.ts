@@ -105,7 +105,7 @@ export async function toggleSubscription(
       const { error } = await supabase
         .from('subscriptions')
         .insert([
-          { user_id: userId, podcast_id: podcastId } as any
+          { user_id: userId, podcast_id: podcastId }
         ]);
       
       if (error) {
