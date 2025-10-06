@@ -24,8 +24,8 @@ export async function ServerHeader() {
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single();
-    
+      .single<{ role: string }>();
+
     isAdmin = !rolesError && userRoles?.role === 'admin';
   }
   

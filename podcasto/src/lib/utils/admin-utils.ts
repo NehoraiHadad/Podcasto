@@ -29,12 +29,12 @@ export const isUserAdmin = cache(async (): Promise<boolean> => {
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .single();
-  
+    .single<{ role: string }>();
+
   if (rolesError || !userRoles) {
     return false;
   }
-  
+
   return userRoles.role === 'admin';
 });
 
@@ -59,13 +59,13 @@ export const getAdminStatus = cache(async () => {
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .single();
-  
+    .single<{ role: string }>();
+
   if (rolesError || !userRoles) {
     return { isAdmin: false, user };
   }
-  
-  return { 
+
+  return {
     isAdmin: userRoles.role === 'admin',
     user
   };
