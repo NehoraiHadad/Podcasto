@@ -103,13 +103,15 @@ export async function toggleSubscription(
       };
     } else {
       // Subscribe
-      const subscriptionData: TablesInsert<'subscriptions'> = {
+      type SubscriptionInsert = TablesInsert<'subscriptions'>;
+      const newSubscription: SubscriptionInsert[] = [{
         user_id: userId,
         podcast_id: podcastId
-      };
+      }];
+
       const { error } = await supabase
         .from('subscriptions')
-        .insert([subscriptionData]);
+        .insert(newSubscription);
       
       if (error) {
         console.error('Error subscribing:', error);
