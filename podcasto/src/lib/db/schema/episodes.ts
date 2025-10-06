@@ -16,5 +16,7 @@ export const episodes = pgTable('episodes', {
   cover_image: text('cover_image'),
   script_url: varchar('script_url'),
   analysis: text('analysis'),
-  speaker2_role: text('speaker2_role')
+  speaker2_role: text('speaker2_role'),
+  content_start_date: timestamp('content_start_date', { withTimezone: true }),
+  content_end_date: timestamp('content_end_date', { withTimezone: true })
 }); 

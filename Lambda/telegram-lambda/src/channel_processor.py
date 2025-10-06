@@ -73,11 +73,25 @@ class ChannelProcessor:
             # Process the channel
             channel = self.config.telegram_channel
             days_back = self.config.days_back
-            
-            logger.info(f"Processing channel: {channel}, Days back: {days_back}")
-            
-            # Get messages from the channel
-            messages = await self.telegram_client.get_messages(channel, days_back)
+
+            # Check if custom date range is provided
+            if self.config.start_date and self.config.end_date:
+                from datetime import datetime
+                start_dt = datetime.fromisoformat(self.config.start_date.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(self.config.end_date.replace('Z', '+00:00'))
+                logger.info(f"Processing channel: {channel}, Date range: {start_dt} to {end_dt}")
+
+                # Get messages with custom date range
+                messages = await self.telegram_client.get_messages(
+                    channel,
+                    start_date=start_dt,
+                    end_date=end_dt
+                )
+            else:
+                logger.info(f"Processing channel: {channel}, Days back: {days_back}")
+
+                # Get messages with days_back (backward compatible)
+                messages = await self.telegram_client.get_messages(channel, days_back)
             
             if not messages:
                 logger.warning(f"No messages found in channel {channel}")

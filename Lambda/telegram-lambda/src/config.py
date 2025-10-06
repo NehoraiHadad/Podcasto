@@ -24,6 +24,8 @@ class PodcastConfig:
     days_back: int = 1
     episode_id: Optional[str] = None
     podcast_id: Optional[str] = None  # Actual podcast ID, separate from config ID
+    start_date: Optional[str] = None  # ISO format datetime string
+    end_date: Optional[str] = None    # ISO format datetime string
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PodcastConfig':
@@ -47,10 +49,18 @@ class PodcastConfig:
         
         # Extract episode_id if available
         episode_id = data.get('episode_id')
-        
+
         # Extract podcast_id if available (separate from config_id)
         podcast_id = data.get('podcast_id')
-        
+
+        # Extract date_range if available (takes precedence over telegram_hours)
+        start_date = None
+        end_date = None
+        if 'date_range' in data and data['date_range']:
+            start_date = data['date_range'].get('start_date')
+            end_date = data['date_range'].get('end_date')
+            logger.info(f"Using custom date range: {start_date} to {end_date}")
+
         # Create and return the config object
         return cls(
             id=podcast_config_id,
@@ -59,7 +69,9 @@ class PodcastConfig:
             filtered_domains=filtered_domains,
             days_back=days_back,
             episode_id=episode_id,
-            podcast_id=podcast_id
+            podcast_id=podcast_id,
+            start_date=start_date,
+            end_date=end_date
         )
 
 

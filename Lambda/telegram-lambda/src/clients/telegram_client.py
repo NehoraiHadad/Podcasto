@@ -76,15 +76,24 @@ class TelegramClientWrapper:
             await self.client.disconnect()
             logger.info("Disconnected from Telegram")
     
-    async def get_messages(self, channel_username: str, days_back: int = 1, limit: int = 100) -> List[Any]:
+    async def get_messages(
+        self,
+        channel_username: str,
+        days_back: int = 1,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        limit: int = 100
+    ) -> List[Any]:
         """
         Get messages from a Telegram channel.
-        
+
         Args:
             channel_username: The username of the channel to get messages from
-            days_back: Number of days back to get messages from
+            days_back: Number of days back to get messages from (used if start_date/end_date not provided)
+            start_date: Optional specific start date for message collection
+            end_date: Optional specific end date for message collection
             limit: Maximum number of messages to get
-            
+
         Returns:
             List of messages from the channel
         """
@@ -95,21 +104,34 @@ class TelegramClientWrapper:
         try:
             # Get the channel entity
             channel = await self.client.get_entity(channel_username)
-            
-            # Calculate the date from which to collect messages
-            since_date = datetime.now(timezone.utc) - timedelta(days=days_back)
-            
+
+            # Determine date range for message collection
+            if start_date and end_date:
+                # Use custom date range
+                since_date = start_date
+                until_date = end_date
+                logger.info(f"Collecting messages from {channel_username} from {since_date.isoformat()} to {until_date.isoformat()}")
+            else:
+                # Use days_back parameter (backward compatible)
+                since_date = datetime.now(timezone.utc) - timedelta(days=days_back)
+                until_date = datetime.now(timezone.utc)
+                logger.info(f"Collecting messages from {channel_username} since {since_date.isoformat()}")
+
             # Collect messages
             messages = []
-            
-            logger.info(f"Collecting messages from {channel_username} since {since_date.isoformat()}")
             
             # Use retry logic for the message collection
             for attempt in range(self.max_retries):
                 try:
                     async for message in self.client.iter_messages(channel, offset_date=since_date, reverse=True, limit=limit):
+                        # If using custom date range, filter messages by end_date
+                        if start_date and end_date:
+                            if message.date > until_date:
+                                continue  # Skip messages after end_date
+                            if message.date < since_date:
+                                break  # Stop iteration if we've passed the start_date
                         messages.append(message)
-                    
+
                     logger.info(f"Collected {len(messages)} messages from {channel_username}")
                     return messages
                 except FloodWaitError as e:

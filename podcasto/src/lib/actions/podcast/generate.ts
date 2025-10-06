@@ -5,6 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { ActionResponse } from './schemas';
 
 /**
+ * Interface for date range selection
+ */
+export interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+/**
  * Interface for the result of podcast generation
  */
 interface GenerationResult extends ActionResponse {
@@ -15,19 +23,34 @@ interface GenerationResult extends ActionResponse {
 
 /**
  * Triggers immediate podcast generation for a specific podcast.
- * 
+ *
  * @param podcastId - The ID of the podcast to generate
+ * @param dateRange - Optional date range for content collection
  * @returns Object with success/error information
  */
-export async function generatePodcastEpisode(podcastId: string): Promise<GenerationResult> {
+export async function generatePodcastEpisode(
+  podcastId: string,
+  dateRange?: DateRange
+): Promise<GenerationResult> {
   try {
     // Validate the podcast ID
     if (!podcastId) {
       return { success: false, error: 'Podcast ID is required' };
     }
-    
+
+    // Validate date range if provided
+    if (dateRange) {
+      const validationResult = validateDateRange(dateRange);
+      if (!validationResult.success) {
+        return validationResult;
+      }
+    }
+
     // Log the generation request
     console.log(`[PODCAST_GEN] Starting generation for podcast ID: ${podcastId}`);
+    if (dateRange) {
+      console.log(`[PODCAST_GEN] Using custom date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate.toISOString()}`);
+    }
     
     // Check environment configuration
     const envCheck = checkEnvironmentConfiguration();
@@ -43,7 +66,7 @@ export async function generatePodcastEpisode(podcastId: string): Promise<Generat
     
     // Create a new episode record
     const timestamp = new Date().toISOString();
-    const episodeResult = await createPendingEpisode(podcastId, timestamp);
+    const episodeResult = await createPendingEpisode(podcastId, timestamp, dateRange);
     if (!episodeResult.success) {
       return episodeResult;
     }
@@ -53,7 +76,8 @@ export async function generatePodcastEpisode(podcastId: string): Promise<Generat
       podcastId,
       episodeId: episodeResult.episodeId!,
       podcastConfig: configResult.config,
-      timestamp
+      timestamp,
+      dateRange
     });
     
     if (!lambdaResult.success) {
@@ -134,8 +158,9 @@ async function fetchPodcastConfig(podcastId: string): Promise<ActionResponse & {
  * Creates a pending episode record
  */
 async function createPendingEpisode(
-  podcastId: string, 
-  timestamp: string
+  podcastId: string,
+  timestamp: string,
+  dateRange?: DateRange
 ): Promise<ActionResponse & { episodeId?: string }> {
   try {
     // Create a new episode record with 'pending' status
@@ -153,9 +178,15 @@ async function createPendingEpisode(
       status: 'pending',
       duration: 0,
       language: language,
+      content_start_date: dateRange?.startDate,
+      content_end_date: dateRange?.endDate,
       metadata: JSON.stringify({
         generation_timestamp: timestamp,
-        s3_key: `podcasts/${podcastId}/${timestamp}/podcast.mp3`
+        s3_key: `podcasts/${podcastId}/${timestamp}/podcast.mp3`,
+        date_range: dateRange ? {
+          start: dateRange.startDate.toISOString(),
+          end: dateRange.endDate.toISOString()
+        } : null
       })
     });
     
@@ -180,12 +211,14 @@ async function createPendingEpisode(
 async function invokeLambdaFunction({
   podcastId,
   episodeId,
-  podcastConfig
+  podcastConfig,
+  dateRange
 }: {
   podcastId: string;
   episodeId: string;
   podcastConfig: Record<string, unknown>;
   timestamp: string;
+  dateRange?: DateRange;
 }): Promise<ActionResponse> {
   try {
     // Import AWS SDK
@@ -201,9 +234,14 @@ async function invokeLambdaFunction({
     // Prepare the event payload - include the episode ID we just created
     const payload = {
       podcast_config: podcastConfig,
-      podcast_id: podcastId,  // Pass the actual podcast ID explicitly 
-      episode_id: episodeId, // Pass the episode ID explicitly 
+      podcast_id: podcastId,  // Pass the actual podcast ID explicitly
+      episode_id: episodeId, // Pass the episode ID explicitly
       sqs_queue_url: process.env.SQS_QUEUE_URL,
+      // Add date_range if provided
+      date_range: dateRange ? {
+        start_date: dateRange.startDate.toISOString(),
+        end_date: dateRange.endDate.toISOString()
+      } : null,
       trigger_source: "admin-panel"
     };
     
@@ -234,7 +272,52 @@ async function invokeLambdaFunction({
     console.error(`[PODCAST_GEN] Lambda invocation error: ${error}`);
     return { 
       success: false, 
-      error: 'Error invoking Lambda function' 
+      error: 'Error invoking Lambda function'
     };
   }
+}
+
+/**
+ * Validates date range for episode generation
+ */
+function validateDateRange(dateRange: DateRange): ActionResponse {
+  const { startDate, endDate } = dateRange;
+
+  // Check that start date is before end date
+  if (startDate >= endDate) {
+    return {
+      success: false,
+      error: 'Start date must be before end date'
+    };
+  }
+
+  // Check that dates are not in the future
+  const now = new Date();
+  if (startDate > now) {
+    return {
+      success: false,
+      error: 'Start date cannot be in the future'
+    };
+  }
+
+  if (endDate > now) {
+    return {
+      success: false,
+      error: 'End date cannot be in the future'
+    };
+  }
+
+  // Check that range is not too large (max 30 days)
+  const daysDiff = Math.ceil(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysDiff > 30) {
+    return {
+      success: false,
+      error: 'Date range cannot exceed 30 days'
+    };
+  }
+
+  return { success: true };
 } 
