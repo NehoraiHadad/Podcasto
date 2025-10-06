@@ -104,7 +104,7 @@ export async function toggleSubscription(
       // Subscribe
       const { error } = await supabase
         .from('subscriptions')
-        .insert([
+        .insert<{ user_id: string; podcast_id: string }>([
           { user_id: userId, podcast_id: podcastId }
         ]);
       
