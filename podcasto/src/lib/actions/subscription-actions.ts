@@ -102,10 +102,11 @@ export async function toggleSubscription(
       };
     } else {
       // Subscribe
-      const subscriptionData = { user_id: userId, podcast_id: podcastId };
       const { error } = await supabase
         .from('subscriptions')
-        .insert([subscriptionData]);
+        .insert([
+          { user_id: userId, podcast_id: podcastId } as any
+        ]);
       
       if (error) {
         console.error('Error subscribing:', error);
