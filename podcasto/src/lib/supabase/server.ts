@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function createClient() {
   // Opt out of caching for all data requests to Supabase
   noStore();
-  
+
   const cookieStore = await cookies();
 
   return createServerClient<Database>(

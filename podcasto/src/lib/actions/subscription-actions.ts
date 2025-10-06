@@ -101,7 +101,7 @@ export async function toggleSubscription(
         isSubscribed: false
       };
     } else {
-      // Subscribe - create subscription record
+      // Subscribe
       const { error } = await supabase
         .from('subscriptions')
         .insert([{
