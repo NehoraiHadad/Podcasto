@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { TablesInsert } from '@/lib/supabase/types';
 
 interface SubscriptionParams {
   podcastId: string;
@@ -102,16 +101,13 @@ export async function toggleSubscription(
         isSubscribed: false
       };
     } else {
-      // Subscribe
-      type SubscriptionInsert = TablesInsert<'subscriptions'>;
-      const newSubscription: SubscriptionInsert[] = [{
-        user_id: userId,
-        podcast_id: podcastId
-      }];
-
+      // Subscribe - create subscription record
       const { error } = await supabase
         .from('subscriptions')
-        .insert(newSubscription);
+        .insert([{
+          user_id: userId,
+          podcast_id: podcastId
+        }]);
       
       if (error) {
         console.error('Error subscribing:', error);
