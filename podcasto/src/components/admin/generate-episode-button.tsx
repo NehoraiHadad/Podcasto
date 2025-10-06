@@ -20,18 +20,37 @@ import { EpisodeDateRangePicker } from './episode-date-range-picker';
 interface GenerateEpisodeButtonProps {
   podcastId: string;
   defaultHours?: number;
+  triggerOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideButton?: boolean;
 }
 
-export function GenerateEpisodeButton({ podcastId, defaultHours = 24 }: GenerateEpisodeButtonProps) {
+export function GenerateEpisodeButton({
+  podcastId,
+  defaultHours = 24,
+  triggerOpen,
+  onOpenChange,
+  hideButton = false,
+}: GenerateEpisodeButtonProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showDialog, setShowDialog] = useState(false);
+  const [internalShowDialog, setInternalShowDialog] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
+
+  // Use external control if provided, otherwise use internal state
+  const showDialog = triggerOpen !== undefined ? triggerOpen : internalShowDialog;
+  const handleOpenChange = (open: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(open);
+    } else {
+      setInternalShowDialog(open);
+    }
+  };
 
   const handleGenerateEpisode = async () => {
     try {
       setIsGenerating(true);
-      setShowDialog(false);
+      handleOpenChange(false);
 
       const result = await generatePodcastEpisode(podcastId, dateRange || undefined);
 
@@ -62,13 +81,15 @@ export function GenerateEpisodeButton({ podcastId, defaultHours = 24 }: Generate
   };
 
   return (
-    <Dialog open={showDialog} onOpenChange={setShowDialog}>
-      <DialogTrigger asChild>
-        <Button disabled={isGenerating} className="gap-1">
-          <PlusCircle className="h-4 w-4" />
-          {isGenerating ? 'Generating...' : 'Generate Episode Now'}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={showDialog} onOpenChange={handleOpenChange}>
+      {!hideButton && (
+        <DialogTrigger asChild>
+          <Button disabled={isGenerating} className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            {isGenerating ? 'Generating...' : 'Generate Episode Now'}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Generate New Episode</DialogTitle>
@@ -97,7 +118,7 @@ export function GenerateEpisodeButton({ podcastId, defaultHours = 24 }: Generate
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => setShowDialog(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isGenerating}
           >
             Cancel

@@ -13,9 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { generatePodcastEpisode } from '@/lib/actions/podcast/generate';
 import { deletePodcast } from '@/lib/actions/podcast/delete';
 import { PodcastStatusIndicator } from './podcast-status-indicator';
+import { GenerateEpisodeButton } from './generate-episode-button';
 import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
@@ -49,20 +49,20 @@ interface PodcastActionsMenuProps {
 export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMenuProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   // TypeScript explicitly type the states to allow undefined values
-  const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | undefined>(undefined);
-  const [generatedTimestamp, setGeneratedTimestamp] = useState<string | undefined>(undefined);
+  const [generatedEpisodeId, _setGeneratedEpisodeId] = useState<string | undefined>(undefined);
+  const [generatedTimestamp, _setGeneratedTimestamp] = useState<string | undefined>(undefined);
   const [generatedStatus, setGeneratedStatus] = useState<string | undefined>(undefined);
   const [showStatusIndicator, setShowStatusIndicator] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
       const result = await deletePodcast(podcast.id);
-      
+
       if (result.success) {
         toast.success(`Podcast "${podcast.title}" deleted successfully`);
         router.refresh();
@@ -77,46 +77,10 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
       setIsDeleteDialogOpen(false);
     }
   };
-  
-  const handleGenerateEpisode = async () => {
-    try {
-      setIsGenerating(true);
-      
-      // Reset any previous episode indicator state before generating a new one
-      setGeneratedEpisodeId(undefined);
-      setGeneratedTimestamp(undefined);
-      setGeneratedStatus(undefined);
-      setShowStatusIndicator(false);
-      
-      // Call the server action to generate the podcast episode
-      const result = await generatePodcastEpisode(podcast.id);
-      
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        // Store the episode info for status checking
-        if (result.episodeId) setGeneratedEpisodeId(result.episodeId);
-        if (result.timestamp) setGeneratedTimestamp(result.timestamp);
-        // Set initial status to 'pending' since it's not returned from the API
-        setGeneratedStatus('pending');
-        setShowStatusIndicator(true);
-        
-        toast.success(result.message || 'Episode generation started', {
-          description: 'You can see the generation status indicator next to this podcast.'
-        });
-        
-        // Call onStatusChange to refresh the parent component if provided
-        if (onStatusChange) {
-          onStatusChange();
-        }
-      }
-    } catch (error) {
-      console.error('Error generating episode:', error);
-      toast.error('Failed to generate episode');
-    } finally {
-      setIsGenerating(false);
-      setIsOpen(false);
-    }
+
+  const handleOpenGenerateDialog = () => {
+    setIsOpen(false); // Close dropdown
+    setShowGenerateDialog(true); // Open generate dialog
   };
   
   // Stabilize the status change handler with useCallback
@@ -185,13 +149,13 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
                 <span>View</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={handleGenerateEpisode}
-              disabled={isGenerating || (generatedStatus?.toLowerCase() === 'pending')}
+            <DropdownMenuItem
+              onClick={handleOpenGenerateDialog}
+              disabled={generatedStatus?.toLowerCase() === 'pending'}
               className="flex items-center cursor-pointer"
             >
               <Plus className="mr-2 h-4 w-4" />
-              <span>{isGenerating ? 'Generating...' : 'Generate Episode Now'}</span>
+              <span>Generate Episode Now</span>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/podcasts/${podcast.id}`}>
@@ -252,6 +216,14 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* GenerateEpisodeButton controlled programmatically - no trigger button shown */}
+      <GenerateEpisodeButton
+        podcastId={podcast.id}
+        triggerOpen={showGenerateDialog}
+        onOpenChange={setShowGenerateDialog}
+        hideButton={true}
+      />
     </>
   );
 } 
