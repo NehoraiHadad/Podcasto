@@ -18,14 +18,14 @@ export default async function CreatePodcastPage() {
   }
   
   // Check if user has admin role
-  const { data: userRoles } = await supabase
+  const { data: userRoles, error: rolesError } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .single();
+    .single<{ role: string }>();
 
   // If user is not an admin, redirect to unauthorized page
-  if (!userRoles || userRoles.role !== 'admin') {
+  if (rolesError || !userRoles || userRoles.role !== 'admin') {
     redirect('/unauthorized');
   }
   
