@@ -131,7 +131,12 @@ class ConfigManager:
             # If podcast_id is in the event but not in the podcast_config, add it
             if 'podcast_id' in self.event and 'podcast_id' not in config_data:
                 config_data['podcast_id'] = self.event['podcast_id']
-                
+
+            # If date_range is in the event, add it to config_data
+            if 'date_range' in self.event and self.event['date_range']:
+                config_data['date_range'] = self.event['date_range']
+                logger.info(f"Adding date_range from event: {self.event['date_range']}")
+
             config = PodcastConfig.from_dict(config_data)
             
             # Validate the config

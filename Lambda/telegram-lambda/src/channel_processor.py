@@ -76,7 +76,6 @@ class ChannelProcessor:
 
             # Check if custom date range is provided
             if self.config.start_date and self.config.end_date:
-                from datetime import datetime
                 start_dt = datetime.fromisoformat(self.config.start_date.replace('Z', '+00:00'))
                 end_dt = datetime.fromisoformat(self.config.end_date.replace('Z', '+00:00'))
                 logger.info(f"Processing channel: {channel}, Date range: {start_dt} to {end_dt}")
