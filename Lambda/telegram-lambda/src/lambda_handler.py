@@ -95,7 +95,19 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     # Log the result
                     result['sqs_message_sent'] = sqs_sent
                     logger.info(f"Podcast {episode_id}: Content uploaded to S3, status updated, SQS message {'sent' if sqs_sent else 'failed'}")
-                
+                else:
+                    # Processing was not successful (e.g., no messages found)
+                    episode_id = result.get('episode_id') or config.episode_id
+                    podcast_id = result.get('podcast_id') or config.podcast_id
+                    if episode_id:
+                        error_message = result.get('message', 'No content found for the specified date range')
+                        logger.warning(f"Episode {episode_id} processing failed: {error_message}")
+                        try:
+                            supabase_client.update_episode_status(episode_id, 'failed', podcast_id)
+                            logger.info(f"Episode {episode_id} marked as failed: {error_message}")
+                        except Exception as mark_error:
+                            logger.error(f"Failed to mark episode {episode_id} as failed: {str(mark_error)}")
+
             except Exception as e:
                 logger.error(f"Error processing podcast config {config.id}: {str(e)}")
                 log_error(logger, e, {'podcast_config_id': config.id})

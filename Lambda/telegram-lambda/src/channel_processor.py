@@ -247,8 +247,9 @@ class ChannelProcessor:
     def _create_empty_result(self) -> Dict[str, Any]:
         """Create an empty result."""
         return {
-            'message': 'No messages found',
+            'message': 'No messages found in the specified date range',
             'podcast_config_id': self.config.id,
+            'episode_id': self.config.episode_id if hasattr(self.config, 'episode_id') else None,
             'channel': self.config.telegram_channel,
             'days_back': self.config.days_back,
             'total_messages': 0,
