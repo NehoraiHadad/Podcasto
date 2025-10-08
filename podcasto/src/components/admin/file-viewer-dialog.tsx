@@ -111,8 +111,8 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
 
       return (
         <div className="space-y-4">
-          <pre className="max-h-[500px] overflow-auto rounded-md bg-muted p-4 text-xs">
-            <code>{displayContent}</code>
+          <pre className="max-h-[300px] sm:max-h-[500px] overflow-auto rounded-md bg-muted p-3 sm:p-4 text-[10px] sm:text-xs">
+            <code className="break-all sm:break-normal">{displayContent}</code>
           </pre>
           <Button
             onClick={() => {
@@ -126,6 +126,7 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
             }}
             variant="outline"
             size="sm"
+            className="w-full sm:w-auto"
           >
             <Download className="mr-2 h-4 w-4" />
             Download
@@ -147,27 +148,28 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
           )}
 
           {file.type === 'image' && (
-            <div className="flex justify-center">
+            <div className="flex justify-center overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={signedUrl}
                 alt={file.name}
-                className="max-h-[500px] rounded-md object-contain"
+                className="max-h-[300px] sm:max-h-[500px] max-w-full rounded-md object-contain"
               />
             </div>
           )}
 
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <a href={signedUrl} download={file.name}>
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </a>
             </Button>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <a href={signedUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Open in New Tab
+                <span className="hidden sm:inline">Open in New Tab</span>
+                <span className="sm:hidden">Open</span>
               </a>
             </Button>
           </div>
@@ -180,15 +182,14 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>{file.name}</DialogTitle>
-          <DialogDescription>
-            {formatBytes(file.size)} • Last modified:{' '}
-            {new Date(file.lastModified).toLocaleString()}
+      <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-base sm:text-lg truncate pr-8">{file.name}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
+            {formatBytes(file.size)} • {new Date(file.lastModified).toLocaleDateString()}
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-4">
+        <div className="mt-4 overflow-auto flex-1">
           {renderContent()}
         </div>
       </DialogContent>

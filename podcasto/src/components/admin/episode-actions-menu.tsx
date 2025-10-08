@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { deleteEpisode, regenerateEpisodeAudio } from '@/lib/actions/episode-actions';
 import { toast } from 'sonner';
 
@@ -52,6 +53,7 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   
   // Status-dependent actions
   const canRegenerate = episode.status?.toLowerCase() === 'failed' || 
@@ -59,10 +61,15 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
   
   // Handle episode deletion
   const handleDelete = async () => {
+    if (!confirmDelete) {
+      toast.error('Please confirm that you understand files will be permanently deleted from S3');
+      return;
+    }
+
     try {
       setIsLoading(true);
       await deleteEpisode(episode.id);
-      toast.success('Episode deleted successfully');
+      toast.success('Episode deleted successfully (including all S3 files)');
       router.refresh();
     } catch (error) {
       console.error('Error deleting episode:', error);
@@ -70,6 +77,15 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
     } finally {
       setIsLoading(false);
       setIsDeleteDialogOpen(false);
+      setConfirmDelete(false);
+    }
+  };
+
+  // Reset confirmation when dialog closes
+  const handleDialogChange = (open: boolean) => {
+    setIsDeleteDialogOpen(open);
+    if (!open) {
+      setConfirmDelete(false);
     }
   };
   
@@ -165,23 +181,49 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
       {/* Delete confirmation dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
+        onOpenChange={handleDialogChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete episode</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{episode.title}"? This action cannot be undone.
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete <span className="font-semibold">"{episode.title}"</span>?
+              </p>
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md p-3 text-sm">
+                <p className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Warning: This will permanently delete:</p>
+                <ul className="list-disc list-inside space-y-1 text-yellow-800 dark:text-yellow-200">
+                  <li>Episode record from database</li>
+                  <li>Audio files from AWS S3</li>
+                  <li>Cover images from AWS S3</li>
+                  <li>Transcripts and metadata from AWS S3</li>
+                </ul>
+                <p className="mt-2 font-semibold text-red-600 dark:text-red-400">This action cannot be undone!</p>
+              </div>
+              <div className="flex items-start space-x-2 pt-2">
+                <Checkbox
+                  id="confirm-delete"
+                  checked={confirmDelete}
+                  onCheckedChange={(checked) => setConfirmDelete(checked === true)}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="confirm-delete"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  I understand that all files will be permanently deleted from AWS S3
+                </label>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={isLoading}
+              disabled={isLoading || !confirmDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isLoading ? 'Deleting...' : 'Delete'}
+              {isLoading ? 'Deleting...' : 'Delete Permanently'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

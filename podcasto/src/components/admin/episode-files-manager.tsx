@@ -195,15 +195,15 @@ export function EpisodeFilesManager({ episodeId, podcastId }: EpisodeFilesManage
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Episode Files</CardTitle>
               <CardDescription>
                 {files.length} file(s) in S3 storage
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={loadFiles} variant="outline" size="sm">
+            <div className="flex gap-2 sm:flex-shrink-0">
+              <Button onClick={loadFiles} variant="outline" size="sm" className="flex-1 sm:flex-initial">
                 Refresh
               </Button>
               {files.length > 0 && (
@@ -211,9 +211,11 @@ export function EpisodeFilesManager({ episodeId, podcastId }: EpisodeFilesManage
                   onClick={() => setDeleteAllDialogOpen(true)}
                   variant="destructive"
                   size="sm"
+                  className="flex-1 sm:flex-initial"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete All
+                  <span className="hidden sm:inline">Delete All</span>
+                  <span className="sm:hidden">Delete</span>
                 </Button>
               )}
             </div>
@@ -232,38 +234,43 @@ export function EpisodeFilesManager({ episodeId, podcastId }: EpisodeFilesManage
               {files.map((file) => (
                 <div
                   key={file.key}
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-3 hover:bg-muted/50 gap-3"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {getFileIcon(file.type)}
+                    <div className="flex-shrink-0">
+                      {getFileIcon(file.type)}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                         <p className="text-sm font-medium truncate">{file.name}</p>
-                        <Badge className={getTypeBadgeColor(file.type)} variant="secondary">
+                        <Badge className={`${getTypeBadgeColor(file.type)} w-fit`} variant="secondary">
                           {file.type}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {formatBytes(file.size)} •{' '}
                         {new Date(file.lastModified).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2 ml-2">
+                  <div className="flex gap-2 sm:ml-2 sm:flex-shrink-0">
                     <Button
                       onClick={() => handleViewFile(file)}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
+                      className="flex-1 sm:flex-initial"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 sm:mr-0" />
+                      <span className="ml-2 sm:hidden">View</span>
                     </Button>
                     <Button
                       onClick={() => handleDeleteFile(file)}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 sm:mr-0" />
+                      <span className="ml-2 sm:hidden">Delete</span>
                     </Button>
                   </div>
                 </div>

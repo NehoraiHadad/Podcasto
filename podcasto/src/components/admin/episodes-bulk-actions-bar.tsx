@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { deleteEpisodesBulk } from '@/lib/actions/episode-actions';
 import { toast } from 'sonner';
 
@@ -22,13 +23,14 @@ interface EpisodesBulkActionsBarProps {
   onClearSelection: () => void;
 }
 
-export function EpisodesBulkActionsBar({ 
-  selectedEpisodeIds, 
-  onClearSelection 
+export function EpisodesBulkActionsBar({
+  selectedEpisodeIds,
+  onClearSelection
 }: EpisodesBulkActionsBarProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Don't render if no episodes selected
   if (selectedEpisodeIds.length === 0) {
@@ -36,20 +38,25 @@ export function EpisodesBulkActionsBar({
   }
 
   const handleBulkDelete = async () => {
+    if (!confirmDelete) {
+      toast.error('Please confirm that you understand files will be permanently deleted from S3');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      
+
       const result = await deleteEpisodesBulk({ episodeIds: selectedEpisodeIds });
-      
+
       if (result.success) {
-        toast.success(`Successfully deleted ${result.deleted.length} episodes`);
+        toast.success(`Successfully deleted ${result.deleted.length} episodes (including all S3 files)`);
       } else if (result.deleted.length > 0) {
         // Partial success
         toast.warning(
           `Deleted ${result.deleted.length} episodes, but ${result.failed.length} failed`,
           {
-            description: result.failed.length > 0 
-              ? `First error: ${result.failed[0].error}` 
+            description: result.failed.length > 0
+              ? `First error: ${result.failed[0].error}`
               : undefined
           }
         );
@@ -58,8 +65,8 @@ export function EpisodesBulkActionsBar({
         toast.error(
           `Failed to delete episodes`,
           {
-            description: result.failed.length > 0 
-              ? `Error: ${result.failed[0].error}` 
+            description: result.failed.length > 0
+              ? `Error: ${result.failed[0].error}`
               : undefined
           }
         );
@@ -68,13 +75,22 @@ export function EpisodesBulkActionsBar({
       // Clear selection and refresh regardless of partial/full success
       onClearSelection();
       router.refresh();
-      
+
     } catch (error) {
       console.error('Error during bulk delete:', error);
       toast.error('An unexpected error occurred during bulk delete');
     } finally {
       setIsLoading(false);
       setIsDeleteDialogOpen(false);
+      setConfirmDelete(false);
+    }
+  };
+
+  // Reset confirmation when dialog closes
+  const handleDialogChange = (open: boolean) => {
+    setIsDeleteDialogOpen(open);
+    if (!open) {
+      setConfirmDelete(false);
     }
   };
 
@@ -115,29 +131,54 @@ export function EpisodesBulkActionsBar({
       {/* Bulk delete confirmation dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
+        onOpenChange={handleDialogChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete episodes</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedEpisodeIds.length} episode{selectedEpisodeIds.length !== 1 ? 's' : ''}? 
-              This action cannot be undone and will remove all associated files from storage.
-              {selectedEpisodeIds.length > 10 && (
-                <div className="mt-2 text-yellow-600">
-                  Note: Deleting {selectedEpisodeIds.length} episodes may take some time to complete.
-                </div>
-              )}
+            <AlertDialogTitle>Delete {selectedEpisodeIds.length} episode{selectedEpisodeIds.length !== 1 ? 's' : ''}</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete <span className="font-semibold">{selectedEpisodeIds.length} episode{selectedEpisodeIds.length !== 1 ? 's' : ''}</span>?
+              </p>
+              <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md p-3 text-sm">
+                <p className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">⚠️ Warning: This will permanently delete for each episode:</p>
+                <ul className="list-disc list-inside space-y-1 text-yellow-800 dark:text-yellow-200">
+                  <li>Episode record from database</li>
+                  <li>Audio files from AWS S3</li>
+                  <li>Cover images from AWS S3</li>
+                  <li>Transcripts and metadata from AWS S3</li>
+                </ul>
+                {selectedEpisodeIds.length > 10 && (
+                  <p className="mt-2 text-yellow-900 dark:text-yellow-100 text-xs">
+                    ⏱️ Note: Deleting {selectedEpisodeIds.length} episodes may take some time to complete.
+                  </p>
+                )}
+                <p className="mt-2 font-semibold text-red-600 dark:text-red-400">This action cannot be undone!</p>
+              </div>
+              <div className="flex items-start space-x-2 pt-2">
+                <Checkbox
+                  id="confirm-bulk-delete"
+                  checked={confirmDelete}
+                  onCheckedChange={(checked) => setConfirmDelete(checked === true)}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="confirm-bulk-delete"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  I understand that all {selectedEpisodeIds.length} episode{selectedEpisodeIds.length !== 1 ? 's' : ''} and their files will be permanently deleted from AWS S3
+                </label>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
-              disabled={isLoading}
+              disabled={isLoading || !confirmDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isLoading ? 'Deleting...' : `Delete ${selectedEpisodeIds.length} Episode${selectedEpisodeIds.length !== 1 ? 's' : ''}`}
+              {isLoading ? 'Deleting...' : `Delete ${selectedEpisodeIds.length} Permanently`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
