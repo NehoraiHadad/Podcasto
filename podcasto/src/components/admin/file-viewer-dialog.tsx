@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,30 +26,47 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
   const [error, setError] = useState<string | null>(null);
 
   // Load content when dialog opens
-  const handleOpenChange = async (newOpen: boolean) => {
-    onOpenChange(newOpen);
+  useEffect(() => {
+    if (open && file) {
+      const loadContent = async () => {
+        console.log('[FileViewer] Loading file:', file.key);
+        setLoading(true);
+        setError(null);
+        setContent(null);
+        setSignedUrl(null);
 
-    if (newOpen && file) {
-      setLoading(true);
-      setError(null);
+        try {
+          const result = await getS3FileContent(file.key);
+          console.log('[FileViewer] Result:', result);
+
+          if (result.success && result.data) {
+            if (result.data.isText) {
+              console.log('[FileViewer] Setting text content');
+              setContent(result.data.content);
+            } else {
+              console.log('[FileViewer] Setting signed URL');
+              setSignedUrl(result.data.signedUrl || null);
+            }
+          } else {
+            console.error('[FileViewer] Error:', result.error);
+            setError(result.error || 'Failed to load file');
+          }
+        } catch (err) {
+          console.error('[FileViewer] Exception:', err);
+          setError('An error occurred while loading the file');
+        }
+
+        setLoading(false);
+      };
+
+      loadContent();
+    } else if (!open) {
+      // Reset state when closing
       setContent(null);
       setSignedUrl(null);
-
-      const result = await getS3FileContent(file.key);
-
-      if (result.success && result.data) {
-        if (result.data.isText) {
-          setContent(result.data.content);
-        } else {
-          setSignedUrl(result.data.signedUrl || null);
-        }
-      } else {
-        setError(result.error || 'Failed to load file');
-      }
-
-      setLoading(false);
+      setError(null);
     }
-  };
+  }, [open, file]);
 
   if (!file) return null;
 
@@ -131,6 +148,7 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
 
           {file.type === 'image' && (
             <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={signedUrl}
                 alt={file.name}
@@ -161,7 +179,7 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{file.name}</DialogTitle>
@@ -170,7 +188,9 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
             {new Date(file.lastModified).toLocaleString()}
           </DialogDescription>
         </DialogHeader>
-        {renderContent()}
+        <div className="mt-4">
+          {renderContent()}
+        </div>
       </DialogContent>
     </Dialog>
   );
