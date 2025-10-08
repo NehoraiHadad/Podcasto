@@ -29,13 +29,13 @@ export async function deleteEpisode(episodeId: string): Promise<boolean> {
       try {
         // Import storage utility
         const { createS3StorageUtils } = await import('@/lib/services/storage-utils');
-        
+
         // Get S3 credentials from environment
         const region = process.env.AWS_REGION;
         const bucket = process.env.S3_BUCKET_NAME;
         const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-        
+
         if (region && bucket && accessKeyId && secretAccessKey) {
           // Initialize storage utils
           const storageUtils = createS3StorageUtils({
@@ -44,24 +44,36 @@ export async function deleteEpisode(episodeId: string): Promise<boolean> {
             accessKeyId,
             secretAccessKey
           });
-          
+
           // Delete episode folder from S3
           const deleteResult = await storageUtils.deleteEpisodeFromS3(
             episode.podcast_id,
             episodeId
           );
-          
+
           if (deleteResult.success) {
             console.log(`Successfully deleted episode ${episodeId} from S3, ${deleteResult.deletedCount} objects removed`);
-          } else {
+          } else if (deleteResult.error) {
+            // Critical error - throw to fail the operation
             console.error(`Failed to delete S3 files for episode ${episodeId}:`, deleteResult.error);
+            throw new Error(`Episode deleted from database, but failed to delete ${deleteResult.failedKeys?.length || 'all'} files from S3: ${deleteResult.error}`);
+          } else if (deleteResult.failedKeys && deleteResult.failedKeys.length > 0) {
+            // Partial failure - throw to fail the operation
+            console.error(`Partial S3 deletion failure for episode ${episodeId}: ${deleteResult.failedKeys.length} files remain`);
+            throw new Error(`Episode deleted from database, but ${deleteResult.failedKeys.length} files remain in S3. Please contact support.`);
+          }
+
+          // Check for warnings
+          if (deleteResult.warnings && deleteResult.warnings.length > 0) {
+            console.warn(`S3 deletion warnings for episode ${episodeId}:`, deleteResult.warnings);
           }
         } else {
           console.warn('Missing S3 configuration, skipping S3 deletion');
         }
       } catch (s3Error) {
-        // Log S3 deletion error but don't fail the overall operation
+        // Log S3 deletion error and throw to fail the operation
         console.error('Error deleting episode files from S3:', s3Error);
+        throw new Error(`Episode deleted from database, but S3 cleanup failed: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`);
       }
       
       // Revalidate paths
