@@ -223,29 +223,57 @@ CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 - **{actual_speaker2_role}**: {speaker2_gender} voice, expert knowledge in the topic
 
 **TTS MARKUP INSTRUCTIONS:**
-IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
+IMPORTANT: Include natural speech markup in your script to enhance TTS delivery.
+Use BOTH bracket tags AND SSML tags as shown below (you can mix them naturally):
 
-1. **Natural Pauses**: Use [pause], [pause short], [pause long] for:
-   - Between speakers: "{speaker1_role}: [pause short] ..."
-   - Before questions: "...really? [pause] What do you think?"
-   - After important points: "That's crucial. [pause] Let me explain..."
+1. **Pauses - TWO OPTIONS:**
+   A) Bracket tags (simple):
+      - [short pause] - Brief pause (~250ms)
+      - [medium pause] - Standard pause (~500ms)
+      - [long pause] - Dramatic pause (~1000ms+)
 
-2. **Emphasis**: Use [emphasis]...[/emphasis] for:
-   - Key terms and names
-   - Important statistics or facts
-   - Breaking news or urgent information
+   B) SSML tags (precise timing):
+      - <break time="300ms"/> - Custom short pause
+      - <break time="500ms"/> - Custom medium pause
+      - <break time="1s"/> - Custom long pause
 
-3. **Content-Specific Markup**:
-   {f"- **News Content**: Add [emphasis] around breaking news, important names" if content_type == 'news' else ""}
-   {f"- **Technology Content**: Add [pause short] around technical terms like AI, API, blockchain" if content_type == 'technology' else ""}
-   {f"- **Entertainment Content**: Use more dynamic [emphasis] for exciting moments" if content_type == 'entertainment' else ""}
-   {f"- **Finance Content**: Add [pause] before important numbers and statistics" if content_type == 'finance' else ""}
+   Examples:
+   - Between speakers: "{speaker1_role}: [short pause] Opening statement..."
+   - Before questions: "...really? <break time='500ms'/> What do you think?"
+   - After important points: "That's crucial. [long pause] Let me explain..."
 
-4. **Conversation Flow**: Natural markers like:
-   - "אז, [pause short] בואו נדבר על..."
-   - "כן, [pause] זה נכון"
-   - "Well, [pause] that's interesting"
-   - End sentences with: "...point. [pause short]"
+2. **Emphasis - Use SSML:**
+   - <emphasis level="moderate">key term</emphasis> - Standard emphasis
+   - <emphasis level="strong">critical info</emphasis> - Strong emphasis
+
+   Examples:
+   - Key terms: "We're discussing <emphasis level='moderate'>artificial intelligence</emphasis>"
+   - Critical info: "<emphasis level='strong'>Breaking news</emphasis>: Major development today"
+
+3. **Emotions and Sounds - Bracket Tags:**
+   - [laughing] - Natural laughter
+   - [sigh] - Sigh sound
+   - [uhm] - Hesitation sound
+   - [whispering] - Whisper effect
+   - [shouting] - Louder volume
+   - [sarcasm] - Sarcastic tone
+
+   Examples:
+   - "[laughing] That's hilarious!"
+   - "[sigh] Well, let me think about this..."
+   - "[whispering] This is confidential information"
+
+4. **Content-Specific Markup:**
+   {f"- **News**: Use <emphasis level='strong'> for breaking news, [short pause] before names" if content_type == 'news' else ""}
+   {f"- **Technology**: Use <break time='300ms'/> before jargon, <emphasis level='moderate'> for technical terms" if content_type == 'technology' else ""}
+   {f"- **Entertainment**: Use [laughing] for humor, <emphasis level='strong'> for exciting moments" if content_type == 'entertainment' else ""}
+   {f"- **Finance**: Use <break time='500ms'/> before numbers, <emphasis level='strong'> for key statistics" if content_type == 'finance' else ""}
+
+5. **Conversation Flow Examples:**
+   - "אז, [short pause] בואו נדבר על <emphasis level='moderate'>הנושא הזה</emphasis>"
+   - "כן, <break time='300ms'/> זה נכון"
+   - "Well, [medium pause] that's interesting"
+   - "[laughing] Amazing! [short pause] Let me explain further..."
 
 **SCRIPT REQUIREMENTS:**
 1. Write in {language} language
@@ -261,10 +289,14 @@ IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
 {additional_instructions}
 
 **OUTPUT FORMAT:**
-Provide ONLY the conversation script with embedded TTS markup. No explanations or metadata.
-Use this format:
-{speaker1_role}: [pause short] Opening statement...
-{actual_speaker2_role}: [pause] Response with [emphasis]key point[/emphasis]...
+Provide ONLY the conversation script with embedded TTS markup (SSML + bracket tags). No explanations or metadata.
+Use this format (mixing tags naturally):
+
+{speaker1_role}: [short pause] Welcome to <emphasis level='strong'>today's episode</emphasis>! [medium pause] We have fascinating content to discuss.
+
+{actual_speaker2_role}: [laughing] Thanks for having me! <break time='500ms'/> This topic about <emphasis level='moderate'>artificial intelligence</emphasis> is [sigh] quite complex.
+
+{speaker1_role}: <break time='300ms'/> Let's start with the basics. [short pause] [whispering] Between you and me, this is revolutionary.
 
 Begin the conversation now:
 """
