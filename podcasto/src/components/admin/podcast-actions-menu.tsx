@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Trash2, Play, Plus, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Trash2, Play, Plus, MoreHorizontal, AlertCircle, Pause, PlayCircle } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { deletePodcast } from '@/lib/actions/podcast/delete';
+import { togglePodcastPause } from '@/lib/actions/podcast/toggle-pause';
 import { PodcastStatusIndicator } from './podcast-status-indicator';
 import { GenerateEpisodeButton } from './generate-episode-button';
 import { useRouter } from 'next/navigation';
@@ -31,6 +32,7 @@ import {
 interface Podcast {
   id: string;
   title: string;
+  is_paused?: boolean;
   status?: string;
   timestamp?: string;
   // Add other known properties
@@ -57,6 +59,7 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
   const [showStatusIndicator, setShowStatusIndicator] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPausing, setIsPausing] = useState(false);
 
   const handleDelete = async () => {
     try {
@@ -81,6 +84,27 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
   const handleOpenGenerateDialog = () => {
     setIsOpen(false); // Close dropdown
     setShowGenerateDialog(true); // Open generate dialog
+  };
+
+  const handleTogglePause = async () => {
+    try {
+      setIsPausing(true);
+      const result = await togglePodcastPause(podcast.id);
+
+      if (result.success) {
+        const action = result.isPaused ? 'paused' : 'resumed';
+        toast.success(`Podcast ${action} successfully`);
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to update podcast');
+      }
+    } catch (error) {
+      console.error('Error toggling podcast pause:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsPausing(false);
+      setIsOpen(false);
+    }
   };
   
   // Stabilize the status change handler with useCallback
@@ -157,6 +181,23 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
               <Plus className="mr-2 h-4 w-4" />
               <span>Generate Episode Now</span>
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleTogglePause}
+              disabled={isPausing}
+              className="flex items-center cursor-pointer"
+            >
+              {podcast.is_paused ? (
+                <>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  <span>Resume Generation</span>
+                </>
+              ) : (
+                <>
+                  <Pause className="mr-2 h-4 w-4" />
+                  <span>Pause Generation</span>
+                </>
+              )}
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href={`/podcasts/${podcast.id}`}>
                 <Play className="mr-2 h-4 w-4" />
@@ -220,6 +261,7 @@ export function PodcastActionsMenu({ podcast, onStatusChange }: PodcastActionsMe
       {/* GenerateEpisodeButton controlled programmatically - no trigger button shown */}
       <GenerateEpisodeButton
         podcastId={podcast.id}
+        isPaused={podcast.is_paused}
         triggerOpen={showGenerateDialog}
         onOpenChange={setShowGenerateDialog}
         hideButton={true}

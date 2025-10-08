@@ -23,7 +23,7 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
         GROUP BY podcast_id
       )
       
-      SELECT 
+      SELECT
         p.id as podcast_id,
         p.title as podcast_title,
         pc.episode_frequency as frequency,
@@ -31,9 +31,10 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
       FROM podcasts p
       LEFT JOIN podcast_configs pc ON p.id = pc.podcast_id
       LEFT JOIN latest_episodes le ON p.id = le.podcast_id
-      WHERE 
-        pc.episode_frequency IS NOT NULL AND 
-        pc.episode_frequency > 0
+      WHERE
+        pc.episode_frequency IS NOT NULL AND
+        pc.episode_frequency > 0 AND
+        COALESCE(p.is_paused, false) = false
     `);
     
     // Log the raw result for debugging
@@ -72,8 +73,8 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
       };
     });
     
-    console.log(`[PODCAST_FINDER] Found ${podcastData.length} podcasts with frequency settings`);
-    
+    console.log(`[PODCAST_FINDER] Found ${podcastData.length} active podcasts with frequency settings (paused podcasts excluded)`);
+
     // Force create episodes for testing if needed
     const forceCreateForTesting = process.env.FORCE_CREATE_EPISODES === 'true';
     

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,6 +19,7 @@ import { EpisodeDateRangePicker } from './episode-date-range-picker';
 
 interface GenerateEpisodeButtonProps {
   podcastId: string;
+  isPaused?: boolean;
   defaultHours?: number;
   triggerOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -27,6 +28,7 @@ interface GenerateEpisodeButtonProps {
 
 export function GenerateEpisodeButton({
   podcastId,
+  isPaused = false,
   defaultHours = 24,
   triggerOpen,
   onOpenChange,
@@ -98,7 +100,19 @@ export function GenerateEpisodeButton({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 space-y-4">
+          {isPaused && (
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">This podcast is currently paused</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  Automatic episode generation is disabled. You can still generate episodes manually.
+                </p>
+              </div>
+            </div>
+          )}
+
           <EpisodeDateRangePicker
             onRangeSelect={handleDateRangeSelect}
             onClear={handleClearDateRange}
@@ -106,7 +120,7 @@ export function GenerateEpisodeButton({
           />
 
           {dateRange && (
-            <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+            <div className="rounded-md bg-muted p-3 text-sm">
               <p className="font-medium">Selected Range:</p>
               <p className="text-muted-foreground">
                 {dateRange.startDate.toLocaleDateString()} - {dateRange.endDate.toLocaleDateString()}

@@ -61,7 +61,7 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
               Episodes
             </Button>
           </Link>
-          <GenerateEpisodeButton podcastId={id} />
+          <GenerateEpisodeButton podcastId={id} isPaused={podcast.is_paused} />
         </div>
       </div>
       

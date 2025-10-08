@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { unstable_noStore as noStore } from 'next/cache';
 import { podcastsApi } from '@/lib/db/api';
+import { Pause } from 'lucide-react';
 
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PodcastActionsMenu } from './podcast-actions-menu';
 
 // Define the expected podcast type for the component
@@ -20,6 +22,7 @@ interface Podcast {
   title: string;
   description: string | null;
   cover_image: string | null;
+  is_paused?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
   status?: string;
@@ -46,6 +49,7 @@ export async function ServerPodcastsList() {
       title: podcast.title,
       description: podcast.description,
       cover_image: podcast.cover_image,
+      is_paused: podcast.is_paused || false,
       created_at: podcast.created_at ? podcast.created_at.toISOString() : null,
       updated_at: podcast.updated_at ? podcast.updated_at.toISOString() : null,
       status: podcast.status, // Include status
@@ -86,9 +90,17 @@ export async function ServerPodcastsList() {
               {podcasts.map((podcast) => (
                 <TableRow key={podcast.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/admin/podcasts/${podcast.id}`} className="hover:underline">
-                      {podcast.title}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/podcasts/${podcast.id}`} className="hover:underline">
+                        {podcast.title}
+                      </Link>
+                      {podcast.is_paused && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Pause className="mr-1 h-3 w-3" />
+                          Paused
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {podcast.description || 'No description'}

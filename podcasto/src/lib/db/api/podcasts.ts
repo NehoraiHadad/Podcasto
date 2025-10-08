@@ -9,6 +9,7 @@ export type Podcast = {
   title: string;
   description: string | null;
   cover_image: string | null;
+  is_paused?: boolean;
   created_at: Date | null;
   updated_at: Date | null;
   episodes_count?: number;
