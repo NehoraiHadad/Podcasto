@@ -45,7 +45,7 @@ export async function getBestModelForTask(
     // Model preference order based on task type
     const modelPreferences: Record<string, string[]> = {
       text: ['gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-pro'],
-      image: ['gemini-2.0-flash-exp-image-generation', 'gemini-1.5-pro-vision'],
+      image: ['gemini-2.5-flash-image', 'gemini-2.0-flash-exp-image-generation', 'gemini-1.5-pro-vision'],
       chat: ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-2.0-flash']
     };
     
@@ -62,7 +62,7 @@ export async function getBestModelForTask(
     // Default models if none of the preferred ones are available
     const defaults = {
       text: 'gemini-2.0-flash',
-      image: 'gemini-2.0-flash-exp-image-generation',
+      image: 'gemini-2.5-flash-image',
       chat: 'gemini-2.5-pro'
     };
     
@@ -73,7 +73,7 @@ export async function getBestModelForTask(
     // Fallback defaults
     const defaults = {
       text: 'gemini-2.0-flash',
-      image: 'gemini-2.0-flash-exp-image-generation',
+      image: 'gemini-2.5-flash-image',
       chat: 'gemini-2.5-pro'
     };
     

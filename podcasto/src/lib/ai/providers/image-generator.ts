@@ -11,7 +11,7 @@ export class ImageGenerator {
 
   constructor(apiKey: string, modelName?: string) {
     this.apiKey = apiKey;
-    this.modelName = modelName || 'gemini-2.0-flash-exp-image-generation';
+    this.modelName = modelName || 'gemini-2.5-flash-image';
     this.retryConfig = DEFAULT_RETRY_CONFIG;
   }
 

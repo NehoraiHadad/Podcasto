@@ -23,7 +23,7 @@ export const ModelSelector = {
         return 'gemini-2.0-flash';
         
       case 'image-generation':
-        return 'gemini-2.0-flash-exp-image-generation';
+        return 'gemini-2.5-flash-image';
         
       case 'reasoning':
       default:
