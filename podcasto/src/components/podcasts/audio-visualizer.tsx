@@ -29,8 +29,9 @@ export function AudioVisualizer({
     barGap: 1,
     barRadius: 2,
     normalize: true,
-    interact: false,
-    cursorWidth: 0,
+    interact: true,
+    cursorWidth: 1,
+    cursorColor: progressColor,
     media: audioRef.current || undefined,
   });
 

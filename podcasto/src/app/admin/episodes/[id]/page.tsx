@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from '@/components/admin/episode-actions-menu';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
+import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 
 export const metadata = {
   title: 'Episode Details | Admin Dashboard | Podcasto',
@@ -212,10 +213,10 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             </CardHeader>
             <CardContent>
               {episode.audio_url ? (
-                <audio
-                  src={episode.audio_url ?? undefined}
-                  controls
-                  className="w-full"
+                <AudioPlayerClient
+                  episodeId={episode.id}
+                  audioUrl={episode.audio_url}
+                  _title={episode.title}
                 />
               ) : (
                 <div className="text-sm text-muted-foreground">No audio available</div>
