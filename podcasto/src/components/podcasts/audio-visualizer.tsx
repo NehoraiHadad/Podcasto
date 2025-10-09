@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useWavesurfer } from '@wavesurfer/react';
 
 interface AudioVisualizerProps {
@@ -19,8 +19,9 @@ export function AudioVisualizer({
   progressColor = '#3b82f6'
 }: AudioVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { wavesurfer } = useWavesurfer({
+  const { wavesurfer, isReady } = useWavesurfer({
     container: containerRef,
     waveColor,
     progressColor,
@@ -34,6 +35,13 @@ export function AudioVisualizer({
     cursorColor: progressColor,
     media: audioRef.current || undefined,
   });
+
+  // Track when wavesurfer is ready
+  useEffect(() => {
+    if (isReady) {
+      setIsLoading(false);
+    }
+  }, [isReady]);
 
   // Sync with external audio element
   useEffect(() => {
@@ -57,10 +65,33 @@ export function AudioVisualizer({
   }, [isPlaying, wavesurfer]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full rounded-md overflow-hidden"
-      style={{ height: `${height}px` }}
-    />
+    <div className="relative w-full rounded-md overflow-hidden" style={{ height: `${height}px` }}>
+      {/* Waveform container */}
+      <div
+        ref={containerRef}
+        className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+      />
+
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800"
+          style={{ height: `${height}px` }}
+        >
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-0.5 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"
+                style={{
+                  height: `${Math.random() * 60 + 20}%`,
+                  animationDelay: `${i * 0.05}s`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
