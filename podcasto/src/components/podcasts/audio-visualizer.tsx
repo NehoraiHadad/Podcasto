@@ -85,27 +85,30 @@ export function AudioVisualizer({
       <div
         ref={containerRef}
         className="w-full h-full transition-opacity duration-300"
-        style={{ opacity: isLoading ? 0 : 1 }}
+        style={{
+          opacity: isLoading ? 0 : 1,
+          pointerEvents: isLoading ? 'none' : 'auto'
+        }}
       />
 
       {/* Loading skeleton */}
       {isLoading && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800"
-          style={{ height: `${height}px` }}
+          className="absolute inset-0 flex items-end justify-center gap-1 px-2 bg-gray-50 dark:bg-gray-900"
         >
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 40 }).map((_, i) => (
+          {Array.from({ length: 40 }).map((_, i) => {
+            const randomHeight = Math.random() * 0.6 + 0.2; // 20%-80% של הגובה
+            return (
               <div
                 key={i}
-                className="w-0.5 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"
+                className="w-0.5 bg-blue-400/60 dark:bg-blue-500/60 rounded-full animate-pulse"
                 style={{
-                  height: `${Math.random() * 60 + 20}%`,
+                  height: `${randomHeight * height}px`,
                   animationDelay: `${i * 0.05}s`,
                 }}
               />
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
     </div>
