@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useWavesurfer } from '@wavesurfer/react';
 
-export type VisualizerVariant = 'bars' | 'wave';
+export type VisualizerVariant = 'bars' | 'wave' | 'mirror';
 
 interface AudioVisualizerProps {
   audioRef: React.RefObject<HTMLAudioElement | null>;
@@ -31,6 +31,12 @@ export function AudioVisualizer({
         barWidth: 0,      // Solid wave
         barGap: 0,
         barRadius: 0,
+      }
+    : variant === 'mirror'
+    ? {
+        barWidth: 3,      // Thicker bars for mirror
+        barGap: 1,
+        barRadius: 3,
       }
     : {
         barWidth: 2,      // Bars style
@@ -84,7 +90,13 @@ export function AudioVisualizer({
       {/* Waveform container */}
       <div
         ref={containerRef}
-        className={`w-full h-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className="w-full h-full transition-opacity duration-300"
+        style={{
+          opacity: isLoading ? 0 : 1,
+          ...(variant === 'mirror' && {
+            WebkitBoxReflect: 'below 0px linear-gradient(transparent 0%, transparent 50%, rgba(255,255,255,0.1) 100%)',
+          }),
+        }}
       />
 
       {/* Loading skeleton */}
