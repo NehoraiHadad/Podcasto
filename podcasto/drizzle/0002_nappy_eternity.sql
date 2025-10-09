@@ -1,0 +1,1 @@
+ALTER TABLE "podcast_configs" ADD COLUMN "script_generation_prompt" text;

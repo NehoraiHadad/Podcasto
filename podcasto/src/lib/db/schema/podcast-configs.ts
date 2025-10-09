@@ -21,6 +21,7 @@ export const podcastConfigs = pgTable('podcast_configs', {
   speaker2_role: text('speaker2_role').notNull(),
   mixing_techniques: jsonb('mixing_techniques').$type<string[]>().notNull(),
   additional_instructions: text('additional_instructions'),
+  script_generation_prompt: text('script_generation_prompt'),
   episode_frequency: integer('episode_frequency').default(7),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow()

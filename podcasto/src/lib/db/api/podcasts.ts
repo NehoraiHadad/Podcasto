@@ -47,6 +47,7 @@ export type Podcast = {
   // Mixing techniques
   mixing_techniques?: string[];
   additional_instructions?: string;
+  script_generation_prompt?: string;
 };
 
 export type NewPodcast = typeof podcasts.$inferInsert;

@@ -56,6 +56,7 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       speaker2Role: 'expert',
       mixingTechniques: ['rhetorical-questions', 'personal-anecdotes'],
       additionalInstructions: '',
+      scriptGenerationPrompt: '',
     },
     mode: 'onChange',
   });
@@ -95,6 +96,7 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       // Mixing techniques
       mixingTechniques: podcast?.mixing_techniques || ['rhetorical-questions', 'personal-anecdotes'],
       additionalInstructions: podcast?.additional_instructions || '',
+      scriptGenerationPrompt: podcast?.script_generation_prompt || '',
     },
     mode: 'onChange',
   });

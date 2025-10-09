@@ -77,6 +77,7 @@ async function createPodcastConfig(podcastId: string, data: PodcastCreationData)
       speaker2_role: data.speaker2Role,
       mixing_techniques: data.mixingTechniques,
       additional_instructions: data.additionalInstructions,
+      script_generation_prompt: data.scriptGenerationPrompt,
       episode_frequency: data.episodeFrequency,
     });
     

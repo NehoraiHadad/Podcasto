@@ -43,9 +43,12 @@ export const podcastCreationSchema = z.object({
   
   // Mixing Techniques
   mixingTechniques: z.array(z.string()),
-  
+
   // Additional Instructions
   additionalInstructions: z.string().optional(),
+
+  // Script Generation Prompt
+  scriptGenerationPrompt: z.string().optional(),
 });
 
 export type PodcastCreationData = z.infer<typeof podcastCreationSchema>;
@@ -88,6 +91,8 @@ export const podcastUpdateSchema = z.object({
   // Mixing techniques (optional)
   mixingTechniques: z.array(z.string().optional()).optional(),
   additionalInstructions: z.string().optional(),
+  // Script Generation Prompt
+  scriptGenerationPrompt: z.string().optional(),
 });
 
 export type PodcastUpdateData = z.infer<typeof podcastUpdateSchema>; 

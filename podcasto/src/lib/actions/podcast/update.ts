@@ -124,12 +124,12 @@ async function updatePodcastMetadata({
  */
 function hasConfigFields(data: PodcastUpdateData): boolean {
   return !!(
-    data.contentSource || data.telegramChannel || data.telegramHours || data.urls || 
-    data.creator || data.podcastName || data.outputLanguage || data.slogan || 
-    data.creativityLevel !== undefined || data.isLongPodcast !== undefined || 
+    data.contentSource || data.telegramChannel || data.telegramHours || data.urls ||
+    data.creator || data.podcastName || data.outputLanguage || data.slogan ||
+    data.creativityLevel !== undefined || data.isLongPodcast !== undefined ||
     data.discussionRounds || data.minCharsPerRound || data.episodeFrequency ||
-    data.conversationStyle || data.speaker1Role || data.speaker2Role || 
-    data.mixingTechniques || data.additionalInstructions
+    data.conversationStyle || data.speaker1Role || data.speaker2Role ||
+    data.mixingTechniques || data.additionalInstructions || data.scriptGenerationPrompt
   );
 }
 
@@ -225,6 +225,7 @@ function buildConfigUpdateObject(
     speaker1Role: { dataKey: 'speaker1Role', configKey: 'speaker1_role' },
     speaker2Role: { dataKey: 'speaker2Role', configKey: 'speaker2_role' },
     additionalInstructions: { dataKey: 'additionalInstructions', configKey: 'additional_instructions' },
+    scriptGenerationPrompt: { dataKey: 'scriptGenerationPrompt', configKey: 'script_generation_prompt' },
     episodeFrequency: { dataKey: 'episodeFrequency', configKey: 'episode_frequency' },
   };
   

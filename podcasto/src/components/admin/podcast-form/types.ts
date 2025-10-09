@@ -45,9 +45,12 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
     
     // Mixing Techniques
     mixingTechniques: z.array(z.string()),
-    
+
     // Additional Instructions
     additionalInstructions: z.string().optional(),
+
+    // Script Generation Prompt
+    scriptGenerationPrompt: z.string().optional(),
   }),
   z.object({
     contentSource: z.literal('urls'),
@@ -87,9 +90,12 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
     
     // Mixing Techniques
     mixingTechniques: z.array(z.string()),
-    
+
     // Additional Instructions
     additionalInstructions: z.string().optional(),
+
+    // Script Generation Prompt
+    scriptGenerationPrompt: z.string().optional(),
   })
 ]);
 
@@ -124,6 +130,7 @@ export const podcastEditSchema = podcastBaseSchema.extend({
   
   mixingTechniques: z.array(z.string()).optional(),
   additionalInstructions: z.string().optional(),
+  scriptGenerationPrompt: z.string().optional(),
 }).partial(); // Make all fields partial to allow updating only specific fields
 
 // Type for the creation form
