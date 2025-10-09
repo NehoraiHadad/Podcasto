@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from './episode-actions-menu';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { AlertCircle } from 'lucide-react';
 
@@ -30,6 +31,8 @@ interface Episode {
   status: string | null;
   metadata: string | null;
   cover_image: string | null;
+  content_start_date: string | null;
+  content_end_date: string | null;
   podcast_title?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -143,6 +146,7 @@ export function ClientEpisodesTable({
             <TableHead>Podcast</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Content Period</TableHead>
             <TableHead>Published Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -189,6 +193,12 @@ export function ClientEpisodesTable({
               </TableCell>
               <TableCell>
                 {renderStatus(episode.status, episode.metadata)}
+              </TableCell>
+              <TableCell>
+                <ContentDateRangeBadge
+                  startDate={episode.content_start_date}
+                  endDate={episode.content_end_date}
+                />
               </TableCell>
               <TableCell>
                 <EpisodeDateBadge

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { EpisodeActionsMenu } from '@/components/admin/episode-actions-menu';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 
@@ -144,7 +145,20 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
                 showRelativeTime={true}
               />
             </div>
-            
+
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Content Period</p>
+              <ContentDateRangeBadge
+                startDate={episode.content_start_date ? episode.content_start_date.toISOString() : null}
+                endDate={episode.content_end_date ? episode.content_end_date.toISOString() : null}
+              />
+              {episode.content_start_date && episode.content_end_date && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Content collected from {format(episode.content_start_date, 'PPP')} to {format(episode.content_end_date, 'PPP')}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Created</p>
               <p>{episode.created_at ? format(episode.created_at, 'PPP p') : 'Unknown'}</p>

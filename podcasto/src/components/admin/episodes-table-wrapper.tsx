@@ -18,6 +18,8 @@ interface Episode {
   status: string | null;
   metadata: string | null;
   cover_image: string | null;
+  content_start_date: string | null;
+  content_end_date: string | null;
   podcast_title?: string;
   [key: string]: string | number | boolean | null | undefined;
 }

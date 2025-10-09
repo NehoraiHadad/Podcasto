@@ -39,16 +39,26 @@ export async function generateEpisodesForPodcasts(
 
     try {
       console.log(`[PODCAST_GENERATOR] Generating episode for podcast: ${podcast.title} (${podcast.id})`);
-      
-      // Call the existing server action to generate the episode
-      const actionResult = await generatePodcastEpisode(podcast.id);
-      
+
+      // Calculate date range based on telegram_hours
+      const now = new Date();
+      const startDate = new Date(now.getTime() - (podcast.telegramHours * 60 * 60 * 1000));
+      const dateRange = {
+        startDate,
+        endDate: now
+      };
+
+      console.log(`[PODCAST_GENERATOR] Using date range for ${podcast.title}: ${startDate.toISOString()} to ${now.toISOString()}`);
+
+      // Call the existing server action to generate the episode with date range
+      const actionResult = await generatePodcastEpisode(podcast.id, dateRange);
+
       generationResult = {
         ...generationResult,
         success: actionResult.success,
         episodeId: actionResult.episodeId,
-        message: actionResult.success 
-          ? `Generation started for podcast: ${podcast.title}` 
+        message: actionResult.success
+          ? `Generation started for podcast: ${podcast.title}`
           : `Error: ${actionResult.error}`,
       };
       

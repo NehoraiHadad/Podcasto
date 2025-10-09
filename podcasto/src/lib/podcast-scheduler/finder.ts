@@ -27,7 +27,8 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
         p.id as podcast_id,
         p.title as podcast_title,
         pc.episode_frequency as frequency,
-        COALESCE(le.latest_episode_date, '2000-01-01') as latest_episode_date
+        COALESCE(le.latest_episode_date, '2000-01-01') as latest_episode_date,
+        COALESCE(pc.telegram_hours, 24) as telegram_hours
       FROM podcasts p
       LEFT JOIN podcast_configs pc ON p.id = pc.podcast_id
       LEFT JOIN latest_episodes le ON p.id = le.podcast_id
@@ -64,12 +65,13 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
     const podcastData = rows.map((row: PodcastSqlRow) => {
       // Convert date strings to Date objects consistently
       const latestEpisodeDate = new Date(row.latest_episode_date);
-      
+
       return {
         id: row.podcast_id,
         title: row.podcast_title,
         frequency: parseInt(String(row.frequency), 10),
-        latestEpisodeDate
+        latestEpisodeDate,
+        telegramHours: row.telegram_hours
       };
     });
     

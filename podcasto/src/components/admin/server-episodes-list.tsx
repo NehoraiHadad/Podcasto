@@ -20,6 +20,8 @@ interface Episode {
   status: string | null;
   metadata: string | null;
   cover_image: string | null;
+  content_start_date: string | null;
+  content_end_date: string | null;
   podcast_title?: string; // Added to display podcast title
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -54,6 +56,8 @@ export async function ServerEpisodesList() {
         status: episode.status,
         metadata: episode.metadata,
         cover_image: episode.cover_image,
+        content_start_date: episode.content_start_date ? episode.content_start_date.toISOString() : null,
+        content_end_date: episode.content_end_date ? episode.content_end_date.toISOString() : null,
         podcast_title: episode.podcast_id ? podcastsMap.get(episode.podcast_id) || 'Unknown Podcast' : 'Unknown Podcast',
       }))
     );
