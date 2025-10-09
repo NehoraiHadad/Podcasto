@@ -9,6 +9,7 @@ import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 import { formatDuration } from '@/lib/utils';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 
 export async function generateMetadata({ 
   params 
@@ -71,12 +72,18 @@ export default async function EpisodeDetailPage({
                 <div className="flex-1">
                   <p className="text-sm text-gray-500 mb-1">{podcast.title}</p>
                   <CardTitle className="text-2xl mb-3">{episode.title}</CardTitle>
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <EpisodeDateBadge
                       publishedAt={episode.published_at}
                       createdAt={episode.created_at}
                       variant="detailed"
                       showRelativeTime={true}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <ContentDateRangeBadge
+                      startDate={episode.content_start_date ? episode.content_start_date.toISOString() : null}
+                      endDate={episode.content_end_date ? episode.content_end_date.toISOString() : null}
                     />
                   </div>
                   <div className="text-sm text-gray-500 mb-4">

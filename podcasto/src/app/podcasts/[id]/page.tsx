@@ -11,6 +11,7 @@ import { PodcastImage } from '@/components/podcasts/podcast-image';
 import { CompactAudioPlayer } from '@/components/podcasts/compact-audio-player';
 import { Clock, Share2 } from 'lucide-react';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
+import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { sortEpisodesByDate } from '@/lib/utils/episode-utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -89,12 +90,16 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          <div className="mb-3">
+                          <div className="flex flex-wrap gap-2 mb-3">
                             <EpisodeDateBadge
                               publishedAt={episode.published_at}
                               createdAt={episode.created_at}
                               variant="default"
                               showRelativeTime={true}
+                            />
+                            <ContentDateRangeBadge
+                              startDate={episode.content_start_date ? episode.content_start_date.toISOString() : null}
+                              endDate={episode.content_end_date ? episode.content_end_date.toISOString() : null}
                             />
                           </div>
                           {episode.description && (
