@@ -4,15 +4,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
-import { 
-  Play, 
-  Pause, 
-  Volume2, 
+import {
+  Play,
+  Pause,
+  Volume2,
   VolumeX,
-  SkipBack, 
+  SkipBack,
   SkipForward,
   Settings,
-  AlertCircle
+  AlertCircle,
+  BarChart3,
+  Waves
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -21,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AudioVisualizer } from './audio-visualizer';
+import { AudioVisualizer, VisualizerVariant } from './audio-visualizer';
 
 interface AudioPlayerClientProps {
   episodeId: string;
@@ -116,9 +118,20 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(audioUrlError || null);
-  
+
+  // Visualizer variant state
+  const [visualizerVariant, setVisualizerVariant] = useState<VisualizerVariant>(() => {
+    const saved = localStorage.getItem('visualizer_variant');
+    return (saved as VisualizerVariant) || 'bars';
+  });
+
   // Reference to audio element
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Save visualizer variant preference
+  useEffect(() => {
+    localStorage.setItem('visualizer_variant', visualizerVariant);
+  }, [visualizerVariant]);
   
   // Initialize audio element
   useEffect(() => {
@@ -313,6 +326,7 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
           height={80}
           waveColor="#9ca3af"
           progressColor="#3b82f6"
+          variant={visualizerVariant}
         />
         <div className="flex justify-between text-sm text-gray-500 mt-1">
           <span>{formatDuration(currentTime)}</span>
@@ -337,6 +351,20 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
             onToggleMute={toggleMute}
           />
           
+          {/* Visualizer style toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setVisualizerVariant(prev => prev === 'bars' ? 'wave' : 'bars')}
+            title={`Switch to ${visualizerVariant === 'bars' ? 'wave' : 'bars'} style`}
+          >
+            {visualizerVariant === 'bars' ? (
+              <Waves className="h-5 w-5" />
+            ) : (
+              <BarChart3 className="h-5 w-5" />
+            )}
+          </Button>
+
           {/* Playback speed menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -346,9 +374,9 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {PLAYBACK_SPEEDS.map(speed => (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   key={speed}
-                  onClick={() => changePlaybackRate(speed)} 
+                  onClick={() => changePlaybackRate(speed)}
                   className={playbackRate === speed ? "bg-accent" : ""}
                 >
                   {speed}x{speed === 1 ? " (Normal)" : ""}

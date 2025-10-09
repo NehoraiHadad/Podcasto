@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, BarChart3, Waves } from 'lucide-react';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
-import { AudioVisualizer } from './audio-visualizer';
+import { AudioVisualizer, VisualizerVariant } from './audio-visualizer';
 
 interface CompactAudioPlayerProps {
   episodeId: string;
@@ -21,8 +21,19 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Visualizer variant state
+  const [visualizerVariant, setVisualizerVariant] = useState<VisualizerVariant>(() => {
+    const saved = localStorage.getItem('visualizer_variant');
+    return (saved as VisualizerVariant) || 'bars';
+  });
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Save visualizer variant preference
+  useEffect(() => {
+    localStorage.setItem('visualizer_variant', visualizerVariant);
+  }, [visualizerVariant]);
   
   // Fetch audio URL
   useEffect(() => {
@@ -172,6 +183,7 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
           height={40}
           waveColor="#9ca3af"
           progressColor="#3b82f6"
+          variant={visualizerVariant}
         />
         <div className="flex justify-between text-[10px] text-gray-500 mt-1">
           <span>{formatDuration(currentTime)}</span>
@@ -179,15 +191,32 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
         </div>
       </div>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
-        onClick={toggleMute}
-        disabled={isLoading}
-      >
-        {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
+          onClick={() => setVisualizerVariant(prev => prev === 'bars' ? 'wave' : 'bars')}
+          disabled={isLoading}
+          title={`Switch to ${visualizerVariant === 'bars' ? 'wave' : 'bars'} style`}
+        >
+          {visualizerVariant === 'bars' ? (
+            <Waves className="h-3 w-3" />
+          ) : (
+            <BarChart3 className="h-3 w-3" />
+          )}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
+          onClick={toggleMute}
+          disabled={isLoading}
+        >
+          {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+        </Button>
+      </div>
     </div>
   );
 } 

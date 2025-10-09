@@ -3,12 +3,15 @@
 import { useRef, useEffect, useState } from 'react';
 import { useWavesurfer } from '@wavesurfer/react';
 
+export type VisualizerVariant = 'bars' | 'wave';
+
 interface AudioVisualizerProps {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   isPlaying: boolean;
   height?: number;
   waveColor?: string;
   progressColor?: string;
+  variant?: VisualizerVariant;
 }
 
 export function AudioVisualizer({
@@ -16,19 +19,31 @@ export function AudioVisualizer({
   isPlaying,
   height = 64,
   waveColor = '#9ca3af',
-  progressColor = '#3b82f6'
+  progressColor = '#3b82f6',
+  variant = 'bars'
 }: AudioVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Configure style based on variant
+  const styleConfig = variant === 'wave'
+    ? {
+        barWidth: 0,      // Solid wave
+        barGap: 0,
+        barRadius: 0,
+      }
+    : {
+        barWidth: 2,      // Bars style
+        barGap: 1,
+        barRadius: 2,
+      };
 
   const { wavesurfer, isReady } = useWavesurfer({
     container: containerRef,
     waveColor,
     progressColor,
     height,
-    barWidth: 2,
-    barGap: 1,
-    barRadius: 2,
+    ...styleConfig,
     normalize: true,
     interact: true,
     cursorWidth: 1,
