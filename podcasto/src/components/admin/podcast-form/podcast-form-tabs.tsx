@@ -175,8 +175,8 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
         <TabsContent value={TAB_VALUES.SCRIPT_PROMPT}>
           <div className="px-0 md:px-0">
             <ScriptPromptEditor
-              value={form.watch('scriptGenerationPrompt' as keyof T) as unknown as string}
-              onChange={(value) => form.setValue('scriptGenerationPrompt' as keyof T, value as unknown as T[keyof T])}
+              value={String((form.getValues() as any).scriptGenerationPrompt || '')}
+              onChange={(value) => form.setValue('scriptGenerationPrompt' as any, value)}
             />
           </div>
         </TabsContent>
