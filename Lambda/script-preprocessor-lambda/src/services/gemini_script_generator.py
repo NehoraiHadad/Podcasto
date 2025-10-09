@@ -72,13 +72,8 @@ class GeminiScriptGenerator:
             clean_content_prioritized['messages'] = prioritized_messages
             logger.info(f"[GEMINI_SCRIPT] Using top {len(prioritized_messages)}/{len(clean_content['messages'])} priority messages")
 
-        # Extract custom prompt template if available
-        custom_prompt_template = config.get("script_generation_prompt")
-        if custom_prompt_template:
-            logger.info("[GEMINI_SCRIPT] Custom prompt template found in config")
-
         # Generate script using AI with clean content (including TTS markup)
-        script = self._generate_ai_script(clean_content_prioritized, config, episode_id, content_metrics, custom_prompt_template)
+        script = self._generate_ai_script(clean_content_prioritized, config, episode_id, content_metrics)
 
         logger.info(f"[GEMINI_SCRIPT] Generated script: {len(script)} characters")
         logger.info(f"[GEMINI_SCRIPT] Actual ratio: {len(script) / content_metrics['total_chars']:.2f} (target: {content_metrics['target_ratio']:.2f})")
@@ -86,13 +81,9 @@ class GeminiScriptGenerator:
         return script, content_metrics
 
     def _generate_ai_script(
-        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None, content_metrics: Dict[str, Any] = None, custom_prompt_template: str = None
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None, content_metrics: Dict[str, Any] = None
     ) -> str:
-        """Generate natural conversation script using Gemini AI with clean content
-
-        Args:
-            custom_prompt_template: Optional custom prompt template from podcast config
-        """
+        """Generate natural conversation script using Gemini AI with clean content"""
 
         # Get configuration
         speaker1_role = podcast_config.get("speaker1_role", "Host")
@@ -125,8 +116,7 @@ class GeminiScriptGenerator:
             episode_id=episode_id,
             content_analysis=podcast_config.get('content_analysis'),
             content_type=content_type,
-            content_metrics=content_metrics,
-            custom_prompt_template=custom_prompt_template
+            content_metrics=content_metrics
         )
 
         try:
@@ -166,37 +156,10 @@ class GeminiScriptGenerator:
         episode_id: str = None,
         content_analysis: str = None,
         content_type: str = 'general',
-        content_metrics: Dict[str, Any] = None,
-        custom_prompt_template: str = None
+        content_metrics: Dict[str, Any] = None
     ) -> str:
-        """Build the conversation script generation prompt with clean content and adaptive instructions
-
-        Args:
-            custom_prompt_template: Optional custom prompt template from podcast config.
-                                   If provided, it will be used instead of the default prompt.
-                                   Variables like {language}, {speaker1_role}, etc. will be replaced.
-        """
-
-        # If custom prompt template is provided, use it instead of the default
-        if custom_prompt_template:
-            logger.info("[GEMINI_SCRIPT] Using custom prompt template from podcast config")
-            return self._apply_custom_template(
-                custom_prompt_template,
-                clean_content,
-                language,
-                speaker1_role,
-                speaker2_role,
-                speaker1_gender,
-                speaker2_gender,
-                podcast_name,
-                target_duration,
-                additional_instructions,
-                episode_id,
-                content_analysis,
-                content_type,
-                content_metrics
-            )
-
+        """Build the conversation script generation prompt with clean content and adaptive instructions"""
+        
         # Get voice information for this episode
         voice_info = ""
         if episode_id:
@@ -495,135 +458,5 @@ Begin the conversation now:
                 formatted_parts.append(f"{i}.{date_part}{channel_part} {text}")
         
         return '\n'.join(formatted_parts)
-
-    def _apply_custom_template(
-        self,
-        template: str,
-        clean_content: Dict[str, Any],
-        language: str,
-        speaker1_role: str,
-        speaker2_role: str,
-        speaker1_gender: str,
-        speaker2_gender: str,
-        podcast_name: str,
-        target_duration: int,
-        additional_instructions: str,
-        episode_id: str = None,
-        content_analysis: str = None,
-        content_type: str = 'general',
-        content_metrics: Dict[str, Any] = None
-    ) -> str:
-        """
-        Apply variable substitution to custom prompt template
-
-        Available variables:
-        - {language}: Language of the podcast
-        - {speaker1_role}: Role of first speaker
-        - {speaker2_role}: Role of second speaker
-        - {speaker1_gender}: Gender of first speaker
-        - {speaker2_gender}: Gender of second speaker
-        - {podcast_name}: Name of the podcast
-        - {target_duration}: Target duration in minutes
-        - {additional_instructions}: Additional instructions from config
-        - {content}: Formatted content to discuss
-        - {voice_info}: Voice configuration information
-        - {content_info}: Content analysis information
-        - {adaptive_instructions}: Adaptive instructions based on content metrics
-        """
-
-        # Build all the dynamic components
-        voice_info = ""
-        if episode_id:
-            from services.voice_config import VoiceConfigManager
-            voice_manager = VoiceConfigManager()
-
-            speaker1_voice, speaker2_voice = voice_manager.get_distinct_voices_for_speakers(
-                language=language,
-                speaker1_gender=speaker1_gender,
-                speaker2_gender=speaker2_gender,
-                speaker1_role=speaker1_role,
-                speaker2_role=speaker2_role,
-                episode_id=episode_id,
-                randomize_speaker2=True
-            )
-
-            voice_info = f"""VOICE SELECTION FOR THIS EPISODE:
-- {speaker1_role} will use voice: {speaker1_voice} (consistent across episodes)
-- {speaker2_role} will use voice: {speaker2_voice} (unique to this episode)
-
-This voice information should influence the conversation style and personality traits."""
-
-        content_info = ""
-        if content_analysis:
-            content_info = f"""CONTENT ANALYSIS:
-- Content Type: {content_analysis.get('content_type', 'general')}
-- Specific Speaker Role: {content_analysis.get('specific_role', speaker2_role)}
-- Role Description: {content_analysis.get('role_description', 'Expert in the field')}
-- Analysis Confidence: {content_analysis.get('confidence', 0.5):.2f}
-- Selection Reasoning: {content_analysis.get('reasoning', 'Dynamic role selection based on content')}
-
-The {content_analysis.get('specific_role', speaker2_role)} should demonstrate expertise as: {content_analysis.get('role_description', 'an expert in the field')}.
-Focus on insights and analysis that match this specific expertise area within {content_analysis.get('content_type', 'general')} topics."""
-
-        # Get actual speaker2 role from content analysis if available
-        actual_speaker2_role = content_analysis.get('specific_role', speaker2_role) if content_analysis else speaker2_role
-
-        # Extract channel information
-        channels = clean_content.get('summary', {}).get('channels', [])
-        channel_context = f" (discussing content from {', '.join(channels)})" if channels else ""
-
-        # Build adaptive instructions based on content metrics
-        adaptive_instructions = ""
-        if content_metrics:
-            strategy = content_metrics['strategy']
-            target_ratio = content_metrics['target_ratio']
-            message_count = content_metrics['message_count']
-            total_chars = content_metrics['total_chars']
-            target_chars = content_metrics['target_script_chars']
-
-            if strategy == 'compression':
-                adaptive_instructions = f"""⚠️ CONTENT VOLUME ALERT: HIGH ({message_count} messages, {total_chars} characters)
-
-**🎯 COMPRESSION STRATEGY REQUIRED:**
-1. Coverage Mode: SELECTIVE - Focus ONLY on main topics (5-7 key topics maximum)
-2. Detail Level: SUMMARY - Each topic: 2-3 exchanges maximum
-3. Target Script Length: ~{target_chars} characters (compression required - script should be SHORTER than source)"""
-            elif strategy == 'expansion':
-                adaptive_instructions = f"""📝 CONTENT VOLUME: LOW ({message_count} messages, {total_chars} characters)
-
-**🎯 EXPANSION STRATEGY - STAY GROUNDED:**
-1. Coverage Mode: COMPREHENSIVE - Cover ALL topics from the source material
-2. Detail Level: DETAILED - Each topic: 3-5 exchanges
-3. Target Script Length: ~{target_chars} characters (moderate expansion allowed)"""
-            else:  # balanced
-                adaptive_instructions = f"""⚖️ CONTENT VOLUME: BALANCED ({message_count} messages, {total_chars} characters)
-
-**🎯 BALANCED STRATEGY:**
-1. Coverage Mode: NATURAL - Cover all main topics naturally
-2. Detail Level: MODERATE - Each topic: 3-4 exchanges
-3. Target Script Length: ~{target_chars} characters"""
-
-        # Format content
-        formatted_content = self._format_clean_content_for_prompt(clean_content)
-
-        # Apply variable substitution
-        replaced_template = template.format(
-            language=language,
-            speaker1_role=speaker1_role,
-            speaker2_role=actual_speaker2_role,
-            speaker1_gender=speaker1_gender,
-            speaker2_gender=speaker2_gender,
-            podcast_name=podcast_name,
-            target_duration=target_duration,
-            additional_instructions=additional_instructions or "",
-            content=formatted_content,
-            voice_info=voice_info,
-            content_info=content_info,
-            adaptive_instructions=adaptive_instructions,
-            channel_context=channel_context,
-            content_type=content_type
-        )
-
-        return replaced_template
 
 

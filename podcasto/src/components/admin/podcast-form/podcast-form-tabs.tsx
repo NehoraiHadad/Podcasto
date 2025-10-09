@@ -12,7 +12,6 @@ import { AdvancedSettingsFields } from './advanced-settings-fields';
 import { StyleRolesFields, FormValues as StyleRolesFormValues } from './style-roles-fields';
 import { BasicInfoFields } from './basic-info-fields';
 import { MobileTabNavigation } from './mobile-tab-navigation';
-import { ScriptPromptEditor } from './script-prompt-editor';
 
 // Combine required form values from child components if needed
 // For now, just ensure compatibility with StyleRolesFields
@@ -30,8 +29,7 @@ const TAB_VALUES = {
   CONTENT_SOURCE: "content-source",
   BASIC_SETTINGS: "basic-settings",
   ADVANCED_SETTINGS: "advanced-settings",
-  STYLE_ROLES: "style-roles",
-  SCRIPT_PROMPT: "script-prompt"
+  STYLE_ROLES: "style-roles"
 };
 
 export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, incompleteTabsMessage }: PodcastFormTabsProps<T>) {
@@ -42,8 +40,7 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
     { value: TAB_VALUES.CONTENT_SOURCE, label: "Content" },
     { value: TAB_VALUES.BASIC_SETTINGS, label: "Settings" },
     { value: TAB_VALUES.ADVANCED_SETTINGS, label: "Advanced" },
-    { value: TAB_VALUES.STYLE_ROLES, label: "Style" },
-    { value: TAB_VALUES.SCRIPT_PROMPT, label: "Script Prompt" }
+    { value: TAB_VALUES.STYLE_ROLES, label: "Style" }
   ], []);
   
   // Find current tab index to enable next/previous navigation
@@ -83,7 +80,7 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Desktop view tabs - hidden on mobile */}
         <div className="hidden md:block w-full overflow-x-auto pb-2">
-          <TabsList className="grid w-full grid-cols-6 gap-1">
+          <TabsList className="grid w-full grid-cols-5 gap-1">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
@@ -170,15 +167,6 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
               <StyleRolesFields form={form as unknown as UseFormReturn<StyleRolesFormValues>} />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value={TAB_VALUES.SCRIPT_PROMPT}>
-          <div className="px-0 md:px-0">
-            <ScriptPromptEditor
-              value={String((form.getValues() as any).scriptGenerationPrompt || '')}
-              onChange={(value) => (form.setValue as any)('scriptGenerationPrompt', value)}
-            />
-          </div>
         </TabsContent>
       </Tabs>
       
