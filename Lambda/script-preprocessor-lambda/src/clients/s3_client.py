@@ -171,10 +171,10 @@ class S3Client:
     def check_file_exists(self, s3_key: str) -> bool:
         """
         Check if a file exists in S3
-
+        
         Args:
             s3_key: The S3 key to check
-
+            
         Returns:
             True if file exists, False otherwise
         """
@@ -188,45 +188,26 @@ class S3Client:
                 logger.error(f"[S3] Error checking file existence: {e}")
                 return False
 
-    def read_from_url(self, s3_url: str) -> str:
-        """
-        Read text content from an S3 URL
+    def download_text(self, s3_url: str) -> Optional[str]:
+        """Download a text file from S3 and return its content as string
 
         Args:
-            s3_url: Full S3 URL (e.g., https://bucket.s3.amazonaws.com/key or s3://bucket/key)
-
+            s3_url: Public HTTPS S3 URL (e.g., https://bucket.s3.amazonaws.com/key)
         Returns:
-            The content as a string
+            The file content decoded as UTF-8 or None if failed.
         """
-        import re
-
-        # Parse S3 URL to extract bucket and key
-        # Supports both formats: https://bucket.s3.amazonaws.com/key and s3://bucket/key
-        if s3_url.startswith('s3://'):
-            # Format: s3://bucket/key
-            match = re.match(r's3://([^/]+)/(.+)', s3_url)
-            if not match:
-                raise ValueError(f"Invalid S3 URL format: {s3_url}")
-            bucket, key = match.groups()
-        elif 'amazonaws.com' in s3_url:
-            # Format: https://bucket.s3.amazonaws.com/key or https://s3.amazonaws.com/bucket/key
-            if '.s3.' in s3_url or '.s3-' in s3_url:
-                # bucket.s3.region.amazonaws.com/key
-                match = re.match(r'https?://([^.]+)\.s3[^/]*/(.+)', s3_url)
-            else:
-                # s3.amazonaws.com/bucket/key
-                match = re.match(r'https?://s3[^/]*/([^/]+)/(.+)', s3_url)
-            if not match:
-                raise ValueError(f"Invalid S3 URL format: {s3_url}")
-            bucket, key = match.groups()
-        else:
-            raise ValueError(f"Unsupported URL format: {s3_url}")
-
         try:
-            response = self.s3_client.get_object(Bucket=bucket, Key=key)
-            content = response['Body'].read().decode('utf-8')
-            logger.info(f"[S3] Successfully read {len(content)} characters from {s3_url}")
-            return content
+            # Extract bucket and key from URL
+            prefix = f"https://{self.bucket_name}.s3.amazonaws.com/"
+            if not s3_url.startswith(prefix):
+                logger.error(f"[S3] Unsupported URL – bucket mismatch: {s3_url}")
+                return None
+            s3_key = s3_url[len(prefix) :]
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=s3_key)
+            return response["Body"].read().decode("utf-8")
         except ClientError as e:
-            logger.error(f"[S3] Error reading from S3 URL {s3_url}: {e}")
-            raise 
+            logger.error(f"[S3] Failed to download text from S3: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"[S3] Unexpected error downloading text: {e}")
+            return None 

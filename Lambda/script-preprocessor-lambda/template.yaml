@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Script Preprocessor Lambda for Podcasto - Generates clean content and scripts
+
+Globals:
+  Function:
+    Timeout: 600  # 10 minutes for script generation
+    MemorySize: 2048
+    Runtime: python3.12
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+  ExistingSQSQueueUrl:
+    Type: String
+    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue'
+    Description: 'URL of the SQS queue for incoming messages'
+
+  AudioGenerationQueueUrl:
+    Type: String
+    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/audio-generation-queue'
+    Description: 'URL of the SQS queue for audio generation'
+
+  SecretsManagerName:
+    Type: String
+    Default: 'podcasto-secrets-dev'
+    Description: 'Name of the Secrets Manager secret containing API keys'
+
+Resources:
+  ScriptPreprocessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'podcasto-script-preprocessor-${Environment}'
+      Description: 'Generate clean content, analysis and script before TTS stage'
+      CodeUri: src/
+      Handler: handlers.script_preprocessor_handler.lambda_handler
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          SQS_QUEUE_URL: !Ref ExistingSQSQueueUrl
+          AUDIO_GENERATION_QUEUE_URL: !Ref AudioGenerationQueueUrl
+          S3_BUCKET_NAME: 'podcasto-podcasts'
+          SUPABASE_URL: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_URL}}'
+          SUPABASE_SERVICE_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_SERVICE_KEY}}'
+          GEMINI_API_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:GEMINI_API_KEY}}'
+          LOG_LEVEL: 'INFO'
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:audio-generation-queue'
+            - Effect: Allow
+              Action:
+                - s3:ListBucket
+                - s3:GetObject
+                - s3:PutObject
+              Resource:
+                - 'arn:aws:s3:::podcasto-podcasts'
+                - 'arn:aws:s3:::podcasto-podcasts/*'
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${SecretsManagerName}*'
+
+Outputs:
+  ScriptPreprocessorFunctionArn:
+    Description: 'ARN of the Script Preprocessor Lambda Function'
+    Value: !GetAtt ScriptPreprocessorFunction.Arn
+    Export:
+      Name: !Sub '${Environment}-ScriptPreprocessorFunctionArn'

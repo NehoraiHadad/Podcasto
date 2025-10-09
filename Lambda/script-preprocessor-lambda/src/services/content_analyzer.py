@@ -168,33 +168,33 @@ class ContentAnalyzer:
         """Analyze content using Gemini with structured output for hybrid approach"""
         
         # Define the response schema for hybrid approach using new library format
-        response_schema = types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "content_type": types.Schema(
-                    type=types.Type.STRING,
-                    enum=[ct.value for ct in ContentType],
-                    description="The primary category of the content"
-                ),
-                "specific_role": types.Schema(
-                    type=types.Type.STRING, 
-                    description="Specific, creative role name that fits the content (e.g., 'AI Research Scientist', 'Crypto Market Analyst')"
-                ),
-                "role_description": types.Schema(
-                    type=types.Type.STRING,
-                    description="Brief description of the role's expertise and background"
-                ),
-                "confidence": types.Schema(
-                    type=types.Type.NUMBER,
-                    description="Confidence score for the classification (0.0-1.0)"
-                ),
-                "reasoning": types.Schema(
-                    type=types.Type.STRING,
-                    description="Brief explanation of why this content type and role were selected"
-                )
+        response_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "content_type": {
+                    "type": "STRING",
+                    "enum": [ct.value for ct in ContentType],
+                    "description": "The primary category of the content"
+                },
+                "specific_role": {
+                    "type": "STRING", 
+                    "description": "Specific, creative role name that fits the content (e.g., 'AI Research Scientist', 'Crypto Market Analyst')"
+                },
+                "role_description": {
+                    "type": "STRING",
+                    "description": "Brief description of the role's expertise and background"
+                },
+                "confidence": {
+                    "type": "NUMBER",
+                    "description": "Confidence score for the classification (0.0-1.0)"
+                },
+                "reasoning": {
+                    "type": "STRING",
+                    "description": "Brief explanation of why this content type and role were selected"
+                }
             },
-            required=["content_type", "specific_role", "role_description", "confidence", "reasoning"]
-        )
+            "required": ["content_type", "specific_role", "role_description", "confidence", "reasoning"]
+        }
         
         # Build the analysis prompt
         prompt = self._build_analysis_prompt(content_text)
@@ -202,11 +202,13 @@ class ContentAnalyzer:
         try:
             # Generate content with structured output using new client-based API
             response = self.client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-2.0-flash-001',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=response_schema
+                    response_schema=response_schema,
+                    temperature=0.3,
+                    max_output_tokens=1024
                 )
             )
             

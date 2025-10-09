@@ -4,11 +4,12 @@ Uses Google Gemini to generate natural conversation scripts from Telegram data
 """
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 from google import genai
 from google.genai import types
 from utils.logging import get_logger
+from services.content_metrics import ContentMetrics, ContentPrioritizer
 
 logger = get_logger(__name__)
 
@@ -23,11 +24,11 @@ class GeminiScriptGenerator:
             raise ValueError("GEMINI_API_KEY environment variable is required")
 
         self.client = genai.Client(api_key=api_key)
-        self.model = "gemini-2.5-flash"
+        self.model = "gemini-2.0-flash-001"
 
     def generate_script(
         self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None
-    ) -> str:
+    ) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a natural conversation script from clean content
 
@@ -37,7 +38,7 @@ class GeminiScriptGenerator:
             episode_id: Episode ID for voice-aware script generation
 
         Returns:
-            Generated conversation script as string
+            Tuple of (generated conversation script as string, content metrics dict)
         """
         logger.info("[GEMINI_SCRIPT] Starting conversation script generation")
 
@@ -50,21 +51,37 @@ class GeminiScriptGenerator:
         # Log clean content info
         message_count = len(clean_content.get('messages', []))
         summary = clean_content.get('summary', {})
-        
+
         logger.info(f"[GEMINI_SCRIPT] Generating script in language: {language}")
         logger.info(f"[GEMINI_SCRIPT] Speaker genders: Speaker1={speaker1_gender}, Speaker2={speaker2_gender}")
         logger.info(f"[GEMINI_SCRIPT] Clean content: {message_count} messages, date range: {summary.get('date_range', 'unknown')}")
         if episode_id:
             logger.info(f"[GEMINI_SCRIPT] Episode ID for voice-aware generation: {episode_id}")
 
-        # Generate script using AI with clean content (including TTS markup)
-        script = self._generate_ai_script(clean_content, config, episode_id)
+        # Analyze content metrics to determine strategy
+        content_metrics = ContentMetrics.analyze_content(clean_content)
+        logger.info(f"[GEMINI_SCRIPT] Content metrics: {content_metrics['strategy']} strategy (ratio={content_metrics['target_ratio']:.2f})")
 
-        logger.info(f"[GEMINI_SCRIPT] Generated script with embedded TTS markup: {len(script)} characters")
-        return script
+        # Prioritize messages if high content
+        clean_content_prioritized = clean_content.copy()
+        if content_metrics['category'] == 'high':
+            logger.info(f"[GEMINI_SCRIPT] High content detected - prioritizing messages")
+            prioritized_messages = ContentPrioritizer.select_priority_messages(
+                clean_content['messages'], target_percentage=0.70
+            )
+            clean_content_prioritized['messages'] = prioritized_messages
+            logger.info(f"[GEMINI_SCRIPT] Using top {len(prioritized_messages)}/{len(clean_content['messages'])} priority messages")
+
+        # Generate script using AI with clean content (including TTS markup)
+        script = self._generate_ai_script(clean_content_prioritized, config, episode_id, content_metrics)
+
+        logger.info(f"[GEMINI_SCRIPT] Generated script: {len(script)} characters")
+        logger.info(f"[GEMINI_SCRIPT] Actual ratio: {len(script) / content_metrics['total_chars']:.2f} (target: {content_metrics['target_ratio']:.2f})")
+
+        return script, content_metrics
 
     def _generate_ai_script(
-        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None, content_metrics: Dict[str, Any] = None
     ) -> str:
         """Generate natural conversation script using Gemini AI with clean content"""
 
@@ -84,7 +101,7 @@ class GeminiScriptGenerator:
             content_analysis = podcast_config['content_analysis']
             if hasattr(content_analysis, 'content_type'):
                 content_type = content_analysis.content_type.value
-        
+
         # Build the prompt with clean content
         prompt = self._build_script_prompt(
             clean_content=clean_content,
@@ -98,40 +115,26 @@ class GeminiScriptGenerator:
             additional_instructions=additional_instructions,
             episode_id=episode_id,
             content_analysis=podcast_config.get('content_analysis'),
-            content_type=content_type
+            content_type=content_type,
+            content_metrics=content_metrics
         )
 
         try:
             # Generate script using Gemini
-            contents = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=prompt)],
-                ),
-            ]
-
-            config = types.GenerateContentConfig(
-                temperature=0.8,
-                max_output_tokens=32768,  # Increased to allow longer scripts
-            )
-
             response = self.client.models.generate_content(
                 model=self.model,
-                contents=contents,
-                config=config,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.8,
+                    max_output_tokens=32768,  # Increased to allow longer scripts
+                )
             )
 
-            if (
-                response.candidates
-                and response.candidates[0].content
-                and response.candidates[0].content.parts
-            ):
-                script_text = response.candidates[0].content.parts[0].text
-                if script_text:
-                    cleaned_script = script_text.strip()
-                    # Validate script doesn't contain placeholders
-                    self._validate_script_content(cleaned_script)
-                    return cleaned_script
+            if response.text:
+                cleaned_script = response.text.strip()
+                # Validate script doesn't contain placeholders
+                self._validate_script_content(cleaned_script)
+                return cleaned_script
 
             raise Exception("No script generated by Gemini")
 
@@ -152,9 +155,10 @@ class GeminiScriptGenerator:
         additional_instructions: str,
         episode_id: str = None,
         content_analysis: str = None,
-        content_type: str = 'general'
+        content_type: str = 'general',
+        content_metrics: Dict[str, Any] = None
     ) -> str:
-        """Build the conversation script generation prompt with clean content"""
+        """Build the conversation script generation prompt with clean content and adaptive instructions"""
         
         # Get voice information for this episode
         voice_info = ""
@@ -202,6 +206,96 @@ Focus on insights and analysis that match this specific expertise area within {c
         channels = clean_content.get('summary', {}).get('channels', [])
         channel_context = f" (discussing content from {', '.join(channels)})" if channels else ""
 
+        # Add adaptive instructions based on content metrics
+        adaptive_instructions = ""
+        if content_metrics:
+            strategy = content_metrics['strategy']
+            target_ratio = content_metrics['target_ratio']
+            message_count = content_metrics['message_count']
+            total_chars = content_metrics['total_chars']
+            target_chars = content_metrics['target_script_chars']
+
+            if strategy == 'compression':
+                adaptive_instructions = f"""
+⚠️ CONTENT VOLUME ALERT: HIGH ({message_count} messages, {total_chars} characters)
+
+**🎯 COMPRESSION STRATEGY REQUIRED:**
+1. Coverage Mode: SELECTIVE
+   - Focus ONLY on main topics (5-7 key topics maximum)
+   - Prioritize: Breaking news, important statements, key facts
+   - SKIP: Minor details, redundant information, less significant events
+
+2. Detail Level: SUMMARY
+   - Each topic: 2-3 exchanges maximum
+   - Use concise summaries, avoid lengthy explanations
+   - Stay focused and direct
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (compression required - script should be SHORTER than source)
+   - This means: Be MORE CONCISE than the source material
+
+4. Quality Guidelines:
+   ✅ DO: Cover 5-7 main topics thoroughly but briefly
+   ✅ DO: Maintain natural conversation flow
+   ❌ DON'T: Try to mention all {message_count} messages
+   ❌ DON'T: Add filler or unnecessary elaboration
+   ❌ DON'T: Invent details not present in the source
+"""
+            elif strategy == 'expansion':
+                adaptive_instructions = f"""
+📝 CONTENT VOLUME: LOW ({message_count} messages, {total_chars} characters)
+
+**🎯 EXPANSION STRATEGY - STAY GROUNDED:**
+1. Coverage Mode: COMPREHENSIVE
+   - Cover ALL topics from the source material
+   - Don't leave out any of the {message_count} messages
+
+2. Detail Level: DETAILED
+   - Each topic: 3-5 exchanges
+   - Add relevant context from general knowledge
+   - Discuss implications and significance
+   - Include examples when appropriate
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (moderate expansion allowed)
+   - This means: You can elaborate somewhat on the source material
+
+4. CRITICAL - Avoid "Filler" Content:
+   ✅ DO: Add relevant context that enhances understanding
+   ✅ DO: Discuss implications of the facts presented
+   ✅ DO: Maintain engaging conversation flow
+   ❌ DON'T: Invent facts not in source material
+   ❌ DON'T: Add unrelated tangents
+   ❌ DON'T: Use generic filler phrases just to reach length
+   ❌ DON'T: Fabricate quotes or statistics
+
+**REMEMBER: All facts and core information MUST come from the source material. Only context and implications can be added from general knowledge.**
+"""
+            else:  # balanced
+                adaptive_instructions = f"""
+⚖️ CONTENT VOLUME: BALANCED ({message_count} messages, {total_chars} characters)
+
+**🎯 BALANCED STRATEGY:**
+1. Coverage Mode: NATURAL
+   - Cover all main topics naturally
+   - Include important details
+
+2. Detail Level: MODERATE
+   - Each topic: 3-4 exchanges
+   - Natural level of detail
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (aim for natural 1:1 ratio)
+
+4. Guidelines:
+   ✅ DO: Maintain natural conversation flow
+   ✅ DO: Stay faithful to source material
+   ❌ DON'T: Over-compress or over-expand
+"""
+
         # Build comprehensive prompt
         conversation_prompt = f"""
 You are an expert podcast script writer specializing in natural, engaging conversations between two speakers.
@@ -209,6 +303,8 @@ You are an expert podcast script writer specializing in natural, engaging conver
 {content_info}
 
 {voice_info}
+
+{adaptive_instructions}
 
 CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 
@@ -223,57 +319,29 @@ CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 - **{actual_speaker2_role}**: {speaker2_gender} voice, expert knowledge in the topic
 
 **TTS MARKUP INSTRUCTIONS:**
-IMPORTANT: Include natural speech markup in your script to enhance TTS delivery.
-Use BOTH bracket tags AND SSML tags as shown below (you can mix them naturally):
+IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
 
-1. **Pauses - TWO OPTIONS:**
-   A) Bracket tags (simple):
-      - [short pause] - Brief pause (~250ms)
-      - [medium pause] - Standard pause (~500ms)
-      - [long pause] - Dramatic pause (~1000ms+)
+1. **Natural Pauses**: Use [pause], [pause short], [pause long] for:
+   - Between speakers: "{speaker1_role}: [pause short] ..."
+   - Before questions: "...really? [pause] What do you think?"
+   - After important points: "That's crucial. [pause] Let me explain..."
 
-   B) SSML tags (precise timing):
-      - <break time="300ms"/> - Custom short pause
-      - <break time="500ms"/> - Custom medium pause
-      - <break time="1s"/> - Custom long pause
+2. **Emphasis**: Use [emphasis]...[/emphasis] for:
+   - Key terms and names
+   - Important statistics or facts
+   - Breaking news or urgent information
 
-   Examples:
-   - Between speakers: "{speaker1_role}: [short pause] Opening statement..."
-   - Before questions: "...really? <break time='500ms'/> What do you think?"
-   - After important points: "That's crucial. [long pause] Let me explain..."
+3. **Content-Specific Markup**:
+   {f"- **News Content**: Add [emphasis] around breaking news, important names" if content_type == 'news' else ""}
+   {f"- **Technology Content**: Add [pause short] around technical terms like AI, API, blockchain" if content_type == 'technology' else ""}
+   {f"- **Entertainment Content**: Use more dynamic [emphasis] for exciting moments" if content_type == 'entertainment' else ""}
+   {f"- **Finance Content**: Add [pause] before important numbers and statistics" if content_type == 'finance' else ""}
 
-2. **Emphasis - Use SSML:**
-   - <emphasis level="moderate">key term</emphasis> - Standard emphasis
-   - <emphasis level="strong">critical info</emphasis> - Strong emphasis
-
-   Examples:
-   - Key terms: "We're discussing <emphasis level='moderate'>artificial intelligence</emphasis>"
-   - Critical info: "<emphasis level='strong'>Breaking news</emphasis>: Major development today"
-
-3. **Emotions and Sounds - Bracket Tags:**
-   - [laughing] - Natural laughter
-   - [sigh] - Sigh sound
-   - [uhm] - Hesitation sound
-   - [whispering] - Whisper effect
-   - [shouting] - Louder volume
-   - [sarcasm] - Sarcastic tone
-
-   Examples:
-   - "[laughing] That's hilarious!"
-   - "[sigh] Well, let me think about this..."
-   - "[whispering] This is confidential information"
-
-4. **Content-Specific Markup:**
-   {f"- **News**: Use <emphasis level='strong'> for breaking news, [short pause] before names" if content_type == 'news' else ""}
-   {f"- **Technology**: Use <break time='300ms'/> before jargon, <emphasis level='moderate'> for technical terms" if content_type == 'technology' else ""}
-   {f"- **Entertainment**: Use [laughing] for humor, <emphasis level='strong'> for exciting moments" if content_type == 'entertainment' else ""}
-   {f"- **Finance**: Use <break time='500ms'/> before numbers, <emphasis level='strong'> for key statistics" if content_type == 'finance' else ""}
-
-5. **Conversation Flow Examples:**
-   - "אז, [short pause] בואו נדבר על <emphasis level='moderate'>הנושא הזה</emphasis>"
-   - "כן, <break time='300ms'/> זה נכון"
-   - "Well, [medium pause] that's interesting"
-   - "[laughing] Amazing! [short pause] Let me explain further..."
+4. **Conversation Flow**: Natural markers like:
+   - "אז, [pause short] בואו נדבר על..."
+   - "כן, [pause] זה נכון"
+   - "Well, [pause] that's interesting"
+   - End sentences with: "...point. [pause short]"
 
 **SCRIPT REQUIREMENTS:**
 1. Write in {language} language
@@ -289,14 +357,10 @@ Use BOTH bracket tags AND SSML tags as shown below (you can mix them naturally):
 {additional_instructions}
 
 **OUTPUT FORMAT:**
-Provide ONLY the conversation script with embedded TTS markup (SSML + bracket tags). No explanations or metadata.
-Use this format (mixing tags naturally):
-
-{speaker1_role}: [short pause] Welcome to <emphasis level='strong'>today's episode</emphasis>! [medium pause] We have fascinating content to discuss.
-
-{actual_speaker2_role}: [laughing] Thanks for having me! <break time='500ms'/> This topic about <emphasis level='moderate'>artificial intelligence</emphasis> is [sigh] quite complex.
-
-{speaker1_role}: <break time='300ms'/> Let's start with the basics. [short pause] [whispering] Between you and me, this is revolutionary.
+Provide ONLY the conversation script with embedded TTS markup. No explanations or metadata.
+Use this format:
+{speaker1_role}: [pause short] Opening statement...
+{actual_speaker2_role}: [pause] Response with [emphasis]key point[/emphasis]...
 
 Begin the conversation now:
 """

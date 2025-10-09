@@ -9,11 +9,7 @@ from datetime import datetime
 
 from clients.supabase_client import SupabaseClient
 from clients.s3_client import S3Client
-from clients.telegram_data_client import TelegramDataClient
 from services.google_podcast_generator import GooglePodcastGenerator
-from services.gemini_script_generator import GeminiScriptGenerator
-from services.content_analyzer import ContentAnalyzer
-from services.telegram_content_extractor import TelegramContentExtractor
 from services.hebrew_niqqud import HebrewNiqqudProcessor
 from utils.logging import get_logger
 
@@ -37,16 +33,11 @@ class AudioGenerationHandler:
         """Initialize handler with required clients and services"""
         self.supabase_client = SupabaseClient()
         self.s3_client = S3Client()
-        self.telegram_client = TelegramDataClient()
-        self.content_extractor = TelegramContentExtractor()
-        
+
         # Get API keys from environment
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY environment variable is required")
-        
-        # Initialize content analyzer
-        self.content_analyzer = ContentAnalyzer(self.gemini_api_key)
         
     def process_event(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         """Process SQS event containing episode generation requests"""
@@ -141,37 +132,21 @@ class AudioGenerationHandler:
                 raise ValueError(f"Episode {episode_id} not found")
             
             podcast_config = self._get_podcast_config(podcast_config_id, podcast_id, request_id)
-            
-            # Get Telegram data from S3
-            telegram_data = self.telegram_client.get_telegram_data(
-                podcast_id, episode_id, message.get('s3_path')
-            )
-            
-            if not telegram_data:
-                raise ValueError("No Telegram data found for episode")
-            
-            # Extract clean content for AI processing
-            logger.info(f"[AUDIO_GEN] [{request_id}] Extracting clean content from Telegram data")
-            clean_content = self.content_extractor.extract_clean_content(telegram_data)
-            logger.info(f"[AUDIO_GEN] [{request_id}] Clean content extracted: {clean_content['summary']['total_messages']} messages")
-            
-            # Analyze content and get dynamic speaker role
-            logger.info(f"[AUDIO_GEN] [{request_id}] Starting content analysis for episode {episode_id}")
-            content_analysis = self.content_analyzer.analyze_content(telegram_data)
-            logger.info(f"[AUDIO_GEN] [{request_id}] Content analysis complete:")
-            logger.info(f"[AUDIO_GEN] [{request_id}] - Type: {content_analysis.content_type.value}")
-            logger.info(f"[AUDIO_GEN] [{request_id}] - Role: {content_analysis.specific_role}")
-            logger.info(f"[AUDIO_GEN] [{request_id}] - Confidence: {content_analysis.confidence:.2f}")
-            logger.info(f"[AUDIO_GEN] [{request_id}] - Gender assignment: {self.content_analyzer.get_gender_for_category(content_analysis.content_type)}")
-            
-            # Update podcast config with dynamic role
-            logger.info(f"[AUDIO_GEN] [{request_id}] Applying dynamic role to podcast config")
-            dynamic_config = self._apply_dynamic_role(podcast_config, content_analysis)
-            logger.info(f"[AUDIO_GEN] [{request_id}] Dynamic config created with speaker2_role: {dynamic_config.get('speaker2_role')}")
-            
-            # Generate script with clean content instead of raw data
-            script = self._generate_script(clean_content, dynamic_config, request_id, episode_id)
-            
+
+            # Get script_url and dynamic_config from message (required, preprocessed by script-preprocessor)
+            script_url = message.get('script_url')
+            if not script_url:
+                raise ValueError("script_url is required - must be preprocessed by script-preprocessor Lambda")
+
+            dynamic_config = message.get('dynamic_config')
+            if not dynamic_config:
+                raise ValueError("dynamic_config is required - must be preprocessed by script-preprocessor Lambda")
+
+            logger.info(f"[AUDIO_GEN] [{request_id}] Reading pre-generated script from S3: {script_url}")
+            script = self.s3_client.read_from_url(script_url)
+            logger.info(f"[AUDIO_GEN] [{request_id}] Script loaded from S3: {len(script)} characters")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Using dynamic_config with speaker2_role: {dynamic_config.get('speaker2_role')}")
+
             # Process Hebrew script with niqqud if needed
             processed_script, niqqud_script = self._process_hebrew_script(
                 script, dynamic_config.get('language', 'en'), request_id
@@ -181,7 +156,7 @@ class AudioGenerationHandler:
             # If we got a niqqud script, it means the text was pre-processed
             is_pre_processed = niqqud_script is not None
             audio_data, duration = self._generate_audio(
-                processed_script, dynamic_config, request_id, episode_id, is_pre_processed, content_analysis
+                processed_script, dynamic_config, request_id, episode_id, is_pre_processed
             )
             
             # Upload both original and niqqud scripts as transcripts to S3
@@ -198,16 +173,19 @@ class AudioGenerationHandler:
             self._update_episode_with_audio(episode_id, audio_url, audio_data, duration, episode)
             
             logger.info(f"[AUDIO_GEN] [{request_id}] Successfully generated audio for episode {episode_id}")
-            
+
+            # Get content analysis from dynamic_config (preprocessed by script-preprocessor)
+            content_info = dynamic_config.get('content_analysis', {})
+
             return {
                 'status': 'success',
                 'episode_id': episode_id,
                 'audio_url': audio_url,
                 'duration': duration,
-                'content_type': content_analysis.content_type.value,
-                'speaker2_role': content_analysis.specific_role,
-                'role_description': content_analysis.role_description,
-                'confidence': content_analysis.confidence,
+                'content_type': content_info.get('content_type', 'general'),
+                'speaker2_role': dynamic_config.get('speaker2_role', 'Speaker 2'),
+                'role_description': content_info.get('role_description', ''),
+                'confidence': content_info.get('confidence', 0.0),
                 'has_niqqud': niqqud_script is not None
             }
             
@@ -240,16 +218,7 @@ class AudioGenerationHandler:
         
         return podcast_config
 
-    def _generate_script(self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], request_id: str, episode_id: str = None) -> str:
-        """Generate conversation script using Gemini with clean content"""
-        script_generator = GeminiScriptGenerator()
-        configured_language = podcast_config.get('language', 'en')
-        logger.info(f"[AUDIO_GEN] [{request_id}] Using podcast language: {configured_language}")
-        logger.info(f"[AUDIO_GEN] [{request_id}] Sending clean content with {len(clean_content.get('messages', []))} messages")
-        
-        return script_generator.generate_script(clean_content, podcast_config, episode_id)
-
-    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False, content_analysis: Any = None) -> Tuple[bytes, float]:
+    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False) -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with gender-aware voices"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
         
@@ -264,12 +233,11 @@ class AudioGenerationHandler:
         logger.info(f"[AUDIO_GEN] Language: {language}")
         logger.info(f"[AUDIO_GEN] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
         logger.info(f"[AUDIO_GEN] Using pre-processed script: {is_pre_processed}")
-        
-        # Get content type from analysis for enhanced TTS
-        content_type = 'general'
-        if content_analysis and hasattr(content_analysis, 'content_type'):
-            content_type = content_analysis.content_type.value
-        
+
+        # Get content type from dynamic config (preprocessed by script-preprocessor)
+        content_info = podcast_config.get('content_analysis', {})
+        content_type = content_info.get('content_type', 'general')
+
         try:
             audio_data, duration = generator.generate_podcast_audio(
                 script_content=script,
@@ -438,28 +406,4 @@ class AudioGenerationHandler:
         except Exception as e:
             logger.error(f"[AUDIO_GEN] Failed to update episode status: {str(e)}")
 
-    def _apply_dynamic_role(self, podcast_config: Dict[str, Any], content_analysis) -> Dict[str, Any]:
-        """Apply dynamic speaker role to podcast configuration using hybrid approach"""
-        dynamic_config = podcast_config.copy()
-        
-        # Update speaker2_role with AI-generated specific role
-        dynamic_config['speaker2_role'] = content_analysis.specific_role
-        
-        # Get gender for voice selection based on content category
-        speaker2_gender = self.content_analyzer.get_gender_for_category(content_analysis.content_type)
-        dynamic_config['speaker2_gender'] = speaker2_gender
-        
-        # Add content analysis metadata
-        dynamic_config['content_analysis'] = {
-            'content_type': content_analysis.content_type.value,
-            'specific_role': content_analysis.specific_role,
-            'role_description': content_analysis.role_description,
-            'confidence': content_analysis.confidence,
-            'reasoning': content_analysis.reasoning,
-            'assigned_gender': speaker2_gender
-        }
-        
-        logger.info(f"[AUDIO_GEN] Updated speaker2_role: {dynamic_config['speaker2_role']}")
-        logger.info(f"[AUDIO_GEN] Assigned gender: {speaker2_gender} for category: {content_analysis.content_type.value}")
-        
-        return dynamic_config 
+ 
