@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/lib/utils';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
+import { AudioVisualizer } from './audio-visualizer';
 
 interface CompactAudioPlayerProps {
   episodeId: string;
@@ -125,7 +125,7 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
   
   const togglePlayPause = () => {
     if (!audioRef.current) return;
-    
+
     if (isPlaying) {
       audioRef.current.pause();
     } else {
@@ -133,16 +133,10 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
         setError('Could not play audio');
       });
     }
-    
+
     setIsPlaying(!isPlaying);
   };
-  
-  const handleSeek = (value: number[]) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
-    setCurrentTime(value[0]);
-  };
-  
+
   const toggleMute = () => {
     setIsMuted(!isMuted);
   };
@@ -154,10 +148,10 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
   return (
     <div className="flex items-center gap-2 w-full">
       <div className="flex-shrink-0">
-        <Button 
-          variant="default" 
-          size="sm" 
-          className="h-8 w-8 sm:h-7 sm:w-7 rounded-full p-0 touch-manipulation" 
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 w-8 sm:h-7 sm:w-7 rounded-full p-0 touch-manipulation"
           onClick={togglePlayPause}
           disabled={isLoading}
         >
@@ -170,27 +164,25 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
           )}
         </Button>
       </div>
-      
+
       <div className="flex-1 min-w-0">
-        <Slider
-          min={0}
-          max={duration || 100}
-          step={0.1}
-          value={[currentTime]}
-          onValueChange={handleSeek}
-          disabled={isLoading || !duration}
-          className="h-2 touch-manipulation"
+        <AudioVisualizer
+          audioRef={audioRef}
+          isPlaying={isPlaying}
+          height={40}
+          waveColor="#9ca3af"
+          progressColor="#3b82f6"
         />
         <div className="flex justify-between text-[10px] text-gray-500 mt-1">
           <span>{formatDuration(currentTime)}</span>
           <span>{duration > 0 ? formatDuration(duration) : '--:--'}</span>
         </div>
       </div>
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation" 
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
         onClick={toggleMute}
         disabled={isLoading}
       >

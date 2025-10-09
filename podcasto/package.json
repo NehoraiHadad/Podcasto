@@ -36,6 +36,7 @@
     "@supabase/supabase-js": "^2.58.0",
     "@types/mime": "^3.0.4",
     "@vercel/functions": "^2.1.0",
+    "@wavesurfer/react": "^1.0.11",
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",

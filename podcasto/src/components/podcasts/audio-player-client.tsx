@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AudioVisualizer } from './audio-visualizer';
 
 interface AudioPlayerClientProps {
   episodeId: string;
@@ -230,7 +231,7 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
   // Helper functions
   const togglePlayPause = () => {
     if (!audioRef.current) return;
-    
+
     if (isPlaying) {
       audioRef.current.pause();
     } else {
@@ -238,16 +239,10 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
         setError('Could not play audio. Please try again later.');
       });
     }
-    
+
     setIsPlaying(!isPlaying);
   };
-  
-  const handleSeek = (value: number[]) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
-    setCurrentTime(value[0]);
-  };
-  
+
   const handleVolumeChange = (value: number[]) => {
     if (!audioRef.current) return;
     const newVolume = value[0];
@@ -310,15 +305,14 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
   // Render player
   return (
     <div className="w-full rounded-lg border border-gray-200 p-4">
-      {/* Progress slider */}
+      {/* Audio Visualizer */}
       <div className="mb-4">
-        <Slider
-          min={0}
-          max={duration || 100}
-          step={0.1}
-          value={[currentTime]}
-          onValueChange={handleSeek}
-          className="w-full"
+        <AudioVisualizer
+          audioRef={audioRef}
+          isPlaying={isPlaying}
+          height={80}
+          waveColor="#9ca3af"
+          progressColor="#3b82f6"
         />
         <div className="flex justify-between text-sm text-gray-500 mt-1">
           <span>{formatDuration(currentTime)}</span>
