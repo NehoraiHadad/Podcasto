@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
-import { Play, Pause, Volume2, VolumeX, BarChart3, Waves, FlipVertical2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, BarChart3, Waves } from 'lucide-react';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
 import { AudioVisualizer, VisualizerVariant } from './audio-visualizer';
 
@@ -196,18 +196,14 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
           variant="ghost"
           size="sm"
           className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
-          onClick={() => setVisualizerVariant(prev =>
-            prev === 'bars' ? 'wave' : prev === 'wave' ? 'mirror' : 'bars'
-          )}
+          onClick={() => setVisualizerVariant(prev => prev === 'bars' ? 'wave' : 'bars')}
           disabled={isLoading}
-          title={`Current: ${visualizerVariant}`}
+          title={`Switch to ${visualizerVariant === 'bars' ? 'wave' : 'bars'} style`}
         >
           {visualizerVariant === 'bars' ? (
-            <BarChart3 className="h-3 w-3" />
-          ) : visualizerVariant === 'wave' ? (
             <Waves className="h-3 w-3" />
           ) : (
-            <FlipVertical2 className="h-3 w-3" />
+            <BarChart3 className="h-3 w-3" />
           )}
         </Button>
 

@@ -14,8 +14,7 @@ import {
   Settings,
   AlertCircle,
   BarChart3,
-  Waves,
-  FlipVertical2
+  Waves
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -356,17 +355,13 @@ export function AudioPlayerClient({ episodeId, audioUrl, _title, audioUrlError }
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setVisualizerVariant(prev =>
-              prev === 'bars' ? 'wave' : prev === 'wave' ? 'mirror' : 'bars'
-            )}
-            title={`Current: ${visualizerVariant}. Click to cycle styles.`}
+            onClick={() => setVisualizerVariant(prev => prev === 'bars' ? 'wave' : 'bars')}
+            title={`Switch to ${visualizerVariant === 'bars' ? 'wave' : 'bars'} style`}
           >
             {visualizerVariant === 'bars' ? (
-              <BarChart3 className="h-5 w-5" />
-            ) : visualizerVariant === 'wave' ? (
               <Waves className="h-5 w-5" />
             ) : (
-              <FlipVertical2 className="h-5 w-5" />
+              <BarChart3 className="h-5 w-5" />
             )}
           </Button>
 
