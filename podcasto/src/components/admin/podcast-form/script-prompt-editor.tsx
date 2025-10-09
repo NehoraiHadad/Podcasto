@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PromptVariablesReference } from './prompt-variables-reference';
+import { DEFAULT_SCRIPT_PROMPT } from '@/lib/constants/default-script-prompt';
 
 interface ScriptPromptEditorProps {
   value?: string;
@@ -31,8 +32,15 @@ interface ScriptPromptEditorProps {
  * Allows admins to customize the prompt template used for generating episode scripts
  */
 export function ScriptPromptEditor({ value = '', onChange, disabled = false }: ScriptPromptEditorProps) {
-  const [localValue, setLocalValue] = useState(value);
+  // Show default prompt if no custom value is provided
+  const displayValue = value || DEFAULT_SCRIPT_PROMPT;
+  const [localValue, setLocalValue] = useState(displayValue);
   const [showVariables, setShowVariables] = useState(false);
+
+  // Sync localValue with displayValue when value prop changes
+  useEffect(() => {
+    setLocalValue(displayValue);
+  }, [displayValue]);
 
   const handleChange = (newValue: string) => {
     setLocalValue(newValue);
@@ -40,10 +48,12 @@ export function ScriptPromptEditor({ value = '', onChange, disabled = false }: S
   };
 
   const handleReset = () => {
-    handleChange('');
+    setLocalValue(DEFAULT_SCRIPT_PROMPT);
+    onChange('');
   };
 
-  const isEmpty = !localValue || localValue.trim() === '';
+  // Check if we're using the default prompt (empty or matches default)
+  const isUsingDefault = !value || value.trim() === '';
 
   return (
     <div className="space-y-4">
@@ -51,17 +61,17 @@ export function ScriptPromptEditor({ value = '', onChange, disabled = false }: S
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Custom Script Generation Prompt
+            Script Generation Prompt
           </CardTitle>
           <CardDescription>
-            Define a custom prompt template for generating podcast scripts. Leave empty to use the default system prompt.
+            Customize the prompt template used for generating podcast scripts. The default prompt is displayed below and can be modified to fit your needs.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isEmpty && (
+          {isUsingDefault && (
             <Alert>
               <AlertDescription>
-                <strong>Currently using default prompt.</strong> Add a custom prompt below to override the default behavior.
+                <strong>Currently using default prompt.</strong> The default prompt is displayed below. You can modify it to create a custom version.
               </AlertDescription>
             </Alert>
           )}
@@ -80,7 +90,7 @@ export function ScriptPromptEditor({ value = '', onChange, disabled = false }: S
                 >
                   {showVariables ? 'Hide' : 'Show'} Variables
                 </Button>
-                {!isEmpty && (
+                {!isUsingDefault && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -97,7 +107,7 @@ export function ScriptPromptEditor({ value = '', onChange, disabled = false }: S
                       <AlertDialogHeader>
                         <AlertDialogTitle>Reset to Default Prompt?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will clear your custom prompt and revert to using the default system prompt for script generation. This action cannot be undone.
+                          This will discard your custom prompt and revert to the default system prompt for script generation. The default prompt will be displayed in the editor.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -116,11 +126,15 @@ export function ScriptPromptEditor({ value = '', onChange, disabled = false }: S
               value={localValue}
               onChange={(e) => handleChange(e.target.value)}
               disabled={disabled}
-              placeholder="Enter your custom prompt template here. Use variables like {language}, {speaker1_role}, {content}, etc."
+              placeholder="The default prompt template will be displayed here..."
               className="min-h-[300px] font-mono text-sm"
             />
             <p className="text-sm text-muted-foreground">
-              Use curly braces to insert dynamic variables. Example: <code className="bg-muted px-1 py-0.5 rounded">{"You are creating a {language} podcast..."}</code>
+              {isUsingDefault ? (
+                <>The default prompt template is shown above. You can edit it to create a custom version. To save the default as-is, simply save the form without changes.</>
+              ) : (
+                <>Use curly braces to insert dynamic variables. Example: <code className="bg-muted px-1 py-0.5 rounded">{"You are creating a {language} podcast..."}</code></>
+              )}
             </p>
           </div>
 
