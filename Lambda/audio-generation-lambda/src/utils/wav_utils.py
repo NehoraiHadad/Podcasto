@@ -143,24 +143,24 @@ def calculate_wav_duration(wav_data: bytes) -> int:
 def concatenate_wav_files(audio_chunks: List[bytes]) -> Tuple[bytes, int]:
     """
     Concatenate multiple WAV audio files
-    
+
     Args:
         audio_chunks: List of WAV audio data chunks
-        
+
     Returns:
         Tuple of (concatenated_audio, total_duration)
     """
     if not audio_chunks:
         return b'', 0
-    
+
     if len(audio_chunks) == 1:
         duration = calculate_wav_duration(audio_chunks[0])
         return audio_chunks[0], duration
-    
+
     # Extract raw audio data from chunks (skip headers)
     raw_audio_parts = []
     sample_rate = 24000  # Default
-    
+
     for chunk in audio_chunks:
         if len(chunk) > 44:  # Has WAV header
             # Extract sample rate from first chunk
@@ -173,15 +173,156 @@ def concatenate_wav_files(audio_chunks: List[bytes]) -> Tuple[bytes, int]:
             raw_audio_parts.append(chunk[44:])
         else:
             raw_audio_parts.append(chunk)
-    
+
     # Combine raw audio data
     combined_raw_audio = b"".join(raw_audio_parts)
-    
+
     # Create complete WAV file
     header = create_wav_header(len(combined_raw_audio), sample_rate)
     combined_wav = header + combined_raw_audio
     duration = calculate_wav_duration(combined_wav)
-    
+
     logger.info(f"[WAV_UTILS] Concatenated {len(audio_chunks)} chunks into {len(combined_wav)} bytes, duration: {duration}s")
-    
-    return combined_wav, duration 
+
+    return combined_wav, duration
+
+
+def calculate_rms_db_fast(samples: bytes) -> float:
+    """
+    Calculate RMS (Root Mean Square) and convert to decibels
+    Optimized for Lambda with sampling for large audio windows
+
+    Args:
+        samples: Raw audio samples (16-bit PCM)
+
+    Returns:
+        RMS value in decibels (dB), or -96.0 for silent audio
+    """
+    if not samples or len(samples) < 2:
+        return -96.0  # Very quiet
+
+    # For performance: sample max 1000 values from large windows
+    sample_count = len(samples) // 2  # 16-bit samples = 2 bytes each
+    step = max(1, sample_count // 1000)
+
+    sum_squares = 0
+    count = 0
+
+    # Unpack samples with stride for speed
+    for i in range(0, len(samples) - 1, step * 2):
+        try:
+            sample = struct.unpack('<h', samples[i:i+2])[0]
+            sum_squares += sample * sample
+            count += 1
+        except struct.error:
+            break
+
+    if count == 0:
+        return -96.0
+
+    # Calculate RMS
+    import math
+    rms = math.sqrt(sum_squares / count)
+
+    # Convert to dB (reference: 16-bit max = 32768)
+    if rms < 1:
+        return -96.0
+
+    db = 20 * math.log10(rms / 32768.0)
+    return db
+
+
+def detect_extended_silence(
+    wav_data: bytes,
+    max_silence_duration: float = 5.0,
+    silence_threshold_db: float = -45.0,
+    window_size_ms: int = 100,
+    sample_every_n_windows: int = 5,
+    early_exit: bool = True
+) -> Tuple[bool, float]:
+    """
+    Detect extended silence in WAV audio file
+    Lambda-optimized with sampling and early exit for performance
+
+    Args:
+        wav_data: Complete WAV file data (with header)
+        max_silence_duration: Maximum allowed silence in seconds (default 5.0)
+        silence_threshold_db: dB threshold for silence detection (default -45.0)
+        window_size_ms: Analysis window size in milliseconds (default 100)
+        sample_every_n_windows: Check every Nth window for performance (default 5)
+        early_exit: Stop immediately when extended silence found (default True)
+
+    Returns:
+        Tuple of (has_extended_silence: bool, max_silence_duration_found: float)
+    """
+    # Validate WAV format
+    if len(wav_data) < 44:
+        logger.warning("[WAV_UTILS] WAV data too short for silence detection")
+        return (False, 0.0)
+
+    if wav_data[:4] != b'RIFF' or wav_data[8:12] != b'WAVE':
+        logger.warning("[WAV_UTILS] Invalid WAV format for silence detection")
+        return (False, 0.0)
+
+    try:
+        # Extract WAV parameters from header
+        sample_rate = struct.unpack('<I', wav_data[24:28])[0]
+        data_size = struct.unpack('<I', wav_data[40:44])[0]
+
+        # Calculate window parameters
+        window_samples = int((window_size_ms / 1000) * sample_rate)
+        bytes_per_window = window_samples * 2  # 16-bit = 2 bytes per sample
+        total_windows = data_size // bytes_per_window
+
+        if total_windows == 0:
+            return (False, 0.0)
+
+        # Track silence duration
+        current_silence_duration = 0.0
+        max_silence_found = 0.0
+        windows_checked = 0
+
+        logger.debug(
+            f"[WAV_UTILS] Silence check: {total_windows} windows, "
+            f"sampling every {sample_every_n_windows}"
+        )
+
+        # Analyze windows with sampling for performance
+        for i in range(0, total_windows, sample_every_n_windows):
+            window_offset = 44 + (i * bytes_per_window)
+            window_data = wav_data[window_offset:window_offset + bytes_per_window]
+
+            if len(window_data) < bytes_per_window:
+                break
+
+            # Calculate RMS in dB for this window
+            rms_db = calculate_rms_db_fast(window_data)
+
+            if rms_db <= silence_threshold_db:
+                # Silent window - accumulate duration (account for sampling rate)
+                current_silence_duration += (window_size_ms / 1000) * sample_every_n_windows
+                max_silence_found = max(max_silence_found, current_silence_duration)
+
+                # Early exit optimization: stop as soon as threshold exceeded
+                if early_exit and current_silence_duration > max_silence_duration:
+                    logger.debug(
+                        f"[WAV_UTILS] Extended silence detected: {current_silence_duration:.1f}s "
+                        f"after {windows_checked} windows"
+                    )
+                    return (True, current_silence_duration)
+            else:
+                # Non-silent window - reset counter
+                current_silence_duration = 0.0
+
+            windows_checked += 1
+
+        logger.debug(
+            f"[WAV_UTILS] Silence check complete: max={max_silence_found:.1f}s, "
+            f"checked {windows_checked}/{total_windows} windows"
+        )
+
+        return (False, max_silence_found)
+
+    except (struct.error, ZeroDivisionError, IndexError) as e:
+        logger.error(f"[WAV_UTILS] Error during silence detection: {str(e)}")
+        return (False, 0.0) 

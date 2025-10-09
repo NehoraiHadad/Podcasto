@@ -269,9 +269,9 @@ class GeminiTTSClient:
                 # Import chunk manager for validation
                 from services.audio_chunk_manager import AudioChunkManager
                 chunk_manager = AudioChunkManager(max_chars_per_chunk=1000)
-                
-                # Validate audio data before returning
-                if chunk_manager.validate_audio_chunk(audio_data, duration, chunk_num):
+
+                # Validate audio data before returning (with silence detection enabled)
+                if chunk_manager.validate_audio_chunk(audio_data, duration, chunk_num, check_silence=True):
                     logger.info(f"[TTS_CLIENT] Chunk {chunk_num} completed successfully: {duration}s")
                     return audio_data, duration
                 else:

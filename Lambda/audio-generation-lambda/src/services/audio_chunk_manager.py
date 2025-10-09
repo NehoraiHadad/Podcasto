@@ -74,15 +74,22 @@ class AudioChunkManager:
         
         return chunks
     
-    def validate_audio_chunk(self, audio_data: bytes, duration: int, chunk_num: int) -> bool:
+    def validate_audio_chunk(
+        self,
+        audio_data: bytes,
+        duration: int,
+        chunk_num: int,
+        check_silence: bool = True
+    ) -> bool:
         """
         Validate audio chunk to ensure it's not silent or corrupted
-        
+
         Args:
             audio_data: Raw audio data
             duration: Calculated duration in seconds
             chunk_num: Chunk number for logging
-            
+            check_silence: Whether to check for extended silence (default True)
+
         Returns:
             True if audio chunk is valid, False otherwise
         """
@@ -91,26 +98,52 @@ class AudioChunkManager:
             if len(audio_data) < 1000:  # Less than 1KB is suspicious
                 logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} too small: {len(audio_data)} bytes")
                 return False
-            
+
             # Check duration makes sense
             if duration < 1:  # Less than 1 second is suspicious for our content
                 logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} duration too short: {duration}s")
                 return False
-            
+
             # Check for reasonable duration (not too long either)
             if duration > 300:  # More than 5 minutes for a chunk is suspicious
                 logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} duration too long: {duration}s")
                 return False
-            
+
             # Basic WAV format validation
             if len(audio_data) >= 44:  # Has WAV header
                 if audio_data[:4] != b'RIFF' or audio_data[8:12] != b'WAVE':
                     logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} invalid WAV format")
                     return False
-            
+
+            # Extended silence detection (Lambda-optimized with fast mode)
+            if check_silence and duration > 3:
+                from utils.wav_utils import detect_extended_silence
+
+                has_silence, max_silence = detect_extended_silence(
+                    audio_data,
+                    max_silence_duration=5.0,
+                    silence_threshold_db=-45.0,
+                    window_size_ms=100,
+                    sample_every_n_windows=5,  # Fast mode: check every 5th window
+                    early_exit=True  # Stop immediately if silence found
+                )
+
+                if has_silence:
+                    logger.warning(
+                        f"[CHUNK_MGR] Chunk {chunk_num} REJECTED: "
+                        f"{max_silence:.1f}s of extended silence detected "
+                        f"(threshold: 5.0s, likely Gemini TTS failure)"
+                    )
+                    return False
+
+                logger.debug(
+                    f"[CHUNK_MGR] Chunk {chunk_num} silence check passed "
+                    f"(max silence: {max_silence:.1f}s)"
+                )
+
             logger.debug(f"[CHUNK_MGR] Chunk {chunk_num} validation passed: {len(audio_data)} bytes, {duration}s")
             return True
-            
+
         except Exception as e:
             logger.error(f"[CHUNK_MGR] Error validating chunk {chunk_num}: {str(e)}")
             return False
