@@ -136,9 +136,9 @@ class AudioChunkManager:
                     )
                     return False
 
-                logger.debug(
-                    f"[CHUNK_MGR] Chunk {chunk_num} silence check passed "
-                    f"(max silence: {max_silence:.1f}s)"
+                logger.info(
+                    f"[CHUNK_MGR] Chunk {chunk_num} silence check OK "
+                    f"(max: {max_silence:.1f}s)"
                 )
 
             logger.debug(f"[CHUNK_MGR] Chunk {chunk_num} validation passed: {len(audio_data)} bytes, {duration}s")
