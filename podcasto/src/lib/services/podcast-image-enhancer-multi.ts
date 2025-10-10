@@ -122,8 +122,7 @@ async function generateSingleVariation(
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
-        responseModalities: ['image'],
-        responseMimeType: 'image/jpeg'
+        responseModalities: ['Image'] // Only image output
       }
     });
 

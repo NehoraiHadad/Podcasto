@@ -112,8 +112,7 @@ export class PodcastImageEnhancer {
           topP: 0.95,
           topK: 40,
           maxOutputTokens: 8192,
-          responseModalities: ['image'], // Only image output
-          responseMimeType: 'image/jpeg'
+          responseModalities: ['Image'] // Only image output
         }
       });
 
