@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Edit } from 'lucide-react';
 import { GenerateEpisodeButton } from '@/components/admin/generate-episode-button';
+import { BulkEpisodeGenerator } from '@/components/admin/bulk-episode-generator';
 
 export const metadata = {
   title: 'Podcast Details | Admin Dashboard | Podcasto',
@@ -62,6 +63,11 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
             </Button>
           </Link>
           <GenerateEpisodeButton podcastId={id} isPaused={podcast.is_paused} />
+          <BulkEpisodeGenerator
+            podcastId={id}
+            podcastTitle={podcast.title}
+            isPaused={podcast.is_paused || false}
+          />
         </div>
       </div>
       

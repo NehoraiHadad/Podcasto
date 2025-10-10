@@ -14,13 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -32,20 +25,17 @@ import {
 import { formatDateRange, type BatchConfiguration } from '@/lib/utils/episode-date-calculator';
 
 interface BulkEpisodeGeneratorProps {
-  podcasts: Array<{
-    id: string;
-    title: string;
-    is_paused: boolean;
-  }>;
+  podcastId: string;
+  podcastTitle: string;
+  isPaused: boolean;
 }
 
 type GenerationStep = 'selection' | 'preview' | 'generating' | 'completed';
 
-export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
+export function BulkEpisodeGenerator({ podcastId, podcastTitle, isPaused }: BulkEpisodeGeneratorProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<GenerationStep>('selection');
-  const [selectedPodcastId, setSelectedPodcastId] = useState<string>('');
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null);
   const [previewData, setPreviewData] = useState<{
     totalEpisodes: number;
@@ -60,8 +50,6 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
     totalRequested: number;
   } | null>(null);
 
-  const selectedPodcast = podcasts.find((p) => p.id === selectedPodcastId);
-
   const handleDateRangeSelect = (startDate: Date, endDate: Date) => {
     setDateRange({ startDate, endDate });
     setPreviewData(null); // Clear preview when date changes
@@ -73,14 +61,14 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
   };
 
   const handlePreview = async () => {
-    if (!selectedPodcastId || !dateRange) {
-      toast.error('Please select a podcast and date range');
+    if (!dateRange) {
+      toast.error('Please select a date range');
       return;
     }
 
     try {
       const result = await previewBulkEpisodes(
-        selectedPodcastId,
+        podcastId,
         dateRange.startDate,
         dateRange.endDate
       );
@@ -103,8 +91,8 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
   };
 
   const handleGenerate = async () => {
-    if (!selectedPodcastId || !dateRange) {
-      toast.error('Please select a podcast and date range');
+    if (!dateRange) {
+      toast.error('Please select a date range');
       return;
     }
 
@@ -113,7 +101,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
       setStep('generating');
 
       const result = await generateBulkEpisodes(
-        selectedPodcastId,
+        podcastId,
         dateRange.startDate,
         dateRange.endDate
       );
@@ -145,7 +133,6 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
 
   const handleReset = () => {
     setStep('selection');
-    setSelectedPodcastId('');
     setDateRange(null);
     setPreviewData(null);
     setGenerationResults(null);
@@ -159,7 +146,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
     }, 300);
   };
 
-  const canPreview = selectedPodcastId && dateRange;
+  const canPreview = dateRange !== null;
   const canGenerate = previewData && step === 'preview';
 
   return (
@@ -174,7 +161,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
         <DialogHeader>
           <DialogTitle>Bulk Episode Generator</DialogTitle>
           <DialogDescription>
-            Create multiple episodes for a date range based on podcast frequency settings
+            Create multiple episodes for &quot;{podcastTitle}&quot; based on frequency settings
           </DialogDescription>
         </DialogHeader>
 
@@ -182,28 +169,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
           {/* Step 1: Selection */}
           {(step === 'selection' || step === 'preview') && (
             <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Podcast</label>
-                <Select
-                  value={selectedPodcastId}
-                  onValueChange={setSelectedPodcastId}
-                  disabled={step === 'preview'}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a podcast" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {podcasts.map((podcast) => (
-                      <SelectItem key={podcast.id} value={podcast.id}>
-                        {podcast.title}
-                        {podcast.is_paused && ' (Paused)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedPodcast?.is_paused && (
+              {isPaused && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
