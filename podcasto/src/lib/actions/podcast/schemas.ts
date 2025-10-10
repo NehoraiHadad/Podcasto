@@ -20,6 +20,7 @@ export const podcastCreationSchema = z.object({
   creator: z.string().min(2),
   description: z.string().min(10),
   coverImage: z.string().optional(),
+  imageStyle: z.string().optional(),
   
   // Basic Settings
   podcastName: z.string().min(3),
@@ -55,6 +56,7 @@ export const simplePodcastSchema = z.object({
   title: z.string().min(3),
   description: z.string().nullable(),
   cover_image: z.string().nullable(),
+  image_style: z.string().nullable().optional(),
 });
 
 export type SimplePodcastData = z.infer<typeof simplePodcastSchema>;
@@ -65,6 +67,7 @@ export const podcastUpdateSchema = z.object({
   title: z.string().min(3),
   description: z.string().nullable().optional(),
   cover_image: z.string().nullable().optional(),
+  image_style: z.string().nullable().optional(),
   // Content source fields (optional)
   contentSource: z.enum(['telegram', 'urls']).optional(),
   telegramChannel: z.string().optional(),

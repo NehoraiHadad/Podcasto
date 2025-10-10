@@ -25,11 +25,12 @@ export async function createPodcast(data: PodcastCreationData): Promise<ActionRe
     // Check if user has admin role 
     await requireAdmin();
     
-    // Create the podcast in the database 
+    // Create the podcast in the database
     const podcast = await podcastsApi.createPodcast({
       title: validatedData.title,
       description: validatedData.description,
       cover_image: validatedData.coverImage,
+      image_style: validatedData.imageStyle,
     });
     
     if (!podcast) {
@@ -121,6 +122,7 @@ export async function createSimplePodcast(data: SimplePodcastData): Promise<Acti
       title: validatedData.title,
       description: validatedData.description,
       cover_image: validatedData.cover_image,
+      image_style: validatedData.image_style,
       created_at: new Date(),
       updated_at: new Date(),
     });

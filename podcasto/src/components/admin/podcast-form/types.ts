@@ -6,6 +6,7 @@ export const podcastBaseSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }).max(100, 'Title must be less than 100 characters'),
   description: z.string().optional().nullable(),
   cover_image: z.string().optional().nullable(),
+  image_style: z.string().optional().nullable(), // Style ID for podcast cover (e.g., 'modern-professional')
 });
 
 // Define creation form schema with additional fields
@@ -22,6 +23,7 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
     creator: z.string().min(2, { message: 'Creator name must be at least 2 characters' }),
     description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
     cover_image: z.string().optional(),
+    image_style: z.string().optional(),
     
     // Basic Settings
     podcastName: z.string().min(3, { message: 'Podcast name must be at least 3 characters' }),
@@ -64,6 +66,7 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
     creator: z.string().min(2, { message: 'Creator name must be at least 2 characters' }),
     description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
     cover_image: z.string().optional(),
+    image_style: z.string().optional(),
     
     // Basic Settings
     podcastName: z.string().min(3, { message: 'Podcast name must be at least 3 characters' }),

@@ -21,6 +21,7 @@ export interface PodcastFormTabsProps<T extends CombinedFormValues> {
   form: UseFormReturn<T>;
   mode: PodcastFormMode;
   incompleteTabsMessage?: string;
+  podcastId?: string;
 }
 
 // Define tab values as constants to avoid any typos
@@ -32,8 +33,11 @@ const TAB_VALUES = {
   STYLE_ROLES: "style-roles"
 };
 
-export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, incompleteTabsMessage }: PodcastFormTabsProps<T>) {
+export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, incompleteTabsMessage, podcastId }: PodcastFormTabsProps<T>) {
   const [activeTab, setActiveTab] = useState<string>(TAB_VALUES.BASIC_INFO);
+
+  // Get telegram channel from form data
+  const telegramChannel = form.watch('telegramChannel' as any) as string | undefined;
   
   const tabs = useMemo(() => [
     { value: TAB_VALUES.BASIC_INFO, label: "Basic Info" },
@@ -108,7 +112,11 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
               </CardDescription>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-6 space-y-4">
-              <BasicInfoFields form={form} />
+              <BasicInfoFields
+                form={form}
+                podcastId={podcastId}
+                telegramChannel={telegramChannel}
+              />
             </CardContent>
           </Card>
         </TabsContent>

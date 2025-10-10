@@ -1,0 +1,424 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Sparkles, Check, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import Image from 'next/image';
+import {
+  generatePodcastImageFromTelegram,
+  generatePodcastImageFromFile,
+  generatePodcastImageFromUrl
+} from '@/lib/actions/podcast';
+import { PODCAST_IMAGE_STYLES, VARIATION_OPTIONS } from '@/lib/constants/podcast-image-styles';
+
+interface ImageGenerationFieldProps {
+  podcastId?: string;
+  currentImageUrl?: string | null;
+  telegramChannel?: string | null;
+  podcastTitle?: string;
+  savedImageStyle?: string | null; // The style ID saved in database
+  onImageGenerated?: (imageUrl: string) => void;
+}
+
+type ImageSource = 'telegram' | 'upload' | 'url';
+
+interface GeneratedVariation {
+  url: string;
+  index: number;
+  selected: boolean;
+}
+
+/**
+ * Enhanced component for generating podcast cover images with AI
+ * Features:
+ * - Multiple image sources (Telegram, file upload, URL)
+ * - Style preset selection
+ * - A/B testing with 1-3 variations
+ * - Visual gallery for variation selection
+ */
+export function ImageGenerationField({
+  podcastId,
+  currentImageUrl,
+  telegramChannel,
+  podcastTitle = 'My Podcast',
+  savedImageStyle,
+  onImageGenerated
+}: ImageGenerationFieldProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [imageSource, setImageSource] = useState<ImageSource>('telegram');
+  // Use saved style as default, or fall back to first style
+  const [selectedStyle, setSelectedStyle] = useState(
+    savedImageStyle && PODCAST_IMAGE_STYLES.find(s => s.id === savedImageStyle)
+      ? savedImageStyle
+      : PODCAST_IMAGE_STYLES[0].id
+  );
+  const [variationCount, setVariationCount] = useState(1);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [manualUrl, setManualUrl] = useState('');
+  const [generatedVariations, setGeneratedVariations] = useState<GeneratedVariation[]>([]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be smaller than 5MB');
+        return;
+      }
+      setUploadedFile(file);
+      toast.success('Image uploaded successfully');
+    }
+  };
+
+  /**
+   * Convert File to base64 string
+   */
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleGenerate = async () => {
+    if (!podcastId) {
+      toast.error('Please save the podcast first');
+      return;
+    }
+
+    // Validate based on source
+    if (imageSource === 'telegram' && !telegramChannel) {
+      toast.error('No Telegram channel configured');
+      return;
+    }
+    if (imageSource === 'upload' && !uploadedFile) {
+      toast.error('Please upload an image first');
+      return;
+    }
+    if (imageSource === 'url' && !manualUrl) {
+      toast.error('Please enter an image URL');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedVariations([]);
+
+    try {
+      // Get selected style prompt modifier and ID
+      const styleData = PODCAST_IMAGE_STYLES.find(s => s.id === selectedStyle);
+      const stylePrompt = styleData?.promptModifier || 'modern, professional';
+
+      const generationOptions = {
+        style: stylePrompt,
+        styleId: selectedStyle, // Save the style ID to database
+        variationsCount: variationCount
+      };
+
+      let result;
+
+      // Generate based on source
+      switch (imageSource) {
+        case 'telegram':
+          result = await generatePodcastImageFromTelegram(podcastId, generationOptions);
+          break;
+
+        case 'upload':
+          if (uploadedFile) {
+            const base64Image = await fileToBase64(uploadedFile);
+            result = await generatePodcastImageFromFile(
+              podcastId,
+              base64Image,
+              uploadedFile.type,
+              podcastTitle,
+              generationOptions
+            );
+          }
+          break;
+
+        case 'url':
+          result = await generatePodcastImageFromUrl(
+            podcastId,
+            manualUrl,
+            podcastTitle,
+            generationOptions
+          );
+          break;
+      }
+
+      if (result?.success) {
+        // Handle multiple variations if returned
+        if (result.imageUrls && result.imageUrls.length > 1) {
+          const variations: GeneratedVariation[] = result.imageUrls.map((url, index) => ({
+            url,
+            index,
+            selected: index === 0 // First one selected by default
+          }));
+
+          setGeneratedVariations(variations);
+          onImageGenerated?.(variations[0].url);
+
+          const enhancementNote = result.enhancedWithAI ? ' (AI enhanced)' : '';
+          toast.success(`Generated ${variations.length} variations${enhancementNote}! Select your favorite.`);
+        } else if (result.imageUrl) {
+          // Single variation
+          const variations: GeneratedVariation[] = [{
+            url: result.imageUrl,
+            index: 0,
+            selected: true
+          }];
+
+          setGeneratedVariations(variations);
+          onImageGenerated?.(result.imageUrl);
+
+          const enhancementNote = result.enhancedWithAI ? ' (AI enhanced)' : '';
+          toast.success(`Image generated successfully${enhancementNote}!`);
+        }
+      } else {
+        toast.error(result?.error || 'Failed to generate image');
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Failed to generate image');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSelectVariation = (index: number) => {
+    const variations = generatedVariations.map((v, i) => ({
+      ...v,
+      selected: i === index
+    }));
+    setGeneratedVariations(variations);
+
+    const selectedVariation = variations.find(v => v.selected);
+    if (selectedVariation) {
+      onImageGenerated?.(selectedVariation.url);
+      toast.success('Image selected!');
+    }
+  };
+
+  const selectedStyleData = PODCAST_IMAGE_STYLES.find(s => s.id === selectedStyle);
+  const selectedVariationOption = VARIATION_OPTIONS.find(v => v.count === variationCount);
+
+  // Show simple prompt if podcast not saved yet
+  if (!podcastId) {
+    return (
+      <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center">
+        <ImageIcon className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+        <p className="text-sm text-gray-500">
+          Save the podcast first to enable AI image generation
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Current Image Preview */}
+      {currentImageUrl && (
+        <div className="space-y-2">
+          <Label>Current Cover Image</Label>
+          <div className="relative w-full aspect-square max-w-xs rounded-lg overflow-hidden border">
+            <Image
+              src={currentImageUrl}
+              alt="Current cover"
+              fill
+              className="object-cover"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Image Source Selection */}
+      <div className="space-y-3">
+        <Label>Image Source</Label>
+        <RadioGroup value={imageSource} onValueChange={(value) => setImageSource(value as ImageSource)}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="telegram" id="telegram" disabled={!telegramChannel} />
+            <Label
+              htmlFor="telegram"
+              className={`font-normal cursor-pointer ${!telegramChannel ? 'text-muted-foreground' : ''}`}
+            >
+              Auto from Telegram Channel {telegramChannel ? `(@${telegramChannel})` : '(configure in Content tab)'}
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="upload" id="upload" />
+            <Label htmlFor="upload" className="font-normal cursor-pointer">
+              Upload Image File
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="url" id="url" />
+            <Label htmlFor="url" className="font-normal cursor-pointer">
+              Manual URL
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {/* File Upload (when selected) */}
+      {imageSource === 'upload' && (
+        <div className="space-y-2">
+          <Label htmlFor="file-upload">Upload Image</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="cursor-pointer"
+            />
+            {uploadedFile && (
+              <span className="text-sm text-muted-foreground">
+                {uploadedFile.name}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Maximum file size: 5MB. Supported formats: JPG, PNG, WebP
+          </p>
+        </div>
+      )}
+
+      {/* Manual URL Input (when selected) */}
+      {imageSource === 'url' && (
+        <div className="space-y-2">
+          <Label htmlFor="manual-url">Image URL</Label>
+          <Input
+            id="manual-url"
+            type="url"
+            placeholder="https://example.com/image.jpg"
+            value={manualUrl}
+            onChange={(e) => setManualUrl(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter a publicly accessible image URL
+          </p>
+        </div>
+      )}
+
+      {/* Style Selection */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="style-select">Image Style</Label>
+          {savedImageStyle && selectedStyle === savedImageStyle && (
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+              ✓ Saved style
+            </span>
+          )}
+        </div>
+        <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+          <SelectTrigger id="style-select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PODCAST_IMAGE_STYLES.map((style) => (
+              <SelectItem key={style.id} value={style.id}>
+                {style.label}
+                {savedImageStyle === style.id && ' ✓'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedStyleData && (
+          <p className="text-sm text-muted-foreground">
+            {selectedStyleData.description}
+          </p>
+        )}
+      </div>
+
+      {/* Variation Count Selection */}
+      <div className="space-y-3">
+        <Label>Number of Variations (A/B Testing)</Label>
+        <RadioGroup value={String(variationCount)} onValueChange={(value) => setVariationCount(Number(value))}>
+          {VARIATION_OPTIONS.map((option) => (
+            <div key={option.count} className="flex items-center space-x-2">
+              <RadioGroupItem value={String(option.count)} id={`variation-${option.count}`} />
+              <Label htmlFor={`variation-${option.count}`} className="font-normal cursor-pointer">
+                {option.label}
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+        <p className="text-xs text-muted-foreground">
+          Generate multiple variations to choose the best one for your podcast
+        </p>
+      </div>
+
+      {/* Generate Button */}
+      <Button
+        type="button"
+        onClick={handleGenerate}
+        disabled={isGenerating}
+        className="w-full"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Generating {variationCount > 1 ? `${variationCount} variations` : 'image'}...
+          </>
+        ) : (
+          <>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generate with AI {selectedVariationOption && `(${selectedVariationOption.label})`}
+          </>
+        )}
+      </Button>
+
+      {/* Generated Variations Gallery */}
+      {generatedVariations.length > 0 && (
+        <div className="space-y-3">
+          <Label>Generated Variations - Select One</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {generatedVariations.map((variation) => (
+              <Card
+                key={variation.index}
+                className={`cursor-pointer transition-all ${
+                  variation.selected ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-muted'
+                }`}
+                onClick={() => handleSelectVariation(variation.index)}
+              >
+                <CardContent className="p-0">
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+                    <Image
+                      src={variation.url}
+                      alt={`Variation ${variation.index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    {variation.selected && (
+                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                        <Check className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 text-center text-sm">
+                    Variation {variation.index + 1}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ export const podcasts = pgTable('podcasts', {
   title: text('title').notNull(),
   description: text('description'),
   cover_image: text('cover_image'),
+  image_style: text('image_style'), // Style used for podcast cover (e.g., 'modern-professional')
   is_paused: boolean('is_paused').default(false).notNull(),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow()

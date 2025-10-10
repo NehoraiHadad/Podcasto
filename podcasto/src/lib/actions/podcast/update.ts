@@ -109,12 +109,14 @@ async function updatePodcastMetadata({
   id,
   title,
   description,
-  cover_image
+  cover_image,
+  image_style
 }: PodcastUpdateData) {
   return await podcastsApi.updatePodcast(id, {
     title,
     description,
     cover_image,
+    image_style,
     updated_at: new Date()
   });
 }

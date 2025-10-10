@@ -143,6 +143,7 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
             form={creationForm}
             mode={mode}
             incompleteTabsMessage={incompleteTabsMessage}
+            podcastId={undefined}
           />
           
           <FormActionButtons
@@ -178,6 +179,7 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
           form={editForm}
           mode={mode}
           incompleteTabsMessage={incompleteTabsMessage}
+          podcastId={podcast?.id}
         />
         
         <FormActionButtons

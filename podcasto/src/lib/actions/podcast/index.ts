@@ -6,4 +6,5 @@ export * from './generate';
 export * from './auth';
 export * from './utils';
 export * from './schemas';
-export * from './types'; 
+export * from './types';
+export * from './image-actions'; 
