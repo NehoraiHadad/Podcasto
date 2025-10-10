@@ -4,7 +4,7 @@ Validates generated scripts against source content for quality and accuracy
 """
 import re
 from typing import Dict, Any, List, Set
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -6,7 +6,7 @@ import struct
 import base64
 from typing import Dict, List, Tuple
 
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -3,7 +3,7 @@ Content Metrics Service
 Analyzes content to determine appropriate compression/expansion strategy
 """
 from typing import Dict, Any, List, Tuple
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

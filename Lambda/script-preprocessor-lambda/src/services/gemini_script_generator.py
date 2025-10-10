@@ -8,7 +8,7 @@ from typing import Dict, Any, Tuple
 
 from google import genai
 from google.genai import types
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 from services.content_metrics import ContentMetrics, ContentPrioritizer
 
 logger = get_logger(__name__)
@@ -163,7 +163,7 @@ class GeminiScriptGenerator:
         # Get voice information for this episode
         voice_info = ""
         if episode_id:
-            from services.voice_config import VoiceConfigManager
+            from shared.services.voice_config import VoiceConfigManager
             voice_manager = VoiceConfigManager()
             
             # Get distinct voices that will be used for both speakers

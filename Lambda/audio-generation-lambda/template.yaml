@@ -6,7 +6,7 @@ Globals:
   Function:
     Timeout: 900  # 15 minutes for audio generation processing (SQS visibility timeout is 960s)
     MemorySize: 2048  # Increased memory for audio processing
-    Runtime: python3.12
+    Runtime: python3.10
 
 Parameters:
   Environment:
@@ -42,6 +42,8 @@ Resources:
       Description: 'Audio generation with Google TTS and multi-speaker support'
       CodeUri: src/
       Handler: handlers.audio_generation_handler.lambda_handler
+      Layers:
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:2'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment

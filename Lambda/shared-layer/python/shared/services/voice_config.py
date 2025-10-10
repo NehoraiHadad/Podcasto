@@ -5,7 +5,7 @@ Handles voice mappings and selection for different languages and genders
 from typing import Dict, Any, Tuple
 import hashlib
 import random
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

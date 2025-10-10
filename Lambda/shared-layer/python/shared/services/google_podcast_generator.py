@@ -3,11 +3,11 @@ Google Podcast Generator Service
 Main orchestrator for multi-speaker podcast generation using modular components
 """
 from typing import Tuple, Callable, Optional
-from utils.logging import get_logger
-from utils.wav_utils import concatenate_wav_files
-from services.voice_config import VoiceConfigManager
-from services.audio_chunk_manager import AudioChunkManager
-from services.tts_client import GeminiTTSClient
+from shared.utils.logging import get_logger
+from shared.utils.wav_utils import concatenate_wav_files
+from shared.services.voice_config import VoiceConfigManager
+from shared.services.audio_chunk_manager import AudioChunkManager
+from shared.services.tts_client import GeminiTTSClient
 
 logger = get_logger(__name__)
 
@@ -21,20 +21,22 @@ class GooglePodcastGenerator:
         self.voice_manager = VoiceConfigManager()
         
     def generate_podcast_audio(
-        self, 
+        self,
         script_content: str,
         language: str = "he",
-        speaker1_role: str = "Speaker 1", 
+        speaker1_role: str = "Speaker 1",
         speaker2_role: str = "Speaker 2",
         speaker1_gender: str = "male",
         speaker2_gender: str = "female",
         episode_id: str = None,
         is_pre_processed: bool = False,
-        content_type: str = 'general'
+        content_type: str = 'general',
+        speaker1_voice: str = None,
+        speaker2_voice: str = None
     ) -> Tuple[bytes, int]:
         """
         Generate podcast audio with optimal chunking and parallel processing
-        
+
         Args:
             script_content: Full script text to convert to audio
             language: Target language for generation
@@ -45,7 +47,9 @@ class GooglePodcastGenerator:
             episode_id: Episode ID for voice randomization
             is_pre_processed: Whether the script is already processed with niqqud
             content_type: Type of content for speech optimization (news, technology, etc.)
-            
+            speaker1_voice: Pre-selected voice for speaker 1 (optional, for consistency across lambdas)
+            speaker2_voice: Pre-selected voice for speaker 2 (optional, for consistency across lambdas)
+
         Returns:
             Tuple of (final_audio_bytes, total_duration_seconds)
         """
@@ -54,18 +58,22 @@ class GooglePodcastGenerator:
         logger.info(f"[GOOGLE_TTS] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
         logger.info(f"[GOOGLE_TTS] Content length: {len(script_content)} characters")
         logger.info(f"[GOOGLE_TTS] Pre-processed: {is_pre_processed}")
-        
-        # Select consistent voices once for entire episode to ensure voice consistency across chunks
-        speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
-            language=language,
-            speaker1_gender=speaker1_gender,
-            speaker2_gender=speaker2_gender,
-            speaker1_role=speaker1_role,
-            speaker2_role=speaker2_role,
-            episode_id=episode_id,
-            randomize_speaker2=bool(episode_id)
-        )
-        logger.info(f"[GOOGLE_TTS] Selected consistent voices for episode: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+
+        # Select voices if not already provided (for backward compatibility)
+        if not speaker1_voice or not speaker2_voice:
+            logger.info(f"[GOOGLE_TTS] Voices not provided, selecting now")
+            speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
+                language=language,
+                speaker1_gender=speaker1_gender,
+                speaker2_gender=speaker2_gender,
+                speaker1_role=speaker1_role,
+                speaker2_role=speaker2_role,
+                episode_id=episode_id,
+                randomize_speaker2=bool(episode_id)
+            )
+            logger.info(f"[GOOGLE_TTS] Selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+        else:
+            logger.info(f"[GOOGLE_TTS] Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         
         # Check if content needs to be chunked
         if len(script_content) > self.chunk_manager.max_chars_per_chunk:

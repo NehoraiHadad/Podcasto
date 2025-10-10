@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Podcasto Shared Lambda Layer with common utilities and services
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+Resources:
+  PodastoSharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub 'podcasto-shared-layer-${Environment}'
+      Description: 'Shared utilities, services, and clients for Podcasto Lambda functions'
+      ContentUri: python/
+      CompatibleRuntimes:
+        - python3.10
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: python3.10
+
+Outputs:
+  SharedLayerArn:
+    Description: 'ARN of the Podcasto Shared Lambda Layer (includes version)'
+    Value: !Ref PodastoSharedLayer
+    Export:
+      Name: !Sub '${Environment}-PodastoSharedLayerArn'

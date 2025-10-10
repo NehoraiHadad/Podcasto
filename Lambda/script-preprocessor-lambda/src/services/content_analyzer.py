@@ -13,7 +13,7 @@ from enum import Enum
 from google import genai
 from google.genai import types
 
-from utils.logging import get_logger
+from shared.utils.logging import get_logger
 from services.telegram_content_extractor import TelegramContentExtractor
 
 logger = get_logger(__name__)

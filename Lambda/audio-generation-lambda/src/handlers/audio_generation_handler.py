@@ -7,11 +7,11 @@ import os
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 
-from clients.supabase_client import SupabaseClient
-from clients.s3_client import S3Client
-from services.google_podcast_generator import GooglePodcastGenerator
-from services.hebrew_niqqud import HebrewNiqqudProcessor
-from utils.logging import get_logger
+from shared.clients.supabase_client import SupabaseClient
+from shared.clients.s3_client import S3Client
+from shared.services.google_podcast_generator import GooglePodcastGenerator
+from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
+from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -219,19 +219,24 @@ class AudioGenerationHandler:
         return podcast_config
 
     def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False) -> Tuple[bytes, float]:
-        """Generate audio using Google Gemini TTS with gender-aware voices"""
+        """Generate audio using Google Gemini TTS with pre-selected voices from script-preprocessor"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
-        
+
         generator = GooglePodcastGenerator()
-        
+
         language = podcast_config.get('language', 'en')
         speaker1_role = podcast_config.get('speaker1_role', 'Speaker 1')
         speaker2_role = podcast_config.get('speaker2_role', 'Speaker 2')
         speaker1_gender = podcast_config.get('speaker1_gender', 'male')
         speaker2_gender = podcast_config.get('speaker2_gender', 'female')
-        
+
+        # Extract pre-selected voices from dynamic_config (selected by script-preprocessor for consistency)
+        speaker1_voice = podcast_config.get('speaker1_voice')
+        speaker2_voice = podcast_config.get('speaker2_voice')
+
         logger.info(f"[AUDIO_GEN] Language: {language}")
         logger.info(f"[AUDIO_GEN] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
+        logger.info(f"[AUDIO_GEN] Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         logger.info(f"[AUDIO_GEN] Using pre-processed script: {is_pre_processed}")
 
         # Get content type from dynamic config (preprocessed by script-preprocessor)
@@ -248,12 +253,14 @@ class AudioGenerationHandler:
                 speaker2_gender=speaker2_gender,
                 episode_id=episode_id,
                 is_pre_processed=is_pre_processed,
-                content_type=content_type
+                content_type=content_type,
+                speaker1_voice=speaker1_voice,
+                speaker2_voice=speaker2_voice
             )
         except Exception as e:
             logger.error(f"[AUDIO_GEN] Audio generation failed: {str(e)}")
             raise
-        
+
         return audio_data, duration
 
     def _update_episode_with_audio(self, episode_id: str, audio_url: str, audio_data: bytes, duration: float, episode: Dict[str, Any]):

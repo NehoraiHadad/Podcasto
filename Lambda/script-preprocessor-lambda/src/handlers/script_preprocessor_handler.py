@@ -14,15 +14,18 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List
 
-# Internal shared clients / services (re-use existing code)
-from clients.supabase_client import SupabaseClient  # type: ignore
-from clients.s3_client import S3Client  # type: ignore
-from clients.telegram_data_client import TelegramDataClient  # type: ignore
+# Shared layer imports (common across lambdas)
+from shared.clients.supabase_client import SupabaseClient  # type: ignore
+from shared.clients.s3_client import S3Client  # type: ignore
+from shared.clients.telegram_data_client import TelegramDataClient  # type: ignore
+from shared.services.voice_config import VoiceConfigManager  # type: ignore
+from shared.utils.logging import get_logger  # type: ignore
+
+# Lambda-specific services (unique to script-preprocessor)
 from services.telegram_content_extractor import TelegramContentExtractor  # type: ignore
 from services.content_analyzer import ContentAnalyzer, ContentAnalysisResult  # type: ignore
 from services.gemini_script_generator import GeminiScriptGenerator  # type: ignore
 from services.script_validator import ScriptValidator  # type: ignore
-from utils.logging import get_logger  # type: ignore
 
 logger = get_logger(__name__)
 
@@ -45,6 +48,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
         self.s3_client = S3Client()
         self.telegram_client = TelegramDataClient()
         self.extractor = TelegramContentExtractor()
+        self.voice_manager = VoiceConfigManager()
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         if not gemini_key:
@@ -102,7 +106,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
         }
 
         podcast_config = self._get_podcast_config(msg.get("podcast_config_id"), podcast_id)
-        dynamic_config = self._apply_dynamic_role(podcast_config, analysis)
+        dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id)
 
         script, content_metrics = self.script_generator.generate_script(clean_content, dynamic_config, episode_id)
 
@@ -176,7 +180,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
             raise ValueError("Podcast configuration not found")
         return cfg
 
-    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult) -> Dict[str, Any]:
+    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult, episode_id: str) -> Dict[str, Any]:
         new_cfg = cfg.copy()
         new_cfg["speaker2_role"] = analysis.specific_role
         new_cfg["speaker2_gender"] = self.content_analyzer.get_gender_for_category(analysis.content_type)
@@ -187,4 +191,26 @@ class ScriptPreprocessorHandler:  # noqa: D101
             "confidence": analysis.confidence,
             "reasoning": analysis.reasoning,
         }
+
+        # Select voices once for the entire episode (ensures consistency across chunks)
+        language = cfg.get("language", "he")
+        speaker1_role = cfg.get("speaker1_role", "Speaker 1")
+        speaker2_role = new_cfg["speaker2_role"]
+        speaker1_gender = cfg.get("speaker1_gender", "male")
+        speaker2_gender = new_cfg["speaker2_gender"]
+
+        speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
+            language=language,
+            speaker1_gender=speaker1_gender,
+            speaker2_gender=speaker2_gender,
+            speaker1_role=speaker1_role,
+            speaker2_role=speaker2_role,
+            episode_id=episode_id,
+            randomize_speaker2=True
+        )
+
+        new_cfg["speaker1_voice"] = speaker1_voice
+        new_cfg["speaker2_voice"] = speaker2_voice
+        logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+
         return new_cfg 

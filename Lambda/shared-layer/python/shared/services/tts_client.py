@@ -6,11 +6,11 @@ import os
 from typing import Tuple
 from google import genai
 from google.genai import types
-from utils.logging import get_logger
-from utils.wav_utils import convert_to_wav, calculate_wav_duration
-from services.voice_config import VoiceConfigManager
-from services.hebrew_niqqud import HebrewNiqqudProcessor
-from utils.rate_limiter import parse_retry_delay, TokenBucketRateLimiter
+from shared.utils.logging import get_logger
+from shared.utils.wav_utils import convert_to_wav, calculate_wav_duration
+from shared.services.voice_config import VoiceConfigManager
+from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
+from shared.utils.rate_limiter import parse_retry_delay, TokenBucketRateLimiter
 import time
 
 logger = get_logger(__name__)
@@ -267,7 +267,7 @@ class GeminiTTSClient:
                 )
                 
                 # Import chunk manager for validation
-                from services.audio_chunk_manager import AudioChunkManager
+                from shared.services.audio_chunk_manager import AudioChunkManager
                 chunk_manager = AudioChunkManager(max_chars_per_chunk=1000)
 
                 # Validate audio data before returning (with silence detection enabled)

@@ -6,7 +6,7 @@ Globals:
   Function:
     Timeout: 600  # 10 minutes for script generation
     MemorySize: 2048
-    Runtime: python3.12
+    Runtime: python3.10
 
 Parameters:
   Environment:
@@ -37,6 +37,8 @@ Resources:
       Description: 'Generate clean content, analysis and script before TTS stage'
       CodeUri: src/
       Handler: handlers.script_preprocessor_handler.lambda_handler
+      Layers:
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:2'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
