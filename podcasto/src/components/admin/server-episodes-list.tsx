@@ -5,6 +5,7 @@ import { episodesApi, podcastsApi } from '@/lib/db/api';
 
 import { sortEpisodesByDate } from '@/lib/utils/episode-utils';
 import { EpisodesTableWrapper } from './episodes-table-wrapper';
+import { BulkEpisodeGenerator } from './bulk-episode-generator';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -40,6 +41,13 @@ export async function ServerEpisodesList() {
     // Fetch all podcasts to get their titles
     const allPodcasts = await podcastsApi.getAllPodcasts();
     const podcastsMap = new Map(allPodcasts.map(podcast => [podcast.id, podcast.title]));
+
+    // Prepare podcasts list for bulk generator
+    const podcastsList = allPodcasts.map(p => ({
+      id: p.id,
+      title: p.title,
+      is_paused: p.is_paused || false
+    }));
     
     // Convert episodes to the expected format and sort by date
     const episodes: Episode[] = sortEpisodesByDate(
@@ -64,13 +72,25 @@ export async function ServerEpisodesList() {
     
     if (!episodes || episodes.length === 0) {
       return (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No episodes found.</p>
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <BulkEpisodeGenerator podcasts={podcastsList} />
+          </div>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">No episodes found.</p>
+          </div>
         </div>
       );
     }
-    
-    return <EpisodesTableWrapper episodes={episodes} />;
+
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <BulkEpisodeGenerator podcasts={podcastsList} />
+        </div>
+        <EpisodesTableWrapper episodes={episodes} />
+      </div>
+    );
   } catch (error) {
     console.error('Error in ServerEpisodesList:', error);
     return (

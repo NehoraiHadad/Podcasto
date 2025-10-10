@@ -7,16 +7,19 @@ import { generateEpisodeImage, generateEpisodeImagePreview, saveEpisodeImagePrev
 import { deleteEpisode, updateEpisodeDetails } from './episode/core-actions';
 import { deleteEpisodesBulk } from './episode/bulk-delete';
 import { generateEpisodeTitleAndDescription } from './episode/generation-actions';
+import { generateBulkEpisodes, previewBulkEpisodes } from './episode/bulk-generation-actions';
 
 // Export each async function individually
-export { 
+export {
   getEpisodeAudioUrl,
   regenerateEpisodeAudio,
-  generateEpisodeImage, 
-  generateEpisodeImagePreview, 
+  generateEpisodeImage,
+  generateEpisodeImagePreview,
   saveEpisodeImagePreview,
   deleteEpisode,
   deleteEpisodesBulk,
   updateEpisodeDetails,
-  generateEpisodeTitleAndDescription
+  generateEpisodeTitleAndDescription,
+  generateBulkEpisodes,
+  previewBulkEpisodes
 }; 
