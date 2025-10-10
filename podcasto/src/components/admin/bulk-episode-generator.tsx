@@ -29,7 +29,7 @@ import {
   generateBulkEpisodes,
   previewBulkEpisodes,
 } from '@/lib/actions/episode-actions';
-import { formatDateRange } from '@/lib/utils/episode-date-calculator';
+import { formatDateRange, type BatchConfiguration } from '@/lib/utils/episode-date-calculator';
 
 interface BulkEpisodeGeneratorProps {
   podcasts: Array<{
@@ -51,6 +51,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
     totalEpisodes: number;
     estimatedTime: string;
     episodeDates: Array<{ startDate: Date; endDate: Date; episodeNumber: number }>;
+    batchConfiguration?: BatchConfiguration;
   } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResults, setGenerationResults] = useState<{
@@ -89,6 +90,7 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
           totalEpisodes: result.totalEpisodes,
           estimatedTime: result.estimatedTime || 'Unknown',
           episodeDates: result.episodeDates,
+          batchConfiguration: result.batchConfiguration,
         });
         setStep('preview');
       } else {
@@ -242,17 +244,32 @@ export function BulkEpisodeGenerator({ podcasts }: BulkEpisodeGeneratorProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-4 flex-wrap text-sm">
                   <Badge variant="secondary">
                     Estimated time: {previewData.estimatedTime}
                   </Badge>
+                  {previewData.batchConfiguration && previewData.batchConfiguration.requiresBatching && (
+                    <Badge variant="outline">
+                      {previewData.batchConfiguration.totalBatches} batch{previewData.batchConfiguration.totalBatches > 1 ? 'es' : ''} needed
+                    </Badge>
+                  )}
                 </div>
 
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Episodes will be created with a 6-second delay between each to respect API rate limits.
-                    Please do not close this window during generation.
+                    {previewData.batchConfiguration && previewData.batchConfiguration.requiresBatching ? (
+                      <>
+                        This will be processed in <strong>{previewData.batchConfiguration.totalBatches} batches</strong> of up to{' '}
+                        <strong>{previewData.batchConfiguration.episodesPerBatch} episodes</strong> each, with a short delay between requests to respect API rate limits.
+                        Total time: <strong>{previewData.estimatedTime}</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Episodes will be created in a single batch with a short delay between each to respect API rate limits.
+                      </>
+                    )}
+                    {' '}Please do not close this window during generation.
                   </AlertDescription>
                 </Alert>
 

@@ -6,8 +6,11 @@ import { generatePodcastEpisode } from '../podcast/generate';
 import {
   calculateEpisodeDates,
   estimateGenerationTime,
-  type EpisodeDateRange
+  calculateBatchConfiguration,
+  type EpisodeDateRange,
+  type BatchConfiguration
 } from '@/lib/utils/episode-date-calculator';
+import { getDelayBetweenRequests } from '@/lib/utils/rate-limit-config';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -49,6 +52,7 @@ export async function previewBulkEpisodes(
   episodeDates?: EpisodeDateRange[];
   totalEpisodes?: number;
   estimatedTime?: string;
+  batchConfiguration?: BatchConfiguration;
   error?: string;
 }> {
   // Ensure the user is an admin
@@ -97,11 +101,15 @@ export async function previewBulkEpisodes(
     // Estimate generation time
     const timeEstimate = estimateGenerationTime(calculation.episodeDates.length);
 
+    // Calculate batch configuration
+    const batchConfig = calculateBatchConfiguration(calculation.episodeDates);
+
     return {
       success: true,
       episodeDates: calculation.episodeDates,
       totalEpisodes: calculation.totalEpisodes,
-      estimatedTime: timeEstimate.formattedTime
+      estimatedTime: timeEstimate.formattedTime,
+      batchConfiguration: batchConfig
     };
   } catch (error) {
     console.error('Error in previewBulkEpisodes:', error);
@@ -187,9 +195,11 @@ export async function generateBulkEpisodes(
     const episodeDates = calculation.episodeDates;
     console.log(`[BULK_GEN] Will create ${episodeDates.length} episodes`);
 
-    // Generate episodes with rate limiting
+    // Generate episodes with dynamic rate limiting
     const results: EpisodeGenerationResult[] = [];
-    const DELAY_BETWEEN_REQUESTS = 6000; // 6 seconds in milliseconds
+    const delayBetweenRequests = getDelayBetweenRequests(); // Dynamic delay based on tier
+
+    console.log(`[BULK_GEN] Using delay of ${delayBetweenRequests}ms between requests`);
 
     for (let i = 0; i < episodeDates.length; i++) {
       const dateRange = episodeDates[i];
@@ -237,8 +247,8 @@ export async function generateBulkEpisodes(
 
       // Add delay between requests (except after the last one)
       if (i < episodeDates.length - 1) {
-        console.log(`[BULK_GEN] Waiting ${DELAY_BETWEEN_REQUESTS / 1000} seconds before next episode...`);
-        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+        console.log(`[BULK_GEN] Waiting ${delayBetweenRequests / 1000} seconds before next episode...`);
+        await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
       }
     }
 

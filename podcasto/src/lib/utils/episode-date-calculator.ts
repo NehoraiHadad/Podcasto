@@ -4,10 +4,26 @@
  * Calculates episode creation dates based on podcast frequency settings
  */
 
+import { getMaxBatchSize, getDelayBetweenRequests } from './rate-limit-config';
+
 export interface EpisodeDateRange {
   startDate: Date;
   endDate: Date;
   episodeNumber: number;
+}
+
+export interface EpisodeBatch {
+  batchNumber: number;
+  episodes: EpisodeDateRange[];
+  estimatedTimeSeconds: number;
+}
+
+export interface BatchConfiguration {
+  batches: EpisodeBatch[];
+  totalBatches: number;
+  episodesPerBatch: number;
+  requiresBatching: boolean;
+  totalEstimatedTimeSeconds: number;
 }
 
 export interface CalculateEpisodeDatesParams {
@@ -24,9 +40,10 @@ export interface CalculateEpisodeDatesResult {
 }
 
 /**
- * Maximum number of episodes that can be created in a single bulk operation
+ * Absolute maximum number of episodes that can be requested in total
+ * This is independent of batching - batching will split large requests
  */
-const MAX_BULK_EPISODES = 30;
+const MAX_TOTAL_EPISODES = 100;
 
 /**
  * Calculates date ranges for episodes based on frequency
@@ -92,11 +109,11 @@ export function calculateEpisodeDates({
       episodeNumber
     });
 
-    // Check if we've exceeded the maximum
-    if (episodeDates.length >= MAX_BULK_EPISODES) {
+    // Check if we've exceeded the absolute maximum
+    if (episodeDates.length >= MAX_TOTAL_EPISODES) {
       return {
         success: false,
-        error: `Maximum of ${MAX_BULK_EPISODES} episodes can be created at once. Please reduce the date range.`
+        error: `Maximum of ${MAX_TOTAL_EPISODES} episodes can be created in total. Please reduce the date range.`
       };
     }
 
@@ -137,14 +154,14 @@ export function formatDateRange(range: EpisodeDateRange): string {
 
 /**
  * Calculate estimated time for bulk episode generation
- * Based on rate limiting constraints (6 seconds between episodes)
+ * Uses dynamic delay based on configured Gemini API rate limit
  */
 export function estimateGenerationTime(episodeCount: number): {
   seconds: number;
   formattedTime: string;
 } {
-  const DELAY_BETWEEN_EPISODES = 6; // seconds
-  const totalSeconds = episodeCount * DELAY_BETWEEN_EPISODES;
+  const delaySeconds = getDelayBetweenRequests() / 1000; // convert ms to seconds
+  const totalSeconds = Math.ceil(episodeCount * delaySeconds);
 
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -162,5 +179,51 @@ export function estimateGenerationTime(episodeCount: number): {
   return {
     seconds: totalSeconds,
     formattedTime
+  };
+}
+
+/**
+ * Calculate batch configuration for episode generation
+ * Splits episodes into batches that fit within Vercel timeout constraints
+ *
+ * @param episodeDates - Array of episode date ranges to be created
+ * @returns Batch configuration with episodes split into manageable batches
+ *
+ * @example
+ * // With 30 episodes and RPM=10 (batch size 8):
+ * calculateBatchConfiguration(episodes)
+ * // Returns: 4 batches of 8, 8, 8, 6 episodes
+ */
+export function calculateBatchConfiguration(
+  episodeDates: EpisodeDateRange[]
+): BatchConfiguration {
+  const maxBatchSize = getMaxBatchSize();
+  const delaySeconds = getDelayBetweenRequests() / 1000;
+
+  const batches: EpisodeBatch[] = [];
+  let currentBatchNumber = 1;
+
+  // Split episodes into batches
+  for (let i = 0; i < episodeDates.length; i += maxBatchSize) {
+    const batchEpisodes = episodeDates.slice(i, i + maxBatchSize);
+    const batchTimeSeconds = Math.ceil(batchEpisodes.length * delaySeconds);
+
+    batches.push({
+      batchNumber: currentBatchNumber,
+      episodes: batchEpisodes,
+      estimatedTimeSeconds: batchTimeSeconds
+    });
+
+    currentBatchNumber++;
+  }
+
+  const totalTime = batches.reduce((sum, batch) => sum + batch.estimatedTimeSeconds, 0);
+
+  return {
+    batches,
+    totalBatches: batches.length,
+    episodesPerBatch: maxBatchSize,
+    requiresBatching: batches.length > 1,
+    totalEstimatedTimeSeconds: totalTime
   };
 }
