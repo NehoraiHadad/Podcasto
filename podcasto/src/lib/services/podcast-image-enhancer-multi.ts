@@ -184,29 +184,29 @@ function createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAna
 - Main Elements: ${analysis.mainElements}
 - Mood: ${analysis.mood}
 
-**Enhancement Instructions Based on Analysis:**
-1. PRESERVE: Keep these elements - ${analysis.mainElements}
-2. ENHANCE: The ${analysis.colors} color palette, making it more vibrant and saturated
-3. ADAPT: Transform the ${analysis.style} style into a ${style} aesthetic
-4. MAINTAIN: The ${analysis.mood} mood while making it more polished
-5. Make it suitable for a podcast cover (square format, clean composition)
-6. DO NOT add text, titles, or any lettering
-7. DO NOT include podcast symbols (microphones, headphones)
-8. Focus on creating a visually striking, professional result
+**Creative Enhancement Instructions:**
+1. PRESERVE the core identity: Keep the main elements (${analysis.mainElements}) and overall composition recognizable
+2. ENHANCE dramatically: Make the ${analysis.colors} color palette more vibrant, saturated, and eye-catching
+3. TRANSFORM the style: Evolve from ${analysis.style} into a ${style} aesthetic
+4. AMPLIFY the mood: Enhance the ${analysis.mood} feeling while making it more polished and professional
+5. OPTIMIZE for podcast: Square format, clean composition suitable for small thumbnails
+6. CREATIVE FREEDOM: You may add subtle podcast-related elements (like stylized sound waves, abstract audio patterns, or atmospheric effects) ONLY if they enhance the design without overwhelming the original content
+7. NO TEXT: Do not add titles, names, or any lettering whatsoever
+8. FOCUS: Create a visually stunning, memorable cover that stands out in podcast listings
 
 Generate ONLY the enhanced image, no text or explanations.`;
   } else {
     // Fallback to generic prompt if no analysis
     prompt += `
-**Requirements:**
-1. Keep the main visual elements and color scheme from the source image
-2. Make it suitable for a podcast cover (square format, clean composition)
-3. Enhance the colors to be more vibrant and eye-catching
-4. Add subtle podcast-appropriate styling (${style} aesthetic)
-5. Maintain brand consistency with the source image
-6. DO NOT add text, titles, or any lettering
-7. DO NOT include podcast symbols (microphones, headphones)
-8. Focus on creating a visually striking, professional result
+**Creative Enhancement Instructions:**
+1. PRESERVE the source: Keep the main visual elements and color scheme recognizable
+2. ENHANCE dramatically: Make colors more vibrant, saturated, and professional
+3. OPTIMIZE for podcast: Square format, clean composition, suitable for thumbnails
+4. ADD podcast aesthetic: Apply the ${style} style while maintaining the source's character
+5. CREATIVE FREEDOM: You may add subtle podcast-related enhancements (stylized audio patterns, atmospheric effects, depth) ONLY if they improve the design
+6. NO TEXT: Do not add titles, names, or any lettering
+7. BALANCE: The result should feel enhanced but still connected to the original
+8. FOCUS: Create a visually striking cover that stands out in podcast platforms
 
 Generate ONLY the enhanced image, no text or explanations.`;
   }

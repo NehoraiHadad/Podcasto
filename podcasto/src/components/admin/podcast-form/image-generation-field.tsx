@@ -421,9 +421,9 @@ export function ImageGenerationField({
           )}
 
           {/* AI Analysis */}
-          {debugInfo.analysis && (
-            <div className="space-y-2">
-              <Label className="text-base font-medium">2. AI Analysis of Source Image</Label>
+          <div className="space-y-2">
+            <Label className="text-base font-medium">2. AI Analysis of Source Image</Label>
+            {debugInfo.analysis ? (
               <div className="space-y-3 text-sm bg-background p-4 rounded-md border">
                 <div>
                   <span className="font-semibold">Description:</span>
@@ -446,8 +446,15 @@ export function ImageGenerationField({
                   <p className="mt-1 text-muted-foreground">{debugInfo.analysis.mood}</p>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-sm bg-amber-50 dark:bg-amber-950 p-4 rounded-md border border-amber-200 dark:border-amber-800">
+                <p className="text-amber-800 dark:text-amber-200">
+                  ⚠️ Image analysis failed or was skipped. The AI will use a generic enhancement approach.
+                  Check the console logs for details.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Generation Prompt */}
           {debugInfo.prompt && (
