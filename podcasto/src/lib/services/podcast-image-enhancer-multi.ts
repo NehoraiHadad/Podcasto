@@ -167,51 +167,47 @@ async function generateSingleVariation(
 function createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAnalysis | null): string {
   const style = options.podcastStyle || 'modern, professional';
 
-  // Build dynamic prompt based on analysis
-  let prompt = `Transform this image into a professional podcast cover art.
-
-**Podcast Title:** ${options.podcastTitle}
-
-**Target Style:** ${style}, podcast cover art, professional, eye-catching
-`;
-
   if (analysis) {
-    prompt += `
-**Source Image Analysis:**
-- Description: ${analysis.description}
-- Dominant Colors: ${analysis.colors}
-- Current Style: ${analysis.style}
-- Main Elements: ${analysis.mainElements}
-- Mood: ${analysis.mood}
+    // Narrative, scene-based prompt with analysis
+    return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
 
-**Creative Enhancement Instructions:**
-1. PRESERVE the core identity: Keep the main elements (${analysis.mainElements}) and overall composition recognizable
-2. ENHANCE dramatically: Make the ${analysis.colors} color palette more vibrant, saturated, and eye-catching
-3. TRANSFORM the style: Evolve from ${analysis.style} into a ${style} aesthetic
-4. AMPLIFY the mood: Enhance the ${analysis.mood} feeling while making it more polished and professional
-5. OPTIMIZE for podcast: Square format, clean composition suitable for small thumbnails
-6. CREATIVE FREEDOM: You may add subtle podcast-related elements (like stylized sound waves, abstract audio patterns, or atmospheric effects) ONLY if they enhance the design without overwhelming the original content
-7. NO TEXT: Do not add titles, names, or any lettering whatsoever
-8. FOCUS: Create a visually stunning, memorable cover that stands out in podcast listings
+CURRENT IMAGE CONTAINS: ${analysis.description} The scene features ${analysis.colors} tones with a ${analysis.style} aesthetic, creating a ${analysis.mood} atmosphere. The key visual elements are: ${analysis.mainElements}.
 
-Generate ONLY the enhanced image, no text or explanations.`;
+TRANSFORMATION VISION:
+Reimagine this scene with cinematic, professional podcast aesthetics while preserving the core identity. Envision the image bathed in enhanced ${analysis.colors} lighting—make these colors pop with dramatic saturation and vibrancy that catches the eye immediately. The original ${analysis.mainElements} should remain clearly recognizable but elevated to a ${style} visual style.
+
+Amplify the ${analysis.mood} feeling but polish it with professional-grade post-processing. Add depth through sophisticated lighting techniques—perhaps rim lighting on key elements, subtle vignetting, or atmospheric haze that adds dimension. The composition should be optimized for square podcast cover format, ensuring it reads beautifully even as a small thumbnail.
+
+Consider adding subtle, tasteful podcast elements if they enhance rather than distract: perhaps abstract sound wave patterns integrated into the background, soft audio frequency visualizations as atmospheric effects, or a gentle depth-of-field blur that draws focus to the main subject.
+
+CRITICAL RULES:
+- Never add text, titles, names, or any lettering
+- Keep the original scene recognizable but dramatically improved
+- Use photographic language: think about camera angle, lighting quality, color grading
+- The result should feel premium, polished, and professionally produced
+
+Generate a visually stunning podcast cover that makes listeners want to click and listen.`;
   } else {
-    // Fallback to generic prompt if no analysis
-    prompt += `
-**Creative Enhancement Instructions:**
-1. PRESERVE the source: Keep the main visual elements and color scheme recognizable
-2. ENHANCE dramatically: Make colors more vibrant, saturated, and professional
-3. OPTIMIZE for podcast: Square format, clean composition, suitable for thumbnails
-4. ADD podcast aesthetic: Apply the ${style} style while maintaining the source's character
-5. CREATIVE FREEDOM: You may add subtle podcast-related enhancements (stylized audio patterns, atmospheric effects, depth) ONLY if they improve the design
-6. NO TEXT: Do not add titles, names, or any lettering
-7. BALANCE: The result should feel enhanced but still connected to the original
-8. FOCUS: Create a visually striking cover that stands out in podcast platforms
+    // Fallback narrative prompt without analysis
+    return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
 
-Generate ONLY the enhanced image, no text or explanations.`;
+TRANSFORMATION VISION:
+Reimagine this scene with cinematic ${style} aesthetics while preserving what makes the original image special. Envision the composition bathed in dramatic lighting that makes colors pop with vibrant saturation and professional-grade color grading. Every visual element should be elevated with enhanced depth, clarity, and visual impact.
+
+Apply sophisticated post-processing techniques: enhance contrast for visual punch, add subtle atmospheric effects for depth, optimize the composition for square podcast cover format. The image should read beautifully even as a small thumbnail—clear focal points, strong visual hierarchy, eye-catching appeal.
+
+Consider tastefully integrating podcast elements if they enhance the design: abstract sound wave patterns woven into the background, soft audio frequency visualizations as atmospheric effects, or depth-of-field blur that emphasizes the main subject. These should feel natural and elevate the design, never distract or overwhelm.
+
+Use photographic language in your approach: think cinematic camera angles, professional studio lighting quality, film-grade color grading. The aesthetic should be ${style} while maintaining connection to the source material.
+
+CRITICAL RULES:
+- Never add text, titles, names, or any lettering
+- Keep the original essence recognizable but dramatically improved
+- Create a premium, polished, professionally produced look
+- Optimize for thumbnail visibility and immediate visual impact
+
+Generate a podcast cover that stops scrollers and makes them want to listen.`;
   }
-
-  return prompt;
 }
 
 /**
