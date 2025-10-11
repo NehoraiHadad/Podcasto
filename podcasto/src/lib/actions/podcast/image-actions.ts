@@ -128,7 +128,10 @@ async function uploadPodcastImageToS3(
 
   // Determine file extension from MIME type
   const extension = mimeType.split('/')[1] || 'jpg';
-  const filename = `${filenamePrefix}.${extension}`;
+
+  // Add timestamp to avoid caching issues
+  const timestamp = Date.now();
+  const filename = `${filenamePrefix}-${timestamp}.${extension}`;
 
   // S3 key for podcast cover image
   const key = `podcasts/${podcastId}/${filename}`;
@@ -139,7 +142,7 @@ async function uploadPodcastImageToS3(
     Key: key,
     Body: imageBuffer,
     ContentType: mimeType,
-    CacheControl: 'max-age=31536000' // Cache for 1 year
+    CacheControl: 'public, max-age=31536000, immutable' // Cache for 1 year (immutable because we use unique filenames)
   });
 
   await s3Client.send(command);
@@ -328,24 +331,8 @@ async function enhanceAndUploadImage(
           // Use first variation as the main image
           const s3ImageUrl = allVariationUrls[0];
 
-          // Update database with main image and style
-          await db
-            .update(podcasts)
-            .set({
-              cover_image: s3ImageUrl,
-              image_style: options?.styleId || null,
-              updated_at: new Date()
-            })
-            .where(eq(podcasts.id, podcastId));
-
-          console.log(`[IMAGE_ACTION] Updated podcast ${podcastId} with ${allVariationUrls.length} variations${options?.styleId ? ` (style: ${options.styleId})` : ''}`);
-
-          // Revalidate relevant pages
-          revalidatePath('/admin/podcasts');
-          revalidatePath(`/admin/podcasts/${podcastId}`);
-          revalidatePath(`/podcasts/${podcastId}`);
-          revalidatePath('/podcasts');
-          revalidatePath('/');
+          // DON'T update database - let the user save the form when ready
+          console.log(`[IMAGE_ACTION] Generated ${allVariationUrls.length} variations (not saved to DB yet)`);
 
           return {
             success: true,
@@ -380,25 +367,10 @@ async function enhanceAndUploadImage(
   );
 
   console.log(`[IMAGE_ACTION] Uploaded image to S3: ${s3ImageUrl} (AI enhanced: ${enhancedWithAI})`);
+  console.log(`[IMAGE_ACTION] Image generated but NOT saved to DB - user must save the form`);
 
-  // Update database with image and style
-  await db
-    .update(podcasts)
-    .set({
-      cover_image: s3ImageUrl,
-      image_style: options?.styleId || null,
-      updated_at: new Date()
-    })
-    .where(eq(podcasts.id, podcastId));
-
-  console.log(`[IMAGE_ACTION] Updated podcast ${podcastId} with new image${options?.styleId ? ` (style: ${options.styleId})` : ''}`);
-
-  // Revalidate relevant pages
-  revalidatePath('/admin/podcasts');
-  revalidatePath(`/admin/podcasts/${podcastId}`);
-  revalidatePath(`/podcasts/${podcastId}`);
-  revalidatePath('/podcasts');
-  revalidatePath('/');
+  // DON'T update database - let the user save the form when ready
+  // The form will handle saving when the user clicks Save
 
   return {
     success: true,
