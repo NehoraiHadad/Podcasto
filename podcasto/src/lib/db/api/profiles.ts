@@ -1,5 +1,5 @@
 import { profiles } from '../schema';
-import { eq, and, SQL } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import * as dbUtils from '../utils';
 
 // Types
@@ -25,12 +25,12 @@ export async function createProfile(data: NewProfile): Promise<Profile> {
  * Updates a profile
  */
 export async function updateProfile(userId: string, data: UpdateProfile): Promise<Profile | null> {
-  const result = await dbUtils.update<Profile>(
+  return await dbUtils.updateById<Profile, NewProfile>(
     profiles,
-    eq(profiles.id, userId),
+    profiles.id,
+    userId,
     data
   );
-  return result[0] || null;
 }
 
 /**
