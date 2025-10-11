@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { profilesApi } from '@/lib/db/api';
 
 interface SubscriptionParams {
   podcastId: string;
@@ -127,9 +128,61 @@ export async function toggleSubscription(
     }
   } catch (error) {
     console.error('Error toggling subscription:', error);
-    return { 
-      success: false, 
-      message: 'An error occurred while processing your request' 
+    return {
+      success: false,
+      message: 'An error occurred while processing your request'
+    };
+  }
+}
+
+/**
+ * Toggle email notifications preference for the current user
+ */
+export async function toggleEmailNotifications(
+  prevState: { success: boolean; message: string } | null,
+  formData: FormData
+): Promise<{ success: boolean; message: string; enabled?: boolean }> {
+  try {
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        success: false,
+        message: 'You need to be logged in to update preferences'
+      };
+    }
+
+    const userId = user.id;
+    const enabled = formData.get('enabled') === 'true';
+
+    // Update email notifications preference
+    const updatedProfile = await profilesApi.updateEmailNotifications(userId, enabled);
+
+    if (!updatedProfile) {
+      return {
+        success: false,
+        message: 'Failed to update email notification preferences'
+      };
+    }
+
+    revalidatePath('/settings');
+    revalidatePath('/profile');
+
+    return {
+      success: true,
+      message: enabled
+        ? 'You will now receive email notifications for new episodes'
+        : 'Email notifications have been disabled',
+      enabled
+    };
+  } catch (error) {
+    console.error('Error toggling email notifications:', error);
+    return {
+      success: false,
+      message: 'An error occurred while updating your preferences'
     };
   }
 } 

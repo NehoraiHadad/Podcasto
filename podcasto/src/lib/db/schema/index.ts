@@ -5,6 +5,7 @@ import { subscriptions } from './subscriptions';
 import { sentEpisodes } from './sent-episodes';
 import { userRoles } from './user-roles';
 import { podcastConfigs } from './podcast-configs';
+import { profiles } from './profiles';
 
 // Export all schema objects
 export {
@@ -13,7 +14,8 @@ export {
   subscriptions,
   sentEpisodes,
   userRoles,
-  podcastConfigs
+  podcastConfigs,
+  profiles
 };
 
 // Export relationships for use in queries

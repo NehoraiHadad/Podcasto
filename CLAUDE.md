@@ -146,6 +146,14 @@ AWS_SECRET_ACCESS_KEY=
 AUDIO_GENERATION_QUEUE_URL=      # SQS queue URL
 S3_BUCKET_NAME=
 
+# AWS SES (Email Notifications)
+AWS_SES_REGION=us-east-1         # Optional, defaults to AWS_REGION
+AWS_SES_FROM_EMAIL=notifications@podcasto.org
+AWS_SES_FROM_NAME=Podcasto
+
+# Site URL (for email links)
+NEXT_PUBLIC_SITE_URL=https://podcasto.org  # Production domain
+
 # Optional
 NODE_ENV=development
 ```
@@ -178,3 +186,12 @@ Admin routes are protected by middleware, but also verify user role from `user_r
 - Never hardcode generated IDs in data migrations
 - Use `npx drizzle-kit generate` for DDL changes
 - Review migration SQL before applying to production
+
+### Email Notification System
+- **Service**: AWS SES for transactional emails
+- **Trigger Point**: Episode processor sends emails when status changes to `PUBLISHED`
+- **User Preferences**: Check `profiles.email_notifications` before sending
+- **Duplicate Prevention**: Track sent emails in `sent_episodes` table
+- **Non-Blocking**: Email failures don't prevent episode publishing
+- **Templates**: HTML and plain text versions in `src/lib/email/templates/`
+- **Testing**: Verify SES domain/email in AWS Console; move out of sandbox for production

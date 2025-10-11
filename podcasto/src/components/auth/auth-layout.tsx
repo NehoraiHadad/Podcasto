@@ -21,7 +21,7 @@ export function AuthLayout({
       <div className="flex flex-col items-center mb-6">
         <Link href="/" className="mb-4 transition-transform hover:scale-105">
           <Image
-            src="/Podcasto-logo.webp"
+            src="/podcasto-logo.webp"
             alt="Podcasto Logo"
             width={160}
             height={64}
