@@ -527,57 +527,59 @@ export async function listPodcastImagesGallery(
 
     const bucket = process.env.S3_BUCKET_NAME!;
     const region = process.env.AWS_REGION || 'us-east-1';
-    const prefix = `podcasts/${podcastId}/`;
+    const basePrefix = `podcasts/${podcastId}/`;
 
-    // List all objects in the podcast's S3 directory
-    const command = new ListObjectsV2Command({
+    // Make two targeted S3 requests instead of fetching everything
+    // 1. Get cover images (including variants)
+    const coverCommand = new ListObjectsV2Command({
       Bucket: bucket,
-      Prefix: prefix,
-      MaxKeys: 100 // Limit to 100 most recent images
+      Prefix: `${basePrefix}cover-image`,
+      MaxKeys: 100
     });
 
-    const response = await s3Client.send(command);
+    // 2. Get original images
+    const originalCommand = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: `${basePrefix}original-image`,
+      MaxKeys: 100
+    });
 
-    console.log(`[IMAGE_GALLERY] S3 ListObjects returned ${response.Contents?.length || 0} items for podcast ${podcastId}`);
+    // Execute both requests in parallel
+    const [coverResponse, originalResponse] = await Promise.all([
+      s3Client.send(coverCommand),
+      s3Client.send(originalCommand)
+    ]);
 
-    if (!response.Contents || response.Contents.length === 0) {
-      console.log(`[IMAGE_GALLERY] No items found in S3 for prefix: ${prefix}`);
+    // Combine results
+    const allContents = [
+      ...(coverResponse.Contents || []),
+      ...(originalResponse.Contents || [])
+    ];
+
+    console.log(`[IMAGE_GALLERY] Found ${allContents.length} total images for podcast ${podcastId}`);
+    console.log(`[IMAGE_GALLERY] - Cover images: ${coverResponse.Contents?.length || 0}`);
+    console.log(`[IMAGE_GALLERY] - Original images: ${originalResponse.Contents?.length || 0}`);
+
+    if (allContents.length === 0) {
+      console.log(`[IMAGE_GALLERY] No cover or original images found for podcast ${podcastId}`);
       return {
         success: true,
         images: []
       };
     }
 
-    // Log all S3 keys for debugging
-    response.Contents.forEach(item => {
-      console.log(`[IMAGE_GALLERY] Found S3 key: ${item.Key}`);
+    // Log all found keys
+    allContents.forEach(item => {
+      console.log(`[IMAGE_GALLERY] Found: ${item.Key}`);
     });
 
-    // Filter and map to GalleryImage format
+    // Map to GalleryImage format (no filtering needed - we already got exactly what we want)
     const images: GalleryImage[] = await Promise.all(
-      response.Contents
+      allContents
         .filter(item => {
           const key = item.Key || '';
-
-          // Only include image files
-          if (!key.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
-            console.log(`[IMAGE_GALLERY] Filtered out (not image): ${key}`);
-            return false;
-          }
-
-          // Only include cover images, variants, and original images
-          // Exclude episode images and other content from Telegram
-          const filename = key.split('/').pop() || '';
-          const shouldInclude = filename.startsWith('cover-image') ||
-                                filename.startsWith('original-image');
-
-          if (!shouldInclude) {
-            console.log(`[IMAGE_GALLERY] Filtered out (not cover/original): ${key}, filename: ${filename}`);
-          } else {
-            console.log(`[IMAGE_GALLERY] Including: ${key}, filename: ${filename}`);
-          }
-
-          return shouldInclude;
+          // Only filter out non-image files (shouldn't happen, but just in case)
+          return key.match(/\.(jpg|jpeg|png|webp|gif)$/i);
         })
         .map(async item => {
           const key = item.Key!;
