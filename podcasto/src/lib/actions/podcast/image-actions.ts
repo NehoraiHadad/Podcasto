@@ -538,12 +538,20 @@ export async function listPodcastImagesGallery(
 
     const response = await s3Client.send(command);
 
+    console.log(`[IMAGE_GALLERY] S3 ListObjects returned ${response.Contents?.length || 0} items for podcast ${podcastId}`);
+
     if (!response.Contents || response.Contents.length === 0) {
+      console.log(`[IMAGE_GALLERY] No items found in S3 for prefix: ${prefix}`);
       return {
         success: true,
         images: []
       };
     }
+
+    // Log all S3 keys for debugging
+    response.Contents.forEach(item => {
+      console.log(`[IMAGE_GALLERY] Found S3 key: ${item.Key}`);
+    });
 
     // Filter and map to GalleryImage format
     const images: GalleryImage[] = await Promise.all(
@@ -553,14 +561,23 @@ export async function listPodcastImagesGallery(
 
           // Only include image files
           if (!key.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
+            console.log(`[IMAGE_GALLERY] Filtered out (not image): ${key}`);
             return false;
           }
 
           // Only include cover images, variants, and original images
           // Exclude episode images and other content from Telegram
           const filename = key.split('/').pop() || '';
-          return filename.startsWith('cover-image') ||
-                 filename.startsWith('original-image');
+          const shouldInclude = filename.startsWith('cover-image') ||
+                                filename.startsWith('original-image');
+
+          if (!shouldInclude) {
+            console.log(`[IMAGE_GALLERY] Filtered out (not cover/original): ${key}, filename: ${filename}`);
+          } else {
+            console.log(`[IMAGE_GALLERY] Including: ${key}, filename: ${filename}`);
+          }
+
+          return shouldInclude;
         })
         .map(async item => {
           const key = item.Key!;
