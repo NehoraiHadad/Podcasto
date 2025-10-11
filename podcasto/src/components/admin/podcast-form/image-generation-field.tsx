@@ -7,14 +7,15 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Sparkles, Check, ImageIcon } from 'lucide-react';
+import { Loader2, Sparkles, Check, ImageIcon, Images } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import {
   generatePodcastImageFromTelegram,
   generatePodcastImageFromFile,
   generatePodcastImageFromUrl,
-  ImageActionResult
+  listPodcastImagesGallery,
+  GalleryImage
 } from '@/lib/actions/podcast';
 import { PODCAST_IMAGE_STYLES, VARIATION_OPTIONS } from '@/lib/constants/podcast-image-styles';
 import type { ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
@@ -71,6 +72,9 @@ export function ImageGenerationField({
   const [manualUrl, setManualUrl] = useState('');
   const [generatedVariations, setGeneratedVariations] = useState<GeneratedVariation[]>([]);
   const [debugInfo, setDebugInfo] = useState<GenerationDebugInfo | null>(null);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,6 +235,42 @@ export function ImageGenerationField({
     }
   };
 
+  const handleLoadGallery = async () => {
+    if (!podcastId) {
+      toast.error('Please save the podcast first');
+      return;
+    }
+
+    setIsLoadingGallery(true);
+    try {
+      const result = await listPodcastImagesGallery(podcastId);
+
+      if (result.success && result.images) {
+        setGalleryImages(result.images);
+        setShowGallery(true);
+
+        if (result.images.length === 0) {
+          toast.info('No images found in gallery. Generate some images first!');
+        } else {
+          toast.success(`Found ${result.images.length} images in gallery`);
+        }
+      } else {
+        toast.error(result.error || 'Failed to load gallery');
+      }
+    } catch (error) {
+      console.error('Error loading gallery:', error);
+      toast.error('Failed to load gallery');
+    } finally {
+      setIsLoadingGallery(false);
+    }
+  };
+
+  const handleSelectFromGallery = (image: GalleryImage) => {
+    onImageGenerated?.(image.url);
+    setShowGallery(false);
+    toast.success('Image selected from gallery!');
+  };
+
   const selectedStyleData = PODCAST_IMAGE_STYLES.find(s => s.id === selectedStyle);
   const selectedVariationOption = VARIATION_OPTIONS.find(v => v.count === variationCount);
 
@@ -380,25 +420,105 @@ export function ImageGenerationField({
         </p>
       </div>
 
-      {/* Generate Button */}
-      <Button
-        type="button"
-        onClick={handleGenerate}
-        disabled={isGenerating}
-        className="w-full"
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating {variationCount > 1 ? `${variationCount} variations` : 'image'}...
-          </>
-        ) : (
-          <>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate with AI {selectedVariationOption && `(${selectedVariationOption.label})`}
-          </>
-        )}
-      </Button>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          className="flex-1"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating {variationCount > 1 ? `${variationCount} variations` : 'image'}...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate with AI {selectedVariationOption && `(${selectedVariationOption.label})`}
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={handleLoadGallery}
+          disabled={isLoadingGallery}
+          variant="outline"
+          className="flex-1"
+        >
+          {isLoadingGallery ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading...
+            </>
+          ) : (
+            <>
+              <Images className="mr-2 h-4 w-4" />
+              Browse Gallery
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Image Gallery Modal */}
+      {showGallery && (
+        <div className="space-y-4 p-6 bg-muted/50 rounded-lg border-2 border-primary/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-lg font-semibold">Image Gallery</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Select an image from previously generated versions
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowGallery(false)}
+            >
+              Close
+            </Button>
+          </div>
+
+          {galleryImages.length === 0 ? (
+            <div className="text-center py-8">
+              <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No images found in gallery</p>
+              <p className="text-sm text-muted-foreground mt-1">Generate some images first!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto">
+              {galleryImages.map((image) => (
+                <Card
+                  key={image.key}
+                  className="cursor-pointer transition-all hover:ring-2 hover:ring-primary"
+                  onClick={() => handleSelectFromGallery(image)}
+                >
+                  <CardContent className="p-0">
+                    <div className="relative w-full aspect-square rounded-t-lg overflow-hidden">
+                      <Image
+                        src={image.url}
+                        alt={`Gallery image`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <div className="text-xs font-medium text-center capitalize">
+                        {image.type}
+                      </div>
+                      <div className="text-xs text-muted-foreground text-center">
+                        {new Date(image.lastModified).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Debug Info: Original Image, Analysis, Prompt */}
       {debugInfo && (

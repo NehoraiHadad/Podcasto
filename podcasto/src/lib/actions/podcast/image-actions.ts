@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { podcasts, podcastConfigs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand, S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { buildS3Url } from '@/lib/utils/s3-url-utils';
 
 /**
@@ -31,6 +31,26 @@ export interface ImageGenerationOptions {
   style?: string;
   styleId?: string; // The style ID to save to database (e.g., 'modern-professional')
   variationsCount?: number;
+}
+
+/**
+ * Single image metadata from gallery
+ */
+export interface GalleryImage {
+  url: string;
+  key: string;
+  lastModified: Date;
+  size: number;
+  type: 'cover' | 'variant' | 'original';
+}
+
+/**
+ * Result type for gallery listing
+ */
+export interface GalleryResult {
+  success: boolean;
+  images?: GalleryImage[];
+  error?: string;
 }
 
 /**
@@ -478,6 +498,94 @@ export async function setPodcastImageFromUrl(
     };
   } catch (error) {
     console.error('[IMAGE_ACTION] Error setting podcast image URL:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
+ * List all images in the S3 gallery for a podcast
+ * This allows users to view and select from previously generated images
+ */
+export async function listPodcastImagesGallery(
+  podcastId: string
+): Promise<GalleryResult> {
+  try {
+    await requireAdmin();
+
+    console.log(`[IMAGE_ACTION] Listing gallery images for podcast ${podcastId}`);
+
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+      }
+    });
+
+    const bucket = process.env.S3_BUCKET_NAME!;
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const prefix = `podcasts/${podcastId}/`;
+
+    // List all objects in the podcast's S3 directory
+    const command = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      MaxKeys: 100 // Limit to 100 most recent images
+    });
+
+    const response = await s3Client.send(command);
+
+    if (!response.Contents || response.Contents.length === 0) {
+      return {
+        success: true,
+        images: []
+      };
+    }
+
+    // Filter and map to GalleryImage format
+    const images: GalleryImage[] = await Promise.all(
+      response.Contents
+        .filter(item => {
+          // Only include image files
+          const key = item.Key || '';
+          return key.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+        })
+        .map(async item => {
+          const key = item.Key!;
+          const url = await buildS3Url({ bucket, region, key });
+
+          // Determine image type from filename
+          let type: 'cover' | 'variant' | 'original' = 'cover';
+          if (key.includes('original-image')) {
+            type = 'original';
+          } else if (key.includes('variant')) {
+            type = 'variant';
+          }
+
+          return {
+            url,
+            key,
+            lastModified: item.LastModified || new Date(),
+            size: item.Size || 0,
+            type
+          };
+        })
+    );
+
+    // Sort by most recent first
+    images.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+
+    console.log(`[IMAGE_ACTION] Found ${images.length} images in gallery`);
+
+    return {
+      success: true,
+      images
+    };
+  } catch (error) {
+    console.error('[IMAGE_ACTION] Error listing gallery images:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
