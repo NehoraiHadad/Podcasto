@@ -549,19 +549,30 @@ export async function listPodcastImagesGallery(
     const images: GalleryImage[] = await Promise.all(
       response.Contents
         .filter(item => {
-          // Only include image files
           const key = item.Key || '';
-          return key.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+
+          // Only include image files
+          if (!key.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
+            return false;
+          }
+
+          // Only include cover images, variants, and original images
+          // Exclude episode images and other content from Telegram
+          const filename = key.split('/').pop() || '';
+          return filename.startsWith('cover-image') ||
+                 filename.startsWith('original-image');
         })
         .map(async item => {
           const key = item.Key!;
           const url = await buildS3Url({ bucket, region, key });
 
           // Determine image type from filename
+          const filename = key.split('/').pop() || '';
           let type: 'cover' | 'variant' | 'original' = 'cover';
-          if (key.includes('original-image')) {
+
+          if (filename.startsWith('original-image')) {
             type = 'original';
-          } else if (key.includes('variant')) {
+          } else if (filename.includes('variant')) {
             type = 'variant';
           }
 
