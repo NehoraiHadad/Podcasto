@@ -13,9 +13,11 @@ import Image from 'next/image';
 import {
   generatePodcastImageFromTelegram,
   generatePodcastImageFromFile,
-  generatePodcastImageFromUrl
+  generatePodcastImageFromUrl,
+  ImageActionResult
 } from '@/lib/actions/podcast';
 import { PODCAST_IMAGE_STYLES, VARIATION_OPTIONS } from '@/lib/constants/podcast-image-styles';
+import type { ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
 
 interface ImageGenerationFieldProps {
   podcastId?: string;
@@ -32,6 +34,12 @@ interface GeneratedVariation {
   url: string;
   index: number;
   selected: boolean;
+}
+
+interface GenerationDebugInfo {
+  originalImageUrl?: string;
+  analysis?: ImageAnalysis;
+  prompt?: string;
 }
 
 /**
@@ -62,6 +70,7 @@ export function ImageGenerationField({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [manualUrl, setManualUrl] = useState('');
   const [generatedVariations, setGeneratedVariations] = useState<GeneratedVariation[]>([]);
+  const [debugInfo, setDebugInfo] = useState<GenerationDebugInfo | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,6 +127,7 @@ export function ImageGenerationField({
 
     setIsGenerating(true);
     setGeneratedVariations([]);
+    setDebugInfo(null);
 
     try {
       // Get selected style prompt modifier and ID
@@ -162,6 +172,13 @@ export function ImageGenerationField({
       }
 
       if (result?.success) {
+        // Store debug info
+        setDebugInfo({
+          originalImageUrl: result.originalImageUrl,
+          analysis: result.analysis,
+          prompt: result.prompt
+        });
+
         // Handle multiple variations if returned
         if (result.imageUrls && result.imageUrls.length > 1) {
           const variations: GeneratedVariation[] = result.imageUrls.map((url, index) => ({
@@ -382,6 +399,67 @@ export function ImageGenerationField({
           </>
         )}
       </Button>
+
+      {/* Debug Info: Original Image, Analysis, Prompt */}
+      {debugInfo && (
+        <div className="space-y-6 mt-8 p-6 bg-muted/30 rounded-lg border">
+          <h3 className="text-lg font-semibold">Generation Process Details</h3>
+
+          {/* Original Image */}
+          {debugInfo.originalImageUrl && (
+            <div className="space-y-2">
+              <Label className="text-base font-medium">1. Original Source Image</Label>
+              <div className="relative w-full aspect-square max-w-sm rounded-lg overflow-hidden border bg-background">
+                <Image
+                  src={debugInfo.originalImageUrl}
+                  alt="Original source"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* AI Analysis */}
+          {debugInfo.analysis && (
+            <div className="space-y-2">
+              <Label className="text-base font-medium">2. AI Analysis of Source Image</Label>
+              <div className="space-y-3 text-sm bg-background p-4 rounded-md border">
+                <div>
+                  <span className="font-semibold">Description:</span>
+                  <p className="mt-1 text-muted-foreground">{debugInfo.analysis.description}</p>
+                </div>
+                <div>
+                  <span className="font-semibold">Dominant Colors:</span>
+                  <p className="mt-1 text-muted-foreground">{debugInfo.analysis.colors}</p>
+                </div>
+                <div>
+                  <span className="font-semibold">Visual Style:</span>
+                  <p className="mt-1 text-muted-foreground">{debugInfo.analysis.style}</p>
+                </div>
+                <div>
+                  <span className="font-semibold">Main Elements:</span>
+                  <p className="mt-1 text-muted-foreground">{debugInfo.analysis.mainElements}</p>
+                </div>
+                <div>
+                  <span className="font-semibold">Mood:</span>
+                  <p className="mt-1 text-muted-foreground">{debugInfo.analysis.mood}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Generation Prompt */}
+          {debugInfo.prompt && (
+            <div className="space-y-2">
+              <Label className="text-base font-medium">3. Prompt Sent to Gemini 2.5 Flash Image (Nano Banana)</Label>
+              <pre className="text-xs bg-background p-4 rounded-md border overflow-x-auto whitespace-pre-wrap font-mono">
+                {debugInfo.prompt}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Generated Variations Gallery */}
       {generatedVariations.length > 0 && (

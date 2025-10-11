@@ -2,7 +2,7 @@
 
 import { requireAdmin } from '../auth-actions';
 import { getTelegramChannelImage } from '@/lib/services/telegram-image-scraper';
-import { createPodcastImageEnhancer } from '@/lib/services/podcast-image-enhancer';
+import { createPodcastImageEnhancer, ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
 import { db } from '@/lib/db';
 import { podcasts, podcastConfigs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -19,6 +19,9 @@ export interface ImageActionResult {
   imageUrls?: string[]; // For multiple variations
   error?: string;
   enhancedWithAI?: boolean;
+  analysis?: ImageAnalysis; // AI analysis of source image
+  prompt?: string; // The prompt used to generate the image
+  originalImageUrl?: string; // URL of original source image
 }
 
 /**
@@ -266,6 +269,22 @@ async function enhanceAndUploadImage(
 ): Promise<ImageActionResult> {
   let finalImageBuffer = imageBuffer;
   let enhancedWithAI = false;
+  let analysis: ImageAnalysis | undefined;
+  let prompt: string | undefined;
+  let originalImageUrl: string | undefined;
+
+  // Upload original image to S3 for display in UI
+  try {
+    originalImageUrl = await uploadPodcastImageToS3(
+      podcastId,
+      imageBuffer,
+      'image/jpeg',
+      'original-image'
+    );
+    console.log(`[IMAGE_ACTION] Uploaded original image: ${originalImageUrl}`);
+  } catch (error) {
+    console.error('[IMAGE_ACTION] Failed to upload original image:', error);
+  }
 
   // Try to enhance with AI if Gemini API key is available
   if (process.env.GEMINI_API_KEY) {
@@ -286,6 +305,10 @@ async function enhanceAndUploadImage(
 
       if (enhancementResult.success && enhancementResult.variations && enhancementResult.variations.length > 0) {
         console.log(`[IMAGE_ACTION] AI enhancement successful - ${enhancementResult.variations.length} variation(s) generated`);
+
+        // Store analysis and prompt for return
+        analysis = enhancementResult.analysis;
+        prompt = enhancementResult.prompt;
 
         // Handle multiple variations
         if (variationsCount > 1 && enhancementResult.variations.length > 1) {
@@ -328,7 +351,10 @@ async function enhanceAndUploadImage(
             success: true,
             imageUrl: s3ImageUrl,
             imageUrls: allVariationUrls,
-            enhancedWithAI: true
+            enhancedWithAI: true,
+            analysis,
+            prompt,
+            originalImageUrl
           };
         } else {
           // Single variation
@@ -377,7 +403,10 @@ async function enhanceAndUploadImage(
   return {
     success: true,
     imageUrl: s3ImageUrl,
-    enhancedWithAI
+    enhancedWithAI,
+    analysis,
+    prompt,
+    originalImageUrl
   };
 }
 

@@ -3,7 +3,7 @@
  * Generates multiple AI variations in parallel for A/B testing
  */
 
-import { EnhancementOptions, EnhancementResult, SingleVariation } from './podcast-image-enhancer';
+import { EnhancementOptions, EnhancementResult, SingleVariation, ImageAnalysis } from './podcast-image-enhancer';
 
 /**
  * Generate multiple variations of an enhanced image in parallel
@@ -13,7 +13,8 @@ export async function enhanceImageMultiple(
   apiKey: string,
   sourceImageBuffer: Buffer,
   options: EnhancementOptions,
-  count: number
+  count: number,
+  analysis: ImageAnalysis | null
 ): Promise<EnhancementResult> {
   try {
     console.log(`[PODCAST_ENHANCER_MULTI] Generating ${count} variations for: ${options.podcastTitle}`);
@@ -23,7 +24,7 @@ export async function enhanceImageMultiple(
     const mimeType = detectMimeType(sourceImageBuffer);
 
     // Create enhancement prompt
-    const enhancementPrompt = createEnhancementPrompt(options);
+    const enhancementPrompt = createEnhancementPrompt(options, analysis);
 
     // Generate multiple variations in parallel
     const variationPromises = Array.from({ length: count }, (_, index) =>
@@ -67,7 +68,8 @@ export async function enhanceImageMultiple(
       variations: successfulVariations,
       enhancedImageData: successfulVariations[0].imageData, // First one for backward compatibility
       mimeType: successfulVariations[0].mimeType,
-      prompt: enhancementPrompt
+      prompt: enhancementPrompt,
+      analysis: analysis || undefined
     };
 
   } catch (error) {
@@ -160,15 +162,42 @@ async function generateSingleVariation(
 }
 
 /**
- * Create enhancement prompt based on podcast metadata
+ * Create enhancement prompt based on podcast metadata and image analysis
  */
-function createEnhancementPrompt(options: EnhancementOptions): string {
+function createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAnalysis | null): string {
   const style = options.podcastStyle || 'modern, professional';
 
-  return `Transform this image into a professional podcast cover art.
+  // Build dynamic prompt based on analysis
+  let prompt = `Transform this image into a professional podcast cover art.
 
 **Podcast Title:** ${options.podcastTitle}
 
+**Target Style:** ${style}, podcast cover art, professional, eye-catching
+`;
+
+  if (analysis) {
+    prompt += `
+**Source Image Analysis:**
+- Description: ${analysis.description}
+- Dominant Colors: ${analysis.colors}
+- Current Style: ${analysis.style}
+- Main Elements: ${analysis.mainElements}
+- Mood: ${analysis.mood}
+
+**Enhancement Instructions Based on Analysis:**
+1. PRESERVE: Keep these elements - ${analysis.mainElements}
+2. ENHANCE: The ${analysis.colors} color palette, making it more vibrant and saturated
+3. ADAPT: Transform the ${analysis.style} style into a ${style} aesthetic
+4. MAINTAIN: The ${analysis.mood} mood while making it more polished
+5. Make it suitable for a podcast cover (square format, clean composition)
+6. DO NOT add text, titles, or any lettering
+7. DO NOT include podcast symbols (microphones, headphones)
+8. Focus on creating a visually striking, professional result
+
+Generate ONLY the enhanced image, no text or explanations.`;
+  } else {
+    // Fallback to generic prompt if no analysis
+    prompt += `
 **Requirements:**
 1. Keep the main visual elements and color scheme from the source image
 2. Make it suitable for a podcast cover (square format, clean composition)
@@ -179,9 +208,10 @@ function createEnhancementPrompt(options: EnhancementOptions): string {
 7. DO NOT include podcast symbols (microphones, headphones)
 8. Focus on creating a visually striking, professional result
 
-**Style:** ${style}, podcast cover art, professional, eye-catching
-
 Generate ONLY the enhanced image, no text or explanations.`;
+  }
+
+  return prompt;
 }
 
 /**

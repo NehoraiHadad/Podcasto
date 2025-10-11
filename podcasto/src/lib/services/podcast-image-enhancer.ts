@@ -18,12 +18,22 @@ export interface SingleVariation {
   variationIndex: number;
 }
 
+export interface ImageAnalysis {
+  description: string;
+  colors: string;
+  style: string;
+  mainElements: string;
+  mood: string;
+}
+
 export interface EnhancementResult {
   success: boolean;
   variations?: SingleVariation[]; // Array of generated variations
   enhancedImageData?: Buffer; // Deprecated: for backward compatibility
   mimeType: string;
   prompt?: string;
+  analysis?: ImageAnalysis; // AI analysis of the source image
+  originalImageUrl?: string; // URL of the original image for display
   error?: string;
 }
 
@@ -35,6 +45,65 @@ export class PodcastImageEnhancer {
 
   constructor(apiKey: string) {
     this.imageGenerator = new ImageGenerator(apiKey, 'gemini-2.5-flash-image');
+  }
+
+  /**
+   * Analyze the source image to understand its content
+   * This will be used to create a more targeted enhancement prompt
+   */
+  async analyzeImage(sourceImageBuffer: Buffer): Promise<ImageAnalysis | null> {
+    try {
+      console.log('[PODCAST_ENHANCER] Analyzing source image...');
+
+      const base64Image = sourceImageBuffer.toString('base64');
+      const mimeType = this.detectMimeType(sourceImageBuffer);
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+      const analysisPrompt = `Analyze this image in detail. Provide a structured analysis:
+
+1. **Description**: What is shown in the image? (2-3 sentences)
+2. **Colors**: What are the dominant colors and color scheme?
+3. **Style**: What is the visual style? (e.g., minimalist, vibrant, professional, artistic)
+4. **Main Elements**: What are the key visual elements or subjects?
+5. **Mood**: What mood or feeling does it convey?
+
+Format your response as JSON with these exact keys: description, colors, style, mainElements, mood`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: [{
+          parts: [
+            { inlineData: { data: base64Image, mimeType } },
+            { text: analysisPrompt }
+          ]
+        }],
+        config: {
+          temperature: 0.3,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 1024,
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const candidate = response.candidates?.[0];
+      if (!candidate?.content?.parts?.[0]?.text) {
+        console.warn('[PODCAST_ENHANCER] No analysis text in response');
+        return null;
+      }
+
+      const analysisText = candidate.content.parts[0].text;
+      const analysis = JSON.parse(analysisText) as ImageAnalysis;
+
+      console.log('[PODCAST_ENHANCER] Analysis completed:', analysis);
+      return analysis;
+
+    } catch (error) {
+      console.error('[PODCAST_ENHANCER] Error analyzing image:', error);
+      return null;
+    }
   }
 
   /**
@@ -51,13 +120,16 @@ export class PodcastImageEnhancer {
   ): Promise<EnhancementResult> {
     const variationsCount = options.variationsCount || 1;
 
+    // Analyze the image first
+    const analysis = await this.analyzeImage(sourceImageBuffer);
+
     // Generate multiple variations in parallel
     if (variationsCount > 1) {
-      return this.enhanceImageMultiple(sourceImageBuffer, options, variationsCount);
+      return this.enhanceImageMultiple(sourceImageBuffer, options, variationsCount, analysis);
     }
 
     // Single variation (original behavior)
-    return this.enhanceImageSingle(sourceImageBuffer, options);
+    return this.enhanceImageSingle(sourceImageBuffer, options, analysis);
   }
 
   /**
@@ -65,7 +137,8 @@ export class PodcastImageEnhancer {
    */
   private async enhanceImageSingle(
     sourceImageBuffer: Buffer,
-    options: EnhancementOptions
+    options: EnhancementOptions,
+    analysis: ImageAnalysis | null
   ): Promise<EnhancementResult> {
     try {
       console.log(`[PODCAST_ENHANCER] Starting image enhancement for: ${options.podcastTitle}`);
@@ -83,9 +156,9 @@ export class PodcastImageEnhancer {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
       // Create an enhanced prompt for podcast cover creation
-      const enhancementPrompt = this.createEnhancementPrompt(options);
+      const enhancementPrompt = this.createEnhancementPrompt(options, analysis);
 
-      console.log(`[PODCAST_ENHANCER] Sending to Gemini with prompt: ${enhancementPrompt.substring(0, 100)}...`);
+      console.log(`[PODCAST_ENHANCER] Sending to Gemini with prompt: ${enhancementPrompt.substring(0, 150)}...`);
 
       // Call Gemini with both image and text
       const response = await ai.models.generateContent({
@@ -150,7 +223,8 @@ export class PodcastImageEnhancer {
                 variationIndex: 0
               }],
               mimeType: outputMimeType,
-              prompt: enhancementPrompt
+              prompt: enhancementPrompt,
+              analysis: analysis || undefined
             };
           }
         }
@@ -179,14 +253,16 @@ export class PodcastImageEnhancer {
   private async enhanceImageMultiple(
     sourceImageBuffer: Buffer,
     options: EnhancementOptions,
-    count: number
+    count: number,
+    analysis: ImageAnalysis | null
   ): Promise<EnhancementResult> {
     const { enhanceImageMultiple } = await import('./podcast-image-enhancer-multi');
     return enhanceImageMultiple(
       process.env.GEMINI_API_KEY!,
       sourceImageBuffer,
       options,
-      count
+      count,
+      analysis
     );
   }
 
@@ -229,15 +305,42 @@ export class PodcastImageEnhancer {
   }
 
   /**
-   * Create enhancement prompt based on podcast metadata
+   * Create enhancement prompt based on podcast metadata and image analysis
    */
-  private createEnhancementPrompt(options: EnhancementOptions): string {
+  private createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAnalysis | null): string {
     const style = options.podcastStyle || 'modern, professional';
 
-    return `Transform this image into a professional podcast cover art.
+    // Build dynamic prompt based on analysis
+    let prompt = `Transform this image into a professional podcast cover art.
 
 **Podcast Title:** ${options.podcastTitle}
 
+**Target Style:** ${style}, podcast cover art, professional, eye-catching
+`;
+
+    if (analysis) {
+      prompt += `
+**Source Image Analysis:**
+- Description: ${analysis.description}
+- Dominant Colors: ${analysis.colors}
+- Current Style: ${analysis.style}
+- Main Elements: ${analysis.mainElements}
+- Mood: ${analysis.mood}
+
+**Enhancement Instructions Based on Analysis:**
+1. PRESERVE: Keep these elements - ${analysis.mainElements}
+2. ENHANCE: The ${analysis.colors} color palette, making it more vibrant and saturated
+3. ADAPT: Transform the ${analysis.style} style into a ${style} aesthetic
+4. MAINTAIN: The ${analysis.mood} mood while making it more polished
+5. Make it suitable for a podcast cover (square format, clean composition)
+6. DO NOT add text, titles, or any lettering
+7. DO NOT include podcast symbols (microphones, headphones)
+8. Focus on creating a visually striking, professional result
+
+Generate ONLY the enhanced image, no text or explanations.`;
+    } else {
+      // Fallback to generic prompt if no analysis
+      prompt += `
 **Requirements:**
 1. Keep the main visual elements and color scheme from the source image
 2. Make it suitable for a podcast cover (square format, clean composition)
@@ -248,9 +351,10 @@ export class PodcastImageEnhancer {
 7. DO NOT include podcast symbols (microphones, headphones)
 8. Focus on creating a visually striking, professional result
 
-**Style:** ${style}, podcast cover art, professional, eye-catching
-
 Generate ONLY the enhanced image, no text or explanations.`;
+    }
+
+    return prompt;
   }
 
   /**
