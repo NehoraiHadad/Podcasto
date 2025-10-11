@@ -421,12 +421,12 @@ export function ImageGenerationField({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button
           type="button"
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         >
           {isGenerating ? (
             <>
@@ -446,7 +446,7 @@ export function ImageGenerationField({
           onClick={handleLoadGallery}
           disabled={isLoadingGallery}
           variant="outline"
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         >
           {isLoadingGallery ? (
             <>
