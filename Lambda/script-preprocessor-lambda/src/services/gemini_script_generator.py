@@ -318,6 +318,14 @@ CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 - **{speaker1_role}**: {speaker1_gender} voice, consistent host persona
 - **{actual_speaker2_role}**: {speaker2_gender} voice, expert knowledge in the topic
 
+⚠️ **CRITICAL: NO SPEAKER NAMES IN CONTENT**
+- The speaker roles above (e.g., "{speaker1_role}", "{actual_speaker2_role}") are ONLY for identifying who speaks
+- DO NOT invent names for the speakers (no "יובל", "רונית", "Michael", "Sarah", etc.)
+- DO NOT include greetings with names (no "שלום יובל", "Hi Michael")
+- DO NOT use placeholder names like "[שם]", "[name]", "___"
+- Keep the dialogue natural and direct without personal names
+- Speakers can refer to each other using "you" or contextual references only
+
 **TTS MARKUP INSTRUCTIONS:**
 IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
 
@@ -358,9 +366,14 @@ IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
 
 **OUTPUT FORMAT:**
 Provide ONLY the conversation script with embedded TTS markup. No explanations or metadata.
-Use this format:
-{speaker1_role}: [pause short] Opening statement...
+Use this format (the roles are IDENTIFIERS ONLY, not names to be spoken):
+
+{speaker1_role}: [pause short] Opening statement about the topic...
 {actual_speaker2_role}: [pause] Response with [emphasis]key point[/emphasis]...
+{speaker1_role}: That's interesting! Tell me more...
+{actual_speaker2_role}: [pause short] Well, let me explain...
+
+REMEMBER: The script content should NEVER include the speakers' names or invented names. The roles ({speaker1_role}, {actual_speaker2_role}) are only format markers.
 
 Begin the conversation now:
 """
@@ -369,42 +382,40 @@ Begin the conversation now:
 
     def _validate_script_content(self, script: str) -> None:
         """
-        Validate that the script doesn't contain placeholder text that needs filling
-        
+        Validate that the script doesn't contain placeholder text, invented names, or incomplete content
+
         Args:
             script: The generated script text
-            
+
         Raises:
-            Exception: If placeholder text is detected
+            Exception: If placeholder text or problematic patterns are detected
         """
         # Common placeholder patterns in Hebrew and English
         placeholder_patterns = [
             "שם המשפחה",  # family name in Hebrew
             "שם פרטי",     # first name in Hebrew
-            "[שם האורח]"   # name placeholder
+            "[שם האורח]",  # name placeholder
+            "[שם]",        # name placeholder
             "[insert",     # common bracket placeholders
             "[name]",      # name placeholder
             "[family name]", # family name placeholder
             "[first name]", # first name placeholder
             "___",         # underscores for filling
-            "...",         # ellipsis suggesting continuation
-            "וכו'",        # Hebrew etc.
-            "etc.",        # English etc.
+            "וכו'",        # Hebrew etc. (often indicates incomplete content)
             "TBD",         # To Be Determined
             "TODO",        # TODO items
             "<placeholder>", # XML-style placeholders
             "{name}",      # Template-style placeholders
             "{family}",    # Template-style placeholders
         ]
-        
+
         script_lower = script.lower()
-        
+
         for pattern in placeholder_patterns:
             if pattern.lower() in script_lower:
-                logger.warning(f"[GEMINI_SCRIPT] Detected placeholder pattern: '{pattern}' in script")
-                # Don't raise exception, just log warning for now to avoid breaking existing functionality
-                # raise Exception(f"Script contains placeholder text: '{pattern}'. Please regenerate.")
-        
+                logger.error(f"[GEMINI_SCRIPT] Detected placeholder pattern: '{pattern}' in script")
+                raise Exception(f"Script contains placeholder text: '{pattern}'. This indicates incomplete generation. Please regenerate.")
+
         logger.debug("[GEMINI_SCRIPT] Script validation passed - no obvious placeholders detected")
     
     def _format_clean_content_for_prompt(self, clean_content: Dict[str, Any]) -> str:
