@@ -102,16 +102,35 @@ export async function updateEpisodeDetails(
 ): Promise<Awaited<ReturnType<typeof episodesApi.updateEpisode>>> {
   // Ensure the user is an admin
   await requireAdmin();
-  
+
   try {
+    // Get the episode before update to check status change
+    const beforeEpisode = await episodesApi.getEpisodeById(episodeId);
+    const wasPublished = beforeEpisode?.status === 'published';
+
     // Update the episode
     const updatedEpisode = await episodesApi.updateEpisode(episodeId, data);
-    
+
     if (updatedEpisode) {
       // Revalidate paths
       revalidateEpisodePaths(episodeId, updatedEpisode.podcast_id);
+
+      // If status changed to 'published', send email notifications
+      if (!wasPublished && data.status === 'published') {
+        console.log(`[UPDATE_EPISODE] Status changed to published for episode ${episodeId}, sending email notifications`);
+
+        // Send email notifications (non-blocking, don't fail the update if emails fail)
+        try {
+          const { sendNewEpisodeNotification } = await import('@/lib/services/email-notification');
+          const emailResult = await sendNewEpisodeNotification(episodeId);
+          console.log(`[UPDATE_EPISODE] Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+        } catch (emailError) {
+          console.error(`[UPDATE_EPISODE] Failed to send email notifications:`, emailError);
+          // Don't fail the update if emails fail
+        }
+      }
     }
-    
+
     return updatedEpisode;
   } catch (error) {
     logError('updateEpisodeDetails', error);

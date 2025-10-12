@@ -89,27 +89,28 @@ export async function processSingleEpisode(
             );
             
             if (success) {
-              console.log(`${baseLogPrefix} Post-processing successful, marking as PUBLISHED.`);
-              await db.update(episodes)
-                .set({
-                  status: PUBLISHED_STATUS,
-                  published_at: new Date()
-                })
-                .where(eq(episodes.id, episode.id));
+              console.log(`${baseLogPrefix} Post-processing successful.`);
 
-              // Revalidate paths again after processing
+              // Revalidate paths after processing
               console.log(`${baseLogPrefix} Revalidating paths after processing.`);
               revalidatePath('/admin/podcasts');
               revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-              // Send email notifications (non-blocking)
-              try {
-                console.log(`${baseLogPrefix} Sending email notifications`);
-                const emailResult = await sendNewEpisodeNotification(episode.id);
-                console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
-              } catch (emailError) {
-                console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-                // Don't fail the publish process if emails fail
+              // Check if episode was published by post-processing
+              const { episodesApi } = await import('@/lib/db/api');
+              const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+              if (updatedEpisode?.status === PUBLISHED_STATUS) {
+                console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+                // Send email notifications (non-blocking)
+                try {
+                  const emailResult = await sendNewEpisodeNotification(episode.id);
+                  console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+                } catch (emailError) {
+                  console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+                  // Don't fail the publish process if emails fail
+                }
               }
 
               return { status: 'published', episodeId: episode.id };
@@ -149,27 +150,28 @@ export async function processSingleEpisode(
           );
           
           if (success) {
-            console.log(`${baseLogPrefix} Post-processing successful, marking as PUBLISHED.`);
-            await db.update(episodes)
-              .set({
-                status: PUBLISHED_STATUS,
-                published_at: new Date()
-              })
-              .where(eq(episodes.id, episode.id));
+            console.log(`${baseLogPrefix} Post-processing successful.`);
 
             // Revalidate paths after processing
             console.log(`${baseLogPrefix} Revalidating paths after processing.`);
             revalidatePath('/admin/podcasts');
             revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-            // Send email notifications (non-blocking)
-            try {
-              console.log(`${baseLogPrefix} Sending email notifications`);
-              const emailResult = await sendNewEpisodeNotification(episode.id);
-              console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
-            } catch (emailError) {
-              console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-              // Don't fail the publish process if emails fail
+            // Check if episode was published by post-processing
+            const { episodesApi } = await import('@/lib/db/api');
+            const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+            if (updatedEpisode?.status === PUBLISHED_STATUS) {
+              console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+              // Send email notifications (non-blocking)
+              try {
+                const emailResult = await sendNewEpisodeNotification(episode.id);
+                console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+              } catch (emailError) {
+                console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+                // Don't fail the publish process if emails fail
+              }
             }
 
             return { status: 'published', episodeId: episode.id };
@@ -206,29 +208,28 @@ export async function processSingleEpisode(
             );
             
             if (success) {
-              console.log(`${baseLogPrefix} Image generation successful, marking as PUBLISHED.`);
+              console.log(`${baseLogPrefix} Image generation successful.`);
 
-              // Update episode status to PUBLISHED
-              await db.update(episodes)
-                .set({
-                  status: PUBLISHED_STATUS,
-                  published_at: new Date()
-                })
-                .where(eq(episodes.id, episode.id));
-
-              // Revalidate paths after processing
+              // Revalidate paths after image generation
               console.log(`${baseLogPrefix} Revalidating paths after image generation.`);
               revalidatePath('/admin/podcasts');
               revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-              // Send email notifications (non-blocking)
-              try {
-                console.log(`${baseLogPrefix} Sending email notifications`);
-                const emailResult = await sendNewEpisodeNotification(episode.id);
-                console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
-              } catch (emailError) {
-                console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-                // Don't fail the publish process if emails fail
+              // Check if episode was published by image generation
+              const { episodesApi } = await import('@/lib/db/api');
+              const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+              if (updatedEpisode?.status === PUBLISHED_STATUS) {
+                console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+                // Send email notifications (non-blocking)
+                try {
+                  const emailResult = await sendNewEpisodeNotification(episode.id);
+                  console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+                } catch (emailError) {
+                  console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+                  // Don't fail the publish process if emails fail
+                }
               }
 
               return { status: 'published', episodeId: episode.id }; // Return 'published' as image is the final step

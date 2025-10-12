@@ -8,6 +8,7 @@ import { deleteEpisode, updateEpisodeDetails } from './episode/core-actions';
 import { deleteEpisodesBulk } from './episode/bulk-delete';
 import { generateEpisodeTitleAndDescription } from './episode/generation-actions';
 import { generateBulkEpisodes, previewBulkEpisodes } from './episode/bulk-generation-actions';
+import { resendEpisodeEmails } from './episode/email-actions';
 
 // Export each async function individually
 export {
@@ -21,5 +22,6 @@ export {
   updateEpisodeDetails,
   generateEpisodeTitleAndDescription,
   generateBulkEpisodes,
-  previewBulkEpisodes
+  previewBulkEpisodes,
+  resendEpisodeEmails
 }; 
