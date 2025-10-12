@@ -76,7 +76,10 @@ class GeminiScriptGenerator:
         script = self._generate_ai_script(clean_content_prioritized, config, episode_id, content_metrics)
 
         logger.info(f"[GEMINI_SCRIPT] Generated script: {len(script)} characters")
-        logger.info(f"[GEMINI_SCRIPT] Actual ratio: {len(script) / content_metrics['total_chars']:.2f} (target: {content_metrics['target_ratio']:.2f})")
+        if content_metrics['total_chars'] > 0:
+            logger.info(f"[GEMINI_SCRIPT] Actual ratio: {len(script) / content_metrics['total_chars']:.2f} (target: {content_metrics['target_ratio']:.2f})")
+        else:
+            logger.warning(f"[GEMINI_SCRIPT] No source content to calculate ratio (generated {len(script)} chars from empty content)")
 
         return script, content_metrics
 
