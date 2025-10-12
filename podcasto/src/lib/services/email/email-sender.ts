@@ -6,12 +6,7 @@
 import { SendBulkTemplatedEmailCommand, type BulkEmailDestination } from '@aws-sdk/client-ses';
 import { sesClient, SES_CONFIG } from '@/lib/aws/ses-client';
 import { SESRateLimiter } from '@/lib/aws/ses-rate-limiter';
-import {
-  NEW_EPISODE_HTML_TEMPLATE,
-  NEW_EPISODE_TEXT_TEMPLATE,
-  convertToSESTemplateData,
-  type SESTemplateData,
-} from '@/lib/email/templates/ses-templates';
+import { type SESTemplateData } from '@/lib/email/templates/ses-templates';
 import { db, sentEpisodes } from '@/lib/db';
 import { errorToString } from '@/lib/utils/error-utils';
 import type { BatchUserData, EmailNotificationResult, SentEmailRecord } from './types';
@@ -24,6 +19,11 @@ type Subscription = InferSelectModel<typeof subscriptions>;
  * Maximum recipients per SES bulk email API call
  */
 const MAX_RECIPIENTS_PER_BATCH = 50;
+
+/**
+ * SES Template name created via create-ses-template.sh script
+ */
+const SES_TEMPLATE_NAME = 'podcasto-new-episode-v1';
 
 /**
  * Recipient info for bulk sending
@@ -108,11 +108,9 @@ async function sendBulkBatch(
 
     const command = new SendBulkTemplatedEmailCommand({
       Source: `${SES_CONFIG.FROM_NAME} <${SES_CONFIG.FROM_EMAIL}>`,
-      Template: NEW_EPISODE_HTML_TEMPLATE, // Inline HTML template
+      Template: SES_TEMPLATE_NAME, // Pre-created SES template name
       DefaultTemplateData: JSON.stringify(defaultTemplateData),
       Destinations: destinations,
-      // Optional: can also specify default text template
-      // Note: SES inline templates use the HTML as primary, text fallback
       ReplyToAddresses: [SES_CONFIG.FROM_EMAIL],
     });
 
