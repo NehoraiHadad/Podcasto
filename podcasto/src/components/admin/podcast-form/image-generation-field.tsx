@@ -32,13 +32,14 @@ interface ImageGenerationFieldProps {
 type ImageSource = 'telegram' | 'upload' | 'url';
 
 interface GeneratedVariation {
-  url: string;
+  url: string; // Data URL (data:image/jpeg;base64,...)
+  base64Data: string; // The actual base64 data without prefix
   index: number;
   selected: boolean;
 }
 
 interface GenerationDebugInfo {
-  originalImageUrl?: string;
+  originalImageData?: string; // Base64 data of original image
   analysis?: ImageAnalysis;
   prompt?: string;
 }
@@ -176,36 +177,40 @@ export function ImageGenerationField({
       }
 
       if (result?.success) {
-        // Store debug info
+        // Store debug info (convert base64 to data URL for original image)
         setDebugInfo({
-          originalImageUrl: result.originalImageUrl,
+          originalImageData: result.originalImageData,
           analysis: result.analysis,
           prompt: result.prompt
         });
 
-        // Handle multiple variations if returned
-        if (result.imageUrls && result.imageUrls.length > 1) {
-          const variations: GeneratedVariation[] = result.imageUrls.map((url, index) => ({
-            url,
+        // Handle multiple variations if returned (as base64)
+        if (result.imageDatas && result.imageDatas.length > 1) {
+          const mimeType = result.mimeType || 'image/jpeg';
+          const variations: GeneratedVariation[] = result.imageDatas.map((base64, index) => ({
+            url: `data:${mimeType};base64,${base64}`, // Convert to data URL
+            base64Data: base64,
             index,
             selected: index === 0 // First one selected by default
           }));
 
           setGeneratedVariations(variations);
-          onImageGenerated?.(variations[0].url);
+          onImageGenerated?.(variations[0].base64Data); // Pass base64 to form
 
           const enhancementNote = result.enhancedWithAI ? ' (AI enhanced)' : '';
           toast.success(`Generated ${variations.length} variations${enhancementNote}! Select your favorite.`);
-        } else if (result.imageUrl) {
-          // Single variation
+        } else if (result.imageData) {
+          // Single variation (as base64)
+          const mimeType = result.mimeType || 'image/jpeg';
           const variations: GeneratedVariation[] = [{
-            url: result.imageUrl,
+            url: `data:${mimeType};base64,${result.imageData}`, // Convert to data URL
+            base64Data: result.imageData,
             index: 0,
             selected: true
           }];
 
           setGeneratedVariations(variations);
-          onImageGenerated?.(result.imageUrl);
+          onImageGenerated?.(result.imageData); // Pass base64 to form
 
           const enhancementNote = result.enhancedWithAI ? ' (AI enhanced)' : '';
           toast.success(`Image generated successfully${enhancementNote}!`);
@@ -230,7 +235,7 @@ export function ImageGenerationField({
 
     const selectedVariation = variations.find(v => v.selected);
     if (selectedVariation) {
-      onImageGenerated?.(selectedVariation.url);
+      onImageGenerated?.(selectedVariation.base64Data); // Pass base64 to form
       toast.success('Image selected!');
     }
   };
@@ -526,12 +531,12 @@ export function ImageGenerationField({
           <h3 className="text-lg font-semibold">Generation Process Details</h3>
 
           {/* Original Image */}
-          {debugInfo.originalImageUrl && (
+          {debugInfo.originalImageData && (
             <div className="space-y-2">
               <Label className="text-base font-medium">1. Original Source Image</Label>
               <div className="relative w-full aspect-square max-w-sm rounded-lg overflow-hidden border bg-background">
                 <Image
-                  src={debugInfo.originalImageUrl}
+                  src={`data:image/jpeg;base64,${debugInfo.originalImageData}`}
                   alt="Original source"
                   fill
                   className="object-cover"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PodcastCreationValues, PodcastEditValues } from './types';
 import { createPodcast } from '@/lib/actions/podcast/create';
 import { updatePodcast } from '@/lib/actions/podcast/update';
+import { uploadBase64ImageToS3 } from '@/lib/actions/podcast';
 import type { Podcast } from '@/lib/db/api';
 
 export interface UseFormHandlersOptions {
@@ -14,6 +15,42 @@ export interface UseFormHandlersOptions {
 export interface FormHandlers {
   handleCreateSubmit: (data: PodcastCreationValues) => Promise<void>;
   handleEditSubmit: (data: PodcastEditValues) => Promise<void>;
+}
+
+/**
+ * Helper function to upload base64 image to S3 if needed
+ * Returns the S3 URL or the original value if it's already a URL
+ */
+async function processImageField(podcastId: string | undefined, imageValue: string | null | undefined): Promise<string | null> {
+  // If no image or empty string, return null
+  if (!imageValue || imageValue.trim() === '') {
+    return null;
+  }
+
+  // If it's already a URL (starts with http:// or https://), return as-is
+  if (imageValue.startsWith('http://') || imageValue.startsWith('https://')) {
+    console.log('[FORM_HANDLER] Image is already a URL, no upload needed');
+    return imageValue;
+  }
+
+  // Otherwise, it's base64 data - upload to S3
+  if (!podcastId) {
+    console.error('[FORM_HANDLER] Cannot upload image: podcast ID is missing');
+    toast.error('Cannot save image: podcast must be saved first');
+    return null;
+  }
+
+  console.log('[FORM_HANDLER] Uploading base64 image to S3...');
+  const uploadResult = await uploadBase64ImageToS3(podcastId, imageValue);
+
+  if (uploadResult.success && uploadResult.imageUrl) {
+    console.log('[FORM_HANDLER] Image uploaded successfully:', uploadResult.imageUrl);
+    return uploadResult.imageUrl;
+  } else {
+    console.error('[FORM_HANDLER] Failed to upload image:', uploadResult.error);
+    toast.error(`Failed to upload image: ${uploadResult.error}`);
+    return null;
+  }
 }
 
 export function useFormHandlers(podcast?: Podcast, options?: UseFormHandlersOptions): FormHandlers {
@@ -62,13 +99,16 @@ export function useFormHandlers(podcast?: Podcast, options?: UseFormHandlersOpti
   // Handle edit form submission
   const handleEditSubmit = async (data: PodcastEditValues) => {
     if (!podcast) return;
-    
+
     try {
+      // Process cover image: upload to S3 if it's base64 data
+      const processedCoverImage = await processImageField(podcast.id, data.cover_image);
+
       // Clean up empty strings to be null for the database
       const formData = {
         ...data,
         description: data.description || null,
-        cover_image: data.cover_image || null,
+        cover_image: processedCoverImage,
       };
       
       // Filter out empty URL fields and undefined values

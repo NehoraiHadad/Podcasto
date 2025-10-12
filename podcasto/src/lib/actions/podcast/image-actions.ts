@@ -17,11 +17,14 @@ export interface ImageActionResult {
   success: boolean;
   imageUrl?: string;
   imageUrls?: string[]; // For multiple variations
+  imageData?: string; // Base64 encoded image data
+  imageDatas?: string[]; // Base64 encoded image data for multiple variations
+  mimeType?: string; // MIME type of the image
   error?: string;
   enhancedWithAI?: boolean;
   analysis?: ImageAnalysis; // AI analysis of source image
   prompt?: string; // The prompt used to generate the image
-  originalImageUrl?: string; // URL of original source image
+  originalImageData?: string; // Base64 of original source image (for preview only)
 }
 
 /**
@@ -281,8 +284,9 @@ export async function generatePodcastImageFromUrl(
 }
 
 /**
- * Shared function to enhance and upload image
+ * Shared function to enhance image (WITHOUT uploading to S3)
  * Used by all image generation sources
+ * Images are only uploaded when the user saves the form
  */
 async function enhanceAndUploadImage(
   podcastId: string,
@@ -294,20 +298,9 @@ async function enhanceAndUploadImage(
   let enhancedWithAI = false;
   let analysis: ImageAnalysis | undefined;
   let prompt: string | undefined;
-  let originalImageUrl: string | undefined;
 
-  // Upload original image to S3 for display in UI
-  try {
-    originalImageUrl = await uploadPodcastImageToS3(
-      podcastId,
-      imageBuffer,
-      'image/jpeg',
-      'original-image'
-    );
-    console.log(`[IMAGE_ACTION] Uploaded original image: ${originalImageUrl}`);
-  } catch (error) {
-    console.error('[IMAGE_ACTION] Failed to upload original image:', error);
-  }
+  // Store original image as base64 for preview (NOT uploaded to S3)
+  const originalImageData = imageBuffer.toString('base64');
 
   // Try to enhance with AI if Gemini API key is available
   if (process.env.GEMINI_API_KEY) {
@@ -333,35 +326,23 @@ async function enhanceAndUploadImage(
         analysis = enhancementResult.analysis;
         prompt = enhancementResult.prompt;
 
-        // Handle multiple variations
+        // Handle multiple variations - return as base64 (NO S3 upload)
         if (variationsCount > 1 && enhancementResult.variations.length > 1) {
-          // Upload all variations to S3
-          const uploadPromises = enhancementResult.variations.map(async (variation, index) => {
-            const variantImageUrl = await uploadPodcastImageToS3(
-              podcastId,
-              variation.imageData,
-              variation.mimeType,
-              `cover-image-variant-${index}`
-            );
-            return variantImageUrl;
-          });
+          // Convert all variations to base64
+          const allVariationBase64s = enhancementResult.variations.map(variation =>
+            variation.imageData.toString('base64')
+          );
 
-          const allVariationUrls = await Promise.all(uploadPromises);
-
-          // Use first variation as the main image
-          const s3ImageUrl = allVariationUrls[0];
-
-          // DON'T update database - let the user save the form when ready
-          console.log(`[IMAGE_ACTION] Generated ${allVariationUrls.length} variations (not saved to DB yet)`);
+          console.log(`[IMAGE_ACTION] Generated ${allVariationBase64s.length} variations (stored as base64, will upload to S3 when form is saved)`);
 
           return {
             success: true,
-            imageUrl: s3ImageUrl,
-            imageUrls: allVariationUrls,
+            imageDatas: allVariationBase64s,
+            mimeType: enhancementResult.variations[0].mimeType,
             enhancedWithAI: true,
             analysis,
             prompt,
-            originalImageUrl
+            originalImageData
           };
         } else {
           // Single variation
@@ -379,27 +360,61 @@ async function enhanceAndUploadImage(
     console.log(`[IMAGE_ACTION] GEMINI_API_KEY not found, skipping AI enhancement`);
   }
 
-  // Upload to S3
-  const s3ImageUrl = await uploadPodcastImageToS3(
-    podcastId,
-    finalImageBuffer,
-    'image/jpeg'
-  );
+  // Return base64 data (NO S3 upload until form is saved)
+  const finalImageBase64 = finalImageBuffer.toString('base64');
 
-  console.log(`[IMAGE_ACTION] Uploaded image to S3: ${s3ImageUrl} (AI enhanced: ${enhancedWithAI})`);
-  console.log(`[IMAGE_ACTION] Image generated but NOT saved to DB - user must save the form`);
-
-  // DON'T update database - let the user save the form when ready
-  // The form will handle saving when the user clicks Save
+  console.log(`[IMAGE_ACTION] Image generated as base64 (${finalImageBase64.length} chars, AI enhanced: ${enhancedWithAI})`);
+  console.log(`[IMAGE_ACTION] Will upload to S3 only when user saves the form`);
 
   return {
     success: true,
-    imageUrl: s3ImageUrl,
+    imageData: finalImageBase64,
+    mimeType: 'image/jpeg',
     enhancedWithAI,
     analysis,
     prompt,
-    originalImageUrl
+    originalImageData
   };
+}
+
+/**
+ * Upload base64 image data to S3
+ * This is called when the user saves the form after generating/selecting an image
+ */
+export async function uploadBase64ImageToS3(
+  podcastId: string,
+  base64Data: string,
+  mimeType: string = 'image/jpeg'
+): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  try {
+    await requireAdmin();
+
+    console.log(`[IMAGE_ACTION] Uploading base64 image to S3 for podcast ${podcastId}`);
+
+    // Convert base64 to buffer
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    // Upload to S3 with consistent filename (will overwrite previous)
+    const imageUrl = await uploadPodcastImageToS3(
+      podcastId,
+      imageBuffer,
+      mimeType,
+      'cover-image' // Consistent name - no timestamp, will overwrite
+    );
+
+    console.log(`[IMAGE_ACTION] Uploaded image to S3: ${imageUrl}`);
+
+    return {
+      success: true,
+      imageUrl
+    };
+  } catch (error) {
+    console.error('[IMAGE_ACTION] Error uploading base64 image:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 }
 
 /**
