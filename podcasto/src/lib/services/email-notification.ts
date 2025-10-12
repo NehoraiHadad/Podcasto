@@ -7,7 +7,8 @@ import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { sesClient, SES_CONFIG } from '@/lib/aws/ses-client';
 import { generateNewEpisodeHTML, generateNewEpisodeText, type EpisodeEmailData } from '@/lib/email/templates/new-episode';
 import { episodesApi, podcastsApi, subscriptionsApi, sentEpisodesApi, profilesApi } from '@/lib/db/api';
-import { createClient as createBrowserClient } from '@supabase/supabase-js';
+import { db } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
 export interface EmailNotificationResult {
   success: boolean;
@@ -76,22 +77,7 @@ export async function sendNewEpisodeNotification(
 
     console.log(`${logPrefix} Found ${subscribers.length} subscribers`);
 
-    // 3. Get Supabase service role client to fetch user emails from auth.users
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase credentials');
-    }
-
-    const supabase = createBrowserClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-
-    // 4. Prepare email data
+    // 3. Prepare email data
     const emailData: EpisodeEmailData = {
       episodeId: episode.id,
       episodeTitle: episode.title,
@@ -126,18 +112,20 @@ export async function sendNewEpisodeNotification(
           continue;
         }
 
-        // 5.3 Get user email from auth.users
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+        // 5.3 Get user email from auth.users via raw SQL
+        const userResult = await db.execute<{ email: string }>(
+          sql`SELECT email FROM auth.users WHERE id = ${userId}`
+        );
 
-        if (userError || !userData?.user?.email) {
-          const error = `Failed to get email for user ${userId}: ${userError?.message || 'No email found'}`;
+        if (!userResult || userResult.length === 0 || !userResult[0].email) {
+          const error = `Failed to get email for user ${userId}: No email found`;
           console.error(`${logPrefix} ${error}`);
           result.errors.push(error);
           result.emailsFailed++;
           continue;
         }
 
-        const userEmail = userData.user.email;
+        const userEmail = userResult[0].email;
 
         // 5.4 Generate email content
         const htmlContent = generateNewEpisodeHTML(emailData);
