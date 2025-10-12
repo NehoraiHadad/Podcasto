@@ -521,6 +521,50 @@ export async function setPodcastImageFromUrl(
 }
 
 /**
+ * Delete a single image from S3 gallery
+ */
+export async function deleteGalleryImage(
+  s3Key: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+
+    console.log(`[IMAGE_ACTION] Deleting gallery image: ${s3Key}`);
+
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+      }
+    });
+
+    const bucket = process.env.S3_BUCKET_NAME!;
+
+    // Delete from S3
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    const command = new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: s3Key
+    });
+
+    await s3Client.send(command);
+
+    console.log(`[IMAGE_ACTION] Successfully deleted gallery image: ${s3Key}`);
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('[IMAGE_ACTION] Error deleting gallery image:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
  * List all images in the S3 gallery for a podcast
  * This allows users to view and select from previously generated images
  */

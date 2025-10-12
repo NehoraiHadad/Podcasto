@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Sparkles, Check, ImageIcon, Images } from 'lucide-react';
+import { Loader2, Sparkles, Check, ImageIcon, Images, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import {
@@ -15,6 +15,7 @@ import {
   generatePodcastImageFromFile,
   generatePodcastImageFromUrl,
   listPodcastImagesGallery,
+  deleteGalleryImage,
   GalleryImage
 } from '@/lib/actions/podcast';
 import { PODCAST_IMAGE_STYLES, VARIATION_OPTIONS } from '@/lib/constants/podcast-image-styles';
@@ -276,6 +277,61 @@ export function ImageGenerationField({
     toast.success('Image selected from gallery!');
   };
 
+  const handleDeleteGalleryImage = async (image: GalleryImage) => {
+    if (!confirm(`Delete "${image.key.split('/').pop()}"?`)) {
+      return;
+    }
+
+    try {
+      const result = await deleteGalleryImage(image.key);
+
+      if (result.success) {
+        // Remove from local state
+        setGalleryImages(prev => prev.filter(img => img.key !== image.key));
+        toast.success('Image deleted successfully');
+      } else {
+        toast.error(result.error || 'Failed to delete image');
+      }
+    } catch (error) {
+      console.error('Error deleting gallery image:', error);
+      toast.error('Failed to delete image');
+    }
+  };
+
+  const handleDeleteCurrentImage = () => {
+    onImageGenerated?.(''); // Clear the form field
+    toast.success('Image removed');
+  };
+
+  const handleDeleteVariation = (index: number) => {
+    const updatedVariations = generatedVariations.filter(v => v.index !== index);
+
+    // Re-index the remaining variations
+    const reindexedVariations = updatedVariations.map((v, i) => ({
+      ...v,
+      index: i
+    }));
+
+    setGeneratedVariations(reindexedVariations);
+
+    // If we deleted the selected variation, select the first one
+    const wasSelected = generatedVariations[index].selected;
+    if (wasSelected && reindexedVariations.length > 0) {
+      reindexedVariations[0].selected = true;
+      onImageGenerated?.(reindexedVariations[0].base64Data);
+      toast.success('Variation deleted. First variation selected.');
+    } else {
+      toast.success('Variation deleted');
+    }
+
+    // If no variations left, clear the form field
+    if (reindexedVariations.length === 0) {
+      onImageGenerated?.('');
+      setGeneratedVariations([]);
+      setDebugInfo(null);
+    }
+  };
+
   const selectedStyleData = PODCAST_IMAGE_STYLES.find(s => s.id === selectedStyle);
   const selectedVariationOption = VARIATION_OPTIONS.find(v => v.count === variationCount);
 
@@ -296,7 +352,19 @@ export function ImageGenerationField({
       {/* Current Image Preview */}
       {currentImageUrl && (
         <div className="space-y-2">
-          <Label>Current Cover Image</Label>
+          <div className="flex items-center justify-between">
+            <Label>Current Cover Image</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteCurrentImage}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Remove
+            </Button>
+          </div>
           <div className="relative w-full aspect-square max-w-xs rounded-lg overflow-hidden border">
             <Image
               src={currentImageUrl}
@@ -497,17 +565,31 @@ export function ImageGenerationField({
               {galleryImages.map((image) => (
                 <Card
                   key={image.key}
-                  className="cursor-pointer transition-all hover:ring-2 hover:ring-primary"
-                  onClick={() => handleSelectFromGallery(image)}
+                  className="transition-all hover:ring-2 hover:ring-primary"
                 >
                   <CardContent className="p-0">
-                    <div className="relative w-full aspect-square rounded-t-lg overflow-hidden">
+                    <div
+                      className="relative w-full aspect-square rounded-t-lg overflow-hidden cursor-pointer group"
+                      onClick={() => handleSelectFromGallery(image)}
+                    >
                       <Image
                         src={image.url}
                         alt={`Gallery image`}
                         fill
                         className="object-cover"
                       />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent selecting the image
+                          handleDeleteGalleryImage(image);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="p-2 space-y-1">
                       <div className="text-xs font-medium text-center capitalize">
@@ -601,13 +683,15 @@ export function ImageGenerationField({
             {generatedVariations.map((variation) => (
               <Card
                 key={variation.index}
-                className={`cursor-pointer transition-all ${
+                className={`transition-all ${
                   variation.selected ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-muted'
                 }`}
-                onClick={() => handleSelectVariation(variation.index)}
               >
                 <CardContent className="p-0">
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+                  <div
+                    className="relative w-full aspect-square rounded-lg overflow-hidden cursor-pointer"
+                    onClick={() => handleSelectVariation(variation.index)}
+                  >
                     <Image
                       src={variation.url}
                       alt={`Variation ${variation.index + 1}`}
@@ -619,6 +703,18 @@ export function ImageGenerationField({
                         <Check className="h-4 w-4" />
                       </div>
                     )}
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 left-2 h-7 w-7 opacity-0 hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent selecting the variation
+                        handleDeleteVariation(variation.index);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="p-3 text-center text-sm">
                     Variation {variation.index + 1}
