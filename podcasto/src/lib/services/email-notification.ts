@@ -5,6 +5,7 @@
 
 import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { sesClient, SES_CONFIG } from '@/lib/aws/ses-client';
+import { SESRateLimiter } from '@/lib/aws/ses-rate-limiter';
 import { generateNewEpisodeHTML, generateNewEpisodeText, type EpisodeEmailData } from '@/lib/email/templates/new-episode';
 import { episodesApi, podcastsApi, subscriptionsApi } from '@/lib/db/api';
 import { db, sentEpisodes } from '@/lib/db';
@@ -38,6 +39,11 @@ export async function sendNewEpisodeNotification(
 
   try {
     console.log(`${logPrefix} Starting notification process`);
+
+    // Initialize rate limiter based on environment
+    const rateLimiter = SESRateLimiter.createFromEnvironment();
+    const stats = rateLimiter.getStats();
+    console.log(`${logPrefix} Rate limiter initialized:`, stats);
 
     // 1. Get episode and podcast details
     const episode = await episodesApi.getEpisodeById(episodeId);
@@ -173,6 +179,17 @@ export async function sendNewEpisodeNotification(
       try {
         const userEmail = userData.email;
 
+        // Wait for rate limit before sending
+        try {
+          await rateLimiter.waitForRateLimit();
+        } catch (rateLimitError) {
+          const error = `Rate limit exceeded: ${rateLimitError instanceof Error ? rateLimitError.message : 'Unknown error'}`;
+          console.error(`${logPrefix} ${error}`);
+          result.errors.push(error);
+          result.emailsFailed++;
+          break; // Stop processing if we hit daily limit
+        }
+
         // Generate email content
         const htmlContent = generateNewEpisodeHTML(emailData);
         const textContent = generateNewEpisodeText(emailData);
@@ -235,7 +252,10 @@ export async function sendNewEpisodeNotification(
     // 7. Mark as successful if at least one email was sent
     result.success = result.emailsSent > 0 || result.totalSubscribers === 0;
 
+    // Log final rate limiter stats
+    const finalStats = rateLimiter.getStats();
     console.log(`${logPrefix} Notification process completed. Sent: ${result.emailsSent}, Failed: ${result.emailsFailed}`);
+    console.log(`${logPrefix} Rate limiter stats:`, finalStats);
 
     return result;
 
