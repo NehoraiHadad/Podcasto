@@ -104,7 +104,7 @@ export async function POST(
         console.log(`${logPrefix} Episode published, sending email notifications`);
 
         try {
-          const { sendNewEpisodeNotification } = await import('@/lib/services/email-notification');
+          const { sendNewEpisodeNotification } = await import('@/lib/services/email');
           const emailResult = await sendNewEpisodeNotification(episodeId);
           console.log(`${logPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
         } catch (emailError) {

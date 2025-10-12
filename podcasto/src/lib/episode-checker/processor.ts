@@ -11,7 +11,7 @@ import {
   SUMMARY_COMPLETED_STATUS
 } from './constants';
 import { createPostProcessingService } from '@/lib/services/post-processing'; // Needed for type
-import { sendNewEpisodeNotification } from '@/lib/services/email-notification';
+import { sendNewEpisodeNotification } from '@/lib/services/email';
 
 // Define the type using InferSelectModel
 type Episode = InferSelectModel<typeof episodes>;

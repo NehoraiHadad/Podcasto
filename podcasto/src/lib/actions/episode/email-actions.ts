@@ -2,7 +2,7 @@
 
 import { episodesApi } from '@/lib/db/api';
 import { requireAdmin } from '../auth-actions';
-import { sendNewEpisodeNotification, EmailNotificationResult } from '@/lib/services/email-notification';
+import { sendNewEpisodeNotification, EmailNotificationResult } from '@/lib/services/email';
 import { logError, errorToString } from '@/lib/utils/error-utils';
 
 /**

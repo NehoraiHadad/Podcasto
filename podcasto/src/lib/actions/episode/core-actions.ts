@@ -121,7 +121,7 @@ export async function updateEpisodeDetails(
 
         // Send email notifications (non-blocking, don't fail the update if emails fail)
         try {
-          const { sendNewEpisodeNotification } = await import('@/lib/services/email-notification');
+          const { sendNewEpisodeNotification } = await import('@/lib/services/email');
           const emailResult = await sendNewEpisodeNotification(episodeId);
           console.log(`[UPDATE_EPISODE] Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
         } catch (emailError) {
