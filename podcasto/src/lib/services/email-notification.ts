@@ -17,6 +17,91 @@ export interface EmailNotificationResult {
   emailsSent: number;
   emailsFailed: number;
   errors: string[];
+  retriedEmails?: number;
+}
+
+/**
+ * Retry configuration for email sending
+ */
+interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxAttempts: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000
+};
+
+/**
+ * Sends an email with exponential backoff retry logic
+ * @param command - SES SendEmailCommand
+ * @param userEmail - Email address for logging
+ * @param logPrefix - Log prefix for consistent logging
+ * @param retryConfig - Retry configuration
+ * @returns Success boolean
+ */
+async function sendEmailWithRetry(
+  command: SendEmailCommand,
+  userEmail: string,
+  logPrefix: string,
+  retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
+): Promise<{ success: boolean; attempts: number; error?: Error }> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
+    try {
+      await sesClient.send(command);
+
+      if (attempt > 1) {
+        console.log(`${logPrefix} Successfully sent email to ${userEmail} on attempt ${attempt}`);
+      } else {
+        console.log(`${logPrefix} Successfully sent email to ${userEmail}`);
+      }
+
+      return { success: true, attempts: attempt };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if error is retryable
+      const isRetryable = isRetryableError(lastError);
+
+      if (!isRetryable || attempt === retryConfig.maxAttempts) {
+        console.error(`${logPrefix} Failed to send email to ${userEmail} after ${attempt} attempt(s):`, lastError.message);
+        return { success: false, attempts: attempt, error: lastError };
+      }
+
+      // Calculate exponential backoff delay
+      const delay = Math.min(
+        retryConfig.baseDelayMs * Math.pow(2, attempt - 1),
+        retryConfig.maxDelayMs
+      );
+
+      console.warn(`${logPrefix} Attempt ${attempt} failed for ${userEmail}, retrying in ${delay}ms:`, lastError.message);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  return { success: false, attempts: retryConfig.maxAttempts, error: lastError };
+}
+
+/**
+ * Determines if an error is retryable
+ */
+function isRetryableError(error: Error): boolean {
+  const retryableErrors = [
+    'Throttling',
+    'ServiceUnavailable',
+    'RequestTimeout',
+    'TooManyRequests',
+    'InternalFailure'
+  ];
+
+  return retryableErrors.some(errType =>
+    error.message.includes(errType) || error.name.includes(errType)
+  );
 }
 
 /**
@@ -35,6 +120,7 @@ export async function sendNewEpisodeNotification(
     emailsSent: 0,
     emailsFailed: 0,
     errors: [],
+    retriedEmails: 0,
   };
 
   try {
@@ -194,7 +280,7 @@ export async function sendNewEpisodeNotification(
         const htmlContent = generateNewEpisodeHTML(emailData);
         const textContent = generateNewEpisodeText(emailData);
 
-        // Send email via SES
+        // Send email via SES with retry logic
         const sendEmailCommand = new SendEmailCommand({
           Destination: {
             ToAddresses: [userEmail],
@@ -218,16 +304,27 @@ export async function sendNewEpisodeNotification(
           Source: `${SES_CONFIG.FROM_NAME} <${SES_CONFIG.FROM_EMAIL}>`,
         });
 
-        await sesClient.send(sendEmailCommand);
-        console.log(`${logPrefix} Successfully sent email to ${userEmail}`);
+        const sendResult = await sendEmailWithRetry(sendEmailCommand, userEmail, logPrefix);
 
-        // Track this email for batch recording
-        emailsSentRecords.push({
-          user_id: userId,
-          episode_id: episodeId,
-        });
+        if (sendResult.success) {
+          // Track this email for batch recording
+          emailsSentRecords.push({
+            user_id: userId,
+            episode_id: episodeId,
+          });
 
-        result.emailsSent++;
+          result.emailsSent++;
+
+          // Track retries
+          if (sendResult.attempts > 1) {
+            result.retriedEmails!++;
+            console.log(`${logPrefix} Email to ${userEmail} succeeded after ${sendResult.attempts} attempts`);
+          }
+        } else {
+          const errorMsg = sendResult.error?.message || 'Unknown error';
+          result.errors.push(`Failed to send to ${userEmail}: ${errorMsg}`);
+          result.emailsFailed++;
+        }
 
       } catch (error) {
         const errorMsg = `Failed to send email to user ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -252,10 +349,22 @@ export async function sendNewEpisodeNotification(
     // 7. Mark as successful if at least one email was sent
     result.success = result.emailsSent > 0 || result.totalSubscribers === 0;
 
-    // Log final rate limiter stats
+    // Log comprehensive final statistics
     const finalStats = rateLimiter.getStats();
-    console.log(`${logPrefix} Notification process completed. Sent: ${result.emailsSent}, Failed: ${result.emailsFailed}`);
-    console.log(`${logPrefix} Rate limiter stats:`, finalStats);
+    console.log(`${logPrefix} ===== Notification Process Completed =====`);
+    console.log(`${logPrefix} Total Subscribers: ${result.totalSubscribers}`);
+    console.log(`${logPrefix} Emails Sent: ${result.emailsSent}`);
+    console.log(`${logPrefix} Emails Failed: ${result.emailsFailed}`);
+    console.log(`${logPrefix} Emails Retried: ${result.retriedEmails}`);
+    console.log(`${logPrefix} Success Rate: ${result.totalSubscribers > 0 ? ((result.emailsSent / result.totalSubscribers) * 100).toFixed(1) : 0}%`);
+    console.log(`${logPrefix} Rate Limiter Stats:`, finalStats);
+
+    if (result.errors.length > 0) {
+      console.error(`${logPrefix} Errors encountered (${result.errors.length}):`, result.errors.slice(0, 5));
+      if (result.errors.length > 5) {
+        console.error(`${logPrefix} ... and ${result.errors.length - 5} more errors`);
+      }
+    }
 
     return result;
 
