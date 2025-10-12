@@ -15,6 +15,13 @@
       "when": 1759927337147,
       "tag": "0001_young_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760296287660,
+      "tag": "0002_short_magneto",
+      "breakpoints": true
     }
   ]
 }

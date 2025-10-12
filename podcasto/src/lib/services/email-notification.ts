@@ -6,8 +6,8 @@
 import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { sesClient, SES_CONFIG } from '@/lib/aws/ses-client';
 import { generateNewEpisodeHTML, generateNewEpisodeText, type EpisodeEmailData } from '@/lib/email/templates/new-episode';
-import { episodesApi, podcastsApi, subscriptionsApi, sentEpisodesApi, profilesApi } from '@/lib/db/api';
-import { db } from '@/lib/db';
+import { episodesApi, podcastsApi, subscriptionsApi } from '@/lib/db/api';
+import { db, sentEpisodes } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 
 export interface EmailNotificationResult {
@@ -89,7 +89,49 @@ export async function sendNewEpisodeNotification(
       publishedAt: episode.published_at ? new Date(episode.published_at) : undefined,
     };
 
-    // 5. Process each subscriber
+    // 4. Batch fetch all user data in a single optimized query
+    // This replaces 3-4 queries per subscriber with just 1 query total
+    const userIds = subscribers.map(s => s.user_id).filter(Boolean) as string[];
+
+    if (userIds.length === 0) {
+      console.log(`${logPrefix} No valid user IDs found in subscriptions`);
+      result.success = true;
+      return result;
+    }
+
+    console.log(`${logPrefix} Fetching data for ${userIds.length} users in batch query`);
+
+    interface BatchUserData {
+      user_id: string;
+      email: string;
+      email_notifications: boolean | null;
+      already_sent: boolean;
+      [key: string]: unknown;
+    }
+
+    const batchResult = await db.execute<BatchUserData>(sql`
+      SELECT
+        u.id as user_id,
+        u.email,
+        COALESCE(p.email_notifications, true) as email_notifications,
+        CASE WHEN se.id IS NOT NULL THEN true ELSE false END as already_sent
+      FROM auth.users u
+      LEFT JOIN profiles p ON u.id = p.id
+      LEFT JOIN sent_episodes se ON se.user_id = u.id AND se.episode_id = ${episodeId}
+      WHERE u.id = ANY(${userIds}::uuid[])
+    `);
+
+    console.log(`${logPrefix} Batch query returned ${batchResult.length} user records`);
+
+    // Create a map for fast lookup
+    const userDataMap = new Map<string, BatchUserData>();
+    for (const userData of batchResult) {
+      userDataMap.set(userData.user_id, userData);
+    }
+
+    // 5. Process each subscriber using the batched data
+    const emailsSentRecords: { user_id: string; episode_id: string }[] = [];
+
     for (const subscription of subscribers) {
       const userId = subscription.user_id;
       if (!userId) {
@@ -97,41 +139,45 @@ export async function sendNewEpisodeNotification(
         continue;
       }
 
+      const userData = userDataMap.get(userId);
+
+      if (!userData) {
+        const error = `No user data found for user ${userId}`;
+        console.error(`${logPrefix} ${error}`);
+        result.errors.push(error);
+        result.emailsFailed++;
+        continue;
+      }
+
+      // Skip if already sent
+      if (userData.already_sent) {
+        console.log(`${logPrefix} Episode already sent to user ${userId}, skipping`);
+        continue;
+      }
+
+      // Skip if email notifications disabled
+      if (!userData.email_notifications) {
+        console.log(`${logPrefix} User ${userId} has email notifications disabled, skipping`);
+        continue;
+      }
+
+      // Skip if no email
+      if (!userData.email) {
+        const error = `No email found for user ${userId}`;
+        console.error(`${logPrefix} ${error}`);
+        result.errors.push(error);
+        result.emailsFailed++;
+        continue;
+      }
+
       try {
-        // 5.1 Check if episode was already sent to this user
-        const alreadySent = await sentEpisodesApi.hasEpisodeBeenSentToUser(episodeId, userId);
-        if (alreadySent) {
-          console.log(`${logPrefix} Episode already sent to user ${userId}, skipping`);
-          continue;
-        }
+        const userEmail = userData.email;
 
-        // 5.2 Check if user has email notifications enabled
-        const hasNotificationsEnabled = await profilesApi.hasEmailNotificationsEnabled(userId);
-        if (!hasNotificationsEnabled) {
-          console.log(`${logPrefix} User ${userId} has email notifications disabled, skipping`);
-          continue;
-        }
-
-        // 5.3 Get user email from auth.users via raw SQL
-        const userResult = await db.execute<{ email: string }>(
-          sql`SELECT email FROM auth.users WHERE id = ${userId}`
-        );
-
-        if (!userResult || userResult.length === 0 || !userResult[0].email) {
-          const error = `Failed to get email for user ${userId}: No email found`;
-          console.error(`${logPrefix} ${error}`);
-          result.errors.push(error);
-          result.emailsFailed++;
-          continue;
-        }
-
-        const userEmail = userResult[0].email;
-
-        // 5.4 Generate email content
+        // Generate email content
         const htmlContent = generateNewEpisodeHTML(emailData);
         const textContent = generateNewEpisodeText(emailData);
 
-        // 5.5 Send email via SES
+        // Send email via SES
         const sendEmailCommand = new SendEmailCommand({
           Destination: {
             ToAddresses: [userEmail],
@@ -158,8 +204,8 @@ export async function sendNewEpisodeNotification(
         await sesClient.send(sendEmailCommand);
         console.log(`${logPrefix} Successfully sent email to ${userEmail}`);
 
-        // 5.6 Record that we sent this episode to this user
-        await sentEpisodesApi.createSentEpisode({
+        // Track this email for batch recording
+        emailsSentRecords.push({
           user_id: userId,
           episode_id: episodeId,
         });
@@ -174,7 +220,19 @@ export async function sendNewEpisodeNotification(
       }
     }
 
-    // 6. Mark as successful if at least one email was sent
+    // 6. Batch insert all sent_episodes records in one query
+    if (emailsSentRecords.length > 0) {
+      try {
+        console.log(`${logPrefix} Recording ${emailsSentRecords.length} sent emails in batch`);
+        await db.insert(sentEpisodes).values(emailsSentRecords);
+        console.log(`${logPrefix} Successfully recorded all sent emails`);
+      } catch (error) {
+        console.error(`${logPrefix} Failed to batch record sent emails:`, error);
+        // Don't fail the entire operation if recording fails
+      }
+    }
+
+    // 7. Mark as successful if at least one email was sent
     result.success = result.emailsSent > 0 || result.totalSubscribers === 0;
 
     console.log(`${logPrefix} Notification process completed. Sent: ${result.emailsSent}, Failed: ${result.emailsFailed}`);

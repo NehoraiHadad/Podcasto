@@ -18,7 +18,9 @@ export default defineConfig({
     user: url.username,
     password: url.password,
     database: url.pathname.slice(1),
-    ssl: true
+    ssl: {
+      rejectUnauthorized: false
+    }
   },
   verbose: true,
   strict: true,
