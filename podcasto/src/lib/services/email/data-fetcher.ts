@@ -81,6 +81,9 @@ export async function fetchUserBatchData(
 ): Promise<Map<string, BatchUserData>> {
   console.log(`${logPrefix} Fetching data for ${userIds.length} users in batch query`);
 
+  // Build the IN clause with proper parameterized queries
+  const userIdConditions = userIds.map(id => sql`${id}::uuid`);
+
   const batchResult = await db.execute<BatchUserData>(sql`
     SELECT
       u.id as user_id,
@@ -90,7 +93,7 @@ export async function fetchUserBatchData(
     FROM auth.users u
     LEFT JOIN profiles p ON u.id = p.id
     LEFT JOIN sent_episodes se ON se.user_id = u.id AND se.episode_id = ${episodeId}
-    WHERE u.id = ANY(${userIds}::uuid[])
+    WHERE u.id IN (${sql.join(userIdConditions, sql`, `)})
   `);
 
   console.log(`${logPrefix} Batch query returned ${batchResult.length} user records`);
