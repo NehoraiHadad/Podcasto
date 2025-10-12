@@ -9,7 +9,8 @@ import {
   Play,
   ExternalLink,
   RefreshCw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Mail
 } from 'lucide-react';
 
 import {
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { deleteEpisode, regenerateEpisodeAudio } from '@/lib/actions/episode-actions';
+import { resendEpisodeEmails } from '@/lib/actions/episode/email-actions';
 import { toast } from 'sonner';
 
 // Define the expected episode type for the component
@@ -56,8 +58,9 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   
   // Status-dependent actions
-  const canRegenerate = episode.status?.toLowerCase() === 'failed' || 
+  const canRegenerate = episode.status?.toLowerCase() === 'failed' ||
                         episode.status?.toLowerCase() === 'published';
+  const canSendEmails = episode.status?.toLowerCase() === 'published';
   
   // Handle episode deletion
   const handleDelete = async () => {
@@ -99,6 +102,30 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
     } catch (error) {
       console.error('Error regenerating audio:', error);
       toast.error('Failed to regenerate audio');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle sending email notifications
+  const handleSendEmails = async () => {
+    try {
+      setIsLoading(true);
+      const result = await resendEpisodeEmails(episode.id);
+
+      if (result.success) {
+        toast.success(
+          `Email notifications sent successfully!\nSent: ${result.emailsSent}/${result.totalSubscribers} subscribers\nFailed: ${result.emailsFailed}`
+        );
+      } else {
+        toast.error(
+          `Failed to send emails\nErrors: ${result.errors?.slice(0, 3).join(', ') || result.error}`
+        );
+      }
+      router.refresh();
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      toast.error('Failed to send email notifications');
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +175,18 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
               <span>Regenerate Audio</span>
             </DropdownMenuItem>
           )}
-          
+
+          {/* Send email notifications */}
+          {canSendEmails && (
+            <DropdownMenuItem
+              onClick={handleSendEmails}
+              disabled={isLoading}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              <span>Send Email Notifications</span>
+            </DropdownMenuItem>
+          )}
+
           {/* Audio file direct link */}
           {episode.audio_url ? (
             <DropdownMenuItem asChild>
