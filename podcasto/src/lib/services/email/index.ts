@@ -1,27 +1,19 @@
 /**
  * Email Notification Service - Main Orchestrator
- * Clean orchestration layer that delegates to specialized modules
- * Supports both single and bulk email sending via feature flag
+ * Clean orchestration layer using AWS SES SendBulkTemplatedEmail
  */
 
 import { SESRateLimiter } from '@/lib/aws/ses-rate-limiter';
 import { logError, errorToString } from '@/lib/utils/error-utils';
-import { fetchEpisodeAndPodcast, fetchSubscribers, fetchUserBatchData, prepareEmailData } from './data-fetcher';
-import { sendToSubscribers, recordSentEmails } from './email-sender';
-import { sendBulkEmailsToSubscribers, recordBulkSentEmails } from './bulk-sender';
+import { fetchEpisodeAndPodcast, fetchSubscribers, fetchUserBatchData } from './data-fetcher';
+import { sendBulkEmailsToSubscribers, recordBulkSentEmails } from './email-sender';
 import { convertToSESTemplateData } from '@/lib/email/templates/ses-templates';
 import { logNotificationStart, logProgress, logFinalStats } from './logger';
 import type { EmailNotificationResult } from './types';
 
 /**
- * Feature flag to enable bulk email sending
- * Set USE_BULK_EMAIL_SENDING=true to use SendBulkTemplatedEmail API
- * Default: false (uses single SendEmail API)
- */
-const USE_BULK_SENDING = process.env.USE_BULK_EMAIL_SENDING === 'true';
-
-/**
  * Sends new episode notification to all subscribed users
+ * Uses AWS SES SendBulkTemplatedEmail for efficient batch sending
  * @param episodeId - ID of the newly published episode
  * @returns Result with statistics about sent emails
  */
@@ -49,7 +41,6 @@ export async function sendNewEpisodeNotification(
       return result;
     }
 
-    // At this point, TypeScript knows we have the success case
     const { episode, podcast } = fetchResult;
 
     // 2. Fetch subscribers
@@ -62,10 +53,7 @@ export async function sendNewEpisodeNotification(
       return result;
     }
 
-    // 3. Prepare email data
-    const emailData = prepareEmailData(episode, podcast);
-
-    // 4. Batch fetch user data
+    // 3. Batch fetch user data
     const userIds = subscribers.map(s => s.user_id).filter(Boolean) as string[];
     if (userIds.length === 0) {
       logProgress(episodeId, 'No valid user IDs found in subscriptions');
@@ -75,59 +63,39 @@ export async function sendNewEpisodeNotification(
 
     const userDataMap = await fetchUserBatchData(episodeId, userIds, `[EMAIL_NOTIFICATION:${episodeId}]`);
 
-    // 5. Send emails - choose between bulk or single sending
-    let emailsSentRecords;
+    // 4. Prepare email data for bulk sending
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app';
+    const episodeUrl = `${siteUrl}/podcasts/${podcast.id}/episodes/${episodeId}`;
 
-    if (USE_BULK_SENDING) {
-      console.log(`[EMAIL_NOTIFICATION:${episodeId}] Using BULK email sending (SendBulkTemplatedEmail)`);
+    const sesTemplateData = convertToSESTemplateData(
+      episodeId,
+      episode.title,
+      podcast.title,
+      podcast.id,
+      episodeUrl,
+      {
+        episodeDescription: episode.description || undefined,
+        coverImage: episode.cover_image || podcast.cover_image || undefined,
+        duration: episode.duration || undefined,
+        publishedAt: episode.published_at ? new Date(episode.published_at) : undefined,
+      }
+    );
 
-      // Build episode URL
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app';
-      const episodeUrl = `${siteUrl}/podcasts/${podcast.id}/episodes/${episodeId}`;
+    console.log(`[EMAIL_NOTIFICATION:${episodeId}] Sending bulk emails to ${subscribers.length} subscribers`);
 
-      // Convert email data to SES template format
-      const sesTemplateData = convertToSESTemplateData(
-        episodeId,
-        episode.title,
-        podcast.title,
-        podcast.id,
-        episodeUrl,
-        {
-          episodeDescription: episode.description || undefined,
-          coverImage: episode.cover_image || podcast.cover_image || undefined,
-          duration: episode.duration || undefined,
-          publishedAt: episode.published_at ? new Date(episode.published_at) : undefined,
-        }
-      );
+    // 5. Send emails using bulk API
+    const emailsSentRecords = await sendBulkEmailsToSubscribers(
+      subscribers,
+      userDataMap,
+      sesTemplateData,
+      episodeId,
+      rateLimiter,
+      `[EMAIL_NOTIFICATION:${episodeId}]`,
+      result
+    );
 
-      emailsSentRecords = await sendBulkEmailsToSubscribers(
-        subscribers,
-        userDataMap,
-        sesTemplateData,
-        episodeId,
-        rateLimiter,
-        `[EMAIL_NOTIFICATION:${episodeId}]`,
-        result
-      );
-
-      // Record sent emails in batch
-      await recordBulkSentEmails(emailsSentRecords, `[EMAIL_NOTIFICATION:${episodeId}]`);
-    } else {
-      console.log(`[EMAIL_NOTIFICATION:${episodeId}] Using SINGLE email sending (SendEmail)`);
-
-      emailsSentRecords = await sendToSubscribers(
-        subscribers,
-        userDataMap,
-        emailData,
-        episodeId,
-        rateLimiter,
-        `[EMAIL_NOTIFICATION:${episodeId}]`,
-        result
-      );
-
-      // 6. Record sent emails in batch
-      await recordSentEmails(emailsSentRecords, `[EMAIL_NOTIFICATION:${episodeId}]`);
-    }
+    // 6. Record sent emails in batch
+    await recordBulkSentEmails(emailsSentRecords, `[EMAIL_NOTIFICATION:${episodeId}]`);
 
     // 7. Mark as successful if at least one email was sent
     result.success = result.emailsSent > 0 || result.totalSubscribers === 0;

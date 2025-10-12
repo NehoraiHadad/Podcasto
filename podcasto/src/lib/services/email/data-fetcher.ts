@@ -6,7 +6,6 @@ import { episodesApi, podcastsApi, subscriptionsApi } from '@/lib/db/api';
 import type { Podcast } from '@/lib/db/api/podcasts';
 import { db, episodes, subscriptions } from '@/lib/db';
 import { sql } from 'drizzle-orm';
-import type { EpisodeEmailData } from '@/lib/email/templates/new-episode';
 import type { BatchUserData } from './types';
 import type { InferSelectModel } from 'drizzle-orm';
 
@@ -103,26 +102,4 @@ export async function fetchUserBatchData(
   }
 
   return userDataMap;
-}
-
-/**
- * Prepares email data object from episode and podcast
- * @param episode - Episode object
- * @param podcast - Podcast object
- * @returns Email data object
- */
-export function prepareEmailData(
-  episode: Episode,
-  podcast: Podcast
-): EpisodeEmailData {
-  return {
-    episodeId: episode.id,
-    episodeTitle: episode.title,
-    episodeDescription: episode.description || undefined,
-    podcastTitle: podcast.title,
-    podcastId: podcast.id,
-    coverImage: episode.cover_image || podcast.cover_image || undefined,
-    duration: episode.duration || undefined,
-    publishedAt: episode.published_at ? new Date(episode.published_at) : undefined,
-  };
 }

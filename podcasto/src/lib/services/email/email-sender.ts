@@ -1,15 +1,19 @@
 /**
- * Email sending logic for notifications
- * Handles the actual sending loop with rate limiting and retry
+ * AWS SES Bulk Email Sender
+ * Implements SendBulkTemplatedEmail for efficient batch email sending
  */
 
-import { SendEmailCommand } from '@aws-sdk/client-ses';
-import { SES_CONFIG } from '@/lib/aws/ses-client';
+import { SendBulkTemplatedEmailCommand, type BulkEmailDestination } from '@aws-sdk/client-ses';
+import { sesClient, SES_CONFIG } from '@/lib/aws/ses-client';
 import { SESRateLimiter } from '@/lib/aws/ses-rate-limiter';
-import { generateNewEpisodeHTML, generateNewEpisodeText, type EpisodeEmailData } from '@/lib/email/templates/new-episode';
+import {
+  NEW_EPISODE_HTML_TEMPLATE,
+  NEW_EPISODE_TEXT_TEMPLATE,
+  convertToSESTemplateData,
+  type SESTemplateData,
+} from '@/lib/email/templates/ses-templates';
 import { db, sentEpisodes } from '@/lib/db';
 import { errorToString } from '@/lib/utils/error-utils';
-import { sendEmailWithRetry } from './retry';
 import type { BatchUserData, EmailNotificationResult, SentEmailRecord } from './types';
 import type { InferSelectModel } from 'drizzle-orm';
 import { subscriptions } from '@/lib/db/schema';
@@ -17,65 +21,167 @@ import { subscriptions } from '@/lib/db/schema';
 type Subscription = InferSelectModel<typeof subscriptions>;
 
 /**
- * Creates an SES SendEmailCommand from email data
- * @param emailData - Episode email data
- * @param userEmail - Recipient email address
- * @param podcastTitle - Podcast title for subject line
- * @returns SendEmailCommand ready to be sent
+ * Maximum recipients per SES bulk email API call
  */
-export function createEmailCommand(
-  emailData: EpisodeEmailData,
-  userEmail: string,
-  podcastTitle: string
-): SendEmailCommand {
-  const htmlContent = generateNewEpisodeHTML(emailData);
-  const textContent = generateNewEpisodeText(emailData);
+const MAX_RECIPIENTS_PER_BATCH = 50;
 
-  return new SendEmailCommand({
-    Destination: {
-      ToAddresses: [userEmail],
-    },
-    Message: {
-      Body: {
-        Html: {
-          Charset: 'UTF-8',
-          Data: htmlContent,
-        },
-        Text: {
-          Charset: 'UTF-8',
-          Data: textContent,
-        },
+/**
+ * Recipient info for bulk sending
+ */
+interface RecipientInfo {
+  subscription: Subscription;
+  userData: BatchUserData;
+  episodeUrl: string;
+}
+
+/**
+ * Result of sending a single bulk batch
+ */
+interface BulkBatchResult {
+  successCount: number;
+  failureCount: number;
+  sentRecords: SentEmailRecord[];
+  errors: string[];
+}
+
+/**
+ * Divides subscribers into batches of up to 50 recipients
+ * @param recipients - Array of recipient info
+ * @returns Array of batches, each with up to 50 recipients
+ */
+function batchRecipients(recipients: RecipientInfo[]): RecipientInfo[][] {
+  const batches: RecipientInfo[][] = [];
+  for (let i = 0; i < recipients.length; i += MAX_RECIPIENTS_PER_BATCH) {
+    batches.push(recipients.slice(i, i + MAX_RECIPIENTS_PER_BATCH));
+  }
+  return batches;
+}
+
+/**
+ * Builds BulkEmailDestination array for SES API
+ * @param batch - Batch of recipients
+ * @param defaultTemplateData - Default template data (shared)
+ * @returns Array of BulkEmailDestination objects
+ */
+function buildBulkDestinations(
+  batch: RecipientInfo[],
+  defaultTemplateData: SESTemplateData
+): BulkEmailDestination[] {
+  return batch.map((recipient) => {
+    // Per-recipient personalization (only episodeUrl differs)
+    const replacementData: Partial<SESTemplateData> = {
+      episodeUrl: recipient.episodeUrl,
+    };
+
+    return {
+      Destination: {
+        ToAddresses: [recipient.userData.email],
       },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: `🎙️ New ${podcastTitle} Episode: ${emailData.episodeTitle}`,
-      },
-    },
-    Source: `${SES_CONFIG.FROM_NAME} <${SES_CONFIG.FROM_EMAIL}>`,
+      ReplacementTemplateData: JSON.stringify(replacementData),
+    };
   });
 }
 
 /**
- * Sends emails to all eligible subscribers
+ * Sends a single bulk email batch using SendBulkTemplatedEmailCommand
+ * @param batch - Batch of recipients
+ * @param defaultTemplateData - Default template data
+ * @param episodeId - Episode ID for tracking
+ * @param logPrefix - Log prefix
+ * @returns Bulk batch result with success/failure counts
+ */
+async function sendBulkBatch(
+  batch: RecipientInfo[],
+  defaultTemplateData: SESTemplateData,
+  episodeId: string,
+  logPrefix: string
+): Promise<BulkBatchResult> {
+  const result: BulkBatchResult = {
+    successCount: 0,
+    failureCount: 0,
+    sentRecords: [],
+    errors: [],
+  };
+
+  try {
+    const destinations = buildBulkDestinations(batch, defaultTemplateData);
+
+    const command = new SendBulkTemplatedEmailCommand({
+      Source: `${SES_CONFIG.FROM_NAME} <${SES_CONFIG.FROM_EMAIL}>`,
+      Template: NEW_EPISODE_HTML_TEMPLATE, // Inline HTML template
+      DefaultTemplateData: JSON.stringify(defaultTemplateData),
+      Destinations: destinations,
+      // Optional: can also specify default text template
+      // Note: SES inline templates use the HTML as primary, text fallback
+      ReplyToAddresses: [SES_CONFIG.FROM_EMAIL],
+    });
+
+    console.log(`${logPrefix} Sending bulk email to ${batch.length} recipients`);
+
+    const response = await sesClient.send(command);
+
+    // Process results per recipient
+    if (response.Status) {
+      for (let i = 0; i < response.Status.length; i++) {
+        const status = response.Status[i];
+        const recipient = batch[i];
+
+        if (status.Status === 'Success') {
+          result.successCount++;
+          result.sentRecords.push({
+            user_id: recipient.subscription.user_id!,
+            episode_id: episodeId,
+          });
+          console.log(
+            `${logPrefix} Successfully sent to ${recipient.userData.email} (MessageId: ${status.MessageId})`
+          );
+        } else {
+          result.failureCount++;
+          const errorMsg = `Failed to send to ${recipient.userData.email}: ${status.Error || 'Unknown error'}`;
+          result.errors.push(errorMsg);
+          console.error(`${logPrefix} ${errorMsg}`);
+        }
+      }
+    }
+
+    return result;
+  } catch (error) {
+    // Entire batch failed
+    const errorMsg = `Bulk send failed for entire batch: ${errorToString(error)}`;
+    console.error(`${logPrefix} ${errorMsg}`, error);
+
+    // Mark all recipients in batch as failed
+    result.failureCount = batch.length;
+    result.errors.push(errorMsg);
+
+    return result;
+  }
+}
+
+/**
+ * Sends new episode notification to subscribers using bulk email API
  * @param subscribers - Array of subscriptions
  * @param userDataMap - Map of user data
- * @param emailData - Episode email data
- * @param episodeId - Episode ID for tracking
+ * @param emailData - Episode email data (as SESTemplateData)
+ * @param episodeId - Episode ID
  * @param rateLimiter - Rate limiter instance
- * @param logPrefix - Log prefix for consistent logging
+ * @param logPrefix - Log prefix
  * @param result - Result object to update
  * @returns Array of successfully sent email records
  */
-export async function sendToSubscribers(
+export async function sendBulkEmailsToSubscribers(
   subscribers: Subscription[],
   userDataMap: Map<string, BatchUserData>,
-  emailData: EpisodeEmailData,
+  emailData: SESTemplateData,
   episodeId: string,
   rateLimiter: SESRateLimiter,
   logPrefix: string,
   result: EmailNotificationResult
 ): Promise<SentEmailRecord[]> {
-  const emailsSentRecords: SentEmailRecord[] = [];
+  const allSentRecords: SentEmailRecord[] = [];
+
+  // 1. Build list of eligible recipients
+  const eligibleRecipients: RecipientInfo[] = [];
 
   for (const subscription of subscribers) {
     const userId = subscription.user_id;
@@ -115,61 +221,65 @@ export async function sendToSubscribers(
       continue;
     }
 
-    try {
-      const userEmail = userData.email;
-
-      // Wait for rate limit before sending
-      try {
-        await rateLimiter.waitForRateLimit();
-      } catch (rateLimitError) {
-        const error = `Rate limit exceeded: ${errorToString(rateLimitError)}`;
-        console.error(`${logPrefix} ${error}`);
-        result.errors.push(error);
-        result.emailsFailed++;
-        break; // Stop processing if we hit daily limit
-      }
-
-      // Create and send email command
-      const sendEmailCommand = createEmailCommand(emailData, userEmail, emailData.podcastTitle);
-      const sendResult = await sendEmailWithRetry(sendEmailCommand, userEmail, logPrefix);
-
-      if (sendResult.success) {
-        // Track this email for batch recording
-        emailsSentRecords.push({
-          user_id: userId,
-          episode_id: episodeId,
-        });
-
-        result.emailsSent++;
-
-        // Track retries
-        if (sendResult.attempts > 1) {
-          result.retriedEmails!++;
-          console.log(`${logPrefix} Email to ${userEmail} succeeded after ${sendResult.attempts} attempts`);
-        }
-      } else {
-        const errorMsg = errorToString(sendResult.error);
-        result.errors.push(`Failed to send to ${userEmail}: ${errorMsg}`);
-        result.emailsFailed++;
-      }
-
-    } catch (error) {
-      const errorMsg = `Failed to send email to user ${userId}: ${errorToString(error)}`;
-      console.error(`${logPrefix} ${errorMsg}`, error);
-      result.errors.push(errorMsg);
-      result.emailsFailed++;
-    }
+    // Add to eligible list
+    eligibleRecipients.push({
+      subscription,
+      userData,
+      episodeUrl: emailData.episodeUrl, // Each user gets same URL for now
+    });
   }
 
-  return emailsSentRecords;
+  console.log(
+    `${logPrefix} Found ${eligibleRecipients.length} eligible recipients out of ${subscribers.length} subscribers`
+  );
+
+  if (eligibleRecipients.length === 0) {
+    return allSentRecords;
+  }
+
+  // 2. Divide into batches of 50
+  const batches = batchRecipients(eligibleRecipients);
+  console.log(`${logPrefix} Divided into ${batches.length} batch(es) of up to ${MAX_RECIPIENTS_PER_BATCH} recipients`);
+
+  // 3. Send each batch
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    const batchNumber = i + 1;
+
+    console.log(`${logPrefix} Processing batch ${batchNumber}/${batches.length} (${batch.length} recipients)`);
+
+    // Wait for rate limit before sending batch
+    try {
+      // With bulk sending, we wait per batch (not per email)
+      // SES handles internal rate limiting
+      await rateLimiter.waitForBatch(batch.length);
+    } catch (rateLimitError) {
+      const error = `Rate limit exceeded at batch ${batchNumber}: ${errorToString(rateLimitError)}`;
+      console.error(`${logPrefix} ${error}`);
+      result.errors.push(error);
+      result.emailsFailed += batch.length;
+      break; // Stop processing if we hit daily limit
+    }
+
+    // Send the batch
+    const batchResult = await sendBulkBatch(batch, emailData, episodeId, `${logPrefix}[Batch ${batchNumber}]`);
+
+    // Update overall result
+    result.emailsSent += batchResult.successCount;
+    result.emailsFailed += batchResult.failureCount;
+    result.errors.push(...batchResult.errors);
+    allSentRecords.push(...batchResult.sentRecords);
+  }
+
+  return allSentRecords;
 }
 
 /**
  * Records sent emails in batch to database
  * @param emailsSentRecords - Array of sent email records
- * @param logPrefix - Log prefix for consistent logging
+ * @param logPrefix - Log prefix
  */
-export async function recordSentEmails(
+export async function recordBulkSentEmails(
   emailsSentRecords: SentEmailRecord[],
   logPrefix: string
 ): Promise<void> {
