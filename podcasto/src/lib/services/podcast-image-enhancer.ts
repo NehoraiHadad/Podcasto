@@ -133,7 +133,7 @@ Format your response as JSON with these exact keys: description, colors, style, 
           temperature: 0.3,
           topP: 0.95,
           topK: 40,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048, // Increased from 1024 to allow for longer AI-generated prompts
           responseMimeType: 'application/json',
           responseSchema
         }
