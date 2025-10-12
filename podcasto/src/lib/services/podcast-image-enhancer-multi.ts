@@ -182,10 +182,9 @@ Enhance this image with cinematic, professional podcast aesthetics while PRESERV
 
 Amplify the ${analysis.mood} feeling but polish it with professional-grade post-processing. Add depth through sophisticated lighting techniques—perhaps rim lighting on key elements, subtle vignetting, or atmospheric haze that adds dimension. The composition should be optimized for square podcast cover format, ensuring it reads beautifully even as a small thumbnail.
 
-Consider adding subtle, tasteful podcast elements if they enhance rather than distract: perhaps abstract sound wave patterns integrated into the background, soft audio frequency visualizations as atmospheric effects, or a gentle depth-of-field blur that draws focus to the main subject.
-
 CRITICAL PRESERVATION RULES:
 - PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
+- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
 - PRESERVE all recognizable elements and the core identity of the source image
 - DO NOT remove, hide, or modify any text that exists in the original image
 - DO NOT add new text or lettering
@@ -204,12 +203,11 @@ Enhance this image with cinematic ${style} aesthetics while PRESERVING ALL EXIST
 
 Apply sophisticated post-processing techniques: enhance contrast for visual punch, add subtle atmospheric effects for depth, optimize the composition for square podcast cover format. The image should read beautifully even as a small thumbnail—clear focal points, strong visual hierarchy, eye-catching appeal.
 
-Consider tastefully integrating podcast elements if they enhance the design: abstract sound wave patterns woven into the background, soft audio frequency visualizations as atmospheric effects, or depth-of-field blur that emphasizes the main subject. These should feel natural and elevate the design, never distract or overwhelm.
-
 Use photographic language in your approach: think cinematic camera angles, professional studio lighting quality, film-grade color grading. The aesthetic should be ${style} while maintaining complete connection to the source material.
 
 CRITICAL PRESERVATION RULES:
 - PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
+- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
 - PRESERVE all recognizable elements and the core identity of the source image
 - DO NOT remove, hide, or modify any text or logos that exist in the original
 - DO NOT add new text or lettering
