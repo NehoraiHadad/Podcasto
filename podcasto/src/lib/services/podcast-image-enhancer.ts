@@ -87,10 +87,11 @@ Based on your analysis, create a UNIQUE, CREATIVE prompt for transforming this s
 - PRESERVE the core identity and recognizable elements of the source image
 - DO NOT remove, hide, or modify any text that exists in the original
 - DO NOT add new text or lettering
+- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
 - ONLY enhance: colors, lighting, effects, atmosphere, professional polish
 - The goal is ENHANCEMENT, not replacement - keep what makes this image unique
 
-Think of this as "polishing" the original, not creating something new. If there's a logo with text, keep it. If there's a channel name, keep it. Just make everything look more professional and podcast-ready.
+Think of this as "polishing" the original, not creating something new. If there's a logo with text, keep it. If there's a channel name, keep it. Just make everything look more professional and podcast-ready without adding any new elements.
 
 Make the prompt highly personalized to THIS image's unique content, not generic.
 
@@ -394,8 +395,6 @@ Enhance this image with cinematic, professional podcast aesthetics while PRESERV
 
 Amplify the ${analysis.mood} feeling but polish it with professional-grade post-processing. Add depth through sophisticated lighting techniques—perhaps rim lighting on key elements, subtle vignetting, or atmospheric haze that adds dimension. The composition should be optimized for square podcast cover format, ensuring it reads beautifully even as a small thumbnail.
 
-Consider adding subtle, tasteful podcast elements if they enhance rather than distract: perhaps abstract sound wave patterns integrated into the background, soft audio frequency visualizations as atmospheric effects, or a gentle depth-of-field blur that draws focus to the main subject.
-
 CRITICAL PRESERVATION RULES:
 - PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
 - PRESERVE all recognizable elements and the core identity of the source image
@@ -415,8 +414,6 @@ TRANSFORMATION VISION:
 Enhance this image with cinematic ${style} aesthetics while PRESERVING ALL EXISTING ELEMENTS that make the original image special. Envision the composition bathed in dramatic lighting that makes colors pop with vibrant saturation and professional-grade color grading. Every visual element should be elevated with enhanced depth, clarity, and visual impact - but kept intact.
 
 Apply sophisticated post-processing techniques: enhance contrast for visual punch, add subtle atmospheric effects for depth, optimize the composition for square podcast cover format. The image should read beautifully even as a small thumbnail—clear focal points, strong visual hierarchy, eye-catching appeal.
-
-Consider tastefully integrating podcast elements if they enhance the design: abstract sound wave patterns woven into the background, soft audio frequency visualizations as atmospheric effects, or depth-of-field blur that emphasizes the main subject. These should feel natural and elevate the design, never distract or overwhelm.
 
 Use photographic language in your approach: think cinematic camera angles, professional studio lighting quality, film-grade color grading. The aesthetic should be ${style} while maintaining complete connection to the source material.
 
