@@ -23,8 +23,12 @@ export async function enhanceImageMultiple(
     const base64Image = sourceImageBuffer.toString('base64');
     const mimeType = detectMimeType(sourceImageBuffer);
 
-    // Create enhancement prompt
-    const enhancementPrompt = createEnhancementPrompt(options, analysis);
+    // Use AI-generated prompt if available, otherwise fall back to hardcoded prompt
+    const enhancementPrompt = analysis?.generationPrompt
+      ? analysis.generationPrompt
+      : createEnhancementPrompt(options, analysis);
+
+    console.log(`[PODCAST_ENHANCER_MULTI] Using ${analysis?.generationPrompt ? 'AI-generated' : 'hardcoded'} prompt`);
 
     // Generate multiple variations in parallel
     const variationPromises = Array.from({ length: count }, (_, index) =>

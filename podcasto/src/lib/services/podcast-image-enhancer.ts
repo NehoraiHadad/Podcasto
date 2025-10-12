@@ -24,6 +24,7 @@ export interface ImageAnalysis {
   style: string;
   mainElements: string;
   mood: string;
+  generationPrompt: string; // AI-generated prompt for image creation
 }
 
 export interface EnhancementResult {
@@ -51,7 +52,7 @@ export class PodcastImageEnhancer {
    * Analyze the source image to understand its content
    * This will be used to create a more targeted enhancement prompt
    */
-  async analyzeImage(sourceImageBuffer: Buffer): Promise<ImageAnalysis | null> {
+  async analyzeImage(sourceImageBuffer: Buffer, podcastStyle: string = 'modern, professional'): Promise<ImageAnalysis | null> {
     try {
       console.log('[PODCAST_ENHANCER] Analyzing source image...');
 
@@ -61,15 +62,32 @@ export class PodcastImageEnhancer {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-      const analysisPrompt = `Analyze this image in detail. Provide a structured analysis:
+      const analysisPrompt = `You are a professional podcast cover designer. Analyze this image and create a custom prompt for transforming it into a stunning podcast cover.
 
+**Part 1: Image Analysis**
+Analyze the image and provide:
 1. **Description**: What is shown in the image? (2-3 sentences)
-2. **Colors**: What are the dominant colors and color scheme?
-3. **Style**: What is the visual style? (e.g., minimalist, vibrant, professional, artistic)
-4. **Main Elements**: What are the key visual elements or subjects?
-5. **Mood**: What mood or feeling does it convey?
+2. **Colors**: Dominant colors and color scheme
+3. **Style**: Visual style (e.g., minimalist, vibrant, professional, artistic)
+4. **Main Elements**: Key visual elements or subjects
+5. **Mood**: Mood or feeling it conveys
 
-Format your response as JSON with these exact keys: description, colors, style, mainElements, mood`;
+**Part 2: Generate Transformation Prompt**
+Based on your analysis, create a UNIQUE, CREATIVE prompt for transforming this specific image into a professional podcast cover. The prompt should:
+- Be narrative and descriptive (not bullet points)
+- Reference specific elements you identified in the image (colors, subjects, mood)
+- Suggest creative enhancements that fit THIS PARTICULAR IMAGE
+- Include photographic techniques (lighting, composition, color grading)
+- Be different each time - adapt to what you see in THIS specific image
+- Target the podcast style: ${podcastStyle}
+- Include instructions to never add text or lettering
+- Be written as instructions to an image AI (e.g., "Transform this image by...", "Enhance the...", etc.)
+
+Make the prompt highly personalized to THIS image's unique content, not generic. Think about what makes THIS specific image special and how to enhance those qualities.
+
+Format your response as JSON with these exact keys: description, colors, style, mainElements, mood, generationPrompt`;
+
+
 
       // Define the JSON schema for structured output
       const responseSchema = {
@@ -94,9 +112,13 @@ Format your response as JSON with these exact keys: description, colors, style, 
           mood: {
             type: 'string',
             description: 'Mood or feeling the image conveys'
+          },
+          generationPrompt: {
+            type: 'string',
+            description: 'Detailed narrative prompt for transforming this specific image into a podcast cover'
           }
         },
-        required: ['description', 'colors', 'style', 'mainElements', 'mood']
+        required: ['description', 'colors', 'style', 'mainElements', 'mood', 'generationPrompt']
       };
 
       const response = await ai.models.generateContent({
@@ -156,8 +178,11 @@ Format your response as JSON with these exact keys: description, colors, style, 
   ): Promise<EnhancementResult> {
     const variationsCount = options.variationsCount || 1;
 
-    // Analyze the image first
-    const analysis = await this.analyzeImage(sourceImageBuffer);
+    // Analyze the image first (AI will also generate the enhancement prompt)
+    const analysis = await this.analyzeImage(
+      sourceImageBuffer,
+      options.podcastStyle || 'modern, professional'
+    );
 
     // Generate multiple variations in parallel
     if (variationsCount > 1) {
@@ -191,10 +216,13 @@ Format your response as JSON with these exact keys: description, colors, style, 
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-      // Create an enhanced prompt for podcast cover creation
-      const enhancementPrompt = this.createEnhancementPrompt(options, analysis);
+      // Use AI-generated prompt if available, otherwise fall back to hardcoded prompt
+      const enhancementPrompt = analysis?.generationPrompt
+        ? analysis.generationPrompt
+        : this.createEnhancementPrompt(options, analysis);
 
-      console.log(`[PODCAST_ENHANCER] Sending to Gemini with prompt: ${enhancementPrompt.substring(0, 150)}...`);
+      console.log(`[PODCAST_ENHANCER] Using ${analysis?.generationPrompt ? 'AI-generated' : 'hardcoded'} prompt`);
+      console.log(`[PODCAST_ENHANCER] Prompt: ${enhancementPrompt.substring(0, 200)}...`);
 
       // Call Gemini with both image and text
       const response = await ai.models.generateContent({
