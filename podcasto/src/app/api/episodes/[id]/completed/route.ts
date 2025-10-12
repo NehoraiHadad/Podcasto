@@ -91,13 +91,28 @@ export async function POST(
     
     if (processingResult.success) {
       console.log(`${logPrefix} Post-processing completed successfully for episode ${episodeId}`);
-      
+
       // 8. Revalidate paths to update UI immediately
       const { revalidatePath } = await import('next/cache');
       revalidatePath('/admin/podcasts');
       revalidatePath(`/podcasts/${episode.podcast_id}`);
       revalidatePath(`/podcasts/${episode.podcast_id}/episodes/${episodeId}`);
-      
+
+      // 9. Check if episode was published and send email notifications
+      const updatedEpisode = await episodesApi.getEpisodeById(episodeId);
+      if (updatedEpisode?.status === 'published') {
+        console.log(`${logPrefix} Episode published, sending email notifications`);
+
+        try {
+          const { sendNewEpisodeNotification } = await import('@/lib/services/email-notification');
+          const emailResult = await sendNewEpisodeNotification(episodeId);
+          console.log(`${logPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+        } catch (emailError) {
+          console.error(`${logPrefix} Failed to send email notifications:`, emailError);
+          // Don't fail the response if emails fail
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Episode post-processing completed successfully',

@@ -90,41 +90,61 @@ export async function processSingleEpisode(
             
             if (success) {
               console.log(`${baseLogPrefix} Post-processing successful.`);
+            } else {
+              console.warn(`${baseLogPrefix} Post-processing returned false (may have published without all steps)`);
+            }
 
-              // Revalidate paths after processing
-              console.log(`${baseLogPrefix} Revalidating paths after processing.`);
-              revalidatePath('/admin/podcasts');
-              revalidatePath(`/podcasts/${episode.podcast_id}`);
+            // Always check if episode was published after post-processing attempt
+            console.log(`${baseLogPrefix} Revalidating paths after processing.`);
+            revalidatePath('/admin/podcasts');
+            revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-              // Check if episode was published by post-processing
+            const { episodesApi } = await import('@/lib/db/api');
+            const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+            if (updatedEpisode?.status === PUBLISHED_STATUS) {
+              console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+              // Send email notifications (non-blocking)
+              try {
+                const emailResult = await sendNewEpisodeNotification(episode.id);
+                console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+              } catch (emailError) {
+                console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+                // Don't fail the publish process if emails fail
+              }
+
+              return { status: 'published', episodeId: episode.id };
+            }
+
+            // Not published yet, return completed status
+            return { status: 'completed', episodeId: episode.id, error: success ? undefined : 'Post-processing returned false' };
+          } catch (error) {
+            const errorMsg = `Error during post-processing trigger: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            console.error(`${baseLogPrefix} ${errorMsg}`, error);
+
+            // Even if error occurred, check if episode was published before the error
+            try {
               const { episodesApi } = await import('@/lib/db/api');
               const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
 
               if (updatedEpisode?.status === PUBLISHED_STATUS) {
-                console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+                console.log(`${baseLogPrefix} Episode was published despite error, sending email notifications`);
 
-                // Send email notifications (non-blocking)
                 try {
                   const emailResult = await sendNewEpisodeNotification(episode.id);
                   console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
                 } catch (emailError) {
                   console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-                  // Don't fail the publish process if emails fail
                 }
-              }
 
-              return { status: 'published', episodeId: episode.id };
-            } else {
-              const errorMsg = `Post-processing failed for newly completed episode.`;
-              console.error(`${baseLogPrefix} ${errorMsg}`);
-              // Still return 'completed' as the primary status change, but include error
-              return { status: 'completed', episodeId: episode.id, error: errorMsg }; 
+                return { status: 'published', episodeId: episode.id, error: errorMsg };
+              }
+            } catch (checkError) {
+              console.error(`${baseLogPrefix} Failed to check episode status after error:`, checkError);
             }
-          } catch (error) {
-            const errorMsg = `Error during post-processing trigger: ${error instanceof Error ? error.message : 'Unknown error'}`;
-            console.error(`${baseLogPrefix} ${errorMsg}`, error);
-            // Still return 'completed' as the primary status change, but include error
-            return { status: 'completed', episodeId: episode.id, error: errorMsg }; 
+
+            return { status: 'completed', episodeId: episode.id, error: errorMsg };
           }
         } else {
            // Post-processing not enabled/applicable, return completed status
@@ -151,41 +171,61 @@ export async function processSingleEpisode(
           
           if (success) {
             console.log(`${baseLogPrefix} Post-processing successful.`);
+          } else {
+            console.warn(`${baseLogPrefix} Post-processing returned false (may have published without all steps)`);
+          }
 
-            // Revalidate paths after processing
-            console.log(`${baseLogPrefix} Revalidating paths after processing.`);
-            revalidatePath('/admin/podcasts');
-            revalidatePath(`/podcasts/${episode.podcast_id}`);
+          // Always check if episode was published after post-processing attempt
+          console.log(`${baseLogPrefix} Revalidating paths after processing.`);
+          revalidatePath('/admin/podcasts');
+          revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-            // Check if episode was published by post-processing
+          const { episodesApi } = await import('@/lib/db/api');
+          const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+          if (updatedEpisode?.status === PUBLISHED_STATUS) {
+            console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+            // Send email notifications (non-blocking)
+            try {
+              const emailResult = await sendNewEpisodeNotification(episode.id);
+              console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+            } catch (emailError) {
+              console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+              // Don't fail the publish process if emails fail
+            }
+
+            return { status: 'published', episodeId: episode.id };
+          }
+
+          // Not published yet
+          return { status: 'no_change', episodeId: episode.id, error: success ? undefined : 'Post-processing returned false' };
+        } catch (error) {
+          const errorMsg = `Error during post-processing: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error(`${baseLogPrefix} ${errorMsg}`, error);
+
+          // Even if error occurred, check if episode was published before the error
+          try {
             const { episodesApi } = await import('@/lib/db/api');
             const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
 
             if (updatedEpisode?.status === PUBLISHED_STATUS) {
-              console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+              console.log(`${baseLogPrefix} Episode was published despite error, sending email notifications`);
 
-              // Send email notifications (non-blocking)
               try {
                 const emailResult = await sendNewEpisodeNotification(episode.id);
                 console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
               } catch (emailError) {
                 console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-                // Don't fail the publish process if emails fail
               }
-            }
 
-            return { status: 'published', episodeId: episode.id };
-          } else {
-            const errorMsg = `Post-processing failed for existing completed episode.`;
-            console.error(`${baseLogPrefix} ${errorMsg}`);
-            // Return 'no_change' as status didn't change from COMPLETED, but include error
-            return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+              return { status: 'published', episodeId: episode.id, error: errorMsg };
+            }
+          } catch (checkError) {
+            console.error(`${baseLogPrefix} Failed to check episode status after error:`, checkError);
           }
-        } catch (error) {
-          const errorMsg = `Error during post-processing: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`${baseLogPrefix} ${errorMsg}`, error);
-          // Return 'no_change' as status didn't change from COMPLETED, but include error
-          return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+
+          return { status: 'no_change', episodeId: episode.id, error: errorMsg };
         }
       } else {
         // Already COMPLETED, but post-processing not enabled/applicable
@@ -209,18 +249,50 @@ export async function processSingleEpisode(
             
             if (success) {
               console.log(`${baseLogPrefix} Image generation successful.`);
+            } else {
+              console.warn(`${baseLogPrefix} Image generation returned false (may have published without image)`);
+            }
 
-              // Revalidate paths after image generation
-              console.log(`${baseLogPrefix} Revalidating paths after image generation.`);
-              revalidatePath('/admin/podcasts');
-              revalidatePath(`/podcasts/${episode.podcast_id}`);
+            // Always check if episode was published after image generation attempt
+            // (it may be published even if image generation failed/returned false)
+            console.log(`${baseLogPrefix} Revalidating paths after image generation attempt.`);
+            revalidatePath('/admin/podcasts');
+            revalidatePath(`/podcasts/${episode.podcast_id}`);
 
-              // Check if episode was published by image generation
+            const { episodesApi } = await import('@/lib/db/api');
+            const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
+
+            if (updatedEpisode?.status === PUBLISHED_STATUS) {
+              console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+
+              // Send email notifications (non-blocking)
+              try {
+                const emailResult = await sendNewEpisodeNotification(episode.id);
+                console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
+              } catch (emailError) {
+                console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
+                // Don't fail the publish process if emails fail
+              }
+
+              return { status: 'published', episodeId: episode.id };
+            } else {
+              const errorMsg = success
+                ? `Image generation succeeded but episode not published yet`
+                : `Image generation failed for SUMMARY_COMPLETED episode.`;
+              console.error(`${baseLogPrefix} ${errorMsg}`);
+              return { status: 'no_change', episodeId: episode.id, error: errorMsg };
+            }
+          } catch (error) {
+            const errorMsg = `Error during image generation for SUMMARY_COMPLETED episode: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            console.error(`${baseLogPrefix} ${errorMsg}`, error);
+
+            // Even if error occurred, check if episode was published before the error
+            try {
               const { episodesApi } = await import('@/lib/db/api');
               const updatedEpisode = await episodesApi.getEpisodeById(episode.id);
 
               if (updatedEpisode?.status === PUBLISHED_STATUS) {
-                console.log(`${baseLogPrefix} Episode published, sending email notifications`);
+                console.log(`${baseLogPrefix} Episode was published despite error, sending email notifications`);
 
                 // Send email notifications (non-blocking)
                 try {
@@ -228,22 +300,15 @@ export async function processSingleEpisode(
                   console.log(`${baseLogPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
                 } catch (emailError) {
                   console.error(`${baseLogPrefix} Failed to send email notifications:`, emailError);
-                  // Don't fail the publish process if emails fail
                 }
-              }
 
-              return { status: 'published', episodeId: episode.id }; // Return 'published' as image is the final step
-            } else {
-              const errorMsg = `Image generation failed for SUMMARY_COMPLETED episode.`;
-              console.error(`${baseLogPrefix} ${errorMsg}`);
-              // Return 'no_change' as status didn't change from SUMMARY_COMPLETED, but include error
-              return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+                return { status: 'published', episodeId: episode.id, error: errorMsg };
+              }
+            } catch (checkError) {
+              console.error(`${baseLogPrefix} Failed to check episode status after error:`, checkError);
             }
-          } catch (error) {
-            const errorMsg = `Error during image generation for SUMMARY_COMPLETED episode: ${error instanceof Error ? error.message : 'Unknown error'}`;
-            console.error(`${baseLogPrefix} ${errorMsg}`, error);
-            // Return 'no_change' as status didn't change from SUMMARY_COMPLETED, but include error
-            return { status: 'no_change', episodeId: episode.id, error: errorMsg }; 
+
+            return { status: 'no_change', episodeId: episode.id, error: errorMsg };
           }
         } else {
           // SUMMARY_COMPLETED, but post-processing not enabled/applicable
