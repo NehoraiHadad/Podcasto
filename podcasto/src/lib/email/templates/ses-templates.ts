@@ -28,6 +28,10 @@ export interface SESTemplateData {
   episodeUrl: string;
   /** Site base URL */
   siteUrl: string;
+  /** Settings page URL for managing subscriptions */
+  settingsUrl: string;
+  /** Unsubscribe URL with user token */
+  unsubscribeUrl: string;
 }
 
 /**
@@ -220,6 +224,8 @@ export function convertToSESTemplateData(
     publishedAt,
   } = options;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app';
+
   return {
     episodeTitle,
     episodeDescription,
@@ -236,6 +242,8 @@ export function convertToSESTemplateData(
         })
       : '',
     episodeUrl,
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app',
+    siteUrl,
+    settingsUrl: `${siteUrl}/settings/notifications`,
+    unsubscribeUrl: `${siteUrl}/settings/notifications`, // Default fallback, will be personalized per recipient
   };
 }

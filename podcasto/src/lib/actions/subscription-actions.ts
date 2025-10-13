@@ -138,6 +138,48 @@ export async function toggleSubscription(
 /**
  * Toggle email notifications preference for the current user
  */
+/**
+ * Simple toggle for email notifications (for settings page)
+ */
+export async function updateEmailNotificationPreference(): Promise<{
+  success: boolean;
+  message?: string;
+  enabled?: boolean;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return {
+        success: false,
+        message: 'Not authenticated'
+      };
+    }
+
+    // Get current preference
+    const currentProfile = await profilesApi.getProfileById(user.id);
+    const currentEnabled = currentProfile?.email_notifications ?? true;
+    const newEnabled = !currentEnabled;
+
+    // Update preference
+    await profilesApi.updateEmailNotifications(user.id, newEnabled);
+
+    return {
+      success: true,
+      enabled: newEnabled
+    };
+  } catch (error) {
+    console.error('Error updating email notification preference:', error);
+    return {
+      success: false,
+      message: 'Failed to update preference'
+    };
+  }
+}
+
 export async function toggleEmailNotifications(
   prevState: { success: boolean; message: string } | null,
   formData: FormData

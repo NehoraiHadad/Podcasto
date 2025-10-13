@@ -70,3 +70,26 @@ export async function hasEmailNotificationsEnabled(userId: string): Promise<bool
 export async function getProfileCount(): Promise<number> {
   return await dbUtils.count(profiles);
 }
+
+/**
+ * Returns a profile by unsubscribe token
+ */
+export async function getProfileByUnsubscribeToken(token: string): Promise<Profile | null> {
+  return await dbUtils.findBy<Profile>(
+    profiles,
+    eq(profiles.unsubscribe_token, token)
+  ).then(results => results[0] || null);
+}
+
+/**
+ * Updates unsubscribe token for a user
+ */
+export async function updateUnsubscribeToken(
+  userId: string,
+  token: string
+): Promise<Profile | null> {
+  return await updateProfile(userId, {
+    unsubscribe_token: token,
+    updated_at: new Date()
+  });
+}

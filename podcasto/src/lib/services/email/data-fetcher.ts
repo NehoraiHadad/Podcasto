@@ -89,6 +89,7 @@ export async function fetchUserBatchData(
       u.id as user_id,
       u.email,
       COALESCE(p.email_notifications, true) as email_notifications,
+      p.unsubscribe_token,
       CASE WHEN se.id IS NOT NULL THEN true ELSE false END as already_sent
     FROM auth.users u
     LEFT JOIN profiles p ON u.id = p.id

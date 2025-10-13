@@ -12,6 +12,7 @@ import { errorToString } from '@/lib/utils/error-utils';
 import type { BatchUserData, EmailNotificationResult, SentEmailRecord } from './types';
 import type { InferSelectModel } from 'drizzle-orm';
 import { subscriptions } from '@/lib/db/schema';
+import { getOrCreateUnsubscribeToken } from '@/lib/actions/unsubscribe-actions';
 
 type Subscription = InferSelectModel<typeof subscriptions>;
 
@@ -67,10 +68,20 @@ function buildBulkDestinations(
   batch: RecipientInfo[],
   defaultTemplateData: SESTemplateData
 ): BulkEmailDestination[] {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.org';
+
   return batch.map((recipient) => {
-    // Per-recipient personalization (only episodeUrl differs)
+    // Build settings and unsubscribe URLs
+    const settingsUrl = `${siteUrl}/settings/notifications`;
+    const unsubscribeUrl = recipient.userData.unsubscribe_token
+      ? `${siteUrl}/unsubscribe?token=${recipient.userData.unsubscribe_token}`
+      : settingsUrl; // Fallback to settings if no token
+
+    // Per-recipient personalization
     const replacementData: Partial<SESTemplateData> = {
       episodeUrl: recipient.episodeUrl,
+      settingsUrl,
+      unsubscribeUrl,
     };
 
     return {
@@ -106,10 +117,16 @@ async function sendBulkBatch(
   try {
     const destinations = buildBulkDestinations(batch, defaultTemplateData);
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.org';
+
     const command = new SendBulkTemplatedEmailCommand({
       Source: `${SES_CONFIG.FROM_NAME} <${SES_CONFIG.FROM_EMAIL}>`,
       Template: SES_TEMPLATE_NAME, // Pre-created SES template name
-      DefaultTemplateData: JSON.stringify(defaultTemplateData),
+      DefaultTemplateData: JSON.stringify({
+        ...defaultTemplateData,
+        settingsUrl: `${siteUrl}/settings/notifications`,
+        unsubscribeUrl: `${siteUrl}/settings/notifications`, // Default fallback
+      }),
       Destinations: destinations,
       ReplyToAddresses: [SES_CONFIG.FROM_EMAIL],
     });
@@ -217,6 +234,17 @@ export async function sendBulkEmailsToSubscribers(
       result.errors.push(error);
       result.emailsFailed++;
       continue;
+    }
+
+    // Generate unsubscribe token if missing
+    if (!userData.unsubscribe_token) {
+      console.log(`${logPrefix} Generating unsubscribe token for user ${userId}`);
+      const tokenResult = await getOrCreateUnsubscribeToken(userId);
+      if (tokenResult.success && tokenResult.token) {
+        userData.unsubscribe_token = tokenResult.token;
+      } else {
+        console.warn(`${logPrefix} Failed to generate token for user ${userId}, will use settings URL as fallback`);
+      }
     }
 
     // Add to eligible list

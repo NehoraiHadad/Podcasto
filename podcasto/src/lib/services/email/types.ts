@@ -21,6 +21,7 @@ export interface BatchUserData {
   user_id: string;
   email: string;
   email_notifications: boolean | null;
+  unsubscribe_token?: string | null;
   already_sent: boolean;
   [key: string]: unknown;
 }
