@@ -12,12 +12,12 @@
 
 | קובץ | שורות | בעיות מזוהות |
 |------|-------|---------------|
-| `actions/podcast/image-actions.ts` | 683 | 🔴 גדול מאוד - צריך פיצול |
-| `actions/podcast/generate.ts` | 322 | 🔴 גדול - צריך פיצול |
-| `actions/podcast/update.ts` | 302 | 🔴 גדול - צריך פיצול |
-| `actions/episode/bulk-generation-actions.ts` | 283 | ⚠️ גדול |
-| `actions/episode/s3-file-actions.ts` | 251 | ⚠️ גדול |
-| `actions/subscription-actions.ts` | 229 | ⚠️ גדול |
+| `actions/podcast/image-actions.ts` | ~~683~~ → 8 files | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/podcast/generate.ts` | ~~322~~ → 102 | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/podcast/update.ts` | ~~302~~ → 116 | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/episode/bulk-generation-actions.ts` | 283 | ⚠️ גדול - צריך פיצול |
+| `actions/episode/s3-file-actions.ts` | 251 | ⚠️ גדול - צריך פיצול |
+| `actions/subscription-actions.ts` | 229 | ⚠️ גדול - צריך פיצול |
 | `actions/admin-actions.ts` | 200 | ⚠️ גבול |
 | `actions/auth-actions.ts` | 127 | ✅ סביר |
 
@@ -190,18 +190,21 @@ actions/
 
 ---
 
-### משימה 3.2: Split Image Actions
+### משימה 3.2: Split Image Actions ✅
 **קובץ**: `tasks/03_split_image_actions.md`
 **עדיפות**: 🔴 גבוהה
 **זמן משוער**: 4 שעות
+**הושלם**: 2025-10-13
 
-**683 שורות לפצל ל:**
-- `generate-from-telegram.ts` (~150 שורות)
-- `generate-from-file.ts` (~150 שורות)
-- `generate-from-url.ts` (~150 שורות)
-- `upload-to-s3.ts` (~100 שורות)
-- `gallery-actions.ts` (~100 שורות)
-- `shared-utils.ts` (~30 שורות)
+**683 שורות פוצלו ל:**
+- `generate-from-telegram.ts` (143 שורות)
+- `generate-from-file.ts` (135 שורות)
+- `generate-from-url.ts` (145 שורות)
+- `upload-to-s3.ts` (101 שורות)
+- `gallery-actions.ts` (95 שורות)
+- `shared.ts` (51 שורות)
+- `types.ts` (38 שורות)
+- `database-actions.ts` (70 שורות)
 
 **[📄 קישור למשימה מפורטת](./tasks/03_split_image_actions.md)**
 
@@ -462,8 +465,16 @@ Progress: ⬜⬜⬜⬜⬜ 0%
 **בעלים**: Development Team
 
 **השלבים הבאים:**
-1. Split `podcast/generate.ts` (322 lines)
-2. Split `podcast/update.ts` (302 lines)
+1. ✅ Split `podcast/generate.ts` (322 lines) - הושלם 2025-10-13
+2. ✅ Split `podcast/update.ts` (302 lines) - הושלם 2025-10-13
 3. Split `episode/bulk-generation-actions.ts` (283 lines)
 4. Implement progressive enhancement patterns
 5. Add comprehensive input validation
+
+**עדכון אחרון (2025-10-13):**
+- ✅ פוצל `podcast/generate.ts` ל-6 מודולים ממוקדים (כולל main orchestrator)
+- ✅ פוצל `podcast/update.ts` ל-5 מודולים ממוקדים (כולל main orchestrator)
+- ✅ כל הקבצים החדשים < 150 שורות (עמידה קפדנית בגבול)
+- ✅ שמירה על backward compatibility מלאה
+- ✅ Build עובר ללא שגיאות TypeScript
+- 📊 קבצים גדולים שנותרו: 1 (bulk-generation-actions.ts - 283 שורות)
