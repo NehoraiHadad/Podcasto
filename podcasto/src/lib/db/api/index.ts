@@ -8,7 +8,7 @@ export * as podcastConfigsApi from './podcast-configs';
 export * as profilesApi from './profiles';
 
 // Export types
-export type { Podcast, NewPodcast } from './podcasts';
+export type { Podcast, NewPodcast, PodcastWithConfig } from './podcasts';
 export type { Episode, NewEpisode } from './episodes';
 export type { Subscription, NewSubscription } from './subscriptions';
 export type { SentEpisode, NewSentEpisode } from './sent-episodes';

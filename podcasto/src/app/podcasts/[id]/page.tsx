@@ -56,7 +56,7 @@ export default async function PodcastDetailsPage({ params }: { params: Promise<{
               />
             </div>
             <h1 className="text-2xl font-bold mb-2">{podcast.title}</h1>
-            <p className="text-gray-600 mb-6">{podcast.episodes_count} episodes</p>
+            <p className="text-gray-600 mb-6">{episodes.length} episodes</p>
             <p className="text-gray-700 mb-6">{podcast.description}</p>
             
             <SubscribeButtonServer podcastId={resolvedParams.id} />

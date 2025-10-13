@@ -63,6 +63,7 @@ export {
 // Relations (Complex Queries with Joins/Relations)
 // ============================================================================
 export {
+  getPodcastByIdWithCounts,
   getAllPodcastsWithCounts,
   getPodcastsPaginatedWithCounts,
 } from './relations';

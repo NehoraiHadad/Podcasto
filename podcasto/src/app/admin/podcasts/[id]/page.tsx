@@ -44,9 +44,9 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
   
   // Wait for params to be resolved
   const { id } = await params;
-  
-  const podcast = await podcastsApi.getPodcastById(id);
-  
+
+  const podcast = await podcastsApi.getPodcastByIdWithCounts(id);
+
   if (!podcast) {
     notFound();
   }

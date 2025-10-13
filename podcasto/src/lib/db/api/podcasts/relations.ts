@@ -1,7 +1,45 @@
 import * as dbUtils from '../../utils';
+import { db } from '../../index';
+import { eq } from 'drizzle-orm';
 import { podcasts } from '../../schema';
 import { getPodcastEpisodes, getPublishedPodcastEpisodes } from './episodes';
 import type { Podcast, PodcastWithConfig } from './types';
+
+/**
+ * Get a single podcast by ID with episode counts and latest episode status
+ *
+ * @param id - Podcast ID
+ * @returns Podcast with episode count and latest episode status, or null if not found
+ *
+ * @example
+ * ```typescript
+ * const podcast = await getPodcastByIdWithCounts('podcast-123');
+ * if (podcast) {
+ *   console.log(`${podcast.title}: ${podcast.episodes_count} episodes`);
+ * }
+ * ```
+ */
+export async function getPodcastByIdWithCounts(id: string): Promise<PodcastWithConfig | null> {
+  const [podcast] = await db
+    .select()
+    .from(podcasts)
+    .where(eq(podcasts.id, id))
+    .limit(1);
+
+  if (!podcast) {
+    return null;
+  }
+
+  const podcastEpisodes = await getPodcastEpisodes(podcast.id);
+  const publishedEpisodes = await getPublishedPodcastEpisodes(podcast.id);
+
+  return {
+    ...podcast,
+    episodes_count: publishedEpisodes.length,
+    status: podcastEpisodes[0]?.status ?? undefined,
+    timestamp: undefined,
+  };
+}
 
 /**
  * Get all podcasts with episode counts and latest episode status

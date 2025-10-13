@@ -5,10 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import { Form } from '@/components/ui/form';
-import type { Podcast } from '@/lib/db/api';
-import { 
-  PodcastCreationValues, 
-  PodcastEditValues, 
+import type { PodcastWithConfig } from '@/lib/db/api';
+import {
+  PodcastCreationValues,
+  PodcastEditValues,
   PodcastFormMode,
   podcastCreationSchema,
   podcastEditSchema
@@ -24,7 +24,7 @@ import { useFormHandlers } from './form-handlers';
 
 export interface PodcastFormBaseProps {
   mode: PodcastFormMode;
-  podcast?: Podcast;
+  podcast?: PodcastWithConfig;
   onSuccess?: () => void;
 }
 
