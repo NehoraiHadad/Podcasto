@@ -645,3 +645,57 @@ src/lib/db/api/podcasts/
 - ✅ Return types מפורשים
 - ✅ Backwards compatibility דרך index.ts
 - ✅ הקובץ הישן בגיבוי: `podcasts.ts.backup`
+
+---
+
+## 🐛 Post-Implementation Bug Fixes (2025-10-13)
+
+### TypeScript Errors After Refactoring
+
+After the initial refactoring, several TypeScript type mismatches surfaced due to the stricter separation between `Podcast` and `PodcastWithConfig` types:
+
+#### Issues Found:
+1. **Admin podcast page** (`src/app/admin/podcasts/[id]/page.tsx:106`)
+   - Error: Property 'episodes_count' does not exist on type 'Podcast'
+   - Fix: Added `getPodcastByIdWithCounts()` function and updated page to use it
+
+2. **Public podcast page** (`src/app/podcasts/[id]/page.tsx:59`)
+   - Error: Same as above
+   - Fix: Changed from `podcast.episodes_count` to `episodes.length` (simpler approach)
+
+3. **Podcast form component** (`src/components/admin/podcast-form/podcast-form-base.tsx:72`)
+   - Error: Properties like `content_source`, `creator`, etc. don't exist on `Podcast`
+   - Fix: Changed prop type from `Podcast` to `PodcastWithConfig`
+
+4. **Import errors in relations.ts**
+   - Error: `getDb` and `eq` not exported from utils
+   - Fix: Import `db` and `eq` directly from correct sources
+
+5. **Type export missing**
+   - Error: `PodcastWithConfig` not exported from main API index
+   - Fix: Added to type exports in `src/lib/db/api/index.ts`
+
+6. **Type mismatch** (relations.ts:39)
+   - Error: `string | null` not assignable to `string | undefined`
+   - Fix: Used nullish coalescing `?? undefined` to convert null to undefined
+
+#### Files Modified:
+- `src/lib/db/api/podcasts/relations.ts` - Added `getPodcastByIdWithCounts()`, fixed imports
+- `src/lib/db/api/podcasts/index.ts` - Exported new function
+- `src/lib/db/api/index.ts` - Exported `PodcastWithConfig` type
+- `src/app/admin/podcasts/[id]/page.tsx` - Use new function
+- `src/app/podcasts/[id]/page.tsx` - Use `episodes.length`
+- `src/components/admin/podcast-form/podcast-form-base.tsx` - Updated type
+
+#### Commits:
+- `fix: resolve TypeScript errors after podcasts API refactoring` (4ee44cb)
+
+### Lessons Learned:
+1. **Type Safety Improvement**: The refactoring made type boundaries more explicit, catching bugs that existed before
+2. **Need for `*WithCounts` Functions**: Several pages need podcasts with aggregated episode counts
+3. **Test After Refactor**: Always run a full build after major refactoring to catch type issues
+4. **Document Extended Types**: `PodcastWithConfig` vs `Podcast` distinction needs to be clear
+
+---
+
+**משימה הושלמה במלואה כולל תיקוני bugs** ✅
