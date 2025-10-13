@@ -1,4 +1,5 @@
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { buildEpisodeTranscriptPrefix } from '@/lib/utils/s3-path-utils';
 
 /**
  * Utilities for handling transcript file operations
@@ -20,9 +21,9 @@ export class TranscriptFileUtils {
    */
   async getTranscriptsFromS3(podcastId: string, episodeId: string): Promise<string | null> {
     try {
-      // Construct the transcript file path
-      const transcriptPrefix = `podcasts/${podcastId}/${episodeId}/transcripts/`;
-      
+      // Construct the transcript file path using utility
+      const transcriptPrefix = buildEpisodeTranscriptPrefix(podcastId, episodeId);
+
       // List all objects in the transcripts directory
       const listCommand = new ListObjectsV2Command({
         Bucket: this.s3Bucket,

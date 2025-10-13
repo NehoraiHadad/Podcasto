@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, DeleteObjectsCommand, DeleteObjectsCommandO
 import { randomUUID } from 'crypto';
 import { TranscriptFileUtils, createTranscriptFileUtils } from './transcript-utils';
 import { buildS3Url } from '@/lib/utils/s3-url-utils';
+import { buildEpisodeImagePath, buildEpisodeFolderPrefix, buildPodcastFolderPrefix } from '@/lib/utils/s3-path-utils';
 
 /**
  * Configuration for S3 storage operations
@@ -63,18 +64,18 @@ export class S3StorageUtils {
    * Upload episode image to S3
    */
   async uploadImageToS3(
-    podcastId: string, 
-    episodeId: string, 
+    podcastId: string,
+    episodeId: string,
     imageData: Buffer,
     mimeType: string
   ): Promise<string> {
     // Generate a unique filename
     const extension = mimeType.split('/')[1] || 'jpg';
     const filename = `cover-${randomUUID()}.${extension}`;
-    
-    // Construct the image path
-    const imageKey = `podcasts/${podcastId}/${episodeId}/images/${filename}`;
-    
+
+    // Construct the image path using utility
+    const imageKey = buildEpisodeImagePath(podcastId, episodeId, filename);
+
     // Upload the image
     const command = new PutObjectCommand({
       Bucket: this.s3Bucket,
@@ -82,9 +83,9 @@ export class S3StorageUtils {
       Body: imageData,
       ContentType: mimeType,
     });
-    
+
     await this.s3Client.send(command);
-    
+
     // Return the public URL using the utility function
     return await buildS3Url({
       bucket: this.s3Bucket,
@@ -201,8 +202,8 @@ export class S3StorageUtils {
    */
   async deleteEpisodeFromS3(podcastId: string, episodeId: string): Promise<DetailedDeleteResult> {
     try {
-      // Construct the folder prefix
-      const prefix = `podcasts/${podcastId}/${episodeId}/`;
+      // Construct the folder prefix using utility
+      const prefix = buildEpisodeFolderPrefix(podcastId, episodeId);
 
       // List all objects with the episode prefix (supports >1000 objects)
       const objects = await this.listAllObjectsWithPrefix(prefix);
@@ -248,8 +249,8 @@ export class S3StorageUtils {
    */
   async deletePodcastFromS3(podcastId: string): Promise<DetailedDeleteResult> {
     try {
-      // Construct the folder prefix
-      const prefix = `podcasts/${podcastId}/`;
+      // Construct the folder prefix using utility
+      const prefix = buildPodcastFolderPrefix(podcastId);
 
       // List all objects with the podcast prefix (supports >1000 objects)
       const objects = await this.listAllObjectsWithPrefix(prefix);

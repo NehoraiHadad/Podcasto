@@ -3,10 +3,12 @@ import {
   ListObjectsV2Command,
   GetObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   HeadObjectCommand
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client } from '@/lib/utils/s3-utils';
+import { buildEpisodeFolderPrefix } from '@/lib/utils/s3-path-utils';
 
 export interface S3FileInfo {
   key: string;
@@ -71,7 +73,8 @@ export class S3FileService {
     }
 
     try {
-      const prefix = `podcasts/${podcastId}/${episodeId}/`;
+      // Use path utility for consistency
+      const prefix = buildEpisodeFolderPrefix(podcastId, episodeId);
 
       const command = new ListObjectsV2Command({
         Bucket: this.bucketName,
@@ -204,12 +207,17 @@ export class S3FileService {
   }
 
   /**
-   * Delete all files for an episode
+   * Delete all files for an episode (uses batch deletion for efficiency)
    */
   async deleteAllEpisodeFiles(
     podcastId: string,
     episodeId: string
   ): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
+    const clientResult = await this.ensureClient();
+    if (!clientResult.success || !this.s3Client) {
+      return { success: false, error: clientResult.error };
+    }
+
     const { files, error: listError } = await this.listEpisodeFiles(podcastId, episodeId);
 
     if (listError) {
@@ -220,27 +228,52 @@ export class S3FileService {
       return { success: true, deletedCount: 0 };
     }
 
-    let deletedCount = 0;
-    const errors: string[] = [];
+    try {
+      // Use batch deletion (up to 1000 objects per request)
+      const keys = files.map(f => f.key);
+      const batchSize = 1000;
+      let deletedCount = 0;
+      const errors: string[] = [];
 
-    for (const file of files) {
-      const { success, error } = await this.deleteFile(file.key);
-      if (success) {
-        deletedCount++;
-      } else {
-        errors.push(`${file.name}: ${error}`);
+      for (let i = 0; i < keys.length; i += batchSize) {
+        const batch = keys.slice(i, i + batchSize);
+
+        const command = new DeleteObjectsCommand({
+          Bucket: this.bucketName,
+          Delete: {
+            Objects: batch.map(key => ({ Key: key })),
+            Quiet: false
+          }
+        });
+
+        const result = await this.s3Client.send(command);
+
+        if (result.Deleted) {
+          deletedCount += result.Deleted.length;
+        }
+
+        if (result.Errors) {
+          errors.push(...result.Errors.map(e => `${e.Key}: ${e.Message || 'Unknown error'}`));
+        }
       }
-    }
 
-    if (errors.length > 0) {
+      if (errors.length > 0) {
+        return {
+          success: false,
+          deletedCount,
+          error: `Failed to delete some files: ${errors.join(', ')}`
+        };
+      }
+
+      console.log(`[S3_FILE_SERVICE] Successfully deleted ${deletedCount} files for episode ${episodeId}`);
+      return { success: true, deletedCount };
+    } catch (error) {
+      console.error('[S3_FILE_SERVICE] Error during batch deletion:', error);
       return {
         success: false,
-        deletedCount,
-        error: `Failed to delete some files: ${errors.join(', ')}`
+        error: error instanceof Error ? error.message : 'Batch deletion failed'
       };
     }
-
-    return { success: true, deletedCount };
   }
 
   /**
