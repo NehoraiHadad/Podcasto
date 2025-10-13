@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/api';
 
 /**
  * API route to get the current user session
  * This is used by client components to get the current user
  * Using getUser() instead of getSession() for better security
  * as recommended by Supabase documentation
- * 
+ *
  * @returns The current user data
  */
 export async function GET() {
   try {
     const supabase = await createClient();
-    
+
     try {
       // Use getUser instead of getSession for better security
       // getUser revalidates the Auth token with Supabase Auth server every time
@@ -22,16 +23,22 @@ export async function GET() {
       // This is expected for unauthenticated users
       if (error) {
         if (error.message.includes('auth') || error.message.includes('session')) {
-          console.log('Auth error (expected for unauthenticated users):', error.message);
+          logError('[AUTH_SESSION]', 'Auth error (expected for unauthenticated users)', {
+            severity: 'info',
+            error: error.message,
+          });
           return NextResponse.json(
             { user: null, error: null },
             { status: 200 }
           );
         }
-        
+
         // For other errors, log but still return 200 with null user
         // This prevents client-side errors for non-critical issues
-        console.error('Error fetching user:', error.message);
+        logError('[AUTH_SESSION]', 'Error fetching user', {
+          severity: 'warn',
+          error: error.message,
+        });
         return NextResponse.json(
           { user: null, error: null },
           { status: 200 }
@@ -52,7 +59,9 @@ export async function GET() {
       );
     } catch (supabaseError) {
       // Handle any errors from Supabase operations
-      console.error('Supabase operation error:', supabaseError);
+      logError('[AUTH_SESSION]', supabaseError, {
+        context: 'Supabase operation error',
+      });
       return NextResponse.json(
         { user: null, error: null },
         { status: 200 }
@@ -61,7 +70,10 @@ export async function GET() {
   } catch (error) {
     // This is for critical errors like failing to create the Supabase client
     // Even in this case, return 200 with null user to prevent client errors
-    console.error('Critical error in session API:', error);
+    logError('[AUTH_SESSION]', error, {
+      context: 'Critical error in session API',
+      severity: 'critical',
+    });
     return NextResponse.json(
       { user: null, error: null },
       { status: 200 }

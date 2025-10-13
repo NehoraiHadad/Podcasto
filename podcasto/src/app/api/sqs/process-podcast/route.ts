@@ -1,4 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import {
+  apiSuccess,
+  apiError,
+  validateBearerToken,
+  logError,
+} from '@/lib/api';
 
 interface SQSMessage {
   podcast_config_id: string;
@@ -19,40 +25,39 @@ interface SQSEvent {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log(`[SQS_HANDLER] Received SQS event`);
-    
-    // Check authorization for internal calls
-    const authHeader = request.headers.get('authorization');
-    const expectedToken = process.env.INTERNAL_API_KEY;
-    
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
-      console.log(`[SQS_HANDLER] Unauthorized access attempt`);
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    logError('[SQS_HANDLER]', 'Received SQS event', { severity: 'info' });
+
+    // Validate authorization for internal calls (optional if INTERNAL_API_KEY not configured)
+    const internalKey = process.env.INTERNAL_API_KEY;
+
+    if (internalKey) {
+      const authResult = validateBearerToken(request, internalKey);
+      if (!authResult.valid) {
+        logError('[SQS_HANDLER]', 'Unauthorized access attempt', { severity: 'warn' });
+        return apiError('Unauthorized', 401);
+      }
     }
-    
+
     // Parse SQS event
     const sqsEvent: SQSEvent = await request.json();
-    
+
     if (!sqsEvent.Records || sqsEvent.Records.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No SQS records found' },
-        { status: 400 }
-      );
+      return apiError('No SQS records found', 400);
     }
 
     const results = [];
-    
+
     // Process each SQS message
     for (const record of sqsEvent.Records) {
       try {
         // Parse message body
         const message: SQSMessage = JSON.parse(record.body);
-        
-        console.log(`[SQS_HANDLER] Processing message for episode: ${message.episode_id}`);
-        
+
+        logError('[SQS_HANDLER]', `Processing message for episode: ${message.episode_id}`, {
+          severity: 'info',
+          episodeId: message.episode_id,
+        });
+
         // Call our audio generation API
         const audioResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/episodes/generate-audio`, {
           method: 'POST',
@@ -69,16 +74,22 @@ export async function POST(request: NextRequest) {
         });
 
         const audioResult = await audioResponse.json();
-        
+
         if (audioResult.success) {
-          console.log(`[SQS_HANDLER] Successfully processed episode: ${message.episode_id}`);
+          logError('[SQS_HANDLER]', `Successfully processed episode: ${message.episode_id}`, {
+            severity: 'info',
+            episodeId: message.episode_id,
+          });
           results.push({
             messageId: record.messageId,
             episodeId: message.episode_id,
             status: 'success'
           });
         } else {
-          console.error(`[SQS_HANDLER] Failed to process episode ${message.episode_id}: ${audioResult.error}`);
+          logError('[SQS_HANDLER]', `Failed to process episode ${message.episode_id}`, {
+            error: audioResult.error,
+            episodeId: message.episode_id,
+          });
           results.push({
             messageId: record.messageId,
             episodeId: message.episode_id,
@@ -88,7 +99,10 @@ export async function POST(request: NextRequest) {
         }
 
       } catch (error) {
-        console.error(`[SQS_HANDLER] Error processing SQS record:`, error);
+        logError('[SQS_HANDLER]', error, {
+          messageId: record.messageId,
+          context: 'Processing SQS record',
+        });
         results.push({
           messageId: record.messageId,
           status: 'failed',
@@ -97,27 +111,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       processed: results.length,
       results
     });
 
   } catch (error) {
-    console.error(`[SQS_HANDLER] Error processing SQS event:`, error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'SQS processing failed'
-      },
-      { status: 500 }
-    );
+    logError('[SQS_HANDLER]', error, {
+      context: 'Processing SQS event',
+    });
+    return apiError(error instanceof Error ? error : 'SQS processing failed', 500);
   }
 }
 
 // Health check endpoint
 export async function GET() {
-  return NextResponse.json({
+  return apiSuccess({
     status: 'healthy',
     service: 'SQS Podcast Processor',
     timestamp: new Date().toISOString()
