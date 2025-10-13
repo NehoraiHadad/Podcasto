@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import {
+  apiSuccess,
+  apiError,
+  validateCronAuth,
+  logError
+} from '@/lib/api';
+import { sendEpisodesToSQS, sendEpisodeToSQS, updateEpisodeStatus } from './helpers';
+import type { GenerateAudioRequest } from './types';
 
-interface GenerateAudioRequest {
-  episodeId: string;
-  podcastId: string;
-  telegramDataPath?: string;
-  s3Path?: string;
-  timestamp?: string;
-}
+const logPrefix = '[AUDIO_TRIGGER]';
 
 /**
  * GET method - Manual trigger for CRON jobs
@@ -17,26 +18,23 @@ interface GenerateAudioRequest {
 export async function GET(request: NextRequest) {
   try {
     // Verify this is a legitimate cron request
-    const authHeader = request.headers.get('Authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    console.log('[AUDIO_TRIGGER] Manual trigger started - checking auth');
-    
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      console.log('[AUDIO_TRIGGER] Auth failed:', { hasSecret: !!cronSecret, hasAuth: !!authHeader });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = validateCronAuth(request);
+    if (!authResult.valid) {
+      logError(logPrefix, new Error('Unauthorized trigger attempt'), {
+        hasAuth: !!request.headers.get('Authorization')
+      });
+      return apiError(authResult.error || 'Unauthorized', 401);
     }
 
-    console.log('[AUDIO_TRIGGER] Auth successful, finding pending episodes');
+    console.log(`${logPrefix} Manual trigger started - auth successful`);
 
     // Find episodes that have content collected and need audio generation
     const pendingEpisodes = await episodesApi.getEpisodesByStatus(['content_collected']);
-    
-    console.log(`[AUDIO_TRIGGER] Found ${pendingEpisodes?.length || 0} episodes with content_collected status`);
-    
+
+    console.log(`${logPrefix} Found ${pendingEpisodes?.length || 0} episodes with content_collected status`);
+
     if (!pendingEpisodes || pendingEpisodes.length === 0) {
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         message: 'No episodes with content_collected status found',
         timestamp: new Date().toISOString(),
         processed: 0,
@@ -45,13 +43,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`[AUDIO_TRIGGER] Episodes to process:`, pendingEpisodes.map(e => ({ id: e.id, title: e.title, status: e.status })));
+    console.log(`${logPrefix} Episodes to process:`, pendingEpisodes.map(e => ({
+      id: e.id,
+      title: e.title,
+      status: e.status
+    })));
 
     // Send episodes to existing SQS for processing by Lambda
     const results = await sendEpisodesToSQS(pendingEpisodes);
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       message: `Sent ${results.successful} episodes to processing queue`,
       timestamp: new Date().toISOString(),
       processed: results.successful,
@@ -60,14 +61,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[AUDIO_TRIGGER] Error in manual trigger:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Manual trigger failed'
-      },
-      { status: 500 }
-    );
+    logError(logPrefix, error, { context: 'Manual trigger' });
+    return apiError(error instanceof Error ? error : new Error(String(error)), 500);
   }
 }
 
@@ -80,16 +75,15 @@ export async function POST(request: NextRequest) {
   let episodeId: string | undefined;
 
   try {
-    console.log('[AUDIO_TRIGGER] Manual audio generation triggered');
-    
+    console.log(`${logPrefix} Manual audio generation triggered`);
+
     // Get episodes that are ready for audio generation
     const pendingEpisodes = await episodesApi.getEpisodesByStatus(['content_collected', 'script_ready']);
-    
-    console.log(`[AUDIO_TRIGGER] Found ${pendingEpisodes?.length || 0} episodes with content_collected or script_ready status`);
-    
+
+    console.log(`${logPrefix} Found ${pendingEpisodes?.length || 0} episodes with content_collected or script_ready status`);
+
     if (!pendingEpisodes || pendingEpisodes.length === 0) {
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         message: 'No episodes with content_collected or script_ready status found',
         count: 0
       });
@@ -100,31 +94,22 @@ export async function POST(request: NextRequest) {
     episodeId = body.episodeId;
 
     if (!episodeId) {
-      return NextResponse.json(
-        { success: false, error: 'Episode ID is required' },
-        { status: 400 }
-      );
+      return apiError('Episode ID is required', 400);
     }
 
-    console.log(`[AUDIO_TRIGGER] Starting audio generation trigger for episode: ${episodeId}`);
+    console.log(`${logPrefix} Starting audio generation trigger for episode: ${episodeId}`);
 
     // Get episode data
     const episode = await episodesApi.getEpisodeById(episodeId);
     if (!episode) {
-      return NextResponse.json(
-        { success: false, error: 'Episode not found' },
-        { status: 404 }
-      );
+      return apiError('Episode not found', 404);
     }
 
     if (!episode.podcast_id) {
-      return NextResponse.json(
-        { success: false, error: 'Episode podcast_id is missing' },
-        { status: 400 }
-      );
+      return apiError('Episode podcast_id is missing', 400);
     }
 
-    // Send single episode to existing SQS  
+    // Send single episode to existing SQS
     const result = await sendEpisodeToSQS({
       id: episode.id,
       title: episode.title,
@@ -132,201 +117,31 @@ export async function POST(request: NextRequest) {
     }, body.s3Path);
 
     const processingTime = Date.now() - startTime;
-    console.log(`[AUDIO_TRIGGER] Successfully triggered audio generation for episode ${episodeId} in ${processingTime}ms`);
+    console.log(`${logPrefix} Successfully triggered audio generation for episode ${episodeId} in ${processingTime}ms`);
 
-    return NextResponse.json({
-      success: result.success,
+    return apiSuccess({
       episodeId,
       message: result.success ? 'Episode sent to processing queue' : 'Failed to send episode to queue',
       processingTime,
-      sqsMessageId: result.messageId
+      sqsMessageId: result.messageId,
+      success: result.success
     });
 
   } catch (error) {
-    console.error(`[AUDIO_TRIGGER] Error triggering audio generation:`, error);
+    logError(logPrefix, error, { episodeId, context: 'Audio generation trigger' });
 
     // Update episode status to 'failed' if we have an episode ID
     if (episodeId) {
       try {
         await updateEpisodeStatus(episodeId, 'failed', error instanceof Error ? error.message : 'Unknown error');
       } catch (updateError) {
-        console.error(`[AUDIO_TRIGGER] Failed to update episode status:`, updateError);
+        logError(logPrefix, updateError, {
+          episodeId,
+          context: 'Failed to update episode status'
+        });
       }
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Audio generation trigger failed'
-      },
-      { status: 500 }
-    );
+    return apiError(error instanceof Error ? error : new Error(String(error)), 500);
   }
 }
-
-/**
- * Send multiple episodes to existing SQS for processing
- */
-async function sendEpisodesToSQS(episodes: Array<{ id: string; title: string; podcast_id: string | null }>) {
-  let successful = 0;
-  let failed = 0;
-  const details = [];
-
-  console.log(`[AUDIO_TRIGGER] Sending ${episodes.length} episodes to existing SQS queue`);
-
-  for (const episode of episodes) {
-    try {
-      if (!episode.podcast_id) {
-        console.error(`[AUDIO_TRIGGER] Episode ${episode.id} missing podcast_id`);
-        failed++;
-        details.push({
-          episodeId: episode.id,
-          success: false,
-          error: 'Missing podcast_id'
-        });
-        continue;
-      }
-
-      console.log(`[AUDIO_TRIGGER] Sending episode to SQS: ${episode.id} - ${episode.title}`);
-      
-      const result = await sendEpisodeToSQS({
-        id: episode.id,
-        title: episode.title,
-        podcast_id: episode.podcast_id!
-      });
-      
-      if (result.success) {
-        successful++;
-        details.push({
-          episodeId: episode.id,
-          success: true,
-          messageId: result.messageId
-        });
-        console.log(`[AUDIO_TRIGGER] Successfully sent episode ${episode.id} to SQS`);
-      } else {
-        failed++;
-        details.push({
-          episodeId: episode.id,
-          success: false,
-          error: result.error
-        });
-        await updateEpisodeStatus(episode.id, 'failed', result.error || 'Failed to send to SQS');
-      }
-
-    } catch (error) {
-      console.error(`[AUDIO_TRIGGER] Error sending episode ${episode.id} to SQS:`, error);
-      failed++;
-      details.push({
-        episodeId: episode.id,
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-
-      // Update episode status to failed
-      await updateEpisodeStatus(episode.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
-    }
-  }
-
-  console.log(`[AUDIO_TRIGGER] SQS sending completed. Successful: ${successful}, Failed: ${failed}`);
-
-  return {
-    successful,
-    failed,
-    details
-  };
-}
-
-/**
- * Send individual episode to existing SQS queue
- * Uses the same format as telegram-lambda SQS messages
- */
-async function sendEpisodeToSQS(
-  episode: { id: string; title: string; podcast_id: string },
-  s3Path?: string
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  try {
-    // Initialize SQS client
-    const sqsClient = new SQSClient({
-      region: process.env.AWS_REGION,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      },
-    });
-
-    // Use the existing SQS queue (same as telegram-lambda)
-    const queueUrl = process.env.SQS_QUEUE_URL;
-    if (!queueUrl) {
-      throw new Error('SQS_QUEUE_URL environment variable not set');
-    }
-
-    // Prepare SQS message in the same format as telegram-lambda
-    // This ensures the audio generation lambda can distinguish these messages
-    const messageBody = {
-      podcast_config_id: episode.podcast_id,
-      podcast_id: episode.podcast_id,
-      episode_id: episode.id,
-      timestamp: new Date().toISOString(),
-      s3_path: s3Path || '', // Optional S3 path for Telegram data
-      content_url: s3Path || '', // Same as s3_path for compatibility
-      trigger_source: 'audio_generation_manual' // Identifier for audio generation requests
-    };
-
-    // Send message to existing SQS queue
-    const command = new SendMessageCommand({
-      QueueUrl: queueUrl,
-      MessageBody: JSON.stringify(messageBody),
-      MessageAttributes: {
-        'episode_id': {
-          DataType: 'String',
-          StringValue: episode.id
-        },
-        'podcast_id': {
-          DataType: 'String',
-          StringValue: episode.podcast_id
-        },
-        'trigger_source': {
-          DataType: 'String',
-          StringValue: 'audio_generation_manual'
-        }
-      }
-    });
-
-    const response = await sqsClient.send(command);
-    
-    return {
-      success: true,
-      messageId: response.MessageId
-    };
-
-  } catch (error) {
-    console.error(`[AUDIO_TRIGGER] SQS send error:`, error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown SQS error'
-    };
-  }
-}
-
-/**
- * Updates episode status and optionally error message
- */
-async function updateEpisodeStatus(
-  episodeId: string,
-  status: 'pending' | 'processing' | 'completed' | 'failed',
-  errorMessage?: string
-) {
-  const updateData: { status: string; metadata?: string } = { status };
-  
-  if (status === 'failed' && errorMessage) {
-    // Store error in metadata
-    const episode = await episodesApi.getEpisodeById(episodeId);
-    const metadata = episode?.metadata ? JSON.parse(episode.metadata) : {};
-    metadata.error = errorMessage;
-    metadata.failed_at = new Date().toISOString();
-    updateData.metadata = JSON.stringify(metadata);
-  }
-
-  await episodesApi.updateEpisode(episodeId, updateData);
-  console.log(`[AUDIO_TRIGGER] Updated episode ${episodeId} status to: ${status}`);
-} 

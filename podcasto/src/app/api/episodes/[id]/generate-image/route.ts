@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
 import { createPostProcessingService } from '@/lib/services/post-processing';
-// Import waitUntil from Vercel Functions
 import { waitUntil } from '@vercel/functions';
+import {
+  apiError,
+  validateCronAuth,
+  logError,
+  validateEnvVars
+} from '@/lib/api';
 
 // Set longer execution time and specify runtime
 export const maxDuration = 60; // 60 seconds
@@ -15,87 +20,104 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const logPrefix = '[IMAGE_GENERATOR]';
+
   try {
     // Wait for the params to be resolved
     const resolvedParams = await params;
-    console.log(`[IMAGE_GENERATOR] Generate image request for episode ${resolvedParams.id}`);
-    
+    console.log(`${logPrefix} Generate image request for episode ${resolvedParams.id}`);
+
     // 1. Verify authorization
-    const authHeader = request.headers.get('Authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      console.error('[IMAGE_GENERATOR] Authorization failed');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = validateCronAuth(request);
+    if (!authResult.valid) {
+      logError(logPrefix, new Error('Unauthorized image generation attempt'), {
+        episodeId: resolvedParams.id
+      });
+      return apiError(authResult.error || 'Unauthorized', 401);
     }
-    
+
     // 2. Get episode data
     const episode = await episodesApi.getEpisodeById(resolvedParams.id);
     if (!episode) {
-      console.error(`[IMAGE_GENERATOR] Episode ${resolvedParams.id} not found`);
-      return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
+      logError(logPrefix, new Error('Episode not found'), {
+        episodeId: resolvedParams.id
+      });
+      return apiError('Episode not found', 404);
     }
-    
+
     if (!episode.podcast_id) {
-      console.error(`[IMAGE_GENERATOR] Episode ${resolvedParams.id} has no podcast_id`);
-      return NextResponse.json({ error: 'Episode has no podcast_id' }, { status: 400 });
+      logError(logPrefix, new Error('Episode has no podcast_id'), {
+        episodeId: resolvedParams.id
+      });
+      return apiError('Episode has no podcast_id', 400);
     }
-    
+
     // 3. Get request body with summary
     const body = await request.json();
     const { summary } = body;
-    
+
     if (!summary) {
-      console.error(`[IMAGE_GENERATOR] No summary provided for episode ${resolvedParams.id}`);
-      return NextResponse.json({ error: 'No summary provided' }, { status: 400 });
+      logError(logPrefix, new Error('No summary provided'), {
+        episodeId: resolvedParams.id
+      });
+      return apiError('No summary provided', 400);
     }
-    
-    // Return immediately with a 202 Accepted response
+
+    // 4. Validate required environment variables
+    const envResult = validateEnvVars([
+      'GEMINI_API_KEY',
+      'AWS_REGION',
+      'S3_BUCKET_NAME',
+      'AWS_ACCESS_KEY_ID',
+      'AWS_SECRET_ACCESS_KEY'
+    ]);
+
+    if (!envResult.success) {
+      logError(logPrefix, new Error('Missing required environment variables'), {
+        episodeId: resolvedParams.id,
+        missing: envResult.error
+      });
+      // Return 202 Accepted even with missing env vars (non-blocking)
+      return NextResponse.json({
+        success: true,
+        message: 'Image generation started',
+        status: 'processing'
+      }, { status: 202 });
+    }
+
+    // 5. Return immediately with a 202 Accepted response
     const response = NextResponse.json({
       success: true,
       message: 'Image generation started',
       status: 'processing'
     }, { status: 202 });
-    
-    // 4. Initialize post-processing service
-    const aiApiKey = process.env.GEMINI_API_KEY;
-    const s3Region = process.env.AWS_REGION;
-    const s3Bucket = process.env.S3_BUCKET_NAME;
-    const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-    
-    // Check if required environment variables are available
-    if (!aiApiKey || !s3Region || !s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
-      console.error('[IMAGE_GENERATOR] Missing required environment variables');
-      return response;
-    }
-    
-    // Use waitUntil with a Promise directly
+
+    // 6. Use waitUntil with a Promise directly
     waitUntil(generateImageInBackground(
       resolvedParams.id,
       episode.podcast_id as string,
       summary,
-      aiApiKey,
-      s3Region,
-      s3Bucket,
-      s3AccessKeyId,
-      s3SecretAccessKey
+      process.env.GEMINI_API_KEY!,
+      process.env.AWS_REGION!,
+      process.env.S3_BUCKET_NAME!,
+      process.env.AWS_ACCESS_KEY_ID!,
+      process.env.AWS_SECRET_ACCESS_KEY!
     ));
-    
+
     return response;
   } catch (error) {
-    console.error('[IMAGE_GENERATOR] Error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    const resolvedParams = await params;
+    logError(logPrefix, error, { episodeId: resolvedParams.id });
+    return apiError(error instanceof Error ? error : new Error(String(error)), 500);
   }
 }
 
-// Add this async function outside of the POST handler
+/**
+ * Background image generation handler
+ */
 async function generateImageInBackground(
   episodeId: string,
-  podcastId: string, 
+  podcastId: string,
   summary: string,
   aiApiKey: string,
   s3Region: string,
@@ -103,6 +125,8 @@ async function generateImageInBackground(
   s3AccessKeyId: string,
   s3SecretAccessKey: string
 ) {
+  const logPrefix = '[IMAGE_GENERATOR]';
+
   try {
     // Create post-processing service
     const postProcessingService = createPostProcessingService({
@@ -117,20 +141,24 @@ async function generateImageInBackground(
         apiKey: aiApiKey,
       },
     });
-    
+
     // Generate image in background
     const success = await postProcessingService.generateEpisodeImage(
       episodeId,
       podcastId,
       summary
     );
-    
+
     if (success) {
-      console.log(`[IMAGE_GENERATOR] Successfully generated image for episode ${episodeId}`);
+      console.log(`${logPrefix} Successfully generated image for episode ${episodeId}`);
     } else {
-      console.error(`[IMAGE_GENERATOR] Failed to generate image for episode ${episodeId}`);
+      console.error(`${logPrefix} Failed to generate image for episode ${episodeId}`);
     }
   } catch (error) {
-    console.error('[IMAGE_GENERATOR] Background processing error:', error);
+    logError(logPrefix, error, {
+      episodeId,
+      podcastId,
+      context: 'Background processing'
+    });
   }
-} 
+}

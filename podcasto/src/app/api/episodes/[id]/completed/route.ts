@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
 import { getPostProcessingService } from '@/lib/episode-checker/service-factory';
+import {
+  apiSuccess,
+  apiError,
+  validateLambdaAuth,
+  logError
+} from '@/lib/api';
 
 /**
  * Lambda completion callback endpoint
@@ -13,71 +19,69 @@ export async function POST(
 ) {
   const { id: episodeId } = await params;
   const logPrefix = '[LAMBDA_CALLBACK]';
-  
+
   try {
     console.log(`${logPrefix} Completion callback received for episode: ${episodeId}`);
-    
+
     // 1. Verify Lambda authentication
-    const authHeader = request.headers.get('Authorization');
-    const lambdaSecret = process.env.LAMBDA_CALLBACK_SECRET;
-    
-    if (!lambdaSecret || authHeader !== `Bearer ${lambdaSecret}`) {
-      console.error(`${logPrefix} Unauthorized callback attempt for episode ${episodeId}`);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = validateLambdaAuth(request);
+    if (!authResult.valid) {
+      logError(logPrefix, new Error('Unauthorized callback attempt'), {
+        episodeId
+      });
+      return apiError(authResult.error || 'Unauthorized', 401);
     }
-    
+
     // 2. Parse callback payload
     const payload = await request.json();
     const { status, audio_url, duration } = payload;
-    
-    console.log(`${logPrefix} Callback payload:`, { 
-      episodeId, 
-      status, 
+
+    console.log(`${logPrefix} Callback payload:`, {
+      episodeId,
+      status,
       audio_url: audio_url ? 'present' : 'missing',
-      duration 
+      duration
     });
-    
+
     // 3. Verify episode exists and has expected status
     const episode = await episodesApi.getEpisodeById(episodeId);
     if (!episode) {
-      console.error(`${logPrefix} Episode ${episodeId} not found`);
-      return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
+      logError(logPrefix, new Error('Episode not found'), { episodeId });
+      return apiError('Episode not found', 404);
     }
-    
+
     if (!episode.podcast_id) {
-      console.error(`${logPrefix} Episode ${episodeId} has no podcast_id`);
-      return NextResponse.json({ error: 'Episode has no podcast_id' }, { status: 400 });
+      logError(logPrefix, new Error('Episode has no podcast_id'), { episodeId });
+      return apiError('Episode has no podcast_id', 400);
     }
-    
+
     // 4. Verify episode is in completed status (should be updated by Lambda)
     if (episode.status !== 'completed') {
       console.warn(`${logPrefix} Episode ${episodeId} status is ${episode.status}, expected 'completed'`);
       // Continue anyway - Lambda might have updated status after our query
     }
-    
+
     // 5. Check if post-processing is enabled
     const postProcessingEnabled = process.env.ENABLE_POST_PROCESSING === 'true';
     if (!postProcessingEnabled) {
       console.log(`${logPrefix} Post-processing disabled, skipping for episode ${episodeId}`);
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Callback received, post-processing disabled' 
+      return apiSuccess({
+        message: 'Callback received, post-processing disabled'
       });
     }
-    
+
     // 6. Get post-processing service
     const postProcessingService = getPostProcessingService();
     if (!postProcessingService) {
-      console.error(`${logPrefix} Post-processing service not available`);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Post-processing service not available' 
-      }, { status: 500 });
+      logError(logPrefix, new Error('Post-processing service not available'), {
+        episodeId
+      });
+      return apiError('Post-processing service not available', 500);
     }
-    
+
     // 7. Trigger immediate post-processing
     console.log(`${logPrefix} Starting immediate post-processing for episode ${episodeId}`);
-    
+
     const processingResult = await postProcessingService.processCompletedEpisode(
       episode.podcast_id,
       episodeId,
@@ -88,7 +92,7 @@ export async function POST(
         skipImageGeneration: false
       }
     );
-    
+
     if (processingResult.success) {
       console.log(`${logPrefix} Post-processing completed successfully for episode ${episodeId}`);
 
@@ -108,30 +112,32 @@ export async function POST(
           const emailResult = await sendNewEpisodeNotification(episodeId);
           console.log(`${logPrefix} Email notifications sent: ${emailResult.emailsSent}/${emailResult.totalSubscribers}`);
         } catch (emailError) {
-          console.error(`${logPrefix} Failed to send email notifications:`, emailError);
+          logError(logPrefix, emailError, {
+            episodeId,
+            context: 'Email notification failed'
+          });
           // Don't fail the response if emails fail
         }
       }
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         message: 'Episode post-processing completed successfully',
         episode: processingResult.episode
       });
     } else {
-      console.error(`${logPrefix} Post-processing failed for episode ${episodeId}: ${processingResult.message}`);
-      return NextResponse.json({
-        success: false,
-        error: `Post-processing failed: ${processingResult.message}`
-      }, { status: 500 });
+      logError(logPrefix, new Error('Post-processing failed'), {
+        episodeId,
+        reason: processingResult.message
+      });
+      return apiError(`Post-processing failed: ${processingResult.message}`, 500);
     }
-    
+
   } catch (error) {
-    console.error(`${logPrefix} Error processing callback for episode ${episodeId}:`, error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    logError(logPrefix, error, {
+      episodeId,
+      context: 'Callback processing'
+    });
+    return apiError(error instanceof Error ? error : new Error(String(error)), 500);
   }
 }
 
@@ -143,16 +149,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: episodeId } = await params;
-  
+
   // Simple health check - verify episode exists
   try {
     const episode = await episodesApi.getEpisodeById(episodeId);
     if (!episode) {
-      return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
+      return apiError('Episode not found', 404);
     }
-    
-    return NextResponse.json({
-      success: true,
+
+    return apiSuccess({
       message: 'Callback endpoint is ready',
       episode: {
         id: episode.id,
@@ -161,9 +166,6 @@ export async function GET(
       }
     });
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return apiError(error instanceof Error ? error : new Error(String(error)), 500);
   }
-} 
+}
