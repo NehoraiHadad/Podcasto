@@ -37,7 +37,7 @@ export class PostProcessingService {
     if (!this.aiService) throw new Error('AIService is required for PostProcessingService');
     this.transcriptProcessor = new TranscriptProcessor(this.storageUtils);
     this.episodeUpdater = new EpisodeUpdater();
-    const imageService = new ImageGenerationService({ aiService: this.aiService });
+    const imageService = new ImageGenerationService(this.aiService);
     this.imageHandler = new ImageHandler(this.storageUtils, this.episodeUpdater, imageService);
   }
 

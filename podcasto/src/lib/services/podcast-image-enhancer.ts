@@ -4,7 +4,7 @@
  */
 
 import { ImageGenerator } from '../ai/providers';
-import { PodcastImageAnalyzer } from './podcast-image-analyzer';
+import type { IPodcastImageAnalyzer, IPodcastImageEnhancer } from './interfaces';
 import { detectImageMimeType, createEnhancementPrompt, createFromScratchPrompt } from './podcast-image-utils';
 
 export interface EnhancementOptions {
@@ -44,13 +44,25 @@ export interface EnhancementResult {
  * Service for enhancing podcast images with AI
  * Orchestrates image analysis and enhancement using Gemini 2.5 Flash
  */
-export class PodcastImageEnhancer {
+export class PodcastImageEnhancer implements IPodcastImageEnhancer {
   private imageGenerator: ImageGenerator;
-  private analyzer: PodcastImageAnalyzer;
+  private analyzer: IPodcastImageAnalyzer;
 
-  constructor(apiKey: string) {
+  /**
+   * Create a podcast image enhancer with dependency injection
+   *
+   * @param apiKey - Gemini API key for image generation
+   * @param analyzer - The image analyzer service
+   */
+  constructor(apiKey: string, analyzer: IPodcastImageAnalyzer) {
+    if (!apiKey) {
+      throw new Error('API key is required for PodcastImageEnhancer');
+    }
+    if (!analyzer) {
+      throw new Error('Analyzer is required for PodcastImageEnhancer');
+    }
     this.imageGenerator = new ImageGenerator(apiKey, 'gemini-2.5-flash-image');
-    this.analyzer = new PodcastImageAnalyzer(apiKey);
+    this.analyzer = analyzer;
   }
 
   /**
@@ -260,8 +272,21 @@ export class PodcastImageEnhancer {
 }
 
 /**
- * Create a podcast image enhancer with the specified API key
+ * Factory function to create a podcast image enhancer
+ *
+ * @param apiKey - Gemini API key
+ * @param analyzer - The image analyzer service
+ * @returns IPodcastImageEnhancer interface implementation
  */
-export function createPodcastImageEnhancer(apiKey: string): PodcastImageEnhancer {
-  return new PodcastImageEnhancer(apiKey);
+export function createPodcastImageEnhancer(
+  apiKey: string,
+  analyzer: IPodcastImageAnalyzer
+): IPodcastImageEnhancer {
+  if (!apiKey) {
+    throw new Error('apiKey is required');
+  }
+  if (!analyzer) {
+    throw new Error('analyzer is required');
+  }
+  return new PodcastImageEnhancer(apiKey, analyzer);
 }

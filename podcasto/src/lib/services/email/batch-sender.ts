@@ -1,6 +1,7 @@
 /**
  * Batch Sender for SES Bulk Email
  * Sends individual bulk batches using AWS SES SendBulkTemplatedEmailCommand
+ * with automatic retry logic for transient failures
  */
 
 import { SendBulkTemplatedEmailCommand } from '@aws-sdk/client-ses';
@@ -9,6 +10,7 @@ import type { SESTemplateData } from '@/lib/email/templates/ses-templates';
 import { errorToString } from '@/lib/utils/error-utils';
 import type { RecipientInfo, BulkBatchResult } from './batch-builder';
 import { buildBulkDestinations } from './batch-builder';
+import { withRetry, DEFAULT_RETRY_CONFIG } from './retry-utils';
 
 /**
  * SES Template name created via create-ses-template.sh script
@@ -17,6 +19,8 @@ const SES_TEMPLATE_NAME = 'podcasto-new-episode-v1';
 
 /**
  * Sends a single bulk email batch using SendBulkTemplatedEmailCommand
+ * Automatically retries transient failures (throttling, network issues) with exponential backoff
+ *
  * @param batch - Batch of recipients
  * @param defaultTemplateData - Default template data
  * @param episodeId - Episode ID for tracking
@@ -55,7 +59,13 @@ export async function sendBulkBatch(
 
     console.log(`${logPrefix} Sending bulk email to ${batch.length} recipients`);
 
-    const response = await sesClient.send(command);
+    // Wrap SES send command with retry logic for transient failures
+    // Retries up to 3 times with exponential backoff (1s, 2s, 4s)
+    const response = await withRetry(
+      () => sesClient.send(command),
+      DEFAULT_RETRY_CONFIG,
+      `${logPrefix}[RETRY]`
+    );
 
     // Process results per recipient
     if (response.Status) {

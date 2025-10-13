@@ -5,14 +5,18 @@
 
 import type { ImageAnalysis } from './podcast-image-enhancer';
 import { detectImageMimeType } from './podcast-image-utils';
+import type { IPodcastImageAnalyzer } from './interfaces';
 
 /**
  * Service for analyzing images with AI to understand content and generate enhancement prompts
  */
-export class PodcastImageAnalyzer {
+export class PodcastImageAnalyzer implements IPodcastImageAnalyzer {
   private apiKey: string;
 
   constructor(apiKey: string) {
+    if (!apiKey) {
+      throw new Error('API key is required for PodcastImageAnalyzer');
+    }
     this.apiKey = apiKey;
   }
 
@@ -152,8 +156,11 @@ Format your response as JSON with these exact keys: description, colors, style, 
  * Factory function to create a podcast image analyzer
  *
  * @param apiKey - Gemini API key
- * @returns Configured PodcastImageAnalyzer instance
+ * @returns IPodcastImageAnalyzer interface implementation
  */
-export function createPodcastImageAnalyzer(apiKey: string): PodcastImageAnalyzer {
+export function createPodcastImageAnalyzer(apiKey: string): IPodcastImageAnalyzer {
+  if (!apiKey) {
+    throw new Error('apiKey is required');
+  }
   return new PodcastImageAnalyzer(apiKey);
 }

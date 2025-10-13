@@ -1,25 +1,37 @@
 import { episodesApi } from '../db/api';
-import { S3StorageUtils } from './storage-utils';
-import { EpisodeUpdater } from './episode-updater';
-import { ImageGenerationService } from './image-generation';
+import type { IS3Service, IEpisodeUpdater, IImageGenerationService, IImageHandler } from './interfaces';
 
 /**
  * Handler for image operation tasks
+ * Orchestrates image generation, storage, and episode updates
  */
-export class ImageHandler {
-  private storageUtils: S3StorageUtils;
-  private episodeUpdater: EpisodeUpdater;
-  private imageService: ImageGenerationService;
+export class ImageHandler implements IImageHandler {
+  private s3Service: IS3Service;
+  private episodeUpdater: IEpisodeUpdater;
+  private imageService: IImageGenerationService;
 
   /**
-   * Initialize the image handler
+   * Initialize the image handler with dependency injection
+   *
+   * @param s3Service - The S3 service for storage operations
+   * @param episodeUpdater - The episode updater service
+   * @param imageService - The image generation service
    */
   constructor(
-    storageUtils: S3StorageUtils,
-    episodeUpdater: EpisodeUpdater,
-    imageService: ImageGenerationService
+    s3Service: IS3Service,
+    episodeUpdater: IEpisodeUpdater,
+    imageService: IImageGenerationService
   ) {
-    this.storageUtils = storageUtils;
+    if (!s3Service) {
+      throw new Error('S3Service is required for ImageHandler');
+    }
+    if (!episodeUpdater) {
+      throw new Error('EpisodeUpdater is required for ImageHandler');
+    }
+    if (!imageService) {
+      throw new Error('ImageGenerationService is required for ImageHandler');
+    }
+    this.s3Service = s3Service;
     this.episodeUpdater = episodeUpdater;
     this.imageService = imageService;
   }
@@ -68,24 +80,29 @@ export class ImageHandler {
       }
       
       // Upload image to S3
-      const imageUrl = await this.storageUtils.uploadImageToS3(
-        podcastId, 
-        episodeId, 
-        imageData, 
+      const uploadResult = await this.s3Service.uploadImageToS3(
+        podcastId,
+        episodeId,
+        imageData,
         mimeType
       );
-      console.log(`[IMAGE_HANDLER] Uploaded image to S3: ${imageUrl}`);
-      
+
+      if (uploadResult.error || !uploadResult.url) {
+        throw new Error(uploadResult.error || 'Failed to upload image to S3');
+      }
+
+      console.log(`[IMAGE_HANDLER] Uploaded image to S3: ${uploadResult.url}`);
+
       // Update episode with image URL
       await this.episodeUpdater.updateEpisodeWithImage(
-        episodeId, 
-        imageUrl, 
+        episodeId,
+        uploadResult.url,
         episode.description || undefined
       );
-      
+
       return {
         success: true,
-        imageUrl
+        imageUrl: uploadResult.url
       };
     } catch (error) {
       console.error(`[IMAGE_HANDLER] Error saving generated image:`, error);
@@ -144,12 +161,20 @@ export class ImageHandler {
 }
 
 /**
- * Create an image handler
+ * Factory function to create an image handler
+ *
+ * @param s3Service - The S3 service instance to inject
+ * @param episodeUpdater - The episode updater service instance
+ * @param imageService - The image generation service instance
+ * @returns IImageHandler interface implementation
  */
 export function createImageHandler(
-  storageUtils: S3StorageUtils,
-  episodeUpdater: EpisodeUpdater,
-  imageService: ImageGenerationService
-): ImageHandler {
-  return new ImageHandler(storageUtils, episodeUpdater, imageService);
+  s3Service: IS3Service,
+  episodeUpdater: IEpisodeUpdater,
+  imageService: IImageGenerationService
+): IImageHandler {
+  if (!s3Service || !episodeUpdater || !imageService) {
+    throw new Error('All dependencies are required for ImageHandler');
+  }
+  return new ImageHandler(s3Service, episodeUpdater, imageService);
 } 

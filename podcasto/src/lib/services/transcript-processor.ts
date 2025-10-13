@@ -1,16 +1,21 @@
-import { S3StorageUtils } from './storage-utils';
+import type { IS3Service, ITranscriptService } from './interfaces';
 
 /**
- * Utilities for handling podcast transcript processing
+ * Service for handling podcast transcript processing
  */
-export class TranscriptProcessor {
-  private storageUtils: S3StorageUtils;
+export class TranscriptProcessor implements ITranscriptService {
+  private s3Service: IS3Service;
 
   /**
-   * Initialize the transcript processor
+   * Initialize the transcript processor with dependency injection
+   *
+   * @param s3Service - The S3 service to use for transcript retrieval
    */
-  constructor(storageUtils: S3StorageUtils) {
-    this.storageUtils = storageUtils;
+  constructor(s3Service: IS3Service) {
+    if (!s3Service) {
+      throw new Error('S3Service is required for TranscriptProcessor');
+    }
+    this.s3Service = s3Service;
   }
 
   /**
@@ -25,7 +30,7 @@ export class TranscriptProcessor {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        transcript = await this.storageUtils.getTranscriptFromS3(podcastId, episodeId);
+        transcript = await this.s3Service.getTranscriptFromS3(podcastId, episodeId);
         if (transcript) break;
         
         console.warn(`[TRANSCRIPT_PROCESSOR] Attempt ${attempt + 1}/${maxRetries} failed to retrieve transcript, retrying...`);
@@ -68,8 +73,14 @@ export class TranscriptProcessor {
 }
 
 /**
- * Create a transcript processor with the specified storage utils
+ * Factory function to create a TranscriptProcessor
+ *
+ * @param s3Service - The S3 service instance to inject
+ * @returns ITranscriptService interface implementation
  */
-export function createTranscriptProcessor(storageUtils: S3StorageUtils): TranscriptProcessor {
-  return new TranscriptProcessor(storageUtils);
+export function createTranscriptProcessor(s3Service: IS3Service): ITranscriptService {
+  if (!s3Service) {
+    throw new Error('s3Service is required');
+  }
+  return new TranscriptProcessor(s3Service);
 } 

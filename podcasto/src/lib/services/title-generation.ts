@@ -1,5 +1,6 @@
 import { AIService } from '../ai';
 import { TitleGenerationOptions } from '../ai/types';
+import type { ITitleGenerationService } from './interfaces';
 
 /**
  * Service for generating episode titles using AI
@@ -8,11 +9,11 @@ import { TitleGenerationOptions } from '../ai/types';
  * for podcast episodes based on their transcript content. It delegates
  * to the AIService for the actual generation logic.
  */
-export class TitleGenerationService {
+export class TitleGenerationService implements ITitleGenerationService {
   private aiService: AIService;
 
   /**
-   * Create a new title generation service
+   * Create a new title generation service with dependency injection
    *
    * @param aiService - The AI service to use for title generation
    */
@@ -72,15 +73,15 @@ export class TitleGenerationService {
 /**
  * Factory function to create a TitleGenerationService
  *
- * @param config - Configuration object containing the AI service
- * @returns A new TitleGenerationService instance
+ * @param aiService - The AI service instance to inject
+ * @returns ITitleGenerationService interface implementation
  */
-export function createTitleGenerationService(config: {
-  aiService: AIService;
-}): TitleGenerationService {
-  if (!config.aiService) {
+export function createTitleGenerationService(
+  aiService: AIService
+): ITitleGenerationService {
+  if (!aiService) {
     throw new Error('aiService is required');
   }
 
-  return new TitleGenerationService(config.aiService);
+  return new TitleGenerationService(aiService);
 }

@@ -1,5 +1,6 @@
 import { AIService } from '../ai';
 import { SummaryGenerationOptions } from '../ai/types';
+import type { ISummaryGenerationService } from './interfaces';
 
 /**
  * Service for generating episode summaries using AI
@@ -8,11 +9,11 @@ import { SummaryGenerationOptions } from '../ai/types';
  * for podcast episodes based on their transcript content. It delegates
  * to the AIService for the actual generation logic.
  */
-export class SummaryGenerationService {
+export class SummaryGenerationService implements ISummaryGenerationService {
   private aiService: AIService;
 
   /**
-   * Create a new summary generation service
+   * Create a new summary generation service with dependency injection
    *
    * @param aiService - The AI service to use for summary generation
    */
@@ -72,15 +73,15 @@ export class SummaryGenerationService {
 /**
  * Factory function to create a SummaryGenerationService
  *
- * @param config - Configuration object containing the AI service
- * @returns A new SummaryGenerationService instance
+ * @param aiService - The AI service instance to inject
+ * @returns ISummaryGenerationService interface implementation
  */
-export function createSummaryGenerationService(config: {
-  aiService: AIService;
-}): SummaryGenerationService {
-  if (!config.aiService) {
+export function createSummaryGenerationService(
+  aiService: AIService
+): ISummaryGenerationService {
+  if (!aiService) {
     throw new Error('aiService is required');
   }
 
-  return new SummaryGenerationService(config.aiService);
+  return new SummaryGenerationService(aiService);
 }

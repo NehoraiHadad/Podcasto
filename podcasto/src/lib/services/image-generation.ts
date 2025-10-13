@@ -1,5 +1,6 @@
 import { AIService } from '../ai';
 import { PromptGenerator, createPromptGenerator } from './prompt-generator';
+import type { IImageGenerationService } from './interfaces';
 
 /**
  * Configuration for image generation service
@@ -11,15 +12,20 @@ export interface ImageGenerationConfig {
 /**
  * Service for generating images from descriptions
  */
-export class ImageGenerationService {
+export class ImageGenerationService implements IImageGenerationService {
   private aiService: AIService;
   private promptGenerator: PromptGenerator;
 
   /**
-   * Create a new image generation service
+   * Create a new image generation service with dependency injection
+   *
+   * @param aiService - The AI service to use for image generation
    */
-  constructor(config: ImageGenerationConfig) {
-    this.aiService = config.aiService;
+  constructor(aiService: AIService) {
+    if (!aiService) {
+      throw new Error('AIService is required for ImageGenerationService');
+    }
+    this.aiService = aiService;
     this.promptGenerator = createPromptGenerator(
       this.aiService.getApiKey(),
       'gemini-2.0-flash'
@@ -85,8 +91,14 @@ export class ImageGenerationService {
 }
 
 /**
- * Create an image generation service with the specified AI service
+ * Factory function to create an ImageGenerationService
+ *
+ * @param aiService - The AI service instance to inject
+ * @returns IImageGenerationService interface implementation
  */
-export function createImageGenerationService(aiService: AIService): ImageGenerationService {
-  return new ImageGenerationService({ aiService });
+export function createImageGenerationService(aiService: AIService): IImageGenerationService {
+  if (!aiService) {
+    throw new Error('aiService is required');
+  }
+  return new ImageGenerationService(aiService);
 } 

@@ -35,7 +35,7 @@ export function createImageOnlyService(config: {
   return {
     async generateImagePrompt(summary: string, title?: string): Promise<string> {
       const { ImageGenerationService } = await import('./image-generation');
-      const imageService = new ImageGenerationService({ aiService });
+      const imageService = new ImageGenerationService(aiService);
       return imageService.generateImagePrompt(summary, title);
     },
 
@@ -51,7 +51,7 @@ export function createImageOnlyService(config: {
     }> {
       try {
         const { ImageGenerationService } = await import('./image-generation');
-        const imageService = new ImageGenerationService({ aiService });
+        const imageService = new ImageGenerationService(aiService);
         const result = await imageService.generateImagePreview(summary, title);
         return {
           success: !!result.imageData,
@@ -101,21 +101,26 @@ export function createS3OnlyService(config: {
         const episode = await episodesApi.getEpisodeById(episodeId);
         if (!episode) throw new Error('Episode not found');
 
-        const imageUrl = await storageUtils.uploadImageToS3(
+        const uploadResult = await storageUtils.uploadImageToS3(
           podcastId,
           episodeId,
           imageData,
           mimeType
         );
-        console.log(`[S3_SERVICE] Uploaded image to S3: ${imageUrl}`);
+
+        if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || 'Failed to upload image to S3');
+        }
+
+        console.log(`[S3_SERVICE] Uploaded image to S3: ${uploadResult.url}`);
 
         await episodeUpdater.updateEpisodeWithImage(
           episodeId,
-          imageUrl,
+          uploadResult.url,
           episode.description || undefined
         );
 
-        return { success: true, imageUrl };
+        return { success: true, imageUrl: uploadResult.url };
       } catch (error) {
         console.error(`[S3_SERVICE] Error saving generated image:`, error);
         return {

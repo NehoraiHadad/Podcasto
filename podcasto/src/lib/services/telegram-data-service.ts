@@ -1,5 +1,6 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { createS3Client } from '@/lib/utils/s3-utils';
+import type { ITelegramDataService } from './interfaces';
 
 interface TelegramMessage {
   text?: string;
@@ -22,15 +23,26 @@ interface RetryConfig {
   backoffMultiplier: number;
 }
 
-export class TelegramDataService {
+/**
+ * Service for retrieving Telegram data from S3
+ *
+ * This service handles fetching Telegram channel content stored in S3,
+ * with built-in retry logic and exponential backoff.
+ */
+export class TelegramDataService implements ITelegramDataService {
   private bucketName: string;
   private retryConfig: RetryConfig;
 
-  constructor() {
-    this.bucketName = process.env.S3_BUCKET_NAME || '';
-    
+  /**
+   * Create a TelegramDataService
+   *
+   * @param bucketName - Optional S3 bucket name (defaults to env var)
+   */
+  constructor(bucketName?: string) {
+    this.bucketName = bucketName || process.env.S3_BUCKET_NAME || '';
+
     if (!this.bucketName) {
-      throw new Error('S3_BUCKET_NAME environment variable is required');
+      throw new Error('S3_BUCKET_NAME must be provided or set in environment');
     }
 
     // Configuration for exponential backoff retry
@@ -263,4 +275,17 @@ export class TelegramDataService {
 
     return hasMessages;
   }
-} 
+}
+
+/**
+ * Factory function to create a TelegramDataService instance
+ *
+ * @param bucketName - Optional S3 bucket name
+ * @returns ITelegramDataService interface implementation
+ */
+export function createTelegramDataService(bucketName?: string): ITelegramDataService {
+  return new TelegramDataService(bucketName);
+}
+
+/** @deprecated Use createTelegramDataService() factory function instead */
+export const telegramDataService = createTelegramDataService(); 

@@ -1,9 +1,10 @@
 import { episodesApi } from '../db/api';
+import type { IEpisodeUpdater } from './interfaces';
 
 /**
  * Service for updating episode metadata and status
  */
-export class EpisodeUpdater {
+export class EpisodeUpdater implements IEpisodeUpdater {
   /**
    * Update episode with newly generated title and summary
    */
@@ -139,8 +140,12 @@ export class EpisodeUpdater {
 }
 
 /**
- * Create an episode updater service
+ * Factory function to create an EpisodeUpdater instance
+ * @returns IEpisodeUpdater interface implementation
  */
-export function createEpisodeUpdater(): EpisodeUpdater {
+export function createEpisodeUpdater(): IEpisodeUpdater {
   return new EpisodeUpdater();
-} 
+}
+
+/** @deprecated Use createEpisodeUpdater() factory function instead */
+export const episodeUpdater = createEpisodeUpdater(); 

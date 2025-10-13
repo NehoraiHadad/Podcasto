@@ -4,6 +4,7 @@
  */
 
 import { createPodcastImageEnhancer, type ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
+import { createPodcastImageAnalyzer } from '@/lib/services/podcast-image-analyzer';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 
 /**
@@ -35,7 +36,8 @@ export async function enhanceImageWithAI(
     console.log(`[IMAGE_SHARED] Enhancing image with AI (${variationsCount} variation${variationsCount > 1 ? 's' : ''})`);
 
     try {
-      const enhancer = createPodcastImageEnhancer(process.env.GEMINI_API_KEY);
+      const analyzer = createPodcastImageAnalyzer(process.env.GEMINI_API_KEY);
+      const enhancer = createPodcastImageEnhancer(process.env.GEMINI_API_KEY, analyzer);
       const enhancementResult = await enhancer.enhanceImage(
         imageBuffer,
         {
