@@ -6,12 +6,12 @@
  */
 
 import { podcastsApi } from '@/lib/db/api';
+import { requireAdmin } from '@/lib/auth';
 import {
   ActionResponse,
   PodcastUpdateData,
   podcastUpdateSchema
 } from './schemas';
-import { requireAdmin } from './auth';
 import {
   handleActionError,
   revalidatePodcastPaths,

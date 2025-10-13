@@ -17,9 +17,6 @@ export type {
   EmailNotificationResult
 } from './shared';
 
-// Export utilities
-export { getCurrentUser } from './shared';
-
 // Export subscription check actions
 export { isUserSubscribed } from './check-actions';
 

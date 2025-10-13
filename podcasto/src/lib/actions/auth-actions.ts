@@ -2,8 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getURL } from '@/lib/utils/url';
+import {
+  handleSupabaseAuthError,
+  authErrorToResult,
+  logAuthError,
+} from '@/lib/auth';
 import { getCurrentUser as getUserFromUserActions, requireAuth as requireAuthFromUserActions } from './user-actions';
-import { checkIsAdmin as checkIsAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin-actions';
+import { checkIsAdmin as checkIsAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin/auth-actions';
 import { resetPassword as resetPasswordFromPasswordActions, updatePassword as updatePasswordFromPasswordActions } from './auth-password-actions';
 
 // Wrapper functions for backward compatibility
@@ -42,26 +47,8 @@ export async function updatePassword(password: string) {
 }
 
 /**
- * Utility function to handle auth errors consistently
- * 
- * @param error The error to handle
- * @returns A standardized error object
- */
-const handleAuthError = (error: unknown) => {
-  if (!error) return null;
-  
-  const errorMessage = error instanceof Error 
-    ? error.message 
-    : (typeof error === 'object' && error !== null && 'message' in error)
-      ? String(error.message)
-      : 'An unknown error occurred';
-      
-  return { message: errorMessage };
-};
-
-/**
  * Server action to sign in with password
- * 
+ *
  * @param email User's email
  * @param password User's password
  * @returns Result of the sign in operation
@@ -69,29 +56,39 @@ const handleAuthError = (error: unknown) => {
 export const signInWithPassword = async (email: string, password: string) => {
   try {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    
-    return { data, error: handleAuthError(error) };
+
+    if (error) {
+      const authError = handleSupabaseAuthError(error);
+      logAuthError(authError, { action: 'signInWithPassword', email });
+      const result = authErrorToResult(authError);
+      return { data: null, error: result.error };
+    }
+
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: handleAuthError(error) };
+    const authError = handleSupabaseAuthError(error);
+    logAuthError(authError, { action: 'signInWithPassword', email });
+    const result = authErrorToResult(authError);
+    return { data: null, error: result.error };
   }
 };
 
 /**
  * Server action to sign in with Google OAuth using PKCE flow
  * This returns a URL that the client should redirect to
- * 
+ *
  * @param redirectTo Optional path to redirect to after login
  * @returns URL to redirect to for Google authentication
  */
 export const signInWithGoogle = async (redirectTo?: string) => {
   try {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -103,16 +100,26 @@ export const signInWithGoogle = async (redirectTo?: string) => {
         },
       },
     });
-    
-    return { data, error: handleAuthError(error) };
+
+    if (error) {
+      const authError = handleSupabaseAuthError(error);
+      logAuthError(authError, { action: 'signInWithGoogle' });
+      const result = authErrorToResult(authError);
+      return { data: null, error: result.error };
+    }
+
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: handleAuthError(error) };
+    const authError = handleSupabaseAuthError(error);
+    logAuthError(authError, { action: 'signInWithGoogle' });
+    const result = authErrorToResult(authError);
+    return { data: null, error: result.error };
   }
 };
 
 /**
  * Server action to sign up with email and password
- * 
+ *
  * @param email User's email
  * @param password User's password
  * @returns Result of the sign up operation
@@ -120,7 +127,7 @@ export const signInWithGoogle = async (redirectTo?: string) => {
 export const signUpWithPassword = async (email: string, password: string) => {
   try {
     const supabase = await createClient();
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -128,26 +135,44 @@ export const signUpWithPassword = async (email: string, password: string) => {
         emailRedirectTo: `${getURL()}auth/callback`,
       },
     });
-    
-    return { data, error: handleAuthError(error) };
+
+    if (error) {
+      const authError = handleSupabaseAuthError(error);
+      logAuthError(authError, { action: 'signUpWithPassword', email });
+      const result = authErrorToResult(authError);
+      return { data: null, error: result.error };
+    }
+
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: handleAuthError(error) };
+    const authError = handleSupabaseAuthError(error);
+    logAuthError(authError, { action: 'signUpWithPassword', email });
+    const result = authErrorToResult(authError);
+    return { data: null, error: result.error };
   }
 };
 
 /**
  * Server action to sign out
- * 
+ *
  * @returns Result of the sign out operation
  */
 export const signOut = async () => {
   try {
     const supabase = await createClient();
-    
+
     const { error } = await supabase.auth.signOut();
-    
-    return { error: handleAuthError(error) };
+
+    if (error) {
+      const authError = handleSupabaseAuthError(error);
+      logAuthError(authError, { action: 'signOut' });
+      return authErrorToResult(authError);
+    }
+
+    return { success: true };
   } catch (error) {
-    return { error: handleAuthError(error) };
+    const authError = handleSupabaseAuthError(error);
+    logAuthError(authError, { action: 'signOut' });
+    return authErrorToResult(authError);
   }
 }; 

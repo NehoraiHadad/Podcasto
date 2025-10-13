@@ -1,10 +1,15 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '../user-actions';
-import { userRolesApi } from '@/lib/db/api';
+import {
+  requireAdmin as requireAdminAuth,
+  getUserHighestRole,
+  getUser,
+  InsufficientPermissionsError,
+  UnauthorizedError,
+} from '@/lib/auth';
+import type { User } from '@/lib/auth';
 
 /**
  * Server action to check if the current user has admin role
@@ -32,27 +37,33 @@ export const checkIsAdmin = cache(async ({
 }: {
   redirectOnFailure?: boolean,
   redirectTo?: string
-} = {}) => {
-  const supabase = await createClient();
+} = {}): Promise<boolean | User> => {
+  try {
+    // Use centralized role service to check admin status
+    const admin = await requireAdminAuth();
 
-  // Get the current user
-  const { data: { user }, error } = await supabase.auth.getUser();
+    // If redirectOnFailure is true, return the user object
+    return redirectOnFailure ? admin : true;
+  } catch (error) {
+    // If redirectOnFailure is false, return false
+    if (!redirectOnFailure) {
+      return false;
+    }
 
-  if (error || !user) {
-    if (redirectOnFailure) {
+    // Handle redirects for redirectOnFailure = true
+    if (error instanceof UnauthorizedError) {
+      // User not authenticated - redirect to login
       redirect(`/auth/login?redirect=${encodeURIComponent(redirectTo)}`);
     }
-    return false;
-  }
 
-  // Check if user has admin role using Drizzle API
-  const isAdmin = await userRolesApi.isUserAdmin(user.id);
+    if (error instanceof InsufficientPermissionsError) {
+      // User authenticated but not admin - redirect to unauthorized
+      redirect('/unauthorized');
+    }
 
-  if (!isAdmin && redirectOnFailure) {
+    // Unexpected error - redirect to unauthorized
     redirect('/unauthorized');
   }
-
-  return redirectOnFailure ? user : isAdmin;
 });
 
 /**
@@ -70,16 +81,11 @@ export const checkIsAdmin = cache(async ({
  * }
  */
 export const getUserRole = async (): Promise<string | null> => {
-  const user = await getCurrentUser();
+  // Use centralized session service
+  const user = await getUser();
 
   if (!user) return null;
 
-  // Get user role using Drizzle API
-  const userRoles = await userRolesApi.getUserRoles(user.id);
-
-  if (!userRoles || userRoles.length === 0) {
-    return null;
-  }
-
-  return userRoles[0].role;
+  // Use centralized role service to get highest priority role
+  return await getUserHighestRole(user.id);
 };

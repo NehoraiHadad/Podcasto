@@ -2,7 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUser, type SubscriptionActionResult } from './shared';
+import { getUser } from '@/lib/auth';
+import type { SubscriptionActionResult } from './shared';
 import { isUserSubscribed } from './check-actions';
 
 /**
@@ -37,9 +38,9 @@ export async function toggleSubscription(
       };
     }
 
-    const { user, error: authError } = await getCurrentUser();
+    const user = await getUser();
 
-    if (authError || !user) {
+    if (!user) {
       return {
         success: false,
         message: 'You need to be logged in to subscribe for updates'

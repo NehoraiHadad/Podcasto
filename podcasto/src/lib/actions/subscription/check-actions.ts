@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser, type SubscriptionParams } from './shared';
+import { getUser } from '@/lib/auth';
+import type { SubscriptionParams } from './shared';
 
 /**
  * Check if the current user is subscribed to a podcast
@@ -17,9 +18,9 @@ import { getCurrentUser, type SubscriptionParams } from './shared';
  */
 export async function isUserSubscribed({ podcastId }: SubscriptionParams): Promise<boolean> {
   try {
-    const { user, error: authError } = await getCurrentUser();
+    const user = await getUser();
 
-    if (authError || !user) {
+    if (!user) {
       return false;
     }
 

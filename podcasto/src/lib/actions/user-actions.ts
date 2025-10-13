@@ -1,55 +1,40 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { getUser } from '@/lib/auth';
+import type { User } from '@/lib/auth';
 
 /**
  * Server action to get the current user
  * This is a secure way to get the user in server components
  * Cached to avoid multiple database calls
+ *
+ * @returns The authenticated user or null if not authenticated
  */
-export const getCurrentUser = cache(async () => {
-  const supabase = await createClient();
-  
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error) {
-      // Don't log session missing errors as they're expected for unauthenticated users
-      if (!error.message.includes('Auth session missing')) {
-        console.error('Error getting current user:', error.message);
-      }
-      return null;
-    }
-    
-    return user;
-  } catch (error) {
-    console.error('Unexpected error getting current user:', error);
-    return null;
-  }
+export const getCurrentUser = cache(async (): Promise<User | null> => {
+  return await getUser();
 });
 
 /**
  * Server action to check if user is authenticated
  * Redirects to login if not authenticated
- * 
+ *
  * @param redirectTo Optional path to redirect to after login
  * @returns The authenticated user
+ * @throws Redirects to login page if not authenticated
  */
-export const requireAuth = async (redirectTo?: string) => {
-  const supabase = await createClient();
-  
-  // Get the user directly from Supabase Auth
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
-    const loginPath = redirectTo 
+export const requireAuth = async (redirectTo?: string): Promise<User> => {
+  const user = await getUser();
+
+  if (!user) {
+    // Redirect to login with optional redirect parameter
+    const loginPath = redirectTo
       ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}`
       : '/auth/login';
-    
+
     redirect(loginPath);
   }
-  
+
   return user;
 }; 

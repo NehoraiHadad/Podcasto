@@ -1,8 +1,8 @@
 'use server';
 
 import { podcastsApi } from '@/lib/db/api';
+import { requireAdmin } from '@/lib/auth';
 import { ActionResponse } from './schemas';
-import { requireAdmin } from './auth';
 import { handleActionError, revalidatePodcastPaths } from './utils';
 
 /**

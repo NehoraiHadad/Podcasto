@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { profilesApi } from '@/lib/db/api';
-import { getCurrentUser, type EmailNotificationResult } from './shared';
+import { getUser } from '@/lib/auth';
+import type { EmailNotificationResult } from './shared';
 
 /**
  * Simple toggle for email notifications (for settings page)
@@ -20,12 +21,12 @@ import { getCurrentUser, type EmailNotificationResult } from './shared';
  */
 export async function updateEmailNotificationPreference(): Promise<EmailNotificationResult> {
   try {
-    const { user, error: authError } = await getCurrentUser();
+    const user = await getUser();
 
-    if (authError || !user) {
+    if (!user) {
       return {
         success: false,
-        message: authError || 'Not authenticated'
+        message: 'Not authenticated'
       };
     }
 
@@ -79,9 +80,9 @@ export async function toggleEmailNotifications(
   formData: FormData
 ): Promise<EmailNotificationResult> {
   try {
-    const { user, error: authError } = await getCurrentUser();
+    const user = await getUser();
 
-    if (authError || !user) {
+    if (!user) {
       return {
         success: false,
         message: 'You need to be logged in to update preferences'
