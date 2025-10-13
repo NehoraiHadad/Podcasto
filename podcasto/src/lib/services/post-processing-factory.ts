@@ -1,5 +1,6 @@
 import { AIService, AIServiceConfig } from '../ai';
-import { S3StorageUtils, S3StorageConfig } from './storage-utils';
+import { createS3Service } from './s3-service';
+import type { S3ServiceConfig } from './s3-service-types';
 import { PostProcessingService, Episode } from './post-processing';
 import { EpisodeUpdater } from './episode-updater';
 import { episodesApi } from '../db/api';
@@ -8,17 +9,17 @@ import { episodesApi } from '../db/api';
  * Create a post-processing service with the specified configuration
  */
 export function createPostProcessingService(config: {
-  s3: S3StorageConfig;
+  s3: Partial<S3ServiceConfig>;
   ai: AIServiceConfig;
 }): PostProcessingService {
   if (!config.s3) throw new Error('s3 config is required');
   if (!config.ai) throw new Error('ai config is required');
   if (!config.ai.apiKey) throw new Error('aiService is required');
 
-  const storageUtils = new S3StorageUtils(config.s3);
+  const s3Service = createS3Service(config.s3);
   const aiService = new AIService(config.ai);
 
-  return new PostProcessingService({ storageUtils, aiService });
+  return new PostProcessingService({ s3Service, aiService });
 }
 
 /**
@@ -75,11 +76,11 @@ export function createImageOnlyService(config: {
  * Create a limited post-processing service for S3 operations only (no AI)
  */
 export function createS3OnlyService(config: {
-  s3: S3StorageConfig;
+  s3: Partial<S3ServiceConfig>;
 }): Pick<PostProcessingService, 'saveGeneratedImage'> {
   if (!config.s3) throw new Error('s3 config is required');
 
-  const storageUtils = new S3StorageUtils(config.s3);
+  const s3Service = createS3Service(config.s3);
   const episodeUpdater = new EpisodeUpdater();
 
   return {
@@ -101,7 +102,7 @@ export function createS3OnlyService(config: {
         const episode = await episodesApi.getEpisodeById(episodeId);
         if (!episode) throw new Error('Episode not found');
 
-        const uploadResult = await storageUtils.uploadImageToS3(
+        const uploadResult = await s3Service.uploadImageToS3(
           podcastId,
           episodeId,
           imageData,

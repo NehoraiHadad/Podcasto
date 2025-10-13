@@ -27,7 +27,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { listEpisodeS3Files, deleteS3File, deleteAllEpisodeS3Files } from '@/lib/actions/episode/s3-file-actions';
-import type { S3FileInfo } from '@/lib/services/s3-file-service';
+import type { S3FileInfo } from '@/lib/services/s3-service-types';
 import { FileViewerDialog } from './file-viewer-dialog';
 import { toast } from 'sonner';
 

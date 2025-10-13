@@ -1,6 +1,6 @@
 'use server';
 
-import { s3FileService } from '@/lib/services/s3-file-service';
+import { createS3Service } from '@/lib/services/s3-service';
 import { revalidatePath } from 'next/cache';
 import {
   requireAdminForS3,
@@ -23,8 +23,11 @@ export async function deleteAllEpisodeS3Files(
     const adminError = await requireAdminForS3();
     if (adminError) return adminError as S3FileActionResult<{ deletedCount: number }>;
 
+    // Create S3 service instance
+    const s3Service = createS3Service();
+
     // Delete all files
-    const { success, deletedCount, error } = await s3FileService.deleteAllEpisodeFiles(
+    const { success, deletedCount, error } = await s3Service.deleteAllEpisodeFiles(
       podcastId,
       episodeId
     );

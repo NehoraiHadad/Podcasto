@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Download, ExternalLink, Loader2 } from 'lucide-react';
 import { getS3FileContent } from '@/lib/actions/episode/s3-file-actions';
-import type { S3FileInfo } from '@/lib/services/s3-file-service';
+import type { S3FileInfo } from '@/lib/services/s3-service-types';
 
 interface FileViewerDialogProps {
   file: S3FileInfo | null;

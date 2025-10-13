@@ -4,9 +4,9 @@ import { requireAdmin } from '../auth-actions';
 import { episodesApi } from '@/lib/db/api';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { getPostProcessingConfig } from '@/lib/utils/post-processing-utils';
-import { S3StorageUtils } from '@/lib/services/storage-utils';
+import { createS3Service } from '@/lib/services/s3-service';
+import { createTranscriptProcessorInstance } from '@/lib/services/service-factory';
 import { AIService } from '@/lib/ai';
-import { TranscriptProcessor } from '@/lib/services/transcript-processor';
 
 /**
  * Manually generate title and description for an episode using AI
@@ -37,23 +37,23 @@ export async function generateEpisodeTitleAndDescription(
 
     // Get configuration and create services
     const { config, error: configError } = await getPostProcessingConfig(true, true);
-    
+
     if (configError) {
       throw new Error(`Configuration error: ${configError}`);
     }
-    
+
     if (!config.s3 || !config.ai) {
       throw new Error('Both S3 and AI configuration are required for title and description generation');
     }
-    
-    // Create services directly
-    const storageUtils = new S3StorageUtils(config.s3);
+
+    // Create services using factory pattern
+    const s3Service = createS3Service(config.s3);
     const aiService = new AIService(config.ai);
-    const transcriptProcessor = new TranscriptProcessor(storageUtils);
-    
+    const transcriptProcessor = createTranscriptProcessorInstance(s3Service);
+
     // Get transcript from S3
-    const transcript = await storageUtils.getTranscriptFromS3(
-      episode.podcast_id, 
+    const transcript = await s3Service.getTranscriptFromS3(
+      episode.podcast_id,
       episodeId
     );
     

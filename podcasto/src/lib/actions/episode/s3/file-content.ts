@@ -1,6 +1,6 @@
 'use server';
 
-import { s3FileService } from '@/lib/services/s3-file-service';
+import { createS3Service } from '@/lib/services/s3-service';
 import {
   requireAdminForS3,
   validateS3Key,
@@ -26,8 +26,11 @@ export async function getS3FileContent(
     const keyError = validateS3Key(key);
     if (keyError) return keyError as S3FileActionResult<S3FileContent>;
 
+    // Create S3 service instance
+    const s3Service = createS3Service();
+
     // Get content
-    const { content, error } = await s3FileService.getFileContent(key);
+    const { content, error } = await s3Service.getFileContent(key);
 
     if (error) {
       return errorResult(error) as S3FileActionResult<S3FileContent>;

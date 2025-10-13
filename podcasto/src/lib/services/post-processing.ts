@@ -1,5 +1,5 @@
 import { AIService } from '../ai';
-import { S3StorageUtils } from './storage-utils';
+import type { IS3Service } from './interfaces/storage.interface';
 import { TranscriptProcessor } from './transcript-processor';
 import { EpisodeUpdater } from './episode-updater';
 import { ImageHandler } from './image-handler';
@@ -17,7 +17,7 @@ export interface Episode {
 }
 
 export interface PostProcessingConfig {
-  storageUtils: S3StorageUtils;
+  s3Service: IS3Service;
   aiService: AIService;
 }
 
@@ -25,20 +25,20 @@ export interface PostProcessingConfig {
  * Orchestrator for post-processing podcast episodes
  */
 export class PostProcessingService {
-  private storageUtils: S3StorageUtils;
+  private s3Service: IS3Service;
   private aiService: AIService;
   private transcriptProcessor: TranscriptProcessor;
   private episodeUpdater: EpisodeUpdater;
   private imageHandler: ImageHandler;
 
   constructor(config: PostProcessingConfig) {
-    this.storageUtils = config.storageUtils;
+    this.s3Service = config.s3Service;
     this.aiService = config.aiService;
     if (!this.aiService) throw new Error('AIService is required for PostProcessingService');
-    this.transcriptProcessor = new TranscriptProcessor(this.storageUtils);
+    this.transcriptProcessor = new TranscriptProcessor(this.s3Service);
     this.episodeUpdater = new EpisodeUpdater();
     const imageService = new ImageGenerationService(this.aiService);
-    this.imageHandler = new ImageHandler(this.storageUtils, this.episodeUpdater, imageService);
+    this.imageHandler = new ImageHandler(this.s3Service, this.episodeUpdater, imageService);
   }
 
   async processCompletedEpisode(
@@ -55,7 +55,7 @@ export class PostProcessingService {
       const episode = await this.getEpisode(episodeId);
       if (!episode?.podcast_id) return { success: false, message: 'Episode not found' };
 
-      const transcript = await this.storageUtils.getTranscriptFromS3(
+      const transcript = await this.s3Service.getTranscriptFromS3(
         episode.podcast_id,
         episodeId
       );

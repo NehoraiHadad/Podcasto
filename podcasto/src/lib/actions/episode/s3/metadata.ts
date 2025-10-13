@@ -1,6 +1,6 @@
 'use server';
 
-import { s3FileService } from '@/lib/services/s3-file-service';
+import { createS3Service } from '@/lib/services/s3-service';
 import {
   requireAdminForS3,
   validateS3Key,
@@ -26,8 +26,11 @@ export async function getS3FileMetadata(
     const keyError = validateS3Key(key);
     if (keyError) return keyError as S3FileActionResult<{ size: number; contentType?: string; lastModified?: Date }>;
 
+    // Create S3 service instance
+    const s3Service = createS3Service();
+
     // Get metadata
-    const { metadata, error } = await s3FileService.getFileMetadata(key);
+    const { metadata, error } = await s3Service.getFileMetadata(key);
 
     if (error || !metadata) {
       return errorResult(error || 'Metadata not found') as S3FileActionResult<{ size: number; contentType?: string; lastModified?: Date }>;

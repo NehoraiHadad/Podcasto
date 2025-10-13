@@ -1,6 +1,6 @@
 'use server';
 
-import { s3FileService } from '@/lib/services/s3-file-service';
+import { createS3Service } from '@/lib/services/s3-service';
 import { revalidatePath } from 'next/cache';
 import {
   requireAdminForS3,
@@ -28,8 +28,11 @@ export async function deleteS3File(
     const keyError = validateS3Key(key);
     if (keyError) return keyError as S3FileActionResult<void>;
 
+    // Create S3 service instance
+    const s3Service = createS3Service();
+
     // Delete file
-    const { success, error } = await s3FileService.deleteFile(key);
+    const { success, error } = await s3Service.deleteFile(key);
 
     if (!success) {
       return errorResult(error || 'Failed to delete file') as S3FileActionResult<void>;
