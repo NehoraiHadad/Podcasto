@@ -24,9 +24,7 @@ export async function generateEpisodesForPodcasts(
   podcastsNeedingEpisodes: PodcastScheduleData[]
 ): Promise<GenerationResult[]> {
   const results: GenerationResult[] = [];
-  const baseUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const cronSecret = process.env.CRON_SECRET;
   
   for (const podcast of podcastsNeedingEpisodes) {
