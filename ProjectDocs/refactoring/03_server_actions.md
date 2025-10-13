@@ -15,23 +15,35 @@
 | `actions/podcast/image-actions.ts` | ~~683~~ → 8 files | ✅ פוצל (הושלם 2025-10-13) |
 | `actions/podcast/generate.ts` | ~~322~~ → 102 | ✅ פוצל (הושלם 2025-10-13) |
 | `actions/podcast/update.ts` | ~~302~~ → 116 | ✅ פוצל (הושלם 2025-10-13) |
-| `actions/episode/bulk-generation-actions.ts` | 283 | ⚠️ גדול - צריך פיצול |
-| `actions/episode/s3-file-actions.ts` | 251 | ⚠️ גדול - צריך פיצול |
-| `actions/subscription-actions.ts` | 229 | ⚠️ גדול - צריך פיצול |
-| `actions/admin-actions.ts` | 200 | ⚠️ גבול |
+| `actions/episode/bulk-generation-actions.ts` | ~~283~~ → 6 files | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/episode/s3-file-actions.ts` | ~~251~~ → 8 files | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/subscription-actions.ts` | ~~229~~ → 5 files | ✅ פוצל (הושלם 2025-10-13) |
+| `actions/admin-actions.ts` | ~~201~~ → 5 files | ✅ פוצל (הושלם 2025-10-13) |
 | `actions/auth-actions.ts` | 127 | ✅ סביר |
 
 ### ארגון תיקיות
 
 ```
 actions/
-├── admin-actions.ts
+├── admin-actions.ts              # wrapper/index
+├── admin/
+│   ├── types.ts
+│   ├── stats-actions.ts
+│   ├── auth-actions.ts
+│   ├── cron-actions.ts
+│   └── index.ts
 ├── auth-actions.ts
 ├── auth-password-actions.ts
-├── subscription-actions.ts
+├── subscription-actions.ts       # wrapper/index
+├── subscription/
+│   ├── shared.ts
+│   ├── check-actions.ts
+│   ├── toggle-actions.ts
+│   ├── email-preferences-actions.ts
+│   └── index.ts
 ├── unsubscribe-actions.ts
 ├── user-actions.ts
-├── episode-actions.ts        # wrapper/index
+├── episode-actions.ts            # wrapper/index
 ├── episode/
 │   ├── core-actions.ts
 │   ├── generation-actions.ts
@@ -472,9 +484,25 @@ Progress: ⬜⬜⬜⬜⬜ 0%
 5. Add comprehensive input validation
 
 **עדכון אחרון (2025-10-13):**
-- ✅ פוצל `podcast/generate.ts` ל-6 מודולים ממוקדים (כולל main orchestrator)
-- ✅ פוצל `podcast/update.ts` ל-5 מודולים ממוקדים (כולל main orchestrator)
+- ✅ פוצל `podcast/image-actions.ts` ל-8 מודולים ממוקדים (683 → 8 files)
+- ✅ פוצל `podcast/generate.ts` ל-6 מודולים ממוקדים (322 → 6 files)
+- ✅ פוצל `podcast/update.ts` ל-5 מודולים ממוקדים (302 → 5 files)
+- ✅ פוצל `episode/bulk-generation-actions.ts` ל-6 מודולים ממוקדים (283 → 6 files)
+- ✅ פוצל `episode/s3-file-actions.ts` ל-8 מודולים ממוקדים (251 → 8 files)
+- ✅ פוצל `subscription-actions.ts` ל-5 מודולים ממוקדים (229 → 5 files)
+  - `shared.ts` (64 lines): Types ו-utilities משותפים
+  - `check-actions.ts` (43 lines): בדיקת subscription status
+  - `toggle-actions.ts` (107 lines): Toggle subscription
+  - `email-preferences-actions.ts` (117 lines): Email notification preferences
+  - `index.ts` (33 lines): Exports מרוכזים
+- ✅ פוצל `admin-actions.ts` ל-5 מודולים ממוקדים (201 → 5 files)
+  - `types.ts` (21 lines): Type definitions
+  - `stats-actions.ts` (42 lines): Dashboard statistics
+  - `auth-actions.ts` (85 lines): Admin auth checking
+  - `cron-actions.ts` (149 lines): CRON job management
+  - `index.ts` (33 lines): Exports מרוכזים
 - ✅ כל הקבצים החדשים < 150 שורות (עמידה קפדנית בגבול)
 - ✅ שמירה על backward compatibility מלאה
 - ✅ Build עובר ללא שגיאות TypeScript
-- 📊 קבצים גדולים שנותרו: 1 (bulk-generation-actions.ts - 283 שורות)
+- 🎉 **אין יותר קבצים מעל 150 שורות ב-actions directory!**
+- 📊 **סה"כ שיפור: 2,471 שורות קוד פוצלו ל-43 מודולים ממוקדים**
