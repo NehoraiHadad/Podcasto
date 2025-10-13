@@ -9,7 +9,7 @@ import { withRetry, isRetryableError, DEFAULT_RETRY_CONFIG, withRetryResult } fr
 describe('isRetryableError', () => {
   it('should identify retryable AWS throttling errors', () => {
     expect(isRetryableError(new Error('ThrottlingException: Rate exceeded'))).toBe(true);
-    expect(isRetryableError(new Error('Request throttled'))).toBe(true);
+    expect(isRetryableError(new Error('RequestThrottled'))).toBe(true);
     expect(isRetryableError(new Error('Too many requests'))).toBe(true);
   });
 
