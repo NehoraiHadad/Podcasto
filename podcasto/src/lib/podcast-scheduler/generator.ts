@@ -71,16 +71,14 @@ export async function generateEpisodesForPodcasts(
           // Short wait to potentially allow async processes to initialize
           await new Promise(resolve => setTimeout(resolve, 2000)); 
           
-          const checkerUrl = `${baseUrl}/api/cron/episode-checker`;
+          const checkerUrl = `${baseUrl}/api/cron/episode-checker?episodeId=${actionResult.episodeId}`;
           console.log(`[PODCAST_GENERATOR] Calling checker URL: ${checkerUrl}`);
-          
+
           const checkerResponse = await fetch(checkerUrl, {
-            method: 'POST',
+            method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
               'Authorization': `Bearer ${cronSecret}`
-            },
-            body: JSON.stringify({ episodeId: actionResult.episodeId })
+            }
           });
 
           const checkerData = await checkerResponse.json();

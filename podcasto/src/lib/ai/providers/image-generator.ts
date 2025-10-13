@@ -62,8 +62,7 @@ IMPORTANT: Only generate an image based on this description. Do not provide any 
             topP: 0.95,
             topK: 40,
             maxOutputTokens: 8192,
-            responseModalities: ['image', 'text'],
-            responseMimeType: 'text/plain'
+            responseModalities: ['image', 'text']
           }
         });
 
