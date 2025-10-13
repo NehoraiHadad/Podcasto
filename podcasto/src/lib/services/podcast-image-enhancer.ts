@@ -4,6 +4,8 @@
  */
 
 import { ImageGenerator } from '../ai/providers';
+import { PodcastImageAnalyzer } from './podcast-image-analyzer';
+import { detectImageMimeType, createEnhancementPrompt, createFromScratchPrompt } from './podcast-image-utils';
 
 export interface EnhancementOptions {
   podcastTitle: string;
@@ -40,138 +42,15 @@ export interface EnhancementResult {
 
 /**
  * Service for enhancing podcast images with AI
+ * Orchestrates image analysis and enhancement using Gemini 2.5 Flash
  */
 export class PodcastImageEnhancer {
   private imageGenerator: ImageGenerator;
+  private analyzer: PodcastImageAnalyzer;
 
   constructor(apiKey: string) {
     this.imageGenerator = new ImageGenerator(apiKey, 'gemini-2.5-flash-image');
-  }
-
-  /**
-   * Analyze the source image to understand its content
-   * This will be used to create a more targeted enhancement prompt
-   */
-  async analyzeImage(sourceImageBuffer: Buffer, podcastStyle: string = 'modern, professional'): Promise<ImageAnalysis | null> {
-    try {
-      console.log('[PODCAST_ENHANCER] Analyzing source image...');
-
-      const base64Image = sourceImageBuffer.toString('base64');
-      const mimeType = this.detectMimeType(sourceImageBuffer);
-
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-
-      const analysisPrompt = `You are a professional podcast cover designer. Analyze this image and create a custom prompt for transforming it into a stunning podcast cover.
-
-**Part 1: Image Analysis**
-Analyze the image and provide:
-1. **Description**: What is shown in the image? (2-3 sentences)
-2. **Colors**: Dominant colors and color scheme
-3. **Style**: Visual style (e.g., minimalist, vibrant, professional, artistic)
-4. **Main Elements**: Key visual elements or subjects
-5. **Mood**: Mood or feeling it conveys
-
-**Part 2: Generate Transformation Prompt**
-Based on your analysis, create a UNIQUE, CREATIVE prompt for transforming this specific image into a professional podcast cover. The prompt should:
-- Be narrative and descriptive (not bullet points)
-- Reference specific elements you identified in the image (colors, subjects, mood)
-- Suggest creative enhancements that fit THIS PARTICULAR IMAGE
-- Include photographic techniques (lighting, composition, color grading)
-- Be different each time - adapt to what you see in THIS specific image
-- Target the podcast style: ${podcastStyle}
-- Be written as instructions to an image AI (e.g., "Transform this image by...", "Enhance the...", etc.)
-
-**CRITICAL PRESERVATION RULES:**
-- PRESERVE ALL EXISTING TEXT in the source image exactly as it appears (logos, channel names, Hebrew/English text, etc.)
-- PRESERVE the core identity and recognizable elements of the source image
-- DO NOT remove, hide, or modify any text that exists in the original
-- DO NOT add new text or lettering
-- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
-- ONLY enhance: colors, lighting, effects, atmosphere, professional polish
-- The goal is ENHANCEMENT, not replacement - keep what makes this image unique
-
-Think of this as "polishing" the original, not creating something new. If there's a logo with text, keep it. If there's a channel name, keep it. Just make everything look more professional and podcast-ready without adding any new elements.
-
-Make the prompt highly personalized to THIS image's unique content, not generic.
-
-Format your response as JSON with these exact keys: description, colors, style, mainElements, mood, generationPrompt`;
-
-
-
-      // Define the JSON schema for structured output
-      const responseSchema = {
-        type: 'object',
-        properties: {
-          description: {
-            type: 'string',
-            description: 'What is shown in the image (2-3 sentences)'
-          },
-          colors: {
-            type: 'string',
-            description: 'Dominant colors and color scheme'
-          },
-          style: {
-            type: 'string',
-            description: 'Visual style (e.g., minimalist, vibrant, professional, artistic)'
-          },
-          mainElements: {
-            type: 'string',
-            description: 'Key visual elements or subjects'
-          },
-          mood: {
-            type: 'string',
-            description: 'Mood or feeling the image conveys'
-          },
-          generationPrompt: {
-            type: 'string',
-            description: 'Detailed narrative prompt for transforming this specific image into a podcast cover'
-          }
-        },
-        required: ['description', 'colors', 'style', 'mainElements', 'mood', 'generationPrompt']
-      };
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{
-          parts: [
-            { inlineData: { data: base64Image, mimeType } },
-            { text: analysisPrompt }
-          ]
-        }],
-        config: {
-          temperature: 0.3,
-          topP: 0.95,
-          topK: 40,
-          maxOutputTokens: 2048, // Increased from 1024 to allow for longer AI-generated prompts
-          responseMimeType: 'application/json',
-          responseSchema
-        }
-      });
-
-      const candidate = response.candidates?.[0];
-      if (!candidate?.content?.parts?.[0]?.text) {
-        console.warn('[PODCAST_ENHANCER] No analysis text in response');
-        console.warn('[PODCAST_ENHANCER] Full response:', JSON.stringify(response, null, 2));
-        return null;
-      }
-
-      const analysisText = candidate.content.parts[0].text;
-      console.log('[PODCAST_ENHANCER] Raw analysis text:', analysisText);
-
-      const analysis = JSON.parse(analysisText) as ImageAnalysis;
-
-      console.log('[PODCAST_ENHANCER] Analysis completed:', JSON.stringify(analysis, null, 2));
-      return analysis;
-
-    } catch (error) {
-      console.error('[PODCAST_ENHANCER] Error analyzing image:', error);
-      if (error instanceof Error) {
-        console.error('[PODCAST_ENHANCER] Error details:', error.message);
-        console.error('[PODCAST_ENHANCER] Stack:', error.stack);
-      }
-      return null;
-    }
+    this.analyzer = new PodcastImageAnalyzer(apiKey);
   }
 
   /**
@@ -189,7 +68,7 @@ Format your response as JSON with these exact keys: description, colors, style, 
     const variationsCount = options.variationsCount || 1;
 
     // Analyze the image first (AI will also generate the enhancement prompt)
-    const analysis = await this.analyzeImage(
+    const analysis = await this.analyzer.analyzeImage(
       sourceImageBuffer,
       options.podcastStyle || 'modern, professional'
     );
@@ -217,8 +96,8 @@ Format your response as JSON with these exact keys: description, colors, style, 
       // Convert buffer to base64
       const base64Image = sourceImageBuffer.toString('base64');
 
-      // Get MIME type (assume JPEG if not specified)
-      const mimeType = this.detectMimeType(sourceImageBuffer);
+      // Get MIME type using shared utility
+      const mimeType = detectImageMimeType(sourceImageBuffer);
 
       console.log(`[PODCAST_ENHANCER] Source image: ${mimeType}, ${sourceImageBuffer.length} bytes`);
 
@@ -226,10 +105,10 @@ Format your response as JSON with these exact keys: description, colors, style, 
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-      // Use AI-generated prompt if available, otherwise fall back to hardcoded prompt
+      // Use AI-generated prompt if available, otherwise use shared utility
       const enhancementPrompt = analysis?.generationPrompt
         ? analysis.generationPrompt
-        : this.createEnhancementPrompt(options, analysis);
+        : createEnhancementPrompt(options, analysis);
 
       console.log(`[PODCAST_ENHANCER] Using ${analysis?.generationPrompt ? 'AI-generated' : 'hardcoded'} prompt`);
       console.log(`[PODCAST_ENHANCER] Prompt: ${enhancementPrompt.substring(0, 200)}...`);
@@ -323,6 +202,7 @@ Format your response as JSON with these exact keys: description, colors, style, 
 
   /**
    * Generate multiple variations in parallel
+   * Delegates to multi-variation module to keep this file focused
    */
   private async enhanceImageMultiple(
     sourceImageBuffer: Buffer,
@@ -347,7 +227,7 @@ Format your response as JSON with these exact keys: description, colors, style, 
     try {
       console.log(`[PODCAST_ENHANCER] Creating image from scratch for: ${options.podcastTitle}`);
 
-      const textPrompt = this.createFromScratchPrompt(options);
+      const textPrompt = createFromScratchPrompt(options);
 
       const result = await this.imageGenerator.generateImage(textPrompt, {
         style: options.podcastStyle || 'modern, professional podcast cover'
@@ -376,105 +256,6 @@ Format your response as JSON with these exact keys: description, colors, style, 
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
-  }
-
-  /**
-   * Create enhancement prompt based on podcast metadata and image analysis
-   */
-  private createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAnalysis | null): string {
-    const style = options.podcastStyle || 'modern, professional';
-
-    if (analysis) {
-      // Narrative, scene-based prompt with analysis
-      return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
-
-CURRENT IMAGE CONTAINS: ${analysis.description} The scene features ${analysis.colors} tones with a ${analysis.style} aesthetic, creating a ${analysis.mood} atmosphere. The key visual elements are: ${analysis.mainElements}.
-
-TRANSFORMATION VISION:
-Enhance this image with cinematic, professional podcast aesthetics while PRESERVING THE CORE IDENTITY AND ALL EXISTING ELEMENTS. Envision the image bathed in enhanced ${analysis.colors} lighting—make these colors pop with dramatic saturation and vibrancy that catches the eye immediately. The original ${analysis.mainElements} should remain EXACTLY as they are but elevated to a ${style} visual style.
-
-Amplify the ${analysis.mood} feeling but polish it with professional-grade post-processing. Add depth through sophisticated lighting techniques—perhaps rim lighting on key elements, subtle vignetting, or atmospheric haze that adds dimension. The composition should be optimized for square podcast cover format, ensuring it reads beautifully even as a small thumbnail.
-
-CRITICAL PRESERVATION RULES:
-- PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
-- PRESERVE all recognizable elements and the core identity of the source image
-- DO NOT remove, hide, or modify any text that exists in the original image
-- DO NOT add new text or lettering
-- ONLY enhance: colors, lighting, effects, atmosphere, professional polish
-- This is ENHANCEMENT, not recreation - polish what exists, don't replace it
-- Use photographic language: think about camera angle, lighting quality, color grading
-- The result should feel premium, polished, and professionally produced
-
-Generate a visually stunning podcast cover that makes listeners want to click and listen.`;
-    } else {
-      // Fallback narrative prompt without analysis
-      return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
-
-TRANSFORMATION VISION:
-Enhance this image with cinematic ${style} aesthetics while PRESERVING ALL EXISTING ELEMENTS that make the original image special. Envision the composition bathed in dramatic lighting that makes colors pop with vibrant saturation and professional-grade color grading. Every visual element should be elevated with enhanced depth, clarity, and visual impact - but kept intact.
-
-Apply sophisticated post-processing techniques: enhance contrast for visual punch, add subtle atmospheric effects for depth, optimize the composition for square podcast cover format. The image should read beautifully even as a small thumbnail—clear focal points, strong visual hierarchy, eye-catching appeal.
-
-Use photographic language in your approach: think cinematic camera angles, professional studio lighting quality, film-grade color grading. The aesthetic should be ${style} while maintaining complete connection to the source material.
-
-CRITICAL PRESERVATION RULES:
-- PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
-- PRESERVE all recognizable elements and the core identity of the source image
-- DO NOT remove, hide, or modify any text or logos that exist in the original
-- DO NOT add new text or lettering
-- ONLY enhance: colors, lighting, effects, atmosphere, professional polish
-- This is ENHANCEMENT, not recreation - polish what exists, don't replace it
-- Keep the original essence fully recognizable but dramatically improved
-- Create a premium, polished, professionally produced look
-- Optimize for thumbnail visibility and immediate visual impact
-
-Generate a podcast cover that stops scrollers and makes them want to listen.`;
-    }
-  }
-
-  /**
-   * Create from-scratch prompt for text-only generation
-   */
-  private createFromScratchPrompt(options: EnhancementOptions): string {
-    const style = options.podcastStyle || 'modern, professional';
-
-    return `Create a professional podcast cover art for a podcast titled "${options.podcastTitle}".
-
-**Creative Requirements:**
-- ${style} aesthetic
-- Visually striking and professional
-- Suitable for podcast platforms (square format, optimized for thumbnails)
-- Rich, vibrant colors
-- Interesting composition
-- CREATIVE FREEDOM: May include subtle podcast elements (stylized sound waves, abstract audio patterns, atmospheric effects) if they enhance the design
-- NO TEXT: Do not include ANY text, titles, or lettering
-- Focus on abstract or thematic visual representation that captures the podcast's essence
-
-**Style:** ${style}, podcast cover art, professional, modern, eye-catching
-
-Generate ONLY the image, no text or explanations.`;
-  }
-
-  /**
-   * Detect MIME type from buffer
-   */
-  private detectMimeType(buffer: Buffer): string {
-    // Check magic numbers
-    if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
-      return 'image/jpeg';
-    }
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-      return 'image/png';
-    }
-    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-      return 'image/gif';
-    }
-    if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
-      return 'image/webp';
-    }
-
-    // Default to JPEG
-    return 'image/jpeg';
   }
 }
 

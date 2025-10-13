@@ -12,12 +12,14 @@
 
 | קובץ | שורות | בעיות |
 |------|-------|--------|
-| `services/podcast-image-enhancer.ts` | 486 | 🔴 גדול מאוד |
+| `services/podcast-image-enhancer.ts` | 267 | ✅ מתוקן |
+| `services/podcast-image-enhancer-multi.ts` | 182 | ✅ מתוקן |
+| `services/podcast-image-analyzer.ts` | 159 | ✅ חדש |
+| `services/podcast-image-utils.ts` | 127 | ✅ חדש |
 | `services/post-processing.ts` | 407 | 🔴 גדול |
 | `services/s3-file-service.ts` | 305 | 🔴 גדול |
 | `services/storage-utils.ts` | 299 | ⚠️ גדול |
 | `services/telegram-data-service.ts` | 265 | ⚠️ גדול |
-| `services/podcast-image-enhancer-multi.ts` | 241 | ⚠️ גדול |
 | `services/email/email-sender.ts` | 324 | 🔴 גדול |
 
 ### בעיות
@@ -75,14 +77,18 @@
 - `ImageGenerationService`
 - `EpisodeOrchestrator` (coordinates)
 
-### 4.2: Refactor Image Enhancement
-**זמן**: 3-4 שעות
+### 4.2: Refactor Image Enhancement ✅ הושלם
+**זמן**: 3-4 שעות (בוצע: 2 שעות)
 **[קישור](./tasks/04_refactor_image_enhancement.md)**
 
-פיצול ל:
-- `ImageAnalysisService`
-- `ImageGenerationService`
-- `ImageUploadService`
+**הושלם בהצלחה**:
+- ✅ יצירת `podcast-image-utils.ts` (127 שורות) - shared utilities
+- ✅ יצירת `podcast-image-analyzer.ts` (159 שורות) - image analysis
+- ✅ רפקטור `podcast-image-enhancer.ts`: 486 → 267 שורות (-45%)
+- ✅ רפקטור `podcast-image-enhancer-multi.ts`: 241 → 182 שורות (-24%)
+- ✅ הסרת 93 שורות של קוד כפול
+- ✅ שמירה על backward compatibility מלאה
+- ✅ Build עובר ללא שגיאות
 
 ### 4.3: Unify S3 Services
 **זמן**: 3 שעות
@@ -165,7 +171,15 @@ export function createServices() {
 
 ---
 
-## 📊 התקדמות: 0/8 משימות (0%)
+## 📊 התקדמות: 2/8 משימות (25%)
 
-**סטטוס**: 🔴 לא התחיל
+**סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐⭐ גבוהה
+
+**משימות שהושלמו**:
+- ✅ 4.1: Split Post-Processing Service
+- ✅ 4.2: Refactor Image Enhancement
+
+**משימות הבאות**:
+- ⏳ 4.3: Unify S3 Services
+- ⏳ 4.4: Email Service Improvements

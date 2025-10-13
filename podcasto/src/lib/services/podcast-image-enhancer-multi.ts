@@ -3,11 +3,19 @@
  * Generates multiple AI variations in parallel for A/B testing
  */
 
-import { EnhancementOptions, EnhancementResult, SingleVariation, ImageAnalysis } from './podcast-image-enhancer';
+import type { EnhancementOptions, EnhancementResult, SingleVariation, ImageAnalysis } from './podcast-image-enhancer';
+import { detectImageMimeType, createEnhancementPrompt } from './podcast-image-utils';
 
 /**
  * Generate multiple variations of an enhanced image in parallel
  * This is separated to keep the main enhancer clean
+ *
+ * @param apiKey - Gemini API key
+ * @param sourceImageBuffer - The original image buffer
+ * @param options - Enhancement options
+ * @param count - Number of variations to generate
+ * @param analysis - Optional AI analysis of the source image
+ * @returns Enhancement result with multiple variations
  */
 export async function enhanceImageMultiple(
   apiKey: string,
@@ -21,9 +29,9 @@ export async function enhanceImageMultiple(
 
     // Convert buffer to base64 once
     const base64Image = sourceImageBuffer.toString('base64');
-    const mimeType = detectMimeType(sourceImageBuffer);
+    const mimeType = detectImageMimeType(sourceImageBuffer);
 
-    // Use AI-generated prompt if available, otherwise fall back to hardcoded prompt
+    // Use AI-generated prompt if available, otherwise use shared utility
     const enhancementPrompt = analysis?.generationPrompt
       ? analysis.generationPrompt
       : createEnhancementPrompt(options, analysis);
@@ -87,7 +95,15 @@ export async function enhanceImageMultiple(
 }
 
 /**
- * Generate a single variation
+ * Generate a single variation using Gemini 2.5 Flash Image
+ *
+ * @param apiKey - Gemini API key
+ * @param base64Image - Base64-encoded source image
+ * @param mimeType - MIME type of the source image
+ * @param prompt - Enhancement prompt
+ * @param options - Enhancement options
+ * @param index - Variation index (used for temperature adjustment)
+ * @returns Single variation or null if generation fails
  */
 async function generateSingleVariation(
   apiKey: string,
@@ -163,79 +179,4 @@ async function generateSingleVariation(
     console.error(`[PODCAST_ENHANCER_MULTI] Error generating variation ${index + 1}:`, error);
     throw error;
   }
-}
-
-/**
- * Create enhancement prompt based on podcast metadata and image analysis
- */
-function createEnhancementPrompt(options: EnhancementOptions, analysis: ImageAnalysis | null): string {
-  const style = options.podcastStyle || 'modern, professional';
-
-  if (analysis) {
-    // Narrative, scene-based prompt with analysis
-    return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
-
-CURRENT IMAGE CONTAINS: ${analysis.description} The scene features ${analysis.colors} tones with a ${analysis.style} aesthetic, creating a ${analysis.mood} atmosphere. The key visual elements are: ${analysis.mainElements}.
-
-TRANSFORMATION VISION:
-Enhance this image with cinematic, professional podcast aesthetics while PRESERVING THE CORE IDENTITY AND ALL EXISTING ELEMENTS. Envision the image bathed in enhanced ${analysis.colors} lighting—make these colors pop with dramatic saturation and vibrancy that catches the eye immediately. The original ${analysis.mainElements} should remain EXACTLY as they are but elevated to a ${style} visual style.
-
-Amplify the ${analysis.mood} feeling but polish it with professional-grade post-processing. Add depth through sophisticated lighting techniques—perhaps rim lighting on key elements, subtle vignetting, or atmospheric haze that adds dimension. The composition should be optimized for square podcast cover format, ensuring it reads beautifully even as a small thumbnail.
-
-CRITICAL PRESERVATION RULES:
-- PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
-- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
-- PRESERVE all recognizable elements and the core identity of the source image
-- DO NOT remove, hide, or modify any text that exists in the original image
-- DO NOT add new text or lettering
-- ONLY enhance: colors, lighting, effects, atmosphere, professional polish
-- This is ENHANCEMENT, not recreation - polish what exists, don't replace it
-- Use photographic language: think about camera angle, lighting quality, color grading
-- The result should feel premium, polished, and professionally produced
-
-Generate a visually stunning podcast cover that makes listeners want to click and listen.`;
-  } else {
-    // Fallback narrative prompt without analysis
-    return `Transform this source image into a stunning professional podcast cover for "${options.podcastTitle}".
-
-TRANSFORMATION VISION:
-Enhance this image with cinematic ${style} aesthetics while PRESERVING ALL EXISTING ELEMENTS that make the original image special. Envision the composition bathed in dramatic lighting that makes colors pop with vibrant saturation and professional-grade color grading. Every visual element should be elevated with enhanced depth, clarity, and visual impact - but kept intact.
-
-Apply sophisticated post-processing techniques: enhance contrast for visual punch, add subtle atmospheric effects for depth, optimize the composition for square podcast cover format. The image should read beautifully even as a small thumbnail—clear focal points, strong visual hierarchy, eye-catching appeal.
-
-Use photographic language in your approach: think cinematic camera angles, professional studio lighting quality, film-grade color grading. The aesthetic should be ${style} while maintaining complete connection to the source material.
-
-CRITICAL PRESERVATION RULES:
-- PRESERVE ALL EXISTING TEXT exactly as it appears (logos, channel names, Hebrew/English text, etc.)
-- DO NOT add podcast elements (microphones, headphones, sound waves, audio icons)
-- PRESERVE all recognizable elements and the core identity of the source image
-- DO NOT remove, hide, or modify any text or logos that exist in the original
-- DO NOT add new text or lettering
-- ONLY enhance: colors, lighting, effects, atmosphere, professional polish
-- This is ENHANCEMENT, not recreation - polish what exists, don't replace it
-- Keep the original essence fully recognizable but dramatically improved
-- Create a premium, polished, professionally produced look
-- Optimize for thumbnail visibility and immediate visual impact
-
-Generate a podcast cover that stops scrollers and makes them want to listen.`;
-  }
-}
-
-/**
- * Detect MIME type from buffer
- */
-function detectMimeType(buffer: Buffer): string {
-  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
-    return 'image/jpeg';
-  }
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-    return 'image/png';
-  }
-  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-    return 'image/gif';
-  }
-  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
-    return 'image/webp';
-  }
-  return 'image/jpeg';
 }
