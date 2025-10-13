@@ -3,7 +3,6 @@
  * Type-safe contracts for individual post-processing services
  */
 
-import type { TitleGenerationOptions, SummaryGenerationOptions } from '@/lib/ai/types';
 import type { ImagePreviewResult } from './post-processing-types.interface';
 
 /**
@@ -34,36 +33,6 @@ export interface ITranscriptService {
    * @returns Preprocessed transcript text
    */
   preprocessTranscript(transcript: string, maxLength?: number): string;
-}
-
-/**
- * Title Generation Service Interface
- * Generates engaging episode titles from transcript content
- */
-export interface ITitleGenerationService {
-  /**
-   * Generate a title for an episode based on its transcript
-   * @param transcript - Full transcript of the episode
-   * @param options - Configuration options for title generation
-   * @returns Generated title string
-   * @throws Error if transcript is empty or generation fails
-   */
-  generateTitle(transcript: string, options: TitleGenerationOptions): Promise<string>;
-}
-
-/**
- * Summary Generation Service Interface
- * Generates concise episode summaries from transcript content
- */
-export interface ISummaryGenerationService {
-  /**
-   * Generate a summary for an episode based on its transcript
-   * @param transcript - Full transcript of the episode
-   * @param options - Configuration options for summary generation
-   * @returns Generated summary string
-   * @throws Error if transcript is empty or generation fails
-   */
-  generateSummary(transcript: string, options: SummaryGenerationOptions): Promise<string>;
 }
 
 /**

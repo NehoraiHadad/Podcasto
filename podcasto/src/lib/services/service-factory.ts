@@ -19,8 +19,6 @@
 import { AIService, type AIServiceConfig } from '../ai';
 import { S3Service, type S3ServiceConfig } from './s3-service';
 import { EpisodeUpdater } from './episode-updater';
-import { TitleGenerationService } from './title-generation';
-import { SummaryGenerationService } from './summary-generation';
 import { ImageGenerationService } from './image-generation';
 import { TranscriptProcessor } from './transcript-processor';
 import { TelegramDataService } from './telegram-data-service';
@@ -29,8 +27,6 @@ import { PodcastImageEnhancer } from './podcast-image-enhancer';
 import type {
   IS3Service,
   IEpisodeUpdater,
-  ITitleGenerationService,
-  ISummaryGenerationService,
   IImageGenerationService,
   ITranscriptService,
   ITelegramDataService,
@@ -56,8 +52,6 @@ export interface ServiceCollection {
   transcriptService: ITranscriptService;
   telegramDataService: ITelegramDataService;
   aiService?: AIService;
-  titleService?: ITitleGenerationService;
-  summaryService?: ISummaryGenerationService;
   imageService?: IImageGenerationService;
   imageAnalyzer?: IPodcastImageAnalyzer;
   imageEnhancer?: IPodcastImageEnhancer;
@@ -103,36 +97,6 @@ export function createTranscriptProcessorInstance(s3Service: IS3Service): ITrans
  */
 export function createTelegramDataServiceInstance(bucketName?: string): ITelegramDataService {
   return new TelegramDataService(bucketName);
-}
-
-/**
- * Creates a TitleGenerationService instance
- *
- * @param aiService - The AI service to use for title generation
- * @returns ITitleGenerationService interface implementation
- */
-export function createTitleGenerationServiceInstance(
-  aiService: AIService
-): ITitleGenerationService {
-  if (!aiService) {
-    throw new Error('aiService is required for TitleGenerationService');
-  }
-  return new TitleGenerationService(aiService);
-}
-
-/**
- * Creates a SummaryGenerationService instance
- *
- * @param aiService - The AI service to use for summary generation
- * @returns ISummaryGenerationService interface implementation
- */
-export function createSummaryGenerationServiceInstance(
-  aiService: AIService
-): ISummaryGenerationService {
-  if (!aiService) {
-    throw new Error('aiService is required for SummaryGenerationService');
-  }
-  return new SummaryGenerationService(aiService);
 }
 
 /**
@@ -221,8 +185,6 @@ export function createAllServices(config?: ServiceFactoryConfig): ServiceCollect
 
   // Create AI service if config provided
   let aiService: AIService | undefined;
-  let titleService: ITitleGenerationService | undefined;
-  let summaryService: ISummaryGenerationService | undefined;
   let imageService: IImageGenerationService | undefined;
   let imageAnalyzer: IPodcastImageAnalyzer | undefined;
   let imageEnhancer: IPodcastImageEnhancer | undefined;
@@ -231,8 +193,6 @@ export function createAllServices(config?: ServiceFactoryConfig): ServiceCollect
     aiService = new AIService(config.ai);
 
     // Create AI-dependent services
-    titleService = createTitleGenerationServiceInstance(aiService);
-    summaryService = createSummaryGenerationServiceInstance(aiService);
     imageService = createImageGenerationServiceInstance(aiService);
 
     // Create image analysis services
@@ -246,8 +206,6 @@ export function createAllServices(config?: ServiceFactoryConfig): ServiceCollect
     transcriptService,
     telegramDataService,
     aiService,
-    titleService,
-    summaryService,
     imageService,
     imageAnalyzer,
     imageEnhancer,
@@ -284,16 +242,12 @@ export function createAIServices(aiConfig: AIServiceConfig) {
   }
 
   const aiService = new AIService(aiConfig);
-  const titleService = createTitleGenerationServiceInstance(aiService);
-  const summaryService = createSummaryGenerationServiceInstance(aiService);
   const imageService = createImageGenerationServiceInstance(aiService);
   const imageAnalyzer = createPodcastImageAnalyzerInstance(aiConfig.apiKey);
   const imageEnhancer = createPodcastImageEnhancerInstance(aiConfig.apiKey, imageAnalyzer);
 
   return {
     aiService,
-    titleService,
-    summaryService,
     imageService,
     imageAnalyzer,
     imageEnhancer,

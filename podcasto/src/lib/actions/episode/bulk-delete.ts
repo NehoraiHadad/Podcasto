@@ -41,8 +41,7 @@ export async function deleteEpisodesBulk({ episodeIds }: BulkDeleteInput): Promi
     // Remove duplicates
     const uniqueIds = [...new Set(episodeIds)];
 
-    // TODO: Add auth/role validation when auth system is implemented
-    // For now, assuming admin access based on route protection
+    // Auth validation is handled by deleteEpisode() which calls requireAdmin()
 
     console.log(`[BULK_DELETE] Starting bulk delete for ${uniqueIds.length} episodes`);
 

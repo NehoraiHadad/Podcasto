@@ -32,8 +32,6 @@ export type {
 // Post-processing interfaces
 export type {
   ITranscriptService,
-  ITitleGenerationService,
-  ISummaryGenerationService,
   IImageGenerationService,
   IPostProcessingOrchestrator,
   Episode,

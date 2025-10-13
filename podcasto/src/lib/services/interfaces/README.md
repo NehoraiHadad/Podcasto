@@ -38,7 +38,7 @@ class EpisodeProcessor {
   constructor(
     private s3Service: IS3Service,
     private transcriptService: ITranscriptService,
-    private titleService: ITitleGenerationService
+    private imageHandler: IImageHandler
   ) {}
 
   async process(episodeId: string) {
@@ -72,12 +72,6 @@ class EpisodeProcessor {
 - Retry logic for S3 retrieval
 - Preprocessing and cleaning
 
-**ITitleGenerationService** - AI title generation
-- Generate episode titles from transcripts
-
-**ISummaryGenerationService** - AI summary generation
-- Generate episode summaries from transcripts
-
 **IImageGenerationService** - AI image generation
 - Generate cover images from descriptions
 - Preview generation without uploading
@@ -85,6 +79,7 @@ class EpisodeProcessor {
 **IPostProcessingOrchestrator** - Complete workflow
 - Coordinates all post-processing steps
 - Title, summary, and image generation
+- Note: Use AIService directly for title/summary generation
 
 ### Image (`image.interface.ts`)
 

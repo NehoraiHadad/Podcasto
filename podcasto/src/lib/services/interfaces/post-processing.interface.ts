@@ -17,8 +17,6 @@ export type {
 // Re-export service interfaces
 export type {
   ITranscriptService,
-  ITitleGenerationService,
-  ISummaryGenerationService,
   IImageGenerationService,
 } from './post-processing-services.interface';
 
