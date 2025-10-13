@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Bell, BellOff, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Bell, BellOff, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { toggleSubscription } from '@/lib/actions/subscription-actions';
 import { useActionState } from 'react';
@@ -12,6 +14,7 @@ import { useFormStatus } from 'react-dom';
 interface SubscribeFormProps {
   podcastId: string;
   initialIsSubscribed: boolean;
+  emailNotificationsEnabled: boolean;
 }
 
 // Define the state type to include the optional isSubscribed property
@@ -52,16 +55,16 @@ function SubmitButton({ isSubscribed }: { isSubscribed: boolean }) {
   );
 }
 
-export function SubscribeForm({ podcastId, initialIsSubscribed }: SubscribeFormProps) {
+export function SubscribeForm({ podcastId, initialIsSubscribed, emailNotificationsEnabled }: SubscribeFormProps) {
   const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
-  
+
   // Track if this is the initial render
   const isInitialMount = useRef(true);
-  
+
   // Track the last state that triggered a notification to prevent duplicates
   const lastNotifiedStateRef = useRef<string | null>(null);
-  
+
   // Initialize form state with server action using useActionState instead of useFormState
   const initialState = useMemo<SubscriptionState>(() => ({ success: true, message: '' }), []);
   const [state, formAction] = useActionState(toggleSubscription, initialState);
@@ -110,9 +113,23 @@ export function SubscribeForm({ podcastId, initialIsSubscribed }: SubscribeFormP
   }, [state, initialState, router, podcastId]);
   
   return (
-    <form action={formAction}>
-      <input type="hidden" name="podcastId" value={podcastId} />
-      <SubmitButton isSubscribed={isSubscribed} />
-    </form>
+    <div className="space-y-3">
+      <form action={formAction}>
+        <input type="hidden" name="podcastId" value={podcastId} />
+        <SubmitButton isSubscribed={isSubscribed} />
+      </form>
+
+      {isSubscribed && !emailNotificationsEnabled && (
+        <Alert variant="default" className="border-yellow-200 bg-yellow-50">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-sm text-yellow-800">
+            You're subscribed but email notifications are disabled.{' '}
+            <Link href="/settings/notifications" className="underline font-medium hover:text-yellow-900">
+              Enable notifications
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 } 

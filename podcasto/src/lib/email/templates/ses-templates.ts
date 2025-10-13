@@ -165,7 +165,7 @@ export const NEW_EPISODE_HTML_TEMPLATE = `
     </div>
     <div class="footer">
       <p>You're receiving this because you subscribed to {{podcastTitle}}</p>
-      <p><a href="{{episodeUrl}}">Manage your subscriptions</a></p>
+      <p><a href="{{settingsUrl}}">Manage your subscriptions</a> · <a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
     </div>
   </div>
 </body>

@@ -1,8 +1,13 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 
 import { requireAuth } from "@/lib/actions/auth-actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const metadata: Metadata = {
   title: 'My Profile | Podcasto',
@@ -18,12 +23,22 @@ export const metadata: Metadata = {
 export default async function ProfilePage() {
   // This will redirect to login if the user is not authenticated
   const user = await requireAuth();
-  
+
+  // Fetch user's email notification preference
+  const userProfile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, user.id),
+    columns: {
+      email_notifications: true,
+    }
+  });
+
+  const emailNotificationsEnabled = userProfile?.email_notifications ?? true;
+
   return (
     <MainLayout>
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Your Profile</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -67,6 +82,37 @@ export default async function ProfilePage() {
                     <li>Limited downloads</li>
                   </ul>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Email Notifications</CardTitle>
+              <CardDescription>
+                Manage your email notification preferences for new episodes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Email notifications are currently{' '}
+                    <span className={emailNotificationsEnabled ? 'text-green-600' : 'text-red-600'}>
+                      {emailNotificationsEnabled ? 'enabled' : 'disabled'}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {emailNotificationsEnabled
+                      ? 'You will receive emails when new episodes are published from podcasts you subscribe to'
+                      : 'You will not receive email notifications for new episodes'}
+                  </p>
+                </div>
+                <Link href="/settings/notifications">
+                  <Button>
+                    Manage Settings
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
