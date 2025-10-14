@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/main-layout';
-import { PodcastImage } from '@/components/podcasts/podcast-image';
+import { PodcastCard } from '@/components/podcasts/podcast-card';
 import { Search } from 'lucide-react';
 import { PodcastWithConfig } from '@/lib/db/api/podcasts';
 
@@ -66,28 +65,7 @@ export function PodcastsPagePresenter({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {podcasts.length > 0 ? (
             podcasts.map((podcast) => (
-              <Card key={podcast.id} className="overflow-hidden border-border/60 card-hover">
-                <div className="h-48 bg-muted relative">
-                  <PodcastImage
-                    imageUrl={podcast.cover_image}
-                    title={podcast.title}
-                  />
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-foreground">{podcast.title}</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    {podcast.episodes_count} episodes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground/80">{podcast.description}</p>
-                </CardContent>
-                <CardFooter>
-                  <Link href={`/podcasts/${podcast.id}`} className="w-full">
-                    <Button variant="outline" className="w-full">Listen Now</Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+              <PodcastCard key={podcast.id} podcast={podcast} />
             ))
           ) : (
             <div className="col-span-3 text-center py-12">
