@@ -168,14 +168,31 @@ episode-files-manager/
     └── file-types.ts (19)
 ```
 
-### 5.4: Create Shared Form Components
+### 5.4: Create Shared Form Components ✅ הושלם
 **[📄 tasks/05_shared_forms.md](./tasks/05_shared_forms.md)**
+**זמן בפועל**: 2 שעות
 
-```tsx
-<FormField name="title" label="Title" />
-<FormTextarea name="description" />
-<FormSelect name="category" options={...} />
-<FormImageUpload name="cover" />
+**הושלם בהצלחה**:
+- ✅ יצירת 7 wrapper components ב-`src/components/ui/form-fields/`
+- ✅ החלפת כל דפוסי FormField הישנים (25+ instances)
+- ✅ 5 קבצים עודכנו: episode-edit-form, basic-info-fields, style-roles-fields, content-source-fields, basic-settings-fields
+- ✅ הסרת 236 שורות קוד מיותר (-27% בממוצע לקובץ)
+- ✅ קיצור בקוד: 15-20 שורות → 4-5 שורות לכל שדה (75% reduction)
+- ✅ Type-safe generics עם react-hook-form
+- ✅ כל הפונקציונליות נשמרה (validation, error messages, descriptions)
+- ✅ Build עובר ללא שגיאות
+- ✅ אפס קוד ישן נשאר (100% replacement)
+
+**מבנה חדש**:
+```
+form-fields/
+├── types.ts (38) - BaseFieldProps interface
+├── form-text-field.tsx (58)
+├── form-textarea-field.tsx (52)
+├── form-select-field.tsx (72)
+├── form-checkbox-field.tsx (49)
+├── form-number-field.tsx (61)
+└── index.ts (7)
 ```
 
 ### 5.5: Extract Server Components
@@ -267,7 +284,7 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 4/11 משימות (36%)
+## 📊 התקדמות: 5/11 משימות (45%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
@@ -277,6 +294,7 @@ src/components/admin/shared/image-management/
 - ✅ 5.11: Shared Image Components (אפס דופליקציה, 10 shared files)
 - ✅ 5.2: Refactor Audio Player (613→199 lines, -68%, shared hooks!)
 - ✅ 5.3: Episode Files Manager (340→125 lines, -63%, modular structure!)
+- ✅ 5.4: Shared Form Components (236 lines removed, 25+ patterns replaced!)
 
 **משימה הבאה**:
-- ⏳ 5.4: Create Shared Form Components
+- ⏳ 5.5: Extract Server Components
