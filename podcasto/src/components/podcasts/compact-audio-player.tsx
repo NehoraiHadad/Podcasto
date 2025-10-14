@@ -1,11 +1,17 @@
+/**
+ * Compact Audio Player Component
+ * Minimal audio player for inline/embedded use
+ */
+
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
 import { Play, Pause, Volume2, VolumeX, BarChart3, Waves } from 'lucide-react';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
-import { AudioVisualizer, VisualizerVariant } from './audio-visualizer';
+import { AudioVisualizer } from './audio-visualizer';
+import { useAudioPlayer, useAudioControls, useAudioPersistence } from './audio-player/hooks';
 
 interface CompactAudioPlayerProps {
   episodeId: string;
@@ -13,149 +19,56 @@ interface CompactAudioPlayerProps {
 }
 
 export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPlayerProps) {
+  // First fetch the audio URL
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [volume, _setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(true);
 
-  // Visualizer variant state
-  const [visualizerVariant, setVisualizerVariant] = useState<VisualizerVariant>(() => {
-    const saved = localStorage.getItem('visualizer_variant');
-    return (saved as VisualizerVariant) || 'bars';
-  });
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Save visualizer variant preference
-  useEffect(() => {
-    localStorage.setItem('visualizer_variant', visualizerVariant);
-  }, [visualizerVariant]);
-  
-  // Fetch audio URL
   useEffect(() => {
     const fetchAudioUrl = async () => {
       try {
         const result = await getEpisodeAudioUrl(episodeId);
         if (result.error) {
-          setError(result.error);
-          setIsLoading(false);
+          setUrlError(result.error);
         } else if (result.url) {
           setAudioUrl(result.url);
         } else {
-          setError('Could not load audio URL');
-          setIsLoading(false);
+          setUrlError('Could not load audio URL');
         }
       } catch {
-        setError('Failed to fetch audio');
-        setIsLoading(false);
+        setUrlError('Failed to fetch audio');
+      } finally {
+        setIsFetchingUrl(false);
       }
     };
-    
+
     fetchAudioUrl();
   }, [episodeId]);
-  
-  // Initialize audio element
-  useEffect(() => {
-    if (!audioUrl) return;
-    
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-    
-    const handleMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
-    };
-    
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-    
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    
-    const handleCanPlay = () => {
-      setIsLoading(false);
-    };
-    
-    const handleError = () => {
-      setError('Failed to load audio');
-      setIsLoading(false);
-    };
-    
-    audio.addEventListener('loadedmetadata', handleMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('error', handleError);
-    
-    audio.volume = volume;
-    
-    const savedPosition = localStorage.getItem(`podcast_position_${episodeId}`);
-    if (savedPosition) {
-      const position = parseFloat(savedPosition);
-      audio.currentTime = position;
-      setCurrentTime(position);
-    }
-    
-    return () => {
-      audio.pause();
-      audio.src = '';
-      audio.removeEventListener('loadedmetadata', handleMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('error', handleError);
-    };
-  }, [audioUrl, episodeId, volume]);
-  
-  // Save playback position and handle volume changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-    
-    const savePlaybackPosition = () => {
-      if (audioRef.current && currentTime > 0) {
-        localStorage.setItem(`podcast_position_${episodeId}`, currentTime.toString());
-      }
-    };
-    
-    window.addEventListener('beforeunload', savePlaybackPosition);
-    
-    return () => {
-      savePlaybackPosition();
-      window.removeEventListener('beforeunload', savePlaybackPosition);
-    };
-  }, [currentTime, episodeId, volume, isMuted]);
-  
-  const togglePlayPause = () => {
-    if (!audioRef.current) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(() => {
-        setError('Could not play audio');
-      });
-    }
+  // Use shared hooks (same as full player!)
+  const playerReturn = useAudioPlayer({
+    episodeId,
+    audioUrl,
+    audioUrlError: urlError || undefined,
+    autoLoadUrl: true,
+  });
+  const { visualizerVariant, setVisualizerVariant } = useAudioPersistence(episodeId);
+  const { togglePlayPause, toggleMute } = useAudioControls(playerReturn);
 
-    setIsPlaying(!isPlaying);
-  };
+  const { state, audioRef } = playerReturn;
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-  
-  if (error) {
-    return <div className="text-xs text-red-600">Error: {error}</div>;
+  // Show error in compact format
+  if (state.error || urlError) {
+    return (
+      <div className="text-xs text-red-600">
+        Error: {state.error || urlError}
+      </div>
+    );
   }
-  
+
+  const isLoading = isFetchingUrl || state.isLoading;
+
+  // Compact UI
   return (
     <div className="flex items-center gap-2 w-full">
       <div className="flex-shrink-0">
@@ -168,7 +81,7 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
         >
           {isLoading ? (
             <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : isPlaying ? (
+          ) : state.isPlaying ? (
             <Pause className="h-3 w-3" />
           ) : (
             <Play className="h-3 w-3" />
@@ -179,15 +92,15 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
       <div className="flex-1 min-w-0">
         <AudioVisualizer
           audioRef={audioRef}
-          isPlaying={isPlaying}
+          isPlaying={state.isPlaying}
           height={40}
           waveColor="#9ca3af"
           progressColor="#3b82f6"
           variant={visualizerVariant}
         />
         <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-          <span>{formatDuration(currentTime)}</span>
-          <span>{duration > 0 ? formatDuration(duration) : '--:--'}</span>
+          <span>{formatDuration(state.currentTime)}</span>
+          <span>{state.duration > 0 ? formatDuration(state.duration) : '--:--'}</span>
         </div>
       </div>
 
@@ -196,7 +109,7 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
           variant="ghost"
           size="sm"
           className="h-6 w-6 sm:h-5 sm:w-5 p-0 touch-manipulation"
-          onClick={() => setVisualizerVariant(prev => prev === 'bars' ? 'wave' : 'bars')}
+          onClick={() => setVisualizerVariant(visualizerVariant === 'bars' ? 'wave' : 'bars')}
           disabled={isLoading}
           title={`Switch to ${visualizerVariant === 'bars' ? 'wave' : 'bars'} style`}
         >
@@ -214,9 +127,9 @@ export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPla
           onClick={toggleMute}
           disabled={isLoading}
         >
-          {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+          {state.isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
         </Button>
       </div>
     </div>
   );
-} 
+}
