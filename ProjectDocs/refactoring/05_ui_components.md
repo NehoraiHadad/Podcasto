@@ -104,15 +104,32 @@ image-generation/
 └── variation-handlers.ts (48)
 ```
 
-### 5.2: Refactor Audio Player (390→<150)
+### 5.2: Refactor Audio Player ✅ הושלם
 **[📄 tasks/05_refactor_audio_player.md](./tasks/05_refactor_audio_player.md)**
+**זמן בפועל**: 4 שעות
 
-חלוקה:
-- `AudioControls` (50)
-- `PlaybackControls` (40)
-- `VolumeControls` (40)
-- `AudioVisualizer` (80)
-- `AudioPlayer` (100)
+**הושלם בהצלחה**:
+- ✅ חילוץ קוד משותף בין AudioPlayerClient ו-CompactAudioPlayer
+- ✅ AudioPlayerClient: 391 → 64 שורות (-84%)
+- ✅ CompactAudioPlayer: 222 → 135 שורות (-39%)
+- ✅ ~180 שורות קוד כפול הוסרו (100% elimination)
+- ✅ 3 shared hooks: use-audio-player, use-audio-controls, use-audio-persistence
+- ✅ 6 UI components ממוקדים
+- ✅ Types + constants משותפים
+- ✅ שני הנגנים משתמשים באותם hooks
+- ✅ כל קובץ <150 שורות (max: 184)
+- ✅ Build עובר, תיעוד מלא
+- ✅ Backward compatible (localStorage keys זהים)
+
+**מבנה חדש**:
+```
+src/components/podcasts/audio-player/
+├── hooks/ (3 files, 373 lines)
+├── components/ (6 files, 300 lines)
+├── types.ts
+├── constants.ts
+└── index.ts
+```
 
 ### 5.3: Episode Files Manager (340→<150)
 **[📄 tasks/05_episode_files.md](./tasks/05_episode_files.md)**
@@ -216,7 +233,7 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 2/11 משימות (18%)
+## 📊 התקדמות: 3/11 משימות (27%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
@@ -224,6 +241,7 @@ src/components/admin/shared/image-management/
 **משימות שהושלמו**:
 - ✅ 5.1: Split Image Generation Field (730→15 files, all <150 lines)
 - ✅ 5.11: Shared Image Components (אפס דופליקציה, 10 shared files)
+- ✅ 5.2: Refactor Audio Player (613→199 lines, -68%, shared hooks!)
 
 **משימה הבאה**:
-- ⏳ 5.2: Refactor Audio Player (390→<150)
+- ⏳ 5.3: Episode Files Manager (340→<150)
