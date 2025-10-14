@@ -211,8 +211,8 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - הערה: **7,621 שורות נוספו + אינטגרציה מלאה + 4 קבצים מיותרים נמחקו**
 
 ### תחום 5: UI Components
-- Progress: █████⬜ 55%
-- משימות: 6/11
+- Progress: ████████ 64%
+- משימות: 7/11
 - סטטוס: 🟡 בתהליך
 - הערות:
   - **Task 5.1 הושלם**: ImageGenerationField פוצל ל-15 קבצים! (730→1,043 lines)
@@ -221,6 +221,7 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - **Task 5.3 הושלם**: Episode Files Manager - modular structure! (340→125 lines, -63%)
   - **Task 5.4 הושלם**: Shared Form Components - 236 lines removed! (25+ patterns replaced)
   - **Task 5.5 הושלם**: Extract Server Components - 107→99 Client Components! (-7.5%)
+  - **Task 5.6 הושלם**: Container/Presenter Pattern - 4 pages refactored! (-67% containers)
 
 ### תחום 6: Admin Features
 - Progress: ⬜⬜⬜⬜⬜ 0%
@@ -245,14 +246,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - Server Actions: 116% (!) ✅
 - Authentication: 100% ✅
 
-**Phase 3 (UI Layer)**: 6/18 משימות = 33% 🟡
-- UI Components: 55% (6/11)
+**Phase 3 (UI Layer)**: 7/18 משימות = 39% 🟡
+- UI Components: 64% (7/11)
 - Admin Features: 0% (0/7)
 
-**התקדמות כוללת: 33/45 משימות (73%)** 🚀
+**התקדמות כוללת: 34/45 משימות (76%)** 🚀
 **Phase 1 + Phase 2 הושלמו! Phase 3 בתהליך!** 🎉🎉
 
-**עדכון אחרון**: 2025-10-14 (Task 5.5 Extract Server Components הושלם!)
+**עדכון אחרון**: 2025-10-14 (Task 5.6 Container/Presenter Pattern הושלם!)
 
 ---
 
@@ -400,18 +401,33 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - Better Time to Interactive
   - Build עובר בהצלחה
 
+- 🎯 **Task 5.6 הושלם**: Container/Presenter Pattern
+  - רפקטור 4 page components (podcasts, podcast-details, profile, episode-details)
+  - 4 containers: 500 → 164 שורות (-67% ממוצע)
+  - 4 presenters חדשים: 431 שורות (pure UI)
+  - סה"כ: 595 שורות (+95 עבור structure/interfaces)
+  - קבצים שרופקטרו:
+    - app/podcasts/page.tsx: 111 → 32 (-71%)
+    - app/podcasts/[id]/page.tsx: 155 → 41 (-74%)
+    - app/profile/page.tsx: 123 → 34 (-72%)
+    - app/podcasts/[id]/episodes/[episodeId]/page.tsx: 111 → 57 (-49%)
+  - מבנה חדש: `/components/pages/` (4 presenters)
+  - הפרדה ברורה: data/logic vs UI
+  - כל הקומפוננטים Server Components
+  - Build עובר בהצלחה
+
 **סיכום כולל**:
 - ✅ Build עובר בהצלחה
-- ✅ 15 commits נדחפו ל-GitHub (5 Phase 2 + 10 Phase 3)
+- ✅ 17 commits נדחפו ל-GitHub (5 Phase 2 + 12 Phase 3)
 - 🚀 Production verified
 
 **צעדים הבאים מומלצים**:
-1. 🎯 **Phase 3: UI Components** (5 משימות נותרו) ⬅️ **הבא בתור**
+1. 🎯 **Phase 3: UI Components** (4 משימות נותרו) ⬅️ **הבא בתור**
 2. Phase 3: Admin Features (7 משימות)
 3. Vercel deployment verification
 
 **סטטיסטיקות כוללות**:
-- 📊 Total commits: 15 (5 Phase 2 + 10 Phase 3)
+- 📊 Total commits: 17 (5 Phase 2 + 12 Phase 3)
 - 📝 Phase 2: +7,621 lines, -553 removed
 - 📝 Phase 3 (Task 5.1): +1,043 lines (15 new files), -730 removed
 - 📝 Phase 3 (Task 5.11): +1,828 lines (10 shared files), -200 duplicate lines eliminated
@@ -419,14 +435,15 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - 📝 Phase 3 (Task 5.3): +688 lines (13 new files), -341 removed
 - 📝 Phase 3 (Task 5.4): +965 lines (7 new files), -426 removed, -236 duplicate lines eliminated
 - 📝 Phase 3 (Task 5.5): 8 files converted, -16 lines (use client directives), -8 Client Components
+- 📝 Phase 3 (Task 5.6): +599 lines (8 files changed), -1,000 removed (net -401 lines)
 - 🧪 Total tests: 86 (all passing)
 - ✅ Build status: Passing
 - 🚀 Deployment: Pushed to GitHub (Vercel auto-deployed)
 - 🔄 Phase 2: 100% factory pattern adoption + cleanup
-- 🎨 Phase 3: 6/11 tasks (55% - ImageGenerationField + Shared Image + Audio Players + Episode Files Manager + Form Components + Server Components)
+- 🎨 Phase 3: 7/11 tasks (64% - ImageGenerationField + Shared Image + Audio Players + Episode Files Manager + Form Components + Server Components + Container/Presenter)
 
 ---
 
 **סטטוס מסמך זה**: 🟢 Active & Updated
-**עדכון אחרון**: 2025-10-14 (**Task 5.5 Extract Server Components הושלם!** 🎉)
+**עדכון אחרון**: 2025-10-14 (**Task 5.6 Container/Presenter Pattern הושלם!** 🎉)
 **בעלים**: Development Team
