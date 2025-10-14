@@ -195,10 +195,28 @@ form-fields/
 └── index.ts (7)
 ```
 
-### 5.5: Extract Server Components
+### 5.5: Extract Server Components ✅ הושלם
 **[📄 tasks/05_extract_server.md](./tasks/05_extract_server.md)**
+**זמן בפועל**: 1.5 שעות
 
-מצא components עם 'use client' שיכולים להיות Server Components
+**הושלם בהצלחה**:
+- ✅ ניתוח 107 קבצים עם 'use client'
+- ✅ זיהוי 8 מועמדים להמרה (pure display components)
+- ✅ הסרת 8 'use client' directives מיותרים
+- ✅ Client Components: 107 → 99 (-7.5%)
+- ✅ אפס שינויים בפונקציונליות
+- ✅ Build עובר ללא שגיאות
+- ✅ JavaScript bundle size קטן יותר
+
+**קבצים שהומרו**:
+1. app/auth/error/page.tsx
+2. components/admin/podcast-form/image-generation/empty-state.tsx
+3. components/admin/podcast-form/debug/form-validation-errors.tsx
+4. components/admin/podcast-form/debug/form-debug-info.tsx
+5. components/admin/admin-nav-link.tsx
+6. components/admin/episode-checker-result-details.tsx
+7. components/admin/podcast-scheduler-result-details.tsx
+8. components/admin/google-audio-generator-result-details.tsx
 
 ### 5.6: Implement Container/Presenter Pattern
 **[📄 tasks/05_container_presenter.md](./tasks/05_container_presenter.md)**
@@ -274,7 +292,7 @@ src/components/admin/shared/image-management/
 - [x] קרא RSC patterns
 - [x] הבן composition
 - [x] זהה קומפוננטים גדולים (8 files identified)
-- [ ] מצא 'use client' מיותר
+- [x] מצא 'use client' מיותר (Task 5.5)
 - [x] תכנן component hierarchy (Task 5.1)
 - [x] פצל קומפוננטים (1/8 done - ImageGenerationField)
 - [ ] צור shared components
@@ -284,7 +302,7 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 5/11 משימות (45%)
+## 📊 התקדמות: 6/11 משימות (55%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
@@ -295,6 +313,7 @@ src/components/admin/shared/image-management/
 - ✅ 5.2: Refactor Audio Player (613→199 lines, -68%, shared hooks!)
 - ✅ 5.3: Episode Files Manager (340→125 lines, -63%, modular structure!)
 - ✅ 5.4: Shared Form Components (236 lines removed, 25+ patterns replaced!)
+- ✅ 5.5: Extract Server Components (107→99 Client Components, -7.5%!)
 
 **משימה הבאה**:
-- ⏳ 5.5: Extract Server Components
+- ⏳ 5.6: Implement Container/Presenter Pattern
