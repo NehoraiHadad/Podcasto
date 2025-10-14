@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { imageToasts } from '@/components/admin/shared/image-management';
 import type { GeneratedVariation } from './types';
 
 export function createSelectVariationHandler(
@@ -13,7 +13,7 @@ export function createSelectVariationHandler(
     const selectedVariation = variations.find(v => v.selected);
     if (selectedVariation) {
       onImageGenerated?.(selectedVariation.base64Data);
-      toast.success('Image selected!');
+      imageToasts.selectionSuccess();
     }
   };
 }
@@ -34,10 +34,9 @@ export function createDeleteVariationHandler(
     if (wasSelected && reindexedVariations.length > 0) {
       reindexedVariations[0].selected = true;
       onImageGenerated?.(reindexedVariations[0].base64Data);
-      toast.success('Variation deleted. First variation selected.');
-    } else {
-      toast.success('Variation deleted');
     }
+
+    imageToasts.variationDeleted(wasSelected && reindexedVariations.length > 0);
 
     if (reindexedVariations.length === 0) {
       onImageGenerated?.('');

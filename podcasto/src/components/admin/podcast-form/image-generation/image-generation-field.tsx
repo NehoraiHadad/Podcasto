@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { imageToasts } from '@/components/admin/shared/image-management';
 import { PODCAST_IMAGE_STYLES, VARIATION_OPTIONS } from '@/lib/constants/podcast-image-styles';
 import { ImageSourceSelector } from './image-source-selector';
 import { StyleSelector } from './style-selector';
@@ -58,7 +58,7 @@ export function ImageGenerationField({
 
   const handleDeleteCurrentImage = () => {
     onImageGenerated?.('');
-    toast.success('Image removed');
+    imageToasts.imageRemoved();
   };
 
   const selectedVariationOption = VARIATION_OPTIONS.find(v => v.count === variationCount);

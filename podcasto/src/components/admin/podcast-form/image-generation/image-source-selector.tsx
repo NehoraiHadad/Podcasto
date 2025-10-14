@@ -3,7 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
+import { validateImageFile, imageToasts } from '@/components/admin/shared/image-management';
 import type { ImageSource } from './types';
 
 interface ImageSourceSelectorProps {
@@ -28,16 +28,13 @@ export function ImageSourceSelector({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be smaller than 5MB');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        imageToasts.error(validation.error!);
         return;
       }
       onFileUpload(file);
-      toast.success('Image uploaded successfully');
+      imageToasts.uploadSuccess();
     }
   };
 

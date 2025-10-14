@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Images } from 'lucide-react';
+import { Sparkles, Images } from 'lucide-react';
+import { LoadingButton } from '@/components/admin/shared/image-management';
 
 interface ActionButtonsProps {
   isGenerating: boolean;
@@ -20,46 +20,36 @@ export function ActionButtons({
   onGenerate,
   onLoadGallery
 }: ActionButtonsProps) {
+  const generateLabel = selectedVariationLabel
+    ? `Generate with AI (${selectedVariationLabel})`
+    : 'Generate with AI';
+
+  const generatingLabel = variationCount > 1
+    ? `Generating ${variationCount} variations...`
+    : 'Generating image...';
+
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      <Button
+      <LoadingButton
         type="button"
+        isLoading={isGenerating}
+        loadingText={generatingLabel}
+        idleText={generateLabel}
+        idleIcon={<Sparkles className="mr-2 h-4 w-4" />}
         onClick={onGenerate}
-        disabled={isGenerating}
         className="flex-1 w-full sm:w-auto"
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating {variationCount > 1 ? `${variationCount} variations` : 'image'}...
-          </>
-        ) : (
-          <>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate with AI {selectedVariationLabel && `(${selectedVariationLabel})`}
-          </>
-        )}
-      </Button>
+      />
 
-      <Button
+      <LoadingButton
         type="button"
+        isLoading={isLoadingGallery}
+        loadingText="Loading..."
+        idleText="Browse Gallery"
+        idleIcon={<Images className="mr-2 h-4 w-4" />}
         onClick={onLoadGallery}
-        disabled={isLoadingGallery}
         variant="outline"
         className="flex-1 w-full sm:w-auto"
-      >
-        {isLoadingGallery ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading...
-          </>
-        ) : (
-          <>
-            <Images className="mr-2 h-4 w-4" />
-            Browse Gallery
-          </>
-        )}
-      </Button>
+      />
     </div>
   );
 }

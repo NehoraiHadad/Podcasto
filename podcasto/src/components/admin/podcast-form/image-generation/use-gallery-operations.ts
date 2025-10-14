@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { imageToasts } from '@/components/admin/shared/image-management';
 import { listPodcastImagesGallery, deleteGalleryImage } from '@/lib/actions/podcast';
 import type { GalleryImage } from './types';
 
@@ -11,7 +11,7 @@ export function useGalleryOperations(
 ) {
   const handleLoadGallery = async () => {
     if (!podcastId) {
-      toast.error('Please save the podcast first');
+      imageToasts.savePodcastFirst();
       return;
     }
 
@@ -24,16 +24,16 @@ export function useGalleryOperations(
         setShowGallery(true);
 
         if (result.images.length === 0) {
-          toast.info('No images found in gallery. Generate some images first!');
+          imageToasts.galleryEmpty();
         } else {
-          toast.success(`Found ${result.images.length} images in gallery`);
+          imageToasts.galleryLoadSuccess(result.images.length);
         }
       } else {
-        toast.error(result.error || 'Failed to load gallery');
+        imageToasts.loadGalleryError(result.error);
       }
     } catch (error) {
       console.error('Error loading gallery:', error);
-      toast.error('Failed to load gallery');
+      imageToasts.loadGalleryError();
     } finally {
       setIsLoadingGallery(false);
     }
@@ -42,7 +42,7 @@ export function useGalleryOperations(
   const handleSelectFromGallery = (image: GalleryImage) => {
     onImageGenerated?.(image.url);
     setShowGallery(false);
-    toast.success('Image selected from gallery!');
+    imageToasts.imageSelectedFromGallery();
   };
 
   const handleDeleteGalleryImage = async (image: GalleryImage) => {
@@ -51,13 +51,13 @@ export function useGalleryOperations(
 
       if (result.success) {
         setGalleryImages(prev => prev.filter(img => img.key !== image.key));
-        toast.success('Image deleted successfully');
+        imageToasts.deleteSuccess();
       } else {
-        toast.error(result.error || 'Failed to delete image');
+        imageToasts.deleteGalleryImageError(result.error);
       }
     } catch (error) {
       console.error('Error deleting gallery image:', error);
-      toast.error('Failed to delete image');
+      imageToasts.deleteGalleryImageError();
     }
   };
 

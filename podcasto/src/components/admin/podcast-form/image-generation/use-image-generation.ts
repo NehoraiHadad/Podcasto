@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { imageToasts } from '@/components/admin/shared/image-management';
 import {
   generatePodcastImageFromTelegram,
   generatePodcastImageFromFile,
@@ -47,20 +47,20 @@ export function useImageGeneration({ podcastId, podcastTitle, onImageGenerated }
     manualUrl?: string
   ) => {
     if (!podcastId) {
-      toast.error('Please save the podcast first');
+      imageToasts.savePodcastFirst();
       return;
     }
 
     if (imageSource === 'telegram' && !telegramChannel) {
-      toast.error('No Telegram channel configured');
+      imageToasts.noTelegramChannel();
       return;
     }
     if (imageSource === 'upload' && !uploadedFile) {
-      toast.error('Please upload an image first');
+      imageToasts.noFile();
       return;
     }
     if (imageSource === 'url' && !manualUrl) {
-      toast.error('Please enter an image URL');
+      imageToasts.noImageUrl();
       return;
     }
 
@@ -112,7 +112,7 @@ export function useImageGeneration({ podcastId, podcastTitle, onImageGenerated }
       }
     } catch (error) {
       console.error('Error generating image:', error);
-      toast.error('Failed to generate image');
+      imageToasts.error('Failed to generate image');
     } finally {
       setIsGenerating(false);
     }

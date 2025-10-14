@@ -1,18 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
-import { Upload, Wand2, RefreshCw, Save, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Upload, Wand2, Save, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  generateEpisodeImagePreview, 
-  saveEpisodeImagePreview 
+import {
+  generateEpisodeImagePreview,
+  saveEpisodeImagePreview
 } from '@/lib/actions/episode-actions';
+import {
+  LoadingButton,
+  ImagePreviewCard,
+  CurrentImageDisplay,
+  imageToasts
+} from '@/components/admin/shared/image-management';
 
 interface EpisodeImageManagerProps {
   episodeId: string;
@@ -36,12 +40,12 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
   // Handle file upload
   const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error('Please select an image file first');
+      imageToasts.noFile();
       return;
     }
 
     if (!podcastId) {
-      toast.error('Episode has no associated podcast');
+      imageToasts.noPodcast();
       return;
     }
 
@@ -67,10 +71,10 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
       // Update the current image
       setCurrentImage(result.imageUrl);
       setSelectedFile(null);
-      toast.success('Image uploaded successfully');
+      imageToasts.uploadSuccess();
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload image');
+      imageToasts.errorFromException(error, 'Failed to upload image');
     } finally {
       setIsUploading(false);
     }
@@ -93,13 +97,13 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
         setPreviewImage(result.imageDataUrl);
         setEpisodeDescription(result.episodeDescription || null);
         setGeneratedFromPrompt(result.generatedFromPrompt || null);
-        toast.success('Image preview generated successfully');
+        imageToasts.generationSuccess();
       } else {
-        toast.warning('Image generation completed but no preview was produced');
+        imageToasts.noPreviewProduced();
       }
     } catch (error) {
       console.error('Error generating image preview:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate image preview');
+      imageToasts.errorFromException(error, 'Failed to generate image preview');
     } finally {
       setIsGenerating(false);
     }
@@ -108,7 +112,7 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
   // Handle saving the preview image
   const handleSavePreview = async () => {
     if (!previewImage) {
-      toast.error('No preview image to save');
+      imageToasts.noPreview();
       return;
     }
 
@@ -125,13 +129,13 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
         setCurrentImage(result.imageUrl);
         setPreviewImage(null); // Clear the preview
         setGeneratedFromPrompt(null);
-        toast.success('Image saved successfully');
+        imageToasts.saveSuccess();
       } else {
-        toast.warning('Image saving completed but no URL was returned');
+        imageToasts.noUrlReturned();
       }
     } catch (error) {
       console.error('Error saving image:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save image');
+      imageToasts.errorFromException(error, 'Failed to save image');
     } finally {
       setIsSavingPreview(false);
     }
@@ -141,7 +145,7 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
   const handleDiscardPreview = () => {
     setPreviewImage(null);
     setGeneratedFromPrompt(null);
-    toast.info('Preview discarded');
+    imageToasts.previewDiscarded();
   };
 
   return (
@@ -150,95 +154,43 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
         <h3 className="text-lg font-medium">Episode Cover Image</h3>
 
         {currentImage && !previewImage && (
-          <div className="space-y-2">
-            <div className="relative aspect-square w-full max-w-[300px] overflow-hidden rounded-md">
-              <Image
-                src={currentImage}
-                alt={`${episodeTitle || 'Episode'} cover`}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="mt-2">
-              <a
-                href={currentImage}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                View Full Image
-              </a>
-            </div>
-          </div>
+          <CurrentImageDisplay
+            imageUrl={currentImage}
+            alt={`${episodeTitle || 'Episode'} cover`}
+            label="Current Episode Cover"
+            showViewLink
+          />
         )}
         
         {/* Preview image with save/discard options */}
         {previewImage && (
-          <div className="space-y-4">
-            <div className="relative aspect-square w-full max-w-[300px] overflow-hidden rounded-md">
-              <Image
-                src={previewImage}
-                alt="AI generated preview"
-                fill
-                className="object-cover"
-              />
-            </div>
-            
-            {episodeDescription && (
-              <div className="text-sm text-muted-foreground mt-2 max-h-24 overflow-auto">
-                <p className="font-semibold">Source description:</p>
-                <p className="italic">{episodeDescription.substring(0, 200)}
-                  {episodeDescription.length > 200 ? '...' : ''}
-                </p>
-              </div>
-            )}
-            
-            {generatedFromPrompt && (
-              <div className="text-sm text-muted-foreground mt-2 max-h-80 overflow-auto border-t border-dashed border-gray-300 pt-2">
-                <p className="font-semibold text-xs uppercase tracking-wide">AI prompt used:</p>
-                <div className="mt-1 bg-gray-50 dark:bg-gray-900 p-2 rounded-md">
-                  <p className="whitespace-pre-wrap text-xs font-mono">{generatedFromPrompt}</p>
-                </div>
-                <div className="text-right mt-1">
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(generatedFromPrompt)}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Copy to clipboard
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleSavePreview}
-                disabled={isSavingPreview}
-                className="flex-1"
-              >
-                {isSavingPreview ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Image
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={handleDiscardPreview}
-                variant="outline"
-                className="flex-1"
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Discard
-              </Button>
-            </div>
-          </div>
+          <ImagePreviewCard
+            imageUrl={previewImage}
+            alt="AI generated preview"
+            description={episodeDescription}
+            prompt={generatedFromPrompt}
+            actions={
+              <>
+                <LoadingButton
+                  isLoading={isSavingPreview}
+                  loadingText="Saving..."
+                  idleText="Save Image"
+                  idleIcon={<Save className="mr-2 h-4 w-4" />}
+                  onClick={handleSavePreview}
+                  className="flex-1"
+                />
+
+                <Button
+                  onClick={handleDiscardPreview}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Discard
+                </Button>
+              </>
+            }
+          />
         )}
 
         {!previewImage && (
@@ -261,42 +213,29 @@ export function EpisodeImageManager({ episodeId, podcastId, coverImage, episodeT
                 buttonText="Select Image"
                 disabled={isUploading}
               />
-              
-              <Button 
+
+              <LoadingButton
+                isLoading={isUploading}
+                loadingText="Uploading..."
+                idleText="Upload Image"
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={!selectedFile}
                 className="w-full"
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Upload Image'
-                )}
-              </Button>
+              />
             </TabsContent>
-            
+
             <TabsContent value="generate" className="space-y-4 mt-4">
               <p className="text-sm text-muted-foreground">
                 Generate a new cover image using AI based on the episode's description.
               </p>
-              
-              <Button 
+
+              <LoadingButton
+                isLoading={isGenerating}
+                loadingText="Generating Preview..."
+                idleText="Generate Preview"
                 onClick={handleGeneratePreview}
-                disabled={isGenerating}
                 className="w-full"
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Preview...
-                  </>
-                ) : (
-                  'Generate Preview'
-                )}
-              </Button>
+              />
             </TabsContent>
           </Tabs>
         )}

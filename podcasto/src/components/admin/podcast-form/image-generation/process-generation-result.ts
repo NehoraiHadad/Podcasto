@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { imageToasts } from '@/components/admin/shared/image-management';
 import type { GeneratedVariation } from './types';
 
 export function processGenerationResult(
@@ -9,7 +9,7 @@ export function processGenerationResult(
   debugInfo: { originalImageData?: string; analysis?: any; prompt?: string } | null;
 } | null {
   if (!result?.success) {
-    toast.error(result?.error || 'Failed to generate image');
+    imageToasts.error(result?.error || 'Failed to generate image');
     return null;
   }
 
@@ -35,11 +35,7 @@ export function processGenerationResult(
 
   onImageGenerated?.(variations[0].base64Data);
 
-  const enhancementNote = result.enhancedWithAI ? ' (AI enhanced)' : '';
-  const message = variations.length > 1
-    ? `Generated ${variations.length} variations${enhancementNote}! Select your favorite.`
-    : `Image generated successfully${enhancementNote}!`;
-  toast.success(message);
+  imageToasts.generationSuccess(variations.length, result.enhancedWithAI);
 
   return { variations, debugInfo };
 }
