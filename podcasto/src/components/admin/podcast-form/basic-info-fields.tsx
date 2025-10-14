@@ -4,7 +4,7 @@ import { Path, UseFormReturn } from 'react-hook-form';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ImageGenerationField } from './image-generation-field';
+import { ImageGenerationField } from './image-generation';
 
 interface FormValues {
   title?: string;
