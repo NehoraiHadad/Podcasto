@@ -315,7 +315,68 @@ src/components/episodes/episode-card/ (11 files, 297 lines)
 <PodcastCard key={podcast.id} podcast={podcast} />
 ```
 
-### 5.8: Episode Card Components
+### 5.8: Refactor Bulk Episode Generator ✅ הושלם
+**[📄 tasks/05_bulk_episode_generator.md](./tasks/05_bulk_episode_generator.md)**
+**זמן בפועל**: 1 שעה
+
+**הושלם בהצלחה**:
+- ✅ רפקטור של bulk-episode-generator.tsx מ-361 שורות למבנה מודולרי
+- ✅ יצירת 11 קבצים מאורגנים (556 שורות סה"כ)
+- ✅ Custom hook: use-bulk-generation.ts (125 שורות) - state machine מלא
+- ✅ 4 step components: selection, preview, generating, completed
+- ✅ 3 shared components: footer, preview list, stats
+- ✅ Main component: 361 → 95 שורות (-74%, -266 שורות)
+- ✅ כל קובץ <150 שורות (הגדול ביותר: 125)
+- ✅ TypeScript strict mode, no 'any' types
+- ✅ Build עובר ללא שגיאות
+- ✅ **מחיקה מלאה** של קובץ ישן (לא הוספה לצד!)
+- ✅ כל הפונקציונליות נשמרה (wizard flow, server actions, error handling)
+
+**מבנה חדש**:
+```
+bulk-episode-generator/ (11 files, 556 lines)
+├── types.ts (33) - TypeScript interfaces
+├── bulk-episode-generator.tsx (95) - Main orchestrator
+├── index.ts (2) - Exports
+├── hooks/
+│   └── use-bulk-generation.ts (125) - State machine + actions
+├── steps/
+│   ├── selection-step.tsx (52)
+│   ├── preview-step.tsx (58)
+│   ├── generating-step.tsx (17)
+│   └── completed-step.tsx (47)
+└── components/
+    ├── generation-footer.tsx (68)
+    ├── episode-preview-list.tsx (29)
+    └── generation-stats.tsx (30)
+```
+
+**Transformation Example**:
+```tsx
+// Before: 361 lines - monolithic component with 7 state variables, 5 handlers
+
+// After: 95 lines - clean orchestrator
+export function BulkEpisodeGenerator({ podcastId, podcastTitle, isPaused }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    step, dateRange, previewData, isGenerating, generationResults,
+    actions, canPreview, canGenerate
+  } = useBulkGeneration(podcastId);
+
+  return (
+    <Dialog>
+      {/* Step components render conditionally */}
+      {step === 'selection' && <SelectionStep />}
+      {step === 'preview' && <PreviewStep />}
+      {step === 'generating' && <GeneratingStep />}
+      {step === 'completed' && <CompletedStep />}
+      <GenerationFooter step={step} {...actions} />
+    </Dialog>
+  );
+}
+```
+
+### 5.9: Episode Card Components
 **[📄 tasks/05_episode_cards.md](./tasks/05_episode_cards.md)**
 
 ### 5.9: Admin Dashboard Components
@@ -371,7 +432,7 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 8/11 משימות (73%)
+## 📊 התקדמות: 9/11 משימות (82%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
@@ -385,6 +446,7 @@ src/components/admin/shared/image-management/
 - ✅ 5.5: Extract Server Components (107→99 Client Components, -7.5%!)
 - ✅ 5.6: Container/Presenter Pattern (4 pages, -67% containers, +4 presenters!)
 - ✅ 5.7: Compound Components (19 files, -101 lines presenters, 95%+ card reduction!)
+- ✅ 5.8: Bulk Episode Generator (361→95 lines, -74%, 11 modular files!)
 
 **משימה הבאה**:
-- ⏳ 5.8: Episode Card Components
+- ⏳ 5.9: Admin Dashboard Components
