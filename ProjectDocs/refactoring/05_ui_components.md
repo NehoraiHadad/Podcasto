@@ -131,8 +131,42 @@ src/components/podcasts/audio-player/
 └── index.ts
 ```
 
-### 5.3: Episode Files Manager (340→<150)
+### 5.3: Episode Files Manager ✅ הושלם
 **[📄 tasks/05_episode_files.md](./tasks/05_episode_files.md)**
+**זמן בפועל**: 3 שעות
+
+**הושלם בהצלחה**:
+- ✅ פיצול מ-340 שורות → 13 קבצים מודולריים (639 שורות סה"כ)
+- ✅ EpisodeFilesManager: 340 → 125 שורות (-63%)
+- ✅ כל קובץ מתחת ל-150 שורות (הגדול ביותר: 125)
+- ✅ 3 custom hooks: use-dialog-state, use-files-data, use-file-actions
+- ✅ 6 UI components ממוקדים (dialogs, list, items)
+- ✅ 2 helper utilities (file-helpers, file-types)
+- ✅ TypeScript strict mode, highly testable
+- ✅ Build עובר ללא שגיאות
+- ✅ Backward compatible
+- ✅ FileViewerDialog נשאר ללא שינוי (כבר טוב!)
+
+**מבנה חדש**:
+```
+episode-files-manager/
+├── index.ts (1)
+├── episode-files-manager.tsx (125) - orchestrator
+├── components/
+│   ├── files-card-header.tsx (47)
+│   ├── files-empty-state.tsx (12)
+│   ├── files-list.tsx (23)
+│   ├── file-list-item.tsx (55)
+│   ├── delete-file-dialog.tsx (53)
+│   └── delete-all-dialog.tsx (53)
+├── hooks/
+│   ├── use-dialog-state.ts (52)
+│   ├── use-files-data.ts (48)
+│   └── use-file-actions.ts (96)
+└── utils/
+    ├── file-helpers.tsx (55)
+    └── file-types.ts (19)
+```
 
 ### 5.4: Create Shared Form Components
 **[📄 tasks/05_shared_forms.md](./tasks/05_shared_forms.md)**
@@ -233,7 +267,7 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 3/11 משימות (27%)
+## 📊 התקדמות: 4/11 משימות (36%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
@@ -242,6 +276,7 @@ src/components/admin/shared/image-management/
 - ✅ 5.1: Split Image Generation Field (730→15 files, all <150 lines)
 - ✅ 5.11: Shared Image Components (אפס דופליקציה, 10 shared files)
 - ✅ 5.2: Refactor Audio Player (613→199 lines, -68%, shared hooks!)
+- ✅ 5.3: Episode Files Manager (340→125 lines, -63%, modular structure!)
 
 **משימה הבאה**:
-- ⏳ 5.3: Episode Files Manager (340→<150)
+- ⏳ 5.4: Create Shared Form Components

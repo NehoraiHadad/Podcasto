@@ -211,13 +211,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - הערה: **7,621 שורות נוספו + אינטגרציה מלאה + 4 קבצים מיותרים נמחקו**
 
 ### תחום 5: UI Components
-- Progress: ███⬜⬜ 27%
-- משימות: 3/11
+- Progress: ███⬜⬜ 36%
+- משימות: 4/11
 - סטטוס: 🟡 בתהליך
 - הערות:
   - **Task 5.1 הושלם**: ImageGenerationField פוצל ל-15 קבצים! (730→1,043 lines)
   - **Task 5.11 הושלם**: Shared Image Components - אפס דופליקציה! (10 shared files)
   - **Task 5.2 הושלם**: Audio Players - shared hooks! (613→199 lines, -68%)
+  - **Task 5.3 הושלם**: Episode Files Manager - modular structure! (340→125 lines, -63%)
 
 ### תחום 6: Admin Features
 - Progress: ⬜⬜⬜⬜⬜ 0%
@@ -242,14 +243,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - Server Actions: 116% (!) ✅
 - Authentication: 100% ✅
 
-**Phase 3 (UI Layer)**: 3/18 משימות = 17% 🟡
-- UI Components: 27% (3/11)
+**Phase 3 (UI Layer)**: 4/18 משימות = 22% 🟡
+- UI Components: 36% (4/11)
 - Admin Features: 0% (0/7)
 
-**התקדמות כוללת: 30/45 משימות (67%)** 🚀
+**התקדמות כוללת: 31/45 משימות (69%)** 🚀
 **Phase 1 + Phase 2 הושלמו! Phase 3 בתהליך!** 🎉🎉
 
-**עדכון אחרון**: 2025-10-14 (Task 5.2 Audio Players הושלם!)
+**עדכון אחרון**: 2025-10-14 (Task 5.3 Episode Files Manager הושלם!)
 
 ---
 
@@ -359,30 +360,42 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - כל קובץ <150 שורות
   - Build עובר בהצלחה
 
+- 🎯 **Task 5.3 הושלם**: Episode Files Manager
+  - EpisodeFilesManager: 340 → 125 שורות (-63%)
+  - 13 קבצים חדשים ב-`episode-files-manager/`:
+    - 3 custom hooks (196 שורות): use-dialog-state, use-files-data, use-file-actions
+    - 6 UI components (243 שורות): headers, lists, dialogs
+    - 2 utilities (74 שורות): file-helpers, file-types
+  - כל קובץ <150 שורות (max: 125)
+  - מבנה modular ומסודר
+  - FileViewerDialog לא נגעו (כבר טוב!)
+  - Build עובר בהצלחה
+
 **סיכום כולל**:
 - ✅ Build עובר בהצלחה
-- ✅ 9 commits נדחפו ל-GitHub (5 Phase 2 + 4 Phase 3)
+- ✅ 11 commits נדחפו ל-GitHub (5 Phase 2 + 6 Phase 3)
 - 🚀 Production verified
 
 **צעדים הבאים מומלצים**:
-1. 🎯 **Phase 3: UI Components** (8 משימות נותרו) ⬅️ **הבא בתור**
+1. 🎯 **Phase 3: UI Components** (7 משימות נותרו) ⬅️ **הבא בתור**
 2. Phase 3: Admin Features (7 משימות)
 3. Vercel deployment verification
 
 **סטטיסטיקות כוללות**:
-- 📊 Total commits: 9 (5 Phase 2 + 4 Phase 3)
+- 📊 Total commits: 11 (5 Phase 2 + 6 Phase 3)
 - 📝 Phase 2: +7,621 lines, -553 removed
 - 📝 Phase 3 (Task 5.1): +1,043 lines (15 new files), -730 removed
 - 📝 Phase 3 (Task 5.11): +1,828 lines (10 shared files), -200 duplicate lines eliminated
 - 📝 Phase 3 (Task 5.2): +957 lines (16 new files), -613 removed, -180 duplicate lines eliminated
+- 📝 Phase 3 (Task 5.3): +688 lines (13 new files), -341 removed
 - 🧪 Total tests: 86 (all passing)
 - ✅ Build status: Passing
 - 🚀 Deployment: Pushed to GitHub (Vercel auto-deployed)
 - 🔄 Phase 2: 100% factory pattern adoption + cleanup
-- 🎨 Phase 3: 3/11 tasks (27% - ImageGenerationField + Shared Image + Audio Players)
+- 🎨 Phase 3: 4/11 tasks (36% - ImageGenerationField + Shared Image + Audio Players + Episode Files Manager)
 
 ---
 
 **סטטוס מסמך זה**: 🟢 Active & Updated
-**עדכון אחרון**: 2025-10-14 (**Task 5.11 Shared Image Components הושלם!** 🎉)
+**עדכון אחרון**: 2025-10-14 (**Task 5.3 Episode Files Manager הושלם!** 🎉)
 **בעלים**: Development Team
