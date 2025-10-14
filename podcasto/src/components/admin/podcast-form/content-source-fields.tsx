@@ -1,10 +1,10 @@
 'use client';
 
 import { Path, UseFormReturn } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormTextField, FormNumberField } from '@/components/ui/form-fields';
 
 type FormValues = {
   contentSource?: string;
@@ -56,51 +56,23 @@ export function ContentSourceFields<T extends FormValues>({ form }: ContentSourc
       {contentSource === 'telegram' ? (
         <div className="space-y-4 mt-4">
           <div className="bg-gray-50 p-3 md:p-4 rounded-md border border-gray-100">
-            <FormField
+            <FormTextField
               control={form.control}
               name={"telegramChannel" as const as Path<T>}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telegram Channel Username</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="@channelname" 
-                      {...field} 
-                      value={String(field.value || '')}
-                      className="bg-white" 
-                    />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    Enter the Telegram channel username without the @ symbol
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Telegram Channel Username"
+              placeholder="@channelname"
+              className="bg-white"
+              description="Enter the Telegram channel username without the @ symbol"
             />
-            
-            <FormField
+
+            <FormNumberField
               control={form.control}
               name={"telegramHours" as const as Path<T>}
-              render={({ field }) => (
-                <FormItem className="mt-4">
-                  <FormLabel>Hours to Fetch</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={72}
-                      className="bg-white"
-                      {...field}
-                      value={String(field.value || '')}
-                      onChange={e => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    Number of hours of content to fetch (1-72)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Hours to Fetch"
+              min={1}
+              max={72}
+              className="mt-4"
+              description="Number of hours of content to fetch (1-72)"
             />
           </div>
         </div>
@@ -108,29 +80,15 @@ export function ContentSourceFields<T extends FormValues>({ form }: ContentSourc
         <div className="space-y-4 mt-4">
           <div className="bg-gray-50 p-3 md:p-4 rounded-md border border-gray-100">
             {[0, 1, 2, 3, 4].map((index) => (
-              <FormField
+              <FormTextField
                 key={index}
                 control={form.control}
                 name={`urls.${index}` as Path<T>}
-                render={({ field }) => (
-                  <FormItem className={index > 0 ? "mt-4" : ""}>
-                    <FormLabel>URL {index + 1}</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com" 
-                        {...field} 
-                        value={String(field.value || '')}
-                        className="bg-white"
-                      />
-                    </FormControl>
-                    {index === 0 && (
-                      <FormDescription className="text-xs">
-                        Enter up to 5 URLs to use as content sources
-                      </FormDescription>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label={`URL ${index + 1}`}
+                type="url"
+                placeholder="https://example.com"
+                className={`bg-white ${index > 0 ? 'mt-4' : ''}`}
+                description={index === 0 ? 'Enter up to 5 URLs to use as content sources' : undefined}
               />
             ))}
           </div>

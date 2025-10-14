@@ -1,10 +1,9 @@
 'use client';
 
 import { Path, UseFormReturn } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormTextField, FormSelectField } from '@/components/ui/form-fields';
 
 type FormValues = {
   podcastName?: string;
@@ -22,54 +21,24 @@ interface BasicSettingsFieldsProps<T extends FormValues> {
 export function BasicSettingsFields<T extends FormValues>({ form }: BasicSettingsFieldsProps<T>) {
   return (
     <>
-      <FormField
+      <FormTextField
         control={form.control}
         name={"podcastName" as const as Path<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Podcast Name
-              <span className="text-red-500 ml-1">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="Enter podcast name" 
-                {...field}
-                value={String(field.value || '')}
-                className={form.formState.errors.podcastName ? 'border-red-500' : ''}
-              />
-            </FormControl>
-            <FormMessage className="text-red-500" />
-          </FormItem>
-        )}
+        label="Podcast Name"
+        placeholder="Enter podcast name"
+        required={true}
       />
-      
-      <FormField
+
+      <FormSelectField
         control={form.control}
         name={"outputLanguage" as const as Path<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Output Language
-              <span className="text-red-500 ml-1">*</span>
-            </FormLabel>
-            <Select 
-              onValueChange={field.onChange} 
-              defaultValue={String(field.value || '')}
-            >
-              <FormControl>
-                <SelectTrigger className={form.formState.errors.outputLanguage ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="hebrew">Hebrew</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage className="text-red-500" />
-          </FormItem>
-        )}
+        label="Output Language"
+        placeholder="Select language"
+        required={true}
+        options={[
+          { value: 'english', label: 'English' },
+          { value: 'hebrew', label: 'Hebrew' },
+        ]}
       />
       
       <FormField
@@ -105,26 +74,14 @@ export function BasicSettingsFields<T extends FormValues>({ form }: BasicSetting
           </FormItem>
         )}
       />
-      
-      <FormField
+
+
+      <FormTextField
         control={form.control}
         name={"slogan" as const as Path<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Slogan</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="Enter podcast slogan" 
-                {...field} 
-                value={String(field.value || '')}
-              />
-            </FormControl>
-            <FormDescription>
-              Optional - Add a short slogan for your podcast
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Slogan"
+        placeholder="Enter podcast slogan"
+        description="Optional - Add a short slogan for your podcast"
       />
       
       <FormField

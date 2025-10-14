@@ -9,24 +9,12 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  FormTextField,
+  FormTextareaField,
+  FormSelectField,
+} from '@/components/ui/form-fields';
 import { Card, CardContent } from '@/components/ui/card';
 import { updateEpisodeDetails } from '@/lib/actions/episode-actions';
 import { EpisodeImageManager } from './episode-image-manager';
@@ -112,42 +100,20 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
         <div className="md:w-2/3">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
+              <FormTextField
                 control={form.control}
                 name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      The title of the episode.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Title"
+                description="The title of the episode."
               />
-              
-              <FormField
+
+              <FormTextareaField
                 control={form.control}
                 name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        rows={5}
-                        placeholder="Episode description"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      A brief summary of the episode.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Description"
+                placeholder="Episode description"
+                rows={5}
+                description="A brief summary of the episode."
               />
               
               {/* AI Generation Controls */}
@@ -164,55 +130,27 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
                   onDescriptionGenerated={(description) => form.setValue('description', description, { shouldDirty: true, shouldValidate: true })}
                 />
               </div>
-              
-              <FormField
+
+              <FormTextField
                 control={form.control}
                 name="language"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Language</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="en-US, he-IL, etc."
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      The language of this episode (inherited from podcast settings but can be overridden here).
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Language"
+                placeholder="en-US, he-IL, etc."
+                description="The language of this episode (inherited from podcast settings but can be overridden here)."
               />
-              
-              <FormField
+
+              <FormSelectField
                 control={form.control}
                 name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="published">Published</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      The current status of the episode.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Status"
+                placeholder="Select a status"
+                description="The current status of the episode."
+                options={[
+                  { value: 'published', label: 'Published' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'processing', label: 'Processing' },
+                  { value: 'failed', label: 'Failed' },
+                ]}
               />
               
               <div className="flex items-center gap-4">
