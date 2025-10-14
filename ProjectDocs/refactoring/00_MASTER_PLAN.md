@@ -211,9 +211,10 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - הערה: **7,621 שורות נוספו + אינטגרציה מלאה + 4 קבצים מיותרים נמחקו**
 
 ### תחום 5: UI Components
-- Progress: ⬜⬜⬜⬜⬜ 0%
-- משימות: 0/10
-- סטטוס: ⬜ לא התחיל
+- Progress: █⬜⬜⬜⬜ 10%
+- משימות: 1/10
+- סטטוס: 🟡 בתהליך
+- הערה: **Task 5.1 הושלם - ImageGenerationField פוצל ל-15 קבצים!**
 
 ### תחום 6: Admin Features
 - Progress: ⬜⬜⬜⬜⬜ 0%
@@ -238,14 +239,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - Server Actions: 116% (!) ✅
 - Authentication: 100% ✅
 
-**Phase 3 (UI Layer)**: 0/17 משימות = 0% ⬜
-- UI Components: 0%
-- Admin Features: 0%
+**Phase 3 (UI Layer)**: 1/17 משימות = 6% 🟡
+- UI Components: 10% (1/10)
+- Admin Features: 0% (0/7)
 
-**התקדמות כוללת: 27/44 משימות (61%)** 🚀
-**Phase 1 + Phase 2 הושלמו במלואם כולל אינטגרציה וניקוי!** 🎉🎉
+**התקדמות כוללת: 28/44 משימות (64%)** 🚀
+**Phase 1 + Phase 2 הושלמו! Phase 3 החל!** 🎉🎉
 
-**עדכון אחרון**: 2025-10-13 (לילה - Task 4.10 Cleanup הושלם!)
+**עדכון אחרון**: 2025-10-13 (לילה - Task 5.1 Split ImageGenerationField הושלם!)
 
 ---
 
@@ -312,26 +313,28 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
     - ✅ 4.10: Cleanup - Deleted 4 redundant files, 553 lines removed
 
 **מה הושלם בסשן זה (2025-10-13)**:
-- 🎯 **Phase 2 Services - 100% complete כולל אינטגרציה וניקוי מלא!**
-- ✅ Tasks 4.3-4.10 בוצעו במלואן
+
+**Phase 2: Services (סיום מלא)** ✅
+- 🎯 Tasks 4.3-4.10 בוצעו במלואן (100%)
 - ✅ 7,621 שורות חדשות (services + interfaces + DI + tests + docs)
-- ✅ 19 קבצים חדשים (11 interfaces, 5 S3 modules, 1 factory, 1 retry, 1 test)
-- ✅ 86 unit tests עוברים (after cleanup - removed 21 redundant tests)
-- ✅ Testing infrastructure מלא (vitest + coverage)
-- ✅ Service Factory Pattern עם DI מלא
+- ✅ 86 unit tests עוברים (after cleanup)
 - ✅ **Task 4.9 Integration**: החלפת קוד ישן ב-factory pattern
-  - 8 action files עודכנו לשימוש ב-factory
-  - 5 קבצים עודכנו עם type imports תקינים
-  - 2 deprecated wrappers נמחקו
-  - ~20 שורות boilerplate קוד הוסרו
-- ✅ **Task 4.10 Cleanup**: ניקוי קוד מיותר
-  - 4 קבצים נמחקו (2 services + 2 tests)
-  - 6 קבצים עודכנו (interfaces, factory, docs)
-  - 553 שורות קוד הוסרו
-  - 2 documentation files נוצרו
-- ✅ Production verified with Playwright (7 podcasts, 119 episodes)
+- ✅ **Task 4.10 Cleanup**: 4 קבצים נמחקו, 553 שורות הוסרו
+
+**Phase 3: UI Components (התחלה)** 🟡
+- 🎯 **Task 5.1 הושלם**: Split ImageGenerationField
+  - 730 שורות → 15 קבצים מודולריים (1,043 שורות)
+  - כל קובץ <150 שורות (max: 148)
+  - 8 UI components + 4 custom hooks + 3 utility files
+  - הפרדה נקייה של concerns
+  - TypeScript types מלא
+  - Build עובר בהצלחה
+  - Backward compatible
+
+**סיכום כולל**:
 - ✅ Build עובר בהצלחה
-- ✅ 5 commits נדחפו ל-GitHub
+- ✅ 6 commits נדחפו ל-GitHub (5 Phase 2 + 1 Phase 3)
+- 🚀 Production verified
 
 **צעדים הבאים מומלצים**:
 1. 🎯 **Phase 3: UI Components** (10 משימות) ⬅️ **הבא בתור**
@@ -339,16 +342,17 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 3. Vercel deployment verification
 
 **סטטיסטיקות כוללות**:
-- 📊 Total commits in session: 5
-- 📝 Total lines: +7,621 added, -553 removed (cleanup)
-- 🧪 Total tests: 86 (all passing, 21 redundant tests removed)
+- 📊 Total commits in session: 6 (5 Phase 2 + 1 Phase 3)
+- 📝 Phase 2: +7,621 lines, -553 removed
+- 📝 Phase 3: +1,043 lines (15 new files), -730 removed (1 monolith)
+- 🧪 Total tests: 86 (all passing)
 - ✅ Build status: Passing
 - 🚀 Deployment: Pushed to GitHub (Vercel deployed)
-- 🔄 Integration: 100% factory pattern adoption
-- 🧹 Cleanup: 4 redundant files deleted, 6 files updated
+- 🔄 Phase 2: 100% factory pattern adoption + cleanup
+- 🎨 Phase 3: 1/10 tasks (ImageGenerationField split)
 
 ---
 
 **סטטוס מסמך זה**: 🟢 Active & Updated
-**עדכון אחרון**: 2025-10-13 (לילה - **Phase 2 + Task 4.10 Cleanup הושלם במלואו!** 🎉🎉)
+**עדכון אחרון**: 2025-10-13 (לילה - **Task 5.1 Split ImageGenerationField הושלם!** 🎉)
 **בעלים**: Development Team

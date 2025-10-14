@@ -71,16 +71,38 @@
 
 ## 📝 משימות
 
-### 5.1: Split Image Generation Field (730→<150)
+### 5.1: Split Image Generation Field ✅ הושלם
 **[📄 tasks/05_split_image_field.md](./tasks/05_split_image_field.md)**
+**זמן בפועל**: 2 שעות
 
-פיצול ל:
-- `ImageSourceSelector` (50)
-- `StyleSelector` (50)
-- `VariationGallery` (80)
-- `GeneratedImagePreview` (60)
-- `GalleryBrowser` (100)
-- `ImageGenerationField` (80 - orchestrator)
+**הושלם בהצלחה**:
+- ✅ פיצול מ-730 שורות → 15 קבצים מודולריים (1,043 שורות סה"כ)
+- ✅ כל קובץ מתחת ל-150 שורות (הגדול ביותר: 148)
+- ✅ הפרדת logic ל-hooks מותאמים אישית (4 קבצים)
+- ✅ 8 UI components ממוקדים
+- ✅ TypeScript types מלא
+- ✅ Build עובר ללא שגיאות
+- ✅ Backward compatible
+
+**מבנה חדש**:
+```
+image-generation/
+├── index.ts (6)
+├── types.ts (32)
+├── image-generation-field.tsx (118) - orchestrator
+├── empty-state.tsx (14)
+├── image-source-selector.tsx (111)
+├── style-selector.tsx (79)
+├── generated-image-preview.tsx (46)
+├── variation-gallery.tsx (74)
+├── gallery-browser.tsx (106)
+├── debug-info-panel.tsx (82)
+├── action-buttons.tsx (65)
+├── use-image-generation.ts (148)
+├── use-gallery-operations.ts (69)
+├── process-generation-result.ts (45)
+└── variation-handlers.ts (48)
+```
 
 ### 5.2: Refactor Audio Player (390→<150)
 **[📄 tasks/05_refactor_audio_player.md](./tasks/05_refactor_audio_player.md)**
@@ -153,12 +175,12 @@ Suspense boundaries ו-error boundaries consistent
 
 ## ✅ Checklist
 
-- [ ] קרא RSC patterns
-- [ ] הבן composition
-- [ ] זהה קומפוננטים גדולים
+- [x] קרא RSC patterns
+- [x] הבן composition
+- [x] זהה קומפוננטים גדולים (8 files identified)
 - [ ] מצא 'use client' מיותר
-- [ ] תכנן component hierarchy
-- [ ] פצל קומפוננטים
+- [x] תכנן component hierarchy (Task 5.1)
+- [x] פצל קומפוננטים (1/8 done - ImageGenerationField)
 - [ ] צור shared components
 - [ ] הוסף loading states
 - [ ] הוסף error boundaries
@@ -166,7 +188,13 @@ Suspense boundaries ו-error boundaries consistent
 
 ---
 
-## 📊 התקדמות: 0/10 משימות (0%)
+## 📊 התקדמות: 1/10 משימות (10%)
 
-**סטטוס**: 🔴 לא התחיל
+**סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
+
+**משימות שהושלמו**:
+- ✅ 5.1: Split Image Generation Field (730→15 files, all <150 lines)
+
+**משימה הבאה**:
+- ⏳ 5.2: Refactor Audio Player (390→<150)
