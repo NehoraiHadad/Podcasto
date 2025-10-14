@@ -171,6 +171,34 @@ function PodcastListPresenter({ podcasts }) {
 
 Suspense boundaries ו-error boundaries consistent
 
+### 5.11: Shared Image Components ✅ הושלם
+**[📄 task-5.11-shared-image-components.md](./task-5.11-shared-image-components.md)**
+**זמן בפועל**: 5.5 שעות
+
+**הושלם בהצלחה**:
+- ✅ חילוץ קוד משותף בין ImageGenerationField ו-EpisodeImageManager
+- ✅ יצירת 10 קבצים חדשים ב-`shared/image-management/`
+- ✅ 3 shared components: LoadingButton, ImagePreviewCard, CurrentImageDisplay
+- ✅ 3 custom hooks: useLoadingState, useImageUpload, useImageState
+- ✅ 2 utilities: file-validation, toast-messages (34 messages!)
+- ✅ אפס דופליקציה - הסרה מלאה של ~200-250 שורות קוד כפול
+- ✅ EpisodeImageManager: 305 → 244 שורות (-20%)
+- ✅ רפקטור של 7 קבצים ב-ImageGenerationField
+- ✅ Build עובר, תיעוד מלא
+- ✅ Backward compatible
+
+**מבנה משותף**:
+```
+src/components/admin/shared/image-management/
+├── components/ (3 files)
+├── hooks/ (3 files)
+├── utils/ (2 files)
+├── types.ts
+├── constants.ts
+├── index.ts
+└── README.md
+```
+
 ---
 
 ## ✅ Checklist
@@ -188,13 +216,14 @@ Suspense boundaries ו-error boundaries consistent
 
 ---
 
-## 📊 התקדמות: 1/10 משימות (10%)
+## 📊 התקדמות: 2/11 משימות (18%)
 
 **סטטוס**: 🟡 בתהליך
 **קריטיות**: ⭐⭐ בינונית-גבוהה
 
 **משימות שהושלמו**:
 - ✅ 5.1: Split Image Generation Field (730→15 files, all <150 lines)
+- ✅ 5.11: Shared Image Components (אפס דופליקציה, 10 shared files)
 
 **משימה הבאה**:
 - ⏳ 5.2: Refactor Audio Player (390→<150)

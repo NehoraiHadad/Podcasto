@@ -211,10 +211,12 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - הערה: **7,621 שורות נוספו + אינטגרציה מלאה + 4 קבצים מיותרים נמחקו**
 
 ### תחום 5: UI Components
-- Progress: █⬜⬜⬜⬜ 10%
-- משימות: 1/10
+- Progress: ██⬜⬜⬜ 18%
+- משימות: 2/11
 - סטטוס: 🟡 בתהליך
-- הערה: **Task 5.1 הושלם - ImageGenerationField פוצל ל-15 קבצים!**
+- הערות:
+  - **Task 5.1 הושלם**: ImageGenerationField פוצל ל-15 קבצים! (730→1,043 lines)
+  - **Task 5.11 הושלם**: Shared Image Components - אפס דופליקציה! (10 shared files)
 
 ### תחום 6: Admin Features
 - Progress: ⬜⬜⬜⬜⬜ 0%
@@ -239,14 +241,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - Server Actions: 116% (!) ✅
 - Authentication: 100% ✅
 
-**Phase 3 (UI Layer)**: 1/17 משימות = 6% 🟡
-- UI Components: 10% (1/10)
+**Phase 3 (UI Layer)**: 2/18 משימות = 11% 🟡
+- UI Components: 18% (2/11)
 - Admin Features: 0% (0/7)
 
-**התקדמות כוללת: 28/44 משימות (64%)** 🚀
-**Phase 1 + Phase 2 הושלמו! Phase 3 החל!** 🎉🎉
+**התקדמות כוללת: 29/45 משימות (64%)** 🚀
+**Phase 1 + Phase 2 הושלמו! Phase 3 בתהליך!** 🎉🎉
 
-**עדכון אחרון**: 2025-10-13 (לילה - Task 5.1 Split ImageGenerationField הושלם!)
+**עדכון אחרון**: 2025-10-14 (Task 5.11 Shared Image Components הושלם!)
 
 ---
 
@@ -331,28 +333,41 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - Build עובר בהצלחה
   - Backward compatible
 
+- 🎯 **Task 5.11 הושלם**: Shared Image Components
+  - אפס דופליקציה! (100% elimination של ~200-250 שורות)
+  - 10 קבצים חדשים ב-`shared/image-management/`:
+    - 3 components (LoadingButton, ImagePreviewCard, CurrentImageDisplay)
+    - 3 hooks (useLoadingState, useImageUpload, useImageState)
+    - 2 utilities (file-validation, toast-messages)
+    - types.ts, constants.ts, index.ts, README.md
+  - EpisodeImageManager: 305 → 244 שורות (-20%)
+  - 7 קבצים ב-ImageGenerationField מרופקטרים
+  - 34 standardized toast messages
+  - Build עובר בהצלחה
+
 **סיכום כולל**:
 - ✅ Build עובר בהצלחה
-- ✅ 6 commits נדחפו ל-GitHub (5 Phase 2 + 1 Phase 3)
+- ✅ 7 commits נדחפו ל-GitHub (5 Phase 2 + 2 Phase 3)
 - 🚀 Production verified
 
 **צעדים הבאים מומלצים**:
-1. 🎯 **Phase 3: UI Components** (10 משימות) ⬅️ **הבא בתור**
+1. 🎯 **Phase 3: UI Components** (9 משימות נותרו) ⬅️ **הבא בתור**
 2. Phase 3: Admin Features (7 משימות)
 3. Vercel deployment verification
 
 **סטטיסטיקות כוללות**:
-- 📊 Total commits in session: 6 (5 Phase 2 + 1 Phase 3)
+- 📊 Total commits: 7 (5 Phase 2 + 2 Phase 3)
 - 📝 Phase 2: +7,621 lines, -553 removed
-- 📝 Phase 3: +1,043 lines (15 new files), -730 removed (1 monolith)
+- 📝 Phase 3 (Task 5.1): +1,043 lines (15 new files), -730 removed
+- 📝 Phase 3 (Task 5.11): +1,828 lines (10 shared files), -200 duplicate lines eliminated
 - 🧪 Total tests: 86 (all passing)
 - ✅ Build status: Passing
-- 🚀 Deployment: Pushed to GitHub (Vercel deployed)
+- 🚀 Deployment: Pushed to GitHub (Vercel auto-deployed)
 - 🔄 Phase 2: 100% factory pattern adoption + cleanup
-- 🎨 Phase 3: 1/10 tasks (ImageGenerationField split)
+- 🎨 Phase 3: 2/11 tasks (18% - ImageGenerationField split + Shared Image Components)
 
 ---
 
 **סטטוס מסמך זה**: 🟢 Active & Updated
-**עדכון אחרון**: 2025-10-13 (לילה - **Task 5.1 Split ImageGenerationField הושלם!** 🎉)
+**עדכון אחרון**: 2025-10-14 (**Task 5.11 Shared Image Components הושלם!** 🎉)
 **בעלים**: Development Team
