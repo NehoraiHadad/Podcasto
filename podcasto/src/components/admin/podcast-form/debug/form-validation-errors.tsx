@@ -1,5 +1,3 @@
-'use client';
-
 import { FieldErrors } from 'react-hook-form';
 
 interface FormValidationErrorsProps<T extends Record<string, unknown>> {

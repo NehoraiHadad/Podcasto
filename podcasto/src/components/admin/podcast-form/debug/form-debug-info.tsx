@@ -1,5 +1,3 @@
-'use client';
-
 import { UseFormReturn } from 'react-hook-form';
 
 interface FormDebugInfoProps<T extends Record<string, unknown>> {

@@ -1,5 +1,3 @@
-'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { GoogleAudioGeneratorDetailedResult, GoogleAudioGeneratorEpisodeResult } from './cron-runner-constants';

@@ -1,5 +1,3 @@
-'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { EpisodeCheckerDetailedResult } from './cron-runner-constants'; // For the specific result type
 
