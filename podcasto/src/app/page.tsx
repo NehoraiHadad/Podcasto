@@ -5,6 +5,8 @@ import { PodcastCarousel } from "@/components/home/podcast-carousel";
 import { SearchInput } from "@/components/home/search-input";
 import { getCurrentUser } from "@/lib/actions/auth-actions";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   // Get the authenticated user on the server using the new function
   const user = await getCurrentUser();

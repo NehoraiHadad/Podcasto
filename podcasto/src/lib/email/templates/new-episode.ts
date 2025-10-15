@@ -23,7 +23,6 @@ export function generateNewEpisodeHTML(data: EpisodeEmailData): string {
     episodeDescription,
     podcastTitle,
     podcastId,
-    episodeId,
     coverImage,
     duration,
     publishedAt,

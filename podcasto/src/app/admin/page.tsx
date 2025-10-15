@@ -9,6 +9,8 @@ export const metadata = {
   description: 'Manage podcasts and application settings',
 };
 
+export const dynamic = 'force-dynamic';
+
 // Loading skeleton for the dashboard
 function DashboardSkeleton() {
   return (

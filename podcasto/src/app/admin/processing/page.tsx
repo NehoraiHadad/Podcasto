@@ -15,6 +15,8 @@ export const metadata = {
   description: 'View episode processing analytics and troubleshoot failures',
 };
 
+export const dynamic = 'force-dynamic';
+
 function ProcessingAnalyticsSkeleton() {
   return (
     <div className="space-y-6">

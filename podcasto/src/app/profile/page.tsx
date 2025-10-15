@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'Manage your profile and subscriptions',
 };
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Protected profile page
  * Uses requireAuth to ensure the user is authenticated

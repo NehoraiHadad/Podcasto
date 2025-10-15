@@ -38,8 +38,8 @@ export default function AboutPage() {
             </h2>
             <p className="text-gray-600">
               Have questions or feedback? Reach out to our team at 
-              <a href="mailto:support@Podcasto.app" className="text-indigo-600 hover:text-indigo-800 ml-1">
-                support@Podcasto.app
+              <a href="mailto:support@Podcasto.org" className="text-indigo-600 hover:text-indigo-800 ml-1">
+                support@Podcasto.org
               </a>
             </p>
           </div>

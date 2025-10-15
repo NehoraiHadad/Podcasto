@@ -8,6 +8,8 @@ export const metadata = {
   description: 'Manage and create podcasts',
 };
 
+export const dynamic = 'force-dynamic';
+
 // Loading skeleton for the podcasts list
 function PodcastsListSkeleton() {
   return (

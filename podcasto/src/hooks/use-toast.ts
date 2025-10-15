@@ -19,7 +19,8 @@ type ToasterToast = Toast & {
   id: string;
 };
 
-const actionTypes = {
+// actionTypes object is only used for type inference, not for runtime values
+const _actionTypes = {
   ADD_TOAST: 'ADD_TOAST',
   UPDATE_TOAST: 'UPDATE_TOAST',
   DISMISS_TOAST: 'DISMISS_TOAST',
@@ -33,7 +34,7 @@ function genId() {
   return count.toString();
 }
 
-type ActionType = typeof actionTypes;
+type ActionType = typeof _actionTypes;
 
 type Action =
   | {

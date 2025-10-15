@@ -37,6 +37,7 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
   const [activeTab, setActiveTab] = useState<string>(TAB_VALUES.BASIC_INFO);
 
   // Get telegram channel from form data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const telegramChannel = form.watch('telegramChannel' as any) as string | undefined;
   
   const tabs = useMemo(() => [

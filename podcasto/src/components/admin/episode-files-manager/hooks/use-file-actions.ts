@@ -28,11 +28,11 @@ export function useFileActions({
   loadFiles,
   openViewer,
   openDeleteDialog,
-  openDeleteAllDialog,
+  openDeleteAllDialog: _openDeleteAllDialog,
   setDeleteDialogOpen,
   setDeleteAllDialogOpen,
   fileToDelete,
-  filesCount
+  filesCount: _filesCount
 }: UseFileActionsProps) {
   const [deleting, setDeleting] = useState(false);
 

@@ -63,6 +63,7 @@ export function BasicInfoFields<T extends FormValues>({ form, podcastId, telegra
           podcastTitle={podcastTitle}
           savedImageStyle={savedImageStyle}
           onImageGenerated={(imageUrl) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             form.setValue('cover_image' as Path<T>, imageUrl as any);
           }}
         />

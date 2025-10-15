@@ -1,5 +1,5 @@
 import { imageToasts } from '@/components/admin/shared/image-management';
-import type { GeneratedVariation } from './types';
+import type { GeneratedVariation, GenerationDebugInfo } from './types';
 
 export function createSelectVariationHandler(
   generatedVariations: GeneratedVariation[],
@@ -21,7 +21,7 @@ export function createSelectVariationHandler(
 export function createDeleteVariationHandler(
   generatedVariations: GeneratedVariation[],
   setGeneratedVariations: (variations: GeneratedVariation[]) => void,
-  setDebugInfo: (info: any) => void,
+  setDebugInfo: (info: GenerationDebugInfo | null) => void,
   onImageGenerated?: (imageUrl: string) => void
 ) {
   return (index: number) => {

@@ -1,7 +1,7 @@
 import { db } from '../index';
 import { episodeProcessingLogs, episodes } from '../schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
-import type { ProcessingLogEntry, ProcessingStage, StageStatus } from '@/types/processing';
+import type { ProcessingStage } from '@/types/processing';
 
 /**
  * Database API for episode processing logs
