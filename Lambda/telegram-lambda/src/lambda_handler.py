@@ -60,7 +60,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     tracker.log_stage_start(
                         episode_id,
                         ProcessingStage.TELEGRAM_PROCESSING,
-                        {'lambda_request_id': context.request_id if context else None}
+                        {'lambda_request_id': context.aws_request_id if context else None}
                     )
 
                 # Create channel processor
