@@ -5,13 +5,15 @@ Resources:
   TelegramCollector:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.12
+      BuildMethod: python3.10
     Properties:
       CodeUri: .
       Handler: src.lambda_handler.lambda_handler
-      Runtime: python3.12
+      Runtime: python3.10
       Timeout: 300
       MemorySize: 256
+      Layers:
+        - arn:aws:lambda:us-east-1:638520701769:layer:podcasto-shared-layer-dev:3
       Environment:
         Variables:
           TELEGRAM_API_ID: !Ref TelegramApiId
