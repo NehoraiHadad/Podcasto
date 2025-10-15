@@ -116,7 +116,7 @@ export {
   RateLimitError,
 } from './errors';
 
-// Error utilities from error-utils.ts (temporary - will migrate in Task 1.3)
+// Error utilities from errors module
 export {
   handleSupabaseAuthError,
   isAuthenticationError,
@@ -126,7 +126,42 @@ export {
   createAuthError,
   getErrorMessage,
   withAuthErrorHandling,
-} from './error-utils';
+} from './errors/utils';
+
+// ============================================================================
+// Input Validation (Zod Schemas)
+// ============================================================================
+
+export {
+  // Schemas
+  loginSchema,
+  registerSchema,
+  passwordResetSchema,
+  passwordUpdateSchema,
+  roleAssignmentSchema,
+  emailSchema,
+  passwordSchema,
+  userIdSchema,
+  roleSchema,
+
+  // Validation helpers
+  validateLogin,
+  validateRegistration,
+  validatePasswordReset,
+  validatePasswordUpdate,
+  validateRoleAssignment,
+  validateEmail,
+  validatePassword,
+  validateRole,
+
+  // Types
+  type LoginInput,
+  type RegisterInput,
+  type PasswordResetInput,
+  type PasswordUpdateInput,
+  type RoleAssignmentInput,
+  type ValidationResult,
+} from './validation';
 
 // ============================================================================
 // Common Types
