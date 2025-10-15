@@ -3,7 +3,7 @@
  * These functions should only be used in server components or server actions
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
@@ -15,7 +15,7 @@ import { cache } from 'react';
  * @returns Boolean indicating if the user is an admin
  */
 export const isUserAdmin = cache(async (): Promise<boolean> => {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   // Get the current user
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -45,7 +45,7 @@ export const isUserAdmin = cache(async (): Promise<boolean> => {
  * @returns Object with isAdmin flag and user data
  */
 export const getAdminStatus = cache(async () => {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   // Get the current user
   const { data: { user }, error } = await supabase.auth.getUser();

@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 /**
  * Page for confirming email verification
  * This is called when a user clicks the confirmation link in their email
- * 
+ *
  * @returns A redirect to the home page after processing the token
  */
 export default async function ConfirmPage({
@@ -22,7 +22,7 @@ export default async function ConfirmPage({
     return <div className="p-8">Invalid confirmation link.</div>;
   }
 
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   if (type === 'email') {
     // Verify the email confirmation token

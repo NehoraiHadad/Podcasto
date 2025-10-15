@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { getUser } from '@/lib/auth';
 import type { SubscriptionActionResult } from './shared';
@@ -47,7 +47,7 @@ export async function toggleSubscription(
       };
     }
 
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const isCurrentlySubscribed = await isUserSubscribed({ podcastId });
 
     if (isCurrentlySubscribed) {

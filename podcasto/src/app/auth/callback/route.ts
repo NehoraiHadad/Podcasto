@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
 
 /**
  * Route handler for auth callback
  * This is called after a user signs in with an OAuth provider
- * 
+ *
  * @param request The Next.js request object
  * @returns A redirect to the home page or a specified redirect URL
  */
@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
   const token_hash = requestUrl.searchParams.get('token_hash');
   const type = requestUrl.searchParams.get('type') as EmailOtpType | null;
   const redirect = requestUrl.searchParams.get('redirect') || '/';
-  
+
   if (code) {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     
     // Exchange the code for a session
     await supabase.auth.exchangeCodeForSession(code);

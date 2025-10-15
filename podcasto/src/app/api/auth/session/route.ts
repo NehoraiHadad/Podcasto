@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { logError } from '@/lib/api';
 
 /**
@@ -12,7 +12,7 @@ import { logError } from '@/lib/api';
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     try {
       // Use getUser instead of getSession for better security

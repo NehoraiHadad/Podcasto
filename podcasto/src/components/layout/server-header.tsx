@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { ClientHeader } from './client-header';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -10,8 +10,8 @@ import { unstable_noStore as noStore } from 'next/cache';
 export async function ServerHeader() {
   // Opt out of caching for this component
   noStore();
-  
-  const supabase = await createClient();
+
+  const supabase = await createServerClient();
   
   // Get the current user
   const { data: { user }, error } = await supabase.auth.getUser();

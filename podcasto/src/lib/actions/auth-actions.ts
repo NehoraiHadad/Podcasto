@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { getURL } from '@/lib/utils/url';
 import {
   handleSupabaseAuthError,
@@ -32,7 +32,7 @@ export const signInWithPassword = async (email: string, password: string) => {
       };
     }
 
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: validation.data.email,
@@ -64,7 +64,7 @@ export const signInWithPassword = async (email: string, password: string) => {
  */
 export const signInWithGoogle = async (redirectTo?: string) => {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -118,7 +118,7 @@ export const signUpWithPassword = async (email: string, password: string, confir
         };
       }
 
-      const supabase = await createClient();
+      const supabase = await createServerClient();
 
       const { data, error } = await supabase.auth.signUp({
         email: validation.data.email,
@@ -139,7 +139,7 @@ export const signUpWithPassword = async (email: string, password: string, confir
     }
 
     // Fallback to basic validation (backward compatibility)
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -172,7 +172,7 @@ export const signUpWithPassword = async (email: string, password: string, confir
  */
 export const signOut = async () => {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { error } = await supabase.auth.signOut();
 

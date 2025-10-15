@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { PodcastCreationForm } from '@/components/admin/podcast-creation-form-new';
 
 export const metadata = {
@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function CreatePodcastPage() {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   
   // Get the current user
   const { data: { user } } = await supabase.auth.getUser();
