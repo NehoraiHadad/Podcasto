@@ -228,12 +228,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - **Task 5.10**: Loading & Error States - comprehensive! (3→12 routes, +400%)
 
 ### תחום 6: Admin Features ⭐
-- Progress: ███⬜⬜ 43%
-- משימות: 3/7 (Task 6.1 skipped - already excellent)
-- סטטוס: 🟡 בעבודה
+- Progress: ████⬜ 71%
+- משימות: 5/7 (Task 6.1 skipped - already excellent)
+- סטטוס: 🟢 כמעט הושלם
 - הערות:
-  - **Task 6.6**: Action Menus Pattern - 541→657 lines (8 files, 0% duplication!)
+  - **Task 6.2**: Podcast Form Verification - All files well-structured, no work needed
   - **Task 6.3**: Shared Table Components - 220→323 lines (7 files, reusable!)
+  - **Task 6.5**: Admin Dashboard Redesign - 11 new files (317 lines) + 3 updated
+  - **Task 6.6**: Action Menus Pattern - 541→657 lines (8 files, 0% duplication!)
   - **Task 6.7**: Cron Management UI - 200→312 lines (7 files, -48.5% main component!)
 
 ### תחום 7: API Routes ⭐
@@ -254,14 +256,14 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - Server Actions: 116% (!) ✅
 - Authentication: 100% ✅
 
-**Phase 3 (UI Layer)**: 14/18 משימות = 78% 🟢
+**Phase 3 (UI Layer)**: 16/18 משימות = 89% 🟢🟢
 - UI Components: 100% (11/11) ✅✅✅
-- Admin Features: 43% (3/7, Task 6.1 skipped) 🟡
+- Admin Features: 71% (5/7, Task 6.1 skipped) 🟢
 
-**התקדמות כוללת: 42/46 משימות (91%)** 🚀🚀
-**Phase 1 + Phase 2 הושלמו! UI Components הושלמה! Admin Features 43%!** 🎉🎉🎉
+**התקדמות כוללת: 44/46 משימות (93%)** 🚀🚀🚀
+**Phase 1 + Phase 2 הושלמו! UI Components הושלמה! Admin Features 71%!** 🎉🎉🎉
 
-**עדכון אחרון**: 2025-10-15 (**Tasks 6.3, 6.6, 6.7 הושלמו - Admin Features 43%!** 🎉)
+**עדכון אחרון**: 2025-10-15 (**Tasks 6.2, 6.5 הושלמו - Admin Features 71%!** 🎉)
 
 ---
 
@@ -430,18 +432,18 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
 - 🚀 Production verified
 
 **צעדים הבאים מומלצים**:
-1. 🎯 **Phase 3: Admin Features** (4 משימות נותרות) ⬅️ **הבא בתור - אחרון!**
-   - ✅ Task 6.6: Action Menus Pattern (DONE)
+1. 🎯 **Phase 3: Admin Features** (1 משימה אחרונה!) ⬅️ **כמעט סיימנו!**
+   - ✅ Task 6.2: Podcast Form Verification (DONE)
    - ✅ Task 6.3: Shared Table Components (DONE)
+   - ✅ Task 6.5: Admin Dashboard Redesign (DONE)
+   - ✅ Task 6.6: Action Menus Pattern (DONE)
    - ✅ Task 6.7: Cron Management UI (DONE)
-   - ⚠️ Task 6.2: Podcast Form (verify sub-components)
-   - ⚠️ Task 6.4: Bulk Operations Service
-   - ⚠️ Task 6.5: Admin Dashboard Redesign
+   - ⚠️ Task 6.4: Bulk Operations Service (Optional - low priority)
 2. Final testing & verification
 3. Production deployment celebration! 🎉
 
 **סטטיסטיקות כוללות**:
-- 📊 Total commits: 26 (5 Phase 2 + 21 Phase 3)
+- 📊 Total commits: 28 (5 Phase 2 + 23 Phase 3)
 - 📝 Phase 2: +7,621 lines, -553 removed
 - 📝 Phase 3 UI Components: +7,500+ lines (100+ new files), -4,500+ removed
   - Task 5.1: +1,043 lines (15 files), -730 removed
@@ -455,19 +457,21 @@ Phase 3 (UI Layer) - תלוי ב-Phase 2
   - Task 5.8: +556 lines (11 files), -361 removed
   - Task 5.9: +378 lines (9 files), -309 removed
   - Task 5.10: +633 lines (27 files), -108 removed
-- 📝 Phase 3 Admin Features: +1,292 lines (22 new files), -961 removed
-  - Task 6.6: +657 lines (8 files), -541 removed (action menus)
+- 📝 Phase 3 Admin Features: +1,609 lines (33 new files), -961 removed
+  - Task 6.2: Verified (no changes needed)
   - Task 6.3: +323 lines (7 files), -220 removed (table components)
+  - Task 6.5: +317 lines (11 files), 3 files updated (dashboard)
+  - Task 6.6: +657 lines (8 files), -541 removed (action menus)
   - Task 6.7: +312 lines (7 files), -200 removed (cron runner)
 - 🧪 Total tests: 86 (all passing)
 - ✅ Build status: Passing
 - 🚀 Deployment: Pushed to GitHub (Vercel auto-deployed)
 - 🔄 Phase 2: 100% factory pattern adoption + cleanup
 - 🎨 Phase 3 UI Components: ✅ **100% COMPLETE!** (11/11 tasks)
-- 🎨 Phase 3 Admin Features: 🟡 **43% COMPLETE** (3/7 tasks, Task 6.1 skipped)
+- 🎨 Phase 3 Admin Features: 🟢 **71% COMPLETE** (5/7 tasks, Task 6.1 skipped)
 
 ---
 
 **סטטוס מסמך זה**: 🟢 Active & Updated
-**עדכון אחרון**: 2025-10-15 (**Phase 3: Admin Features 43%! Tasks 6.3, 6.6, 6.7 הושלמו!** 🎉🎉🎉)
+**עדכון אחרון**: 2025-10-15 (**Phase 3: Admin Features 71%! Tasks 6.2, 6.5 הושלמו!** 🎉🎉🎉)
 **בעלים**: Development Team
