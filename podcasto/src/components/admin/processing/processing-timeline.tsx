@@ -68,20 +68,63 @@ export function ProcessingTimeline({ episodeId, className }: ProcessingTimelineP
     );
   }
 
-  // Group logs by stage (latest status per stage)
-  const stageMap = new Map<ProcessingStage, ProcessingLogEntry>();
-  logs.forEach((log) => {
-    const existing = stageMap.get(log.stage);
-    if (!existing || new Date(log.created_at) > new Date(existing.created_at)) {
-      stageMap.set(log.stage, log);
+  // Group logs by stage family (telegram, script, audio)
+  // Each family can have: _PROCESSING (started), _COMPLETED, or _FAILED
+  type StageFamily = 'telegram' | 'script' | 'audio' | 'other';
+
+  const getStageFamilyAndType = (stage: ProcessingStage): { family: StageFamily; type: 'start' | 'complete' | 'fail' | 'other' } => {
+    if (stage.includes('telegram')) {
+      if (stage === ProcessingStage.TELEGRAM_PROCESSING) return { family: 'telegram', type: 'start' };
+      if (stage === ProcessingStage.TELEGRAM_COMPLETED) return { family: 'telegram', type: 'complete' };
+      if (stage === ProcessingStage.TELEGRAM_FAILED) return { family: 'telegram', type: 'fail' };
     }
+    if (stage.includes('script')) {
+      if (stage === ProcessingStage.SCRIPT_PROCESSING) return { family: 'script', type: 'start' };
+      if (stage === ProcessingStage.SCRIPT_COMPLETED) return { family: 'script', type: 'complete' };
+      if (stage === ProcessingStage.SCRIPT_FAILED) return { family: 'script', type: 'fail' };
+    }
+    if (stage.includes('audio')) {
+      if (stage === ProcessingStage.AUDIO_PROCESSING) return { family: 'audio', type: 'start' };
+      if (stage === ProcessingStage.AUDIO_COMPLETED) return { family: 'audio', type: 'complete' };
+      if (stage === ProcessingStage.AUDIO_FAILED) return { family: 'audio', type: 'fail' };
+    }
+    return { family: 'other', type: 'other' };
+  };
+
+  // Group by family
+  const familyMap = new Map<StageFamily, { start?: ProcessingLogEntry; complete?: ProcessingLogEntry; fail?: ProcessingLogEntry }>();
+
+  logs.forEach((log) => {
+    const { family, type } = getStageFamilyAndType(log.stage);
+    if (family === 'other') return;
+
+    if (!familyMap.has(family)) {
+      familyMap.set(family, {});
+    }
+
+    const familyLogs = familyMap.get(family)!;
+    if (type === 'start') familyLogs.start = log;
+    else if (type === 'complete') familyLogs.complete = log;
+    else if (type === 'fail') familyLogs.fail = log;
   });
 
-  // Convert to sorted array based on stage order
-  const allStages = Object.values(ProcessingStage);
-  const timelineItems = allStages
-    .filter((stage) => stageMap.has(stage))
-    .map((stage) => stageMap.get(stage)!);
+  // Create timeline items - show the most relevant log per family
+  const timelineItems: ProcessingLogEntry[] = [];
+  const orderedFamilies: StageFamily[] = ['telegram', 'script', 'audio'];
+
+  orderedFamilies.forEach((family) => {
+    const familyLogs = familyMap.get(family);
+    if (!familyLogs) return;
+
+    // Priority: fail > complete > start
+    if (familyLogs.fail) {
+      timelineItems.push(familyLogs.fail);
+    } else if (familyLogs.complete) {
+      timelineItems.push(familyLogs.complete);
+    } else if (familyLogs.start) {
+      timelineItems.push(familyLogs.start);
+    }
+  });
 
   return (
     <div className={cn('space-y-0', className)}>
