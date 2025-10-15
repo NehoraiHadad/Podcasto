@@ -6,6 +6,8 @@ import {
   handleSupabaseAuthError,
   authErrorToResult,
   logAuthError,
+  validateLogin,
+  validateRegistration,
 } from '@/lib/auth';
 import { getCurrentUser as getUserFromUserActions, requireAuth as requireAuthFromUserActions } from './user-actions';
 import { checkIsAdmin as checkIsAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin/auth-actions';
@@ -55,11 +57,24 @@ export async function updatePassword(password: string) {
  */
 export const signInWithPassword = async (email: string, password: string) => {
   try {
+    // Validate input
+    const validation = validateLogin({ email, password });
+    if (!validation.success || !validation.data) {
+      return {
+        data: null,
+        error: {
+          message: validation.error?.message || 'Invalid input',
+          code: 'validation_error',
+          status: 400
+        }
+      };
+    }
+
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: validation.data.email,
+      password: validation.data.password,
     });
 
     if (error) {
@@ -122,10 +137,46 @@ export const signInWithGoogle = async (redirectTo?: string) => {
  *
  * @param email User's email
  * @param password User's password
+ * @param confirmPassword Password confirmation (optional for backward compatibility)
  * @returns Result of the sign up operation
  */
-export const signUpWithPassword = async (email: string, password: string) => {
+export const signUpWithPassword = async (email: string, password: string, confirmPassword?: string) => {
   try {
+    // Validate input (with confirmation if provided)
+    if (confirmPassword !== undefined) {
+      const validation = validateRegistration({ email, password, confirmPassword });
+      if (!validation.success || !validation.data) {
+        return {
+          data: null,
+          error: {
+            message: validation.error?.message || 'Invalid input',
+            code: 'validation_error',
+            status: 400
+          }
+        };
+      }
+
+      const supabase = await createClient();
+
+      const { data, error } = await supabase.auth.signUp({
+        email: validation.data.email,
+        password: validation.data.password,
+        options: {
+          emailRedirectTo: `${getURL()}auth/callback`,
+        },
+      });
+
+      if (error) {
+        const authError = handleSupabaseAuthError(error);
+        logAuthError(authError, { action: 'signUpWithPassword', email });
+        const result = authErrorToResult(authError);
+        return { data: null, error: result.error };
+      }
+
+      return { data, error: null };
+    }
+
+    // Fallback to basic validation (backward compatibility)
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signUp({
