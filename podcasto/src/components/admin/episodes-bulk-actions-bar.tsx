@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { deleteEpisodesBulk } from '@/lib/actions/episode-actions';
+import { deleteEpisodesBulk } from '@/lib/actions/episode/bulk-delete';
 import { toast } from 'sonner';
 
 interface EpisodesBulkActionsBarProps {

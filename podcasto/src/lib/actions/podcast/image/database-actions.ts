@@ -5,7 +5,7 @@
  * Handles updating and deleting image references in the database.
  */
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { podcasts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

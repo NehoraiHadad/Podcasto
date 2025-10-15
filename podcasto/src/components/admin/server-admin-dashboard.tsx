@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from 'next/cache';
-import { getAdminDashboardStats } from '@/lib/actions/admin-actions';
+import { getAdminDashboardStats } from '@/lib/actions/admin';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
 import {
   Radio,

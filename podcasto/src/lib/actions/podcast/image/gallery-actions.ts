@@ -5,7 +5,7 @@
  * Handles listing and deleting images from S3 gallery.
  */
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { buildS3Url } from '@/lib/utils/s3-url-utils';
 import type { GalleryResult, GalleryImage } from './types';

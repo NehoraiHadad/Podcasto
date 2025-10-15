@@ -1,60 +1,224 @@
+/**
+ * Next.js Middleware
+ *
+ * Handles authentication, session refresh, and route protection.
+ * Following 2025 Supabase SSR best practices with advanced patterns.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createMiddlewareClient, updateSession } from '@/lib/supabase/server';
+import { createMiddlewareClient, updateSession } from '@/lib/auth/session/middleware';
 
-// Route configuration
-const protectedRoutes = ['/profile', '/settings', '/podcasts/my'];
-const adminRoutes = ['/admin'];
-const skipMiddlewarePatterns = ['/_next', '/api/public', '.', '/favicon.ico'];
-
-// Debug mode - only enable in development
-const DEBUG = process.env.NODE_ENV === 'development';
+// ============================================================================
+// Configuration
+// ============================================================================
 
 /**
- * Middleware function for Next.js
- * Handles authentication and protected routes
+ * Routes that require authentication
+ */
+const PROTECTED_ROUTES = ['/profile', '/settings', '/podcasts/my'];
+
+/**
+ * Routes that require admin role
+ */
+const ADMIN_ROUTES = ['/admin'];
+
+/**
+ * Auth-related routes (redirect authenticated users)
+ */
+const AUTH_ROUTES = ['/auth/login', '/auth/signup'];
+
+/**
+ * Patterns to skip middleware processing
+ */
+const SKIP_MIDDLEWARE_PATTERNS = [
+  '/_next',
+  '/api/public',
+  '/favicon.ico',
+  '.',
+];
+
+/**
+ * Debug mode - only enable in development
+ */
+const DEBUG = process.env.NODE_ENV === 'development';
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Check if a path should skip middleware
+ */
+function shouldSkipMiddleware(pathname: string): boolean {
+  return SKIP_MIDDLEWARE_PATTERNS.some((pattern) =>
+    pattern === pathname || pathname.startsWith(pattern)
+  );
+}
+
+/**
+ * Check if a path requires authentication
+ */
+function requiresAuth(pathname: string): boolean {
+  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+/**
+ * Check if a path requires admin role
+ */
+function requiresAdmin(pathname: string): boolean {
+  return ADMIN_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+/**
+ * Check if a path is an auth route
+ */
+function isAuthRoute(pathname: string): boolean {
+  return AUTH_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+/**
+ * Build redirect URL with return path
+ */
+function buildRedirectUrl(
+  request: NextRequest,
+  targetPath: string,
+  preserveReturn = true
+): URL {
+  const redirectUrl = new URL(targetPath, request.url);
+
+  if (preserveReturn && request.nextUrl.pathname !== targetPath) {
+    redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
+  }
+
+  return redirectUrl;
+}
+
+/**
+ * Debug log helper
+ */
+function debugLog(message: string, data?: Record<string, unknown>): void {
+  if (DEBUG) {
+    console.log(`[Middleware] ${message}`, data ? JSON.stringify(data) : '');
+  }
+}
+
+// ============================================================================
+// Middleware Function
+// ============================================================================
+
+/**
+ * Main middleware function for Next.js
+ *
+ * Handles:
+ * - Session refresh (via getUser() call in updateSession)
+ * - Route protection (authentication required)
+ * - Role-based access control (admin routes)
+ * - Auth route redirection (logged-in users shouldn't see login page)
  */
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
+  debugLog('Processing request', { pathname });
+
   // Skip middleware for static assets and non-auth API routes
-  if (skipMiddlewarePatterns.some(pattern => 
-    pattern === pathname || pathname.startsWith(pattern))) {
+  if (shouldSkipMiddleware(pathname)) {
+    debugLog('Skipping middleware', { pathname });
     return NextResponse.next();
   }
-  
-  // First update the session - this refreshes the auth token if needed
+
+  // First, update the session - this refreshes the auth token if needed
+  // CRITICAL: This calls getUser() internally, which validates the JWT
   const response = await updateSession(request);
-  
-  // Check if the route requires authentication
-  const routeRequiresAuth = protectedRoutes.some(route => pathname.startsWith(route));
-  const routeRequiresAdmin = adminRoutes.some(route => pathname.startsWith(route));
-  
-  if (DEBUG) {
-    console.log(`[Middleware] Path: ${pathname}, Auth: ${routeRequiresAuth}, Admin: ${routeRequiresAdmin}`);
-  }
-  
-  // Skip auth check for non-protected routes
-  if (!routeRequiresAuth && !routeRequiresAdmin) {
+
+  // Check route requirements
+  const needsAuth = requiresAuth(pathname);
+  const needsAdmin = requiresAdmin(pathname);
+  const isAuth = isAuthRoute(pathname);
+
+  debugLog('Route analysis', {
+    pathname,
+    needsAuth,
+    needsAdmin,
+    isAuth,
+  });
+
+  // Skip additional checks for non-protected routes (unless auth route)
+  if (!needsAuth && !needsAdmin && !isAuth) {
     return response;
   }
-  
-  // Check authentication for protected routes
+
+  // Get user information to check authentication status
   const { client } = createMiddlewareClient(request, response);
-  const { data: { user } } = await client.auth.getUser();
-  
-  // If no user and trying to access a protected route, redirect to login
-  if (!user && (routeRequiresAuth || routeRequiresAdmin)) {
-    if (DEBUG) console.log(`[Middleware] Redirecting to login: No authenticated user`);
-    
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('redirect', pathname);
+
+  // ✅ CORRECT: Use getUser() for authentication checks
+  // This validates the JWT token server-side
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  debugLog('User status', {
+    authenticated: !!user,
+    userId: user?.id,
+  });
+
+  // Handle auth routes - redirect if already logged in
+  if (isAuth && user) {
+    debugLog('Redirecting authenticated user from auth page', { pathname });
+
+    // Check if there's a redirect parameter
+    const redirectParam = request.nextUrl.searchParams.get('redirect');
+    const redirectPath = redirectParam || '/podcasts';
+
+    return NextResponse.redirect(new URL(redirectPath, request.url));
+  }
+
+  // Handle protected routes - redirect if not authenticated
+  if ((needsAuth || needsAdmin) && !user) {
+    debugLog('Redirecting unauthenticated user to login', { pathname });
+
+    const redirectUrl = buildRedirectUrl(request, '/auth/login');
     return NextResponse.redirect(redirectUrl);
   }
-  
+
+  // Handle admin routes - need to check role
+  if (needsAdmin && user) {
+    // Note: For admin check, we rely on server actions to validate
+    // the role via requireAdmin(). Middleware only checks authentication.
+    // This prevents an extra database query in middleware.
+    //
+    // If you need strict middleware-level role checking, you would:
+    // 1. Query user_roles table here
+    // 2. Check for admin role
+    // 3. Redirect to /unauthorized if not admin
+    //
+    // For now, we trust that admin routes will use requireAdmin()
+    // in their server actions/components.
+    debugLog('Admin route access', {
+      pathname,
+      userId: user.id,
+      note: 'Role check delegated to server actions',
+    });
+  }
+
+  // All checks passed, return the response with updated session
   return response;
 }
 
-// Specify which routes this middleware should run on
+// ============================================================================
+// Middleware Configuration
+// ============================================================================
+
+/**
+ * Specify which routes this middleware should run on
+ *
+ * This matcher ensures middleware runs on all routes except:
+ * - Static files in _next/static
+ * - Image optimization files in _next/image
+ * - Favicon
+ * - Image files (svg, png, jpg, jpeg, gif, webp)
+ */
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
-}; 
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

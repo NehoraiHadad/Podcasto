@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { generatePodcastEpisode } from '../../podcast/generate';
 import { getDelayBetweenRequests } from '@/lib/utils/rate-limit-config';
 import { revalidatePath } from 'next/cache';

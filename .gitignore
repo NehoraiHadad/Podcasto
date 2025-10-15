@@ -134,3 +134,4 @@ test_*.wav
 node_modules
 vscode/aws/
 /aws
+.gemini

@@ -1,8 +1,7 @@
 /**
- * Authentication Error Utilities
+ * Error Utilities
  *
- * Provides utilities for creating, handling, and converting authentication errors.
- * Focuses on security by sanitizing errors for client display.
+ * Helper functions for working with authentication errors.
  */
 
 import {
@@ -24,14 +23,10 @@ import {
   AUTH_ERROR_CODES,
   CLIENT_ERROR_MESSAGES,
   type AuthErrorCode,
-} from './errors';
+} from './classes';
+import type { AuthResult, AuthError } from '../types';
 
-import type { AuthResult, AuthError } from './types';
-
-/**
- * Maps Supabase error messages to our standardized error codes
- * This uses pattern matching to identify common error scenarios
- */
+// Import SUPABASE_ERROR_PATTERNS from handlers
 const SUPABASE_ERROR_PATTERNS: Array<{
   pattern: RegExp;
   code: AuthErrorCode;
@@ -70,7 +65,7 @@ const SUPABASE_ERROR_PATTERNS: Array<{
 /**
  * Convert a Supabase auth error to our standardized error type
  *
- * @param error The Supabase error to convert
+ * @param error - The Supabase error to convert
  * @returns An AuthenticationError instance
  *
  * @example
@@ -193,8 +188,15 @@ export function handleSupabaseAuthError(
 /**
  * Type guard to check if an error is an AuthenticationError
  *
- * @param error The error to check
+ * @param error - The error to check
  * @returns True if the error is an AuthenticationError
+ *
+ * @example
+ * ```typescript
+ * if (isAuthenticationError(error)) {
+ *   console.log(`Auth error: ${error.code}`);
+ * }
+ * ```
  */
 export function isAuthenticationError(
   error: unknown
@@ -205,7 +207,7 @@ export function isAuthenticationError(
 /**
  * Convert an AuthenticationError to an AuthError (for backwards compatibility)
  *
- * @param error The AuthenticationError to convert
+ * @param error - The AuthenticationError to convert
  * @returns An AuthError object safe for client display
  */
 export function toAuthError(error: AuthenticationError): AuthError {
@@ -219,7 +221,7 @@ export function toAuthError(error: AuthenticationError): AuthError {
 /**
  * Convert an AuthenticationError to an AuthResult
  *
- * @param error The error to convert
+ * @param error - The error to convert
  * @returns An AuthResult with success: false
  *
  * @example
@@ -251,8 +253,8 @@ export function authErrorToResult<T = never>(
  * Logs detailed error information server-side while being careful not to
  * log sensitive information like passwords or tokens.
  *
- * @param error The error to log
- * @param context Additional context for the log
+ * @param error - The error to log
+ * @param context - Additional context for the log
  */
 export function logAuthError(
   error: AuthenticationError,
@@ -300,9 +302,19 @@ export function logAuthError(
  * Safely converts any error type to an AuthenticationError.
  * Handles Supabase errors, standard Errors, and unknown types.
  *
- * @param error The error to convert
- * @param fallbackCode Fallback error code if type cannot be determined
+ * @param error - The error to convert
+ * @param fallbackCode - Fallback error code if type cannot be determined
  * @returns An AuthenticationError instance
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await someOperation();
+ * } catch (error) {
+ *   const authError = createAuthError(error);
+ *   logAuthError(authError);
+ * }
+ * ```
  */
 export function createAuthError(
   error: unknown,
@@ -335,8 +347,17 @@ export function createAuthError(
 /**
  * Get a user-friendly error message from any error type
  *
- * @param error The error to get a message from
+ * @param error - The error to get a message from
  * @returns A safe, user-friendly error message
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await login();
+ * } catch (error) {
+ *   toast.error(getErrorMessage(error));
+ * }
+ * ```
  */
 export function getErrorMessage(error: unknown): string {
   if (isAuthenticationError(error)) {
@@ -356,13 +377,13 @@ export function getErrorMessage(error: unknown): string {
  *
  * Automatically converts errors to AuthenticationError and returns AuthResult.
  *
- * @param fn The async function to wrap
+ * @param fn - The async function to wrap
  * @returns A wrapped function that returns AuthResult
  *
  * @example
  * ```typescript
  * const safeLogin = withAuthErrorHandling(async (email: string, password: string) => {
- *   const supabase = await createClient();
+ *   const supabase = await createServerClient();
  *   const { data } = await supabase.auth.signInWithPassword({ email, password });
  *   return data.user;
  * });

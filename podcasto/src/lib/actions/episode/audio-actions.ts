@@ -4,7 +4,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getEpisodeById } from '@/lib/db/api/episodes';
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin } from '../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { parseS3Uri, verifyS3ObjectExists, createS3Client } from '@/lib/utils/s3-utils';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';

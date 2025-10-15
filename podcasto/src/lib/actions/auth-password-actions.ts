@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { getURL } from '@/lib/utils/url';
 import {
   handleSupabaseAuthError,
@@ -16,7 +16,7 @@ import {
  */
 export const resetPassword = async (email: string) => {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${getURL()}auth/update-password`,
@@ -46,7 +46,7 @@ export const resetPassword = async (email: string) => {
  */
 export const updatePassword = async (password: string) => {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     const { error } = await supabase.auth.updateUser({
       password,
@@ -89,7 +89,7 @@ export const updatePasswordWithCode = async ({
   code: string;
 }) => {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerClient();
 
     // Verify the code and exchange it for a session
     // This is a crucial step - it validates the reset code and creates a session

@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { getUser } from '@/lib/auth';
 import type { SubscriptionParams } from './shared';
 
@@ -24,7 +24,7 @@ export async function isUserSubscribed({ podcastId }: SubscriptionParams): Promi
       return false;
     }
 
-    const supabase = await createClient();
+    const supabase = await createServerClient();
     const { data, error } = await supabase
       .from('subscriptions')
       .select('id')

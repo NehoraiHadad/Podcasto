@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PodcastCarousel } from "@/components/home/podcast-carousel";
 import { SearchInput } from "@/components/home/search-input";
-import { getCurrentUser } from "@/lib/actions/auth-actions";
+import { getCurrentUser } from "@/lib/actions/user-actions";
 
 export const dynamic = 'force-dynamic';
 

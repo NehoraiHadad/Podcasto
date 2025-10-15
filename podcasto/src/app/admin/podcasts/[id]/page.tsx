@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { podcastsApi } from '@/lib/db/api';
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { PodcastEditForm } from '@/components/admin/podcast-edit-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ function PodcastDetailsSkeleton() {
 
 export default async function PodcastDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Ensure user is an admin
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
   
   // Wait for params to be resolved
   const { id } = await params;

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bell, BellOff, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { toggleSubscription } from '@/lib/actions/subscription-actions';
+import { toggleSubscription } from '@/lib/actions/subscription';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 

@@ -5,7 +5,7 @@ import { AuthInput } from './auth-input';
 import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
 import Link from 'next/link';
-import { resetPassword } from '@/lib/actions/auth-actions';
+import { resetPassword } from '@/lib/actions/auth-password-actions';
 
 export function ResetPasswordForm() {
   const [email, setEmail] = useState('');

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form';
 import { db } from '@/lib/db';
@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 export default async function NotificationsSettingsPage() {
-  const supabase = await createClient();
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { updateEmailNotificationPreference } from '@/lib/actions/subscription-actions';
+import { updateEmailNotificationPreference } from '@/lib/actions/subscription';
 
 interface NotificationSettingsFormProps {
   initialEnabled: boolean;

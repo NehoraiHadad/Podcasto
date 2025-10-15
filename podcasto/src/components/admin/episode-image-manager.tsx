@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   generateEpisodeImagePreview,
   saveEpisodeImagePreview
-} from '@/lib/actions/episode-actions';
+} from '@/lib/actions/episode/image-actions';
 import {
   LoadingButton,
   ImagePreviewCard,

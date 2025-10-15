@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPodcastById } from '@/lib/db/api/podcasts';
 import { getEpisodeById } from '@/lib/db/api/episodes';
-import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
+import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
 import { EpisodeDetailsPresenter } from '@/components/pages/episode-details-presenter';
 
 export async function generateMetadata({

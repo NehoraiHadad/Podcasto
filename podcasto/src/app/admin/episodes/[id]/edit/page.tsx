@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { notFound } from 'next/navigation';
 import { episodesApi } from '@/lib/db/api';
 import { Suspense } from 'react';
@@ -42,7 +42,7 @@ async function EpisodeEditContent({ params }: { params: Promise<{ id: string }> 
 
 export default async function EditEpisodePage({ params }: { params: Promise<{ id: string }> }) {
   // Ensure user is an admin
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
   
   return (
     <div className="space-y-6">
