@@ -376,11 +376,66 @@ export function BulkEpisodeGenerator({ podcastId, podcastTitle, isPaused }) {
 }
 ```
 
-### 5.9: Episode Card Components
-**[📄 tasks/05_episode_cards.md](./tasks/05_episode_cards.md)**
+### 5.9: Refactor Podcast Status Indicator ✅ הושלם
+**[📄 tasks/05_podcast_status_indicator.md](./tasks/05_podcast_status_indicator.md)**
+**זמן בפועל**: 1 שעה
 
-### 5.9: Admin Dashboard Components
-**[📄 tasks/05_admin_dashboard.md](./tasks/05_admin_dashboard.md)**
+**הושלם בהצלחה**:
+- ✅ רפקטור של podcast-status-indicator.tsx מ-309 שורות למבנה מודולרי
+- ✅ יצירת 9 קבצים מאורגנים (378 שורות סה"כ)
+- ✅ 3 custom hooks: useStatusPolling (100), useElapsedTime (29), useStatusDetails (54)
+- ✅ 2 presentational components: StatusBadge (35), StatusTooltip (42)
+- ✅ 1 utility function: time-formatter (22)
+- ✅ Main component: 309 → 68 שורות (-78%, -241 שורות)
+- ✅ כל קובץ <100 שורות (strict compliance)
+- ✅ TypeScript strict mode, no 'any' types
+- ✅ Build עובר ללא שגיאות
+- ✅ **מחיקה מלאה** של קובץ ישן (לא הוספה לצד!)
+- ✅ כל הפונקציונליות נשמרה (polling, timers, adaptive intervals)
+- ✅ Proper 'use client' usage (hooks only, not presentational)
+
+**מבנה חדש**:
+```
+podcast-status-indicator/ (9 files, 378 lines)
+├── types.ts (26) - TypeScript interfaces
+├── podcast-status-indicator.tsx (68) - Main orchestrator
+├── index.ts (2) - Exports
+├── hooks/
+│   ├── use-status-polling.ts (100) - Polling + API calls
+│   ├── use-elapsed-time.ts (29) - Timer logic
+│   └── use-status-details.ts (54) - Status mapping
+├── components/
+│   ├── status-badge.tsx (35) - Badge UI
+│   └── status-tooltip.tsx (42) - Tooltip UI
+└── utils/
+    └── time-formatter.ts (22) - Time formatting
+```
+
+**Transformation Example**:
+```tsx
+// Before: 309 lines - monolithic component with 8 state variables, complex polling logic
+
+// After: 68 lines - clean orchestrator
+export function PodcastStatusIndicator({ podcastId, episodeId, timestamp, initialStatus, onStatusChange }) {
+  const { status, isLoading, lastChecked } = useStatusPolling({
+    podcastId, episodeId, timestamp, initialStatus, onStatusChange
+  });
+
+  const elapsedTime = useElapsedTime(status);
+  const statusDetails = useStatusDetails(status);
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <StatusBadge {...statusDetails} isLoading={isLoading} isPending={isPending} />
+        </TooltipTrigger>
+        <StatusTooltip message={statusDetails.message} status={status} elapsedTime={elapsedTime} lastChecked={lastChecked} />
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
 
 ### 5.10: Loading & Error States
 **[📄 tasks/05_loading_error.md](./tasks/05_loading_error.md)**
@@ -432,9 +487,9 @@ src/components/admin/shared/image-management/
 
 ---
 
-## 📊 התקדמות: 9/11 משימות (82%)
+## 📊 התקדמות: 10/11 משימות (91%)
 
-**סטטוס**: 🟡 בתהליך
+**סטטוס**: 🟢 כמעט הושלם!
 **קריטיות**: ⭐⭐ בינונית-גבוהה
 
 **משימות שהושלמו**:
@@ -447,6 +502,7 @@ src/components/admin/shared/image-management/
 - ✅ 5.6: Container/Presenter Pattern (4 pages, -67% containers, +4 presenters!)
 - ✅ 5.7: Compound Components (19 files, -101 lines presenters, 95%+ card reduction!)
 - ✅ 5.8: Bulk Episode Generator (361→95 lines, -74%, 11 modular files!)
+- ✅ 5.9: Podcast Status Indicator (309→68 lines, -78%, 9 modular files!)
 
 **משימה הבאה**:
-- ⏳ 5.9: Admin Dashboard Components
+- ⏳ 5.10: Loading & Error States (אחרון!)
