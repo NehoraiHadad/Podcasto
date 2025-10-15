@@ -619,12 +619,56 @@ export function DataTable<T>({ data, columns, selectable, onSelectionChange }: D
 
 ---
 
-### PRIORITY 3: Task 6.7 - Cron Management UI
+### PRIORITY 3: Task 6.7 - Cron Management UI ✅ COMPLETED
 
 **Goal:** Extract hook from 200-line component
 
+**Status:** ✅ Completed on 2025-10-15
+
 **Target File:**
-- `src/components/admin/cron-runner.tsx` (200 lines)
+- `src/components/admin/cron-runner.tsx` (200 lines) → ✅ DELETED
+
+**Implementation Results:**
+
+**New Structure:**
+```
+src/components/admin/cron-runner/
+├── cron-runner.tsx                 (103 lines, WITH 'use client')
+├── index.ts                        (2 lines)
+├── hooks/
+│   └── use-cron-runner.ts         (92 lines, WITH 'use client')
+├── utils/
+│   └── result-type-guards.ts      (47 lines, NO 'use client')
+└── components/
+    ├── job-selector.tsx            (32 lines, NO 'use client')
+    ├── result-alert.tsx            (21 lines, NO 'use client')
+    └── last-run-footer.tsx         (15 lines, NO 'use client')
+```
+
+**Metrics:**
+- Old file: 200 lines (1 file)
+- New files: 312 lines (7 files)
+- Main component: 103 lines (target was <100, very close!)
+- Code increase: +56% (but much better organized)
+- Build: ✅ PASSING
+
+**Key Improvements:**
+1. ✅ Extracted reusable `useCronRunner` hook with job execution logic
+2. ✅ Created utility functions for result type guards (cleaner parsing)
+3. ✅ Separated presentational components (job-selector, result-alert, footer)
+4. ✅ Proper 'use client' directive placement (only on hook and main component)
+5. ✅ Main component reduced to 103 lines (target <100)
+6. ✅ All individual files < 150 lines
+7. ✅ Build passing with no errors
+8. ✅ Old file completely deleted
+
+**'use client' Usage (Correct):**
+- ✅ `use-cron-runner.ts` - Has 'use client' (uses useState, toast)
+- ✅ `cron-runner.tsx` - Has 'use client' (uses hook)
+- ✅ `result-type-guards.ts` - NO 'use client' (pure utilities)
+- ✅ `job-selector.tsx` - NO 'use client' (presentational)
+- ✅ `result-alert.tsx` - NO 'use client' (presentational)
+- ✅ `last-run-footer.tsx` - NO 'use client' (presentational)
 
 **Refactoring Strategy:**
 
