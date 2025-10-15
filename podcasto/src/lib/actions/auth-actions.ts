@@ -9,44 +9,6 @@ import {
   validateLogin,
   validateRegistration,
 } from '@/lib/auth';
-import { getCurrentUser as getUserFromUserActions, requireAuth as requireAuthFromUserActions } from './user-actions';
-import { checkIsAdmin as checkIsAdminFromAdminActions, getUserRole as getUserRoleFromAdminActions } from './admin/auth-actions';
-import { resetPassword as resetPasswordFromPasswordActions, updatePassword as updatePasswordFromPasswordActions } from './auth-password-actions';
-
-// Wrapper functions for backward compatibility
-export async function getCurrentUser() {
-  return getUserFromUserActions();
-}
-
-export async function requireAuth(redirectTo?: string) {
-  return requireAuthFromUserActions(redirectTo);
-}
-
-export async function checkIsAdmin(options?: { redirectOnFailure?: boolean, redirectTo?: string }) {
-  return checkIsAdminFromAdminActions(options || {});
-}
-
-/**
- * Server action to require admin role for a route
- * Redirects to unauthorized page if user is not an admin
- * 
- * @returns The user object if the user is an admin
- */
-export async function requireAdmin() {
-  return checkIsAdmin({ redirectOnFailure: true });
-}
-
-export async function getUserRole() {
-  return getUserRoleFromAdminActions();
-}
-
-export async function resetPassword(email: string) {
-  return resetPasswordFromPasswordActions(email);
-}
-
-export async function updatePassword(password: string) {
-  return updatePasswordFromPasswordActions(password);
-}
 
 /**
  * Server action to sign in with password

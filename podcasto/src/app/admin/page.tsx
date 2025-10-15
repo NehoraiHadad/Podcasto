@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServerAdminDashboard } from '@/components/admin/server-admin-dashboard';
@@ -26,9 +26,9 @@ function DashboardSkeleton() {
 }
 
 export default async function AdminPage() {
-  // Use the requireAdmin server action to check if the user is an admin
+  // Use the checkIsAdmin server action to check if the user is an admin
   // This will automatically redirect to unauthorized page if not
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
   
   return (
     <div className="container mx-auto px-4 py-8">

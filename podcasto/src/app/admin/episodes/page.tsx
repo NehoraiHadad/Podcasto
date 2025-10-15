@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServerEpisodesList } from '@/components/admin/server-episodes-list';
@@ -24,7 +24,7 @@ function EpisodesListSkeleton() {
 
 export default async function EpisodesPage() {
   // Ensure user is an admin
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
   
   return (
     <div className="space-y-6">

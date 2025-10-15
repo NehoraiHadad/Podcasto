@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { Suspense } from 'react';
 import { getProcessingStatistics, getFailedEpisodes } from '@/lib/actions/episode/tracking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -132,7 +132,7 @@ async function ProcessingAnalyticsContent() {
 }
 
 export default async function ProcessingAnalyticsPage() {
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
 
   return (
     <Suspense fallback={<ProcessingAnalyticsSkeleton />}>

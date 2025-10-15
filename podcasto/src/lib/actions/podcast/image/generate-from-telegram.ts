@@ -5,7 +5,7 @@
  * Scrapes the channel's public page and processes the image.
  */
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { getTelegramChannelImage } from '@/lib/services/telegram-image-scraper';
 import { db } from '@/lib/db';
 import { podcasts, podcastConfigs } from '@/lib/db/schema';

@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin } from '../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';
 

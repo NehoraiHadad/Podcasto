@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/actions/auth-actions';
+import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -262,7 +262,7 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
 
 export default async function EpisodePage({ params }: EpisodePageProps) {
   // Ensure user is an admin
-  await requireAdmin();
+  await checkIsAdmin({ redirectOnFailure: true });
   
   return (
     <Suspense fallback={<EpisodeDetailsSkeleton />}>

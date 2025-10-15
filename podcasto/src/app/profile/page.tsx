@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { requireAuth } from '@/lib/actions/auth-actions';
+import { requireAuth } from '@/lib/actions/user-actions';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import {
   validateBulkGenerationInput,
   fetchAndValidatePodcastConfig

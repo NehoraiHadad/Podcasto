@@ -5,7 +5,7 @@
  * Downloads image from provided URL and processes it.
  */
 
-import { requireAdmin } from '../../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { enhanceImageWithAI } from './shared';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 

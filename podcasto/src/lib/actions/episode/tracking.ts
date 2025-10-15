@@ -1,7 +1,7 @@
 'use server';
 
 import { episodeProcessingLogsApi } from '@/lib/db/api/episode-processing-logs';
-import { requireAdmin } from '../auth-actions';
+import { requireAdmin } from '@/lib/auth';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import type { ProcessingLogEntry, ProcessingStage, StageStatus } from '@/types/processing';
 
