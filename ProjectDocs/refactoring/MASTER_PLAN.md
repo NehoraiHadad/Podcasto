@@ -6,6 +6,26 @@
 
 ---
 
+## 🚀 Quick Start
+
+### התחלה מהירה (TL;DR):
+```bash
+# 1. קרא קובץ זה (MASTER_PLAN.md)
+
+# 2. 🔴 CRITICAL - התחל מ-Phase 0 (תיקוני build):
+cat phase-0-build-fixes/QUICK_FIX_GUIDE.md  # 30-60 דקות
+
+# 3. ודא build נקי:
+cd ../../../podcasto && npm run build
+
+# 4. המשך ל-Phase 1:
+cat phase-1-core-infrastructure/README.md
+```
+
+**חשוב:** Phase 0 הוא CRITICAL - לא לדלג!
+
+---
+
 ## 📋 סקירה כללית
 
 אפליקציית Podcasto היא מערכת AI-powered להפקת פודקאסטים המבוססת על Next.js 15, React 19, Supabase, ו-AWS Lambda. הרפקטורינג מתמקד בשיפור המבנה, הפחתת כפילויות, וישום Best Practices עדכניים מתוך 2025.
@@ -37,12 +57,16 @@
 - **Server Actions:** https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
 - **Data Fetching Patterns:** https://nextjs.org/docs/app/building-your-application/data-fetching/patterns
 - **App Router:** https://nextjs.org/docs/app
+- **Dynamic Server Error:** https://nextjs.org/docs/messages/dynamic-server-error
+- **Route Segment Config:** https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamic
+- **ESLint Config:** https://nextjs.org/docs/app/api-reference/config/eslint
 
 #### עדכונים מרכזיים ב-2025:
 - ✅ Server Actions כברירת מחדל (ללא צורך ב-'use server' בקבצים נפרדים)
 - ✅ שיפורים ב-Streaming והידרציה
 - ✅ Parallel Data Fetching מובנה
 - ✅ Security improvements - unused actions לא נכללים ב-bundle
+- ⚠️ **Build Requirements:** Dynamic routes צריכים `export const dynamic = 'force-dynamic'`
 
 ### React 19
 - **Server Components:** https://react.dev/reference/rsc/server-components
@@ -90,7 +114,27 @@
 
 ---
 
-## 🗂️ מבנה התוכנית - 5 פאזות
+## 🗂️ מבנה התוכנית - 6 פאזות
+
+### Phase 0: Build Fixes & Clean Build (תיקוני Build) 🔨
+**מיקום:** `phase-0-build-fixes/`
+**משך משוער:** 0.5-1 יום עבודה
+**עדיפות:** 🔴 CRITICAL - חובה לפני הרפקטורינג!
+
+#### תחומים:
+1. **Dynamic Server Usage** - תיקון 6 routes עם `export const dynamic = 'force-dynamic'`
+2. **ESLint Warnings** - הסרת משתנים לא בשימוש וtypes של any
+3. **SWC Dependencies** - תיקון package-lock.json
+4. **Type Safety** - החלפת any types בtypes מדויקים
+
+**קבצים מעורבים:** ~15 קבצים
+**שורות קוד:** ~50 שורות לתיקון
+
+**דוקומנטציה:**
+- [README.md](phase-0-build-fixes/README.md) - מדריך מפורט
+- [QUICK_FIX_GUIDE.md](phase-0-build-fixes/QUICK_FIX_GUIDE.md) - מדריך מהיר (30-60 דקות)
+
+---
 
 ### Phase 1: Core Infrastructure (תשתיות) 🏗️
 **מיקום:** `phase-1-core-infrastructure/`
@@ -165,6 +209,8 @@
 ## 📊 סדר ביצוע מומלץ
 
 ```
+Phase 0 (Build Fixes) 🔴 CRITICAL
+    ↓
 Phase 1 (תשתיות)
     ↓
 Phase 2 (לוגיקה עסקית)
@@ -176,7 +222,7 @@ Phase 4 (Pages & Routing)
 Phase 5 (Utilities)
 ```
 
-**הערה:** כל פאזה עצמאית ולא תשבור את האפליקציה.
+**הערה חשובה:** Phase 0 הוא קריטי וחייב להתבצע ראשון! כל פאזה אחרי כן עצמאית ולא תשבור את האפליקציה.
 
 ---
 
@@ -209,7 +255,11 @@ Phase 5 (Utilities)
 
 ```
 ProjectDocs/refactoring/
-├── MASTER_PLAN.md (קובץ זה)
+├── MASTER_PLAN.md (קובץ זה - הכל כאן!)
+│
+├── phase-0-build-fixes/  🔴 CRITICAL ראשון!
+│   ├── README.md
+│   └── QUICK_FIX_GUIDE.md
 │
 ├── phase-1-core-infrastructure/
 │   ├── README.md
@@ -294,7 +344,9 @@ ProjectDocs/refactoring/
 - ✅ **Performance** - optimizations, code splitting
 - ✅ **Developer Experience** - easier to work with
 
-**משך כולל משוער:** 17-22 ימי עבודה (3-4 שבועות)
+**משך כולל משוער:** 18-23 ימי עבודה (3.5-4.5 שבועות)
+- Phase 0: 0.5-1 יום (CRITICAL)
+- Phases 1-5: 17-22 ימים
 
 ---
 
