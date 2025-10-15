@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-import { CronOperationResult } from '@/lib/actions/admin-actions';
+import { CronOperationResult } from '@/lib/actions/admin';
 
 interface ResultAlertProps {
   result: CronOperationResult;

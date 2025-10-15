@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { generateEpisodeTitleAndDescription } from '@/lib/actions/episode-actions';
+import { generateEpisodeTitleAndDescription } from '@/lib/actions/episode/generation-actions';
 
 interface EpisodeGenerationControlsProps {
   episodeId: string;

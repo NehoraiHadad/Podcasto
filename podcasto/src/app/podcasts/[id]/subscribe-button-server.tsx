@@ -1,4 +1,4 @@
-import { isUserSubscribed } from '@/lib/actions/subscription-actions';
+import { isUserSubscribed } from '@/lib/actions/subscription';
 import { SubscribeForm } from './subscribe-form';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db';

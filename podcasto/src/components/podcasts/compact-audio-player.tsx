@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
 import { Play, Pause, Volume2, VolumeX, BarChart3, Waves } from 'lucide-react';
-import { getEpisodeAudioUrl } from '@/lib/actions/episode-actions';
+import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
 import { AudioVisualizer } from './audio-visualizer';
 import { useAudioPlayer, useAudioControls, useAudioPersistence } from './audio-player/hooks';
 

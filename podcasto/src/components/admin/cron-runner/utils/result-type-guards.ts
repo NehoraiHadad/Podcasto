@@ -1,4 +1,4 @@
-import { CronOperationResult } from '@/lib/actions/admin-actions';
+import { CronOperationResult } from '@/lib/actions/admin';
 import {
   EpisodeCheckerDetailedResult,
   PodcastSchedulerDetailedResult,

@@ -8,7 +8,7 @@ import {
   runGoogleAudioGenerator,
   runAllCronJobs,
   CronOperationResult
-} from '@/lib/actions/admin-actions';
+} from '@/lib/actions/admin';
 import { CronJobType, CRON_JOB_OPTIONS } from '../../cron-runner-constants';
 
 interface UseCronRunnerOptions {

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { deletePodcast } from '@/lib/actions/podcast/delete';
 import { togglePodcastPause } from '@/lib/actions/podcast/toggle-pause';
-import { deleteEpisode, regenerateEpisodeAudio } from '@/lib/actions/episode-actions';
+import { deleteEpisode } from '@/lib/actions/episode/core-actions';
+import { regenerateEpisodeAudio } from '@/lib/actions/episode/audio-actions';
 import { resendEpisodeEmails } from '@/lib/actions/episode/email-actions';
 import { UseActionMenuOptions, UseActionMenuReturn, PodcastItem, EpisodeItem } from '../types';
 

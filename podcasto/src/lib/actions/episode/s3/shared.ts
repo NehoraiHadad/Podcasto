@@ -3,7 +3,7 @@
  * Internal module - not directly exposed to clients
  */
 
-import { checkIsAdmin } from '@/lib/actions/admin-actions';
+import { checkIsAdmin } from '@/lib/actions/admin';
 import type { S3FileActionResult } from './types';
 
 /**

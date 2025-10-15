@@ -16,7 +16,7 @@ import {
   FormSelectField,
 } from '@/components/ui/form-fields';
 import { Card, CardContent } from '@/components/ui/card';
-import { updateEpisodeDetails } from '@/lib/actions/episode-actions';
+import { updateEpisodeDetails } from '@/lib/actions/episode/core-actions';
 import { EpisodeImageManager } from './episode-image-manager';
 import { EpisodeGenerationControls } from './episode-generation-controls';
 

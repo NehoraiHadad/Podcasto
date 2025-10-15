@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { generateBulkEpisodes, previewBulkEpisodes } from '@/lib/actions/episode-actions';
+import { generateBulkEpisodes, previewBulkEpisodes } from '@/lib/actions/episode/bulk';
 import type { GenerationStep, DateRange, PreviewData, GenerationResults } from '../types';
 
 export function useBulkGeneration(podcastId: string) {
