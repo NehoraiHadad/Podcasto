@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { podcasts } from './podcasts';
 import { episodes } from './episodes';
+import { episodeProcessingLogs } from './episode-processing-logs';
 import { subscriptions } from './subscriptions';
 import { sentEpisodes } from './sent-episodes';
 import { podcastConfigs } from './podcast-configs';
@@ -18,7 +19,16 @@ export const episodesRelations = relations(episodes, ({ one, many }) => ({
     fields: [episodes.podcast_id],
     references: [podcasts.id]
   }),
-  sentEpisodes: many(sentEpisodes)
+  sentEpisodes: many(sentEpisodes),
+  processingLogs: many(episodeProcessingLogs)
+}));
+
+// Define episode processing logs relations
+export const episodeProcessingLogsRelations = relations(episodeProcessingLogs, ({ one }) => ({
+  episode: one(episodes, {
+    fields: [episodeProcessingLogs.episode_id],
+    references: [episodes.id]
+  })
 }));
 
 // Define subscription relations

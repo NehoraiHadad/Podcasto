@@ -19,6 +19,7 @@ from shared.clients.supabase_client import SupabaseClient  # type: ignore
 from shared.clients.s3_client import S3Client  # type: ignore
 from shared.clients.telegram_data_client import TelegramDataClient  # type: ignore
 from shared.services.voice_config import VoiceConfigManager  # type: ignore
+from shared.services.episode_tracker import EpisodeTracker, ProcessingStage  # type: ignore
 from shared.utils.logging import get_logger  # type: ignore
 
 # Lambda-specific services (unique to script-preprocessor)
@@ -49,6 +50,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
         self.telegram_client = TelegramDataClient()
         self.extractor = TelegramContentExtractor()
         self.voice_manager = VoiceConfigManager()
+        self.tracker = EpisodeTracker(self.supabase_client)
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         if not gemini_key:
@@ -71,12 +73,24 @@ class ScriptPreprocessorHandler:  # noqa: D101
     def handle(self, event: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
         results: List[Dict[str, Any]] = []
         for record in event.get("Records", []):
+            episode_id = None
             try:
                 message = json.loads(record.get("body", "{}"))
+                episode_id = message.get("episode_id")
                 res = self._process(message)
                 results.append({"status": "success", **res})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("[PREPROC] Failed to process record: %s", exc)
+
+                # Log script stage failure
+                if episode_id:
+                    self.tracker.log_stage_failure(
+                        episode_id,
+                        ProcessingStage.SCRIPT_PROCESSING,
+                        exc,
+                        {'context': 'Exception during script processing'}
+                    )
+
                 results.append({"status": "error", "error": str(exc)})
         return {"statusCode": 200, "body": json.dumps({"results": results})}
 
@@ -88,6 +102,13 @@ class ScriptPreprocessorHandler:  # noqa: D101
         podcast_id = msg.get("podcast_id")
         if not episode_id or not podcast_id:
             raise ValueError("episode_id & podcast_id required")
+
+        # Log start of script processing stage
+        self.tracker.log_stage_start(
+            episode_id,
+            ProcessingStage.SCRIPT_PROCESSING,
+            {'podcast_id': podcast_id}
+        )
 
         telegram_data = self.telegram_client.get_telegram_data(
             podcast_id, episode_id, msg.get("s3_path")
@@ -143,6 +164,17 @@ class ScriptPreprocessorHandler:  # noqa: D101
             }
             self.sqs_client.send_message(QueueUrl=self.audio_queue_url, MessageBody=json.dumps(payload))
             logger.info("[PREPROC] SQS message sent to audio queue for episode %s", episode_id)
+
+        # Log successful completion of script processing stage
+        self.tracker.log_stage_complete(
+            episode_id,
+            ProcessingStage.SCRIPT_COMPLETED,
+            {
+                'script_chars': len(script),
+                'script_url': artefacts["script"],
+                'validation_score': validation_report.get('quality_score')
+            }
+        )
 
         return {"episode_id": episode_id, "script_chars": len(script)}
 

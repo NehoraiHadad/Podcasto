@@ -14,6 +14,7 @@ import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
+import { ProcessingTimeline } from '@/components/admin/processing';
 
 export const metadata = {
   title: 'Episode Details | Admin Dashboard | Podcasto',
@@ -109,9 +110,9 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column - Basic info */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Episode Information</CardTitle>
           </CardHeader>
@@ -186,13 +187,24 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             </div>
           </CardContent>
         </Card>
-        
-        {/* Right column - Media */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cover Image</CardTitle>
-            </CardHeader>
+
+        {/* Right column - Processing Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Processing Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProcessingTimeline episodeId={episode.id} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Media section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Cover Image</CardTitle>
+          </CardHeader>
             <CardContent className="flex justify-center">
               {episode.cover_image ? (
                 <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-md">
@@ -220,24 +232,23 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
               )}
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Audio Player</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {episode.audio_url ? (
-                <AudioPlayerClient
-                  episodeId={episode.id}
-                  audioUrl={episode.audio_url}
-                  _title={episode.title}
-                />
-              ) : (
-                <div className="text-sm text-muted-foreground">No audio available</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Audio Player</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {episode.audio_url ? (
+              <AudioPlayerClient
+                episodeId={episode.id}
+                audioUrl={episode.audio_url}
+                _title={episode.title}
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">No audio available</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* S3 Files Manager */}

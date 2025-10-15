@@ -1,6 +1,7 @@
 // Import and re-export all schema definitions with their correct names
 import { podcasts } from './podcasts';
 import { episodes } from './episodes';
+import { episodeProcessingLogs } from './episode-processing-logs';
 import { subscriptions } from './subscriptions';
 import { sentEpisodes } from './sent-episodes';
 import { userRoles } from './user-roles';
@@ -11,6 +12,7 @@ import { profiles } from './profiles';
 export {
   podcasts,
   episodes,
+  episodeProcessingLogs,
   subscriptions,
   sentEpisodes,
   userRoles,

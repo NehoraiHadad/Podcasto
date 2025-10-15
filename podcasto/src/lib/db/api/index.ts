@@ -1,6 +1,7 @@
 // Export all APIs
 export * as podcastsApi from './podcasts';
 export * as episodesApi from './episodes';
+export * as episodeProcessingLogsApi from './episode-processing-logs';
 export * as subscriptionsApi from './subscriptions';
 export * as sentEpisodesApi from './sent-episodes';
 export * as userRolesApi from './user-roles';

@@ -22,6 +22,9 @@ interface Episode {
   cover_image: string | null;
   content_start_date: string | null;
   content_end_date: string | null;
+  current_stage?: string | null;
+  last_stage_update?: string | null;
+  processing_started_at?: string | null;
   podcast_title?: string; // Added to display podcast title
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -58,6 +61,9 @@ export async function ServerEpisodesList() {
         cover_image: episode.cover_image,
         content_start_date: episode.content_start_date ? episode.content_start_date.toISOString() : null,
         content_end_date: episode.content_end_date ? episode.content_end_date.toISOString() : null,
+        current_stage: episode.current_stage,
+        last_stage_update: episode.last_stage_update ? episode.last_stage_update.toISOString() : null,
+        processing_started_at: episode.processing_started_at ? episode.processing_started_at.toISOString() : null,
         podcast_title: episode.podcast_id ? podcastsMap.get(episode.podcast_id) || 'Unknown Podcast' : 'Unknown Podcast',
       }))
     );

@@ -18,6 +18,8 @@ import { StatusCell } from '@/components/admin/shared/status-cell';
 import { SelectAllCheckbox } from '@/components/admin/shared/select-all-checkbox';
 import { useTableSelection } from '@/components/admin/shared/hooks/use-table-selection';
 import { formatDuration } from '@/lib/utils/table-utils';
+import { StageBadge } from '@/components/admin/processing/stage-badge';
+import { ProcessingStage } from '@/types/processing';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -35,6 +37,9 @@ interface Episode {
   cover_image: string | null;
   content_start_date: string | null;
   content_end_date: string | null;
+  current_stage?: string | null;
+  last_stage_update?: string | null;
+  processing_started_at?: string | null;
   podcast_title?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -79,6 +84,7 @@ export function EpisodesTable({
             <TableHead>Podcast</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Current Stage</TableHead>
             <TableHead>Content Period</TableHead>
             <TableHead>Published Date</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -126,6 +132,13 @@ export function EpisodesTable({
               </TableCell>
               <TableCell>
                 <StatusCell status={episode.status} metadata={episode.metadata} />
+              </TableCell>
+              <TableCell>
+                {episode.current_stage ? (
+                  <StageBadge stage={episode.current_stage as ProcessingStage} variant="compact" />
+                ) : (
+                  <span className="text-muted-foreground text-sm">—</span>
+                )}
               </TableCell>
               <TableCell>
                 <ContentDateRangeBadge

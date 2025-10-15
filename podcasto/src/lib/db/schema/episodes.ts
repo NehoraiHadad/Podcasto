@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp, varchar, jsonb } from 'drizzle-orm/pg-core';
 import { podcasts } from './podcasts';
 
 export const episodes = pgTable('episodes', {
@@ -18,5 +18,16 @@ export const episodes = pgTable('episodes', {
   analysis: text('analysis'),
   speaker2_role: text('speaker2_role'),
   content_start_date: timestamp('content_start_date', { withTimezone: true }),
-  content_end_date: timestamp('content_end_date', { withTimezone: true })
+  content_end_date: timestamp('content_end_date', { withTimezone: true }),
+
+  // Processing stage tracking
+  current_stage: text('current_stage'),
+  processing_started_at: timestamp('processing_started_at', { withTimezone: true }),
+  last_stage_update: timestamp('last_stage_update', { withTimezone: true }),
+  stage_history: jsonb('stage_history').$type<Array<{
+    stage: string;
+    status: string;
+    timestamp: string;
+    duration_ms?: number;
+  }>>()
 }); 

@@ -12,6 +12,7 @@ from src.result_formatter import ResultFormatter
 from src.clients.sqs_client import SQSClient
 from src.clients.supabase_client import SupabaseClient
 from src.utils.logging import get_logger, log_event, log_error
+from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 
 logger = get_logger(__name__)
 
@@ -34,24 +35,37 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Initialize clients
         sqs_client = SQSClient()
         supabase_client = SupabaseClient()
-        
+        tracker = EpisodeTracker(supabase_client)
+
         # Parse configuration from event
         config_manager = ConfigManager(event)
         podcast_configs = config_manager.get_podcast_configs()
-        
+
         if not podcast_configs:
             logger.warning("No valid podcast configurations found")
             return _create_error_response(400, "No valid podcast configurations found")
-        
+
         # Process each podcast configuration
         all_results = {}
         for config in podcast_configs:
+            episode_id = None
             try:
                 logger.info(f"Processing podcast config: {config.id}")
-                
+
+                # Get episode_id from config
+                episode_id = config.episode_id if hasattr(config, 'episode_id') else None
+
+                # Log start of Telegram processing stage
+                if episode_id:
+                    tracker.log_stage_start(
+                        episode_id,
+                        ProcessingStage.TELEGRAM_PROCESSING,
+                        {'lambda_request_id': context.request_id if context else None}
+                    )
+
                 # Create channel processor
                 processor = ChannelProcessor(config)
-                
+
                 # Process channels
                 loop = asyncio.get_event_loop()
                 result = loop.run_until_complete(processor.process())
@@ -95,6 +109,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     # Log the result
                     result['sqs_message_sent'] = sqs_sent
                     logger.info(f"Podcast {episode_id}: Content uploaded to S3, status updated, SQS message {'sent' if sqs_sent else 'failed'}")
+
+                    # Log successful completion of Telegram stage
+                    if episode_id:
+                        tracker.log_stage_complete(
+                            episode_id,
+                            ProcessingStage.TELEGRAM_COMPLETED,
+                            {'s3_path': s3_path, 'sqs_sent': sqs_sent}
+                        )
                 else:
                     # Processing was not successful (e.g., no messages found)
                     episode_id = result.get('episode_id') or config.episode_id
@@ -102,6 +124,15 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     if episode_id:
                         error_message = result.get('message', 'No content found for the specified date range')
                         logger.warning(f"Episode {episode_id} processing failed: {error_message}")
+
+                        # Log telegram stage failure
+                        tracker.log_stage_failure(
+                            episode_id,
+                            ProcessingStage.TELEGRAM_PROCESSING,
+                            Exception(error_message),
+                            {'context': 'No content found'}
+                        )
+
                         try:
                             supabase_client.update_episode_status(episode_id, 'failed', podcast_id)
                             logger.info(f"Episode {episode_id} marked as failed: {error_message}")
@@ -111,6 +142,16 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             except Exception as e:
                 logger.error(f"Error processing podcast config {config.id}: {str(e)}")
                 log_error(logger, e, {'podcast_config_id': config.id})
+
+                # Log telegram stage failure on exception
+                if episode_id:
+                    tracker.log_stage_failure(
+                        episode_id,
+                        ProcessingStage.TELEGRAM_PROCESSING,
+                        e,
+                        {'context': 'Exception during processing'}
+                    )
+
                 all_results[config.id] = {
                     'message': f'Error: {str(e)}',
                     'podcast_config_id': config.id

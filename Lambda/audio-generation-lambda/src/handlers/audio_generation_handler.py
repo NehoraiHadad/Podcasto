@@ -11,6 +11,7 @@ from shared.clients.supabase_client import SupabaseClient
 from shared.clients.s3_client import S3Client
 from shared.services.google_podcast_generator import GooglePodcastGenerator
 from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
+from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +34,7 @@ class AudioGenerationHandler:
         """Initialize handler with required clients and services"""
         self.supabase_client = SupabaseClient()
         self.s3_client = S3Client()
+        self.tracker = EpisodeTracker(self.supabase_client)
 
         # Get API keys from environment
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
@@ -116,14 +118,25 @@ class AudioGenerationHandler:
     def process_audio_generation_request(self, message: Dict[str, Any], request_id: str) -> Dict[str, Any]:
         """Process individual audio generation request"""
         episode_id = None
-        
+
         try:
             episode_id = message.get('episode_id')
             podcast_id = message.get('podcast_id')
             podcast_config_id = message.get('podcast_config_id')
-            
+
             logger.info(f"[AUDIO_GEN] [{request_id}] Processing audio generation for episode {episode_id}")
-            
+
+            # Log start of audio processing stage
+            self.tracker.log_stage_start(
+                episode_id,
+                ProcessingStage.AUDIO_PROCESSING,
+                {
+                    'request_id': request_id,
+                    'podcast_id': podcast_id,
+                    'podcast_config_id': podcast_config_id
+                }
+            )
+
             self.update_episode_status(episode_id, 'processing')
             
             # Get episode and podcast configuration
@@ -171,8 +184,20 @@ class AudioGenerationHandler:
             )
             
             self._update_episode_with_audio(episode_id, audio_url, audio_data, duration, episode)
-            
+
             logger.info(f"[AUDIO_GEN] [{request_id}] Successfully generated audio for episode {episode_id}")
+
+            # Log successful completion of audio processing stage
+            self.tracker.log_stage_complete(
+                episode_id,
+                ProcessingStage.AUDIO_COMPLETED,
+                {
+                    'audio_url': audio_url,
+                    'duration': duration,
+                    'audio_size_bytes': len(audio_data),
+                    'has_niqqud': niqqud_script is not None
+                }
+            )
 
             # Get content analysis from dynamic_config (preprocessed by script-preprocessor)
             content_info = dynamic_config.get('content_analysis', {})
@@ -188,13 +213,23 @@ class AudioGenerationHandler:
                 'confidence': content_info.get('confidence', 0.0),
                 'has_niqqud': niqqud_script is not None
             }
-            
+
         except Exception as e:
             logger.error(f"[AUDIO_GEN] [{request_id}] Error: {str(e)}")
-            
+
+            # Log audio stage failure
             if episode_id:
+                self.tracker.log_stage_failure(
+                    episode_id,
+                    ProcessingStage.AUDIO_PROCESSING,
+                    e,
+                    {
+                        'request_id': request_id,
+                        'context': 'Exception during audio generation'
+                    }
+                )
                 self.update_episode_status(episode_id, 'failed', str(e))
-            
+
             return {
                 'status': 'error',
                 'episode_id': episode_id,
