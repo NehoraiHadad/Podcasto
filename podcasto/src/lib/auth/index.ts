@@ -4,95 +4,82 @@
  * Centralized authentication and session management for Podcasto.
  * This module provides a unified interface for all auth operations,
  * including comprehensive error handling.
+ *
+ * Following 2025 Supabase SSR best practices.
  */
 
-// Session Service
-// Note: SessionService namespace object NOT exported to avoid "use server" conflict
-// Import individual functions instead: import { getUser, getSession } from '@/lib/auth'
-export {
-  getUser,
-  getSession,
-  getAuthState,
-  refreshSession,
-  validateSession,
-  clearSession,
-} from './session-service';
+// ============================================================================
+// Session Management (✅ ALWAYS use getUser() for auth checks!)
+// ============================================================================
 
-// Session Utilities
-export {
-  isSessionExpired,
-  getSessionExpiryTime,
-  getSecondsUntilExpiry,
-  shouldRefreshSession,
-  validateSession as validateSessionUtil,
-  formatSessionExpiry,
-} from './session-utils';
-
-// Types
 export type {
   User,
   Session,
   AuthState,
-  AuthResult,
-  AuthError,
-  ServerAuthError,
   SessionValidation,
   RefreshSessionOptions,
-} from './types';
+} from './session';
 
-export { isAuthError } from './types';
-
-// Error Types and Constants
 export {
-  AUTH_ERROR_CODES,
-  CLIENT_ERROR_MESSAGES,
-  AUTH_ERROR_STATUS_CODES,
-  AuthenticationError,
-  InvalidCredentialsError,
-  SessionExpiredError,
-  SessionMissingError,
-  UnauthorizedError,
-  InsufficientPermissionsError,
-  EmailNotConfirmedError,
-  WeakPasswordError,
-  EmailAlreadyExistsError,
-  RateLimitError,
-  type AuthErrorCode,
-} from './errors';
+  // Core getters (✅ Use getUser() for auth!)
+  createServerClient,
+  getUser,
+  getSession,
+  getAuthState,
 
-// Error Utilities
-export {
-  handleSupabaseAuthError,
-  isAuthenticationError,
-  toAuthError,
-  authErrorToResult,
-  logAuthError,
-  createAuthError,
-  getErrorMessage,
-  withAuthErrorHandling,
-} from './error-utils';
+  // Validators
+  isSessionExpired,
+  getSessionExpiryTime,
+  getSecondsUntilExpiry,
+  shouldRefreshSession,
+  validateSession,
+  validateSessionSync,
+  refreshSession,
+  clearSession,
+  formatSessionExpiry,
 
-// Role Service
-// Note: RoleService namespace object NOT exported to avoid "use server" conflict
-// Import individual functions instead: import { requireAdmin, isAdmin } from '@/lib/auth'
+  // Middleware helpers
+  createMiddlewareClient,
+  updateSession,
+} from './session';
+
+// ============================================================================
+// Role & Permission Management
+// ============================================================================
+
+export type {
+  RoleCheckResult,
+  PermissionCheckResult,
+} from './role';
+
 export {
+  // Queries (cached per request)
   getUserRoles,
   hasRole,
   isAdmin,
   hasPermission,
   getUserPermissions,
-  getUserHighestRole,
+
+  // Guards (throw on failure)
   requireAuth,
   requireAdmin,
   requireRole,
   requirePermission,
-  addUserRole,
-  removeUserRole,
+
+  // Checks (return detailed info)
   checkRole,
   checkPermission,
-} from './role-service';
+  getUserHighestRole,
 
+  // Management
+  addUserRole,
+  removeUserRole,
+} from './role';
+
+// ============================================================================
 // Permission System
+// ============================================================================
+
 export {
   PERMISSIONS,
   ROLES,
@@ -105,5 +92,50 @@ export {
   type Role,
 } from './permissions';
 
-// Role-related types
-export type { RoleCheckResult, PermissionCheckResult } from './types';
+// ============================================================================
+// Error Handling
+// ============================================================================
+
+export {
+  // Constants
+  AUTH_ERROR_CODES,
+  CLIENT_ERROR_MESSAGES,
+  AUTH_ERROR_STATUS_CODES,
+  type AuthErrorCode,
+
+  // Error Classes
+  AuthenticationError,
+  InvalidCredentialsError,
+  SessionExpiredError,
+  SessionMissingError,
+  UnauthorizedError,
+  InsufficientPermissionsError,
+  EmailNotConfirmedError,
+  WeakPasswordError,
+  EmailAlreadyExistsError,
+  RateLimitError,
+} from './errors';
+
+// Error utilities from error-utils.ts (temporary - will migrate in Task 1.3)
+export {
+  handleSupabaseAuthError,
+  isAuthenticationError,
+  toAuthError,
+  authErrorToResult,
+  logAuthError,
+  createAuthError,
+  getErrorMessage,
+  withAuthErrorHandling,
+} from './error-utils';
+
+// ============================================================================
+// Common Types
+// ============================================================================
+
+export type {
+  AuthResult,
+  AuthError,
+  ServerAuthError,
+} from './types';
+
+export { isAuthError } from './types';
