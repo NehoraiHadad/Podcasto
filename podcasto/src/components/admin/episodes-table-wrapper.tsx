@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClientEpisodesTable } from './client-episodes-table';
+import { EpisodesTable } from '@/components/admin/episodes';
 import { EpisodesBulkActionsBar } from './episodes-bulk-actions-bar';
 
 // Define the expected episode type for the component
@@ -42,7 +42,7 @@ export function EpisodesTableWrapper({ episodes }: EpisodesTableWrapperProps) {
         onClearSelection={handleClearSelection}
       />
       
-      <ClientEpisodesTable
+      <EpisodesTable
         episodes={episodes}
         selectedEpisodeIds={selectedEpisodeIds}
         onSelectionChange={setSelectedEpisodeIds}

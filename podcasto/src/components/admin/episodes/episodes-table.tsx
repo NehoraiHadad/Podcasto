@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,12 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { EpisodeActionsMenu } from './action-menus';
+import { EpisodeActionsMenu } from '@/components/admin/action-menus';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { AlertCircle } from 'lucide-react';
+import { StatusCell } from '@/components/admin/shared/status-cell';
+import { SelectAllCheckbox } from '@/components/admin/shared/select-all-checkbox';
+import { useTableSelection } from '@/components/admin/shared/hooks/use-table-selection';
+import { formatDuration } from '@/lib/utils/table-utils';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -37,91 +39,28 @@ interface Episode {
   [key: string]: string | number | boolean | null | undefined;
 }
 
-interface ClientEpisodesTableProps {
+interface EpisodesTableProps {
   episodes: Episode[];
   selectedEpisodeIds: string[];
   onSelectionChange: (selectedIds: string[]) => void;
 }
 
-export function ClientEpisodesTable({ 
-  episodes, 
-  selectedEpisodeIds, 
-  onSelectionChange 
-}: ClientEpisodesTableProps) {
-  // Format duration from seconds to mm:ss
-  const formatDuration = (durationInSeconds: number | null): string => {
-    if (!durationInSeconds) return 'Unknown';
-    const minutes = Math.floor(durationInSeconds / 60);
-    const seconds = durationInSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  // Helper to extract error message from metadata
-  const getErrorMessage = (metadata: string | null): string | null => {
-    if (!metadata) return null;
-    try {
-      const meta = JSON.parse(metadata);
-      return meta.error || null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Format status with badge and error tooltip if failed
-  const renderStatus = (status: string | null, metadata: string | null) => {
-    if (!status) return <Badge variant="outline">Unknown</Badge>;
-    if (status.toLowerCase() === 'failed') {
-      const errorMsg = getErrorMessage(metadata);
-      return (
-        <div className="flex items-center gap-1">
-          <Badge variant="destructive">Failed</Badge>
-          {errorMsg && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="ml-1 cursor-pointer text-red-500">
-                  <AlertCircle size={16} />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={4}>
-                <span className="max-w-xs break-words whitespace-pre-line">{errorMsg}</span>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      );
-    }
-    switch (status.toLowerCase()) {
-      case 'published':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Published</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Pending</Badge>;
-      case 'processing':
-        return <Badge variant="secondary">Processing</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // Handle individual episode selection
-  const handleEpisodeSelect = (episodeId: string, checked: boolean) => {
-    if (checked) {
-      onSelectionChange([...selectedEpisodeIds, episodeId]);
-    } else {
-      onSelectionChange(selectedEpisodeIds.filter(id => id !== episodeId));
-    }
-  };
-
-  // Handle select all toggle
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectionChange(episodes.map(episode => episode.id));
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
-  const isAllSelected = episodes.length > 0 && selectedEpisodeIds.length === episodes.length;
-  const isIndeterminate = selectedEpisodeIds.length > 0 && selectedEpisodeIds.length < episodes.length;
+/**
+ * Episodes table component for admin dashboard
+ * Displays episodes with selection, status, and action capabilities
+ */
+export function EpisodesTable({
+  episodes,
+  selectedEpisodeIds,
+  onSelectionChange
+}: EpisodesTableProps) {
+  const { selectedIds, handleItemSelect, handleSelectAll, isAllSelected, isIndeterminate } =
+    useTableSelection({
+      items: episodes,
+      getItemId: (episode) => episode.id,
+      initialSelectedIds: selectedEpisodeIds,
+      onSelectionChange
+    });
 
   return (
     <div className="border rounded-md">
@@ -129,16 +68,10 @@ export function ClientEpisodesTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-12">
-              <Checkbox
+              <SelectAllCheckbox
                 checked={isAllSelected}
+                indeterminate={isIndeterminate}
                 onCheckedChange={handleSelectAll}
-                aria-label="Select all episodes"
-                ref={(ref) => {
-                  if (ref) {
-                    const checkbox = ref.querySelector('input[type="checkbox"]') as HTMLInputElement;
-                    if (checkbox) checkbox.indeterminate = isIndeterminate;
-                  }
-                }}
               />
             </TableHead>
             <TableHead>Cover</TableHead>
@@ -156,16 +89,16 @@ export function ClientEpisodesTable({
             <TableRow key={episode.id}>
               <TableCell>
                 <Checkbox
-                  checked={selectedEpisodeIds.includes(episode.id)}
-                  onCheckedChange={(checked) => handleEpisodeSelect(episode.id, !!checked)}
+                  checked={selectedIds.includes(episode.id)}
+                  onCheckedChange={(checked) => handleItemSelect(episode.id, !!checked)}
                   aria-label={`Select episode: ${episode.title}`}
                 />
               </TableCell>
               <TableCell>
                 {episode.cover_image ? (
                   <div className="relative h-10 w-10 overflow-hidden rounded-md">
-                    <Image 
-                      src={episode.cover_image} 
+                    <Image
+                      src={episode.cover_image}
                       alt={`${episode.title} cover`}
                       width={40}
                       height={40}
@@ -192,7 +125,7 @@ export function ClientEpisodesTable({
                 {formatDuration(episode.duration)}
               </TableCell>
               <TableCell>
-                {renderStatus(episode.status, episode.metadata)}
+                <StatusCell status={episode.status} metadata={episode.metadata} />
               </TableCell>
               <TableCell>
                 <ContentDateRangeBadge
