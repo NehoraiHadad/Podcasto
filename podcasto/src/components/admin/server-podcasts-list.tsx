@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PodcastActionsMenu } from './podcast-actions-menu';
+import { PodcastActionsMenu } from './action-menus';
 
 // Define the expected podcast type for the component
 interface Podcast {

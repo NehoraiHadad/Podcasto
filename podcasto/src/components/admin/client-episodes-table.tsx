@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { EpisodeActionsMenu } from './episode-actions-menu';
+import { EpisodeActionsMenu } from './action-menus';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';

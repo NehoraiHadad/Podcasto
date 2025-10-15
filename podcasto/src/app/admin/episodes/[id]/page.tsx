@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { EpisodeActionsMenu } from '@/components/admin/episode-actions-menu';
+import { EpisodeActionsMenu } from '@/components/admin/action-menus';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
 import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
