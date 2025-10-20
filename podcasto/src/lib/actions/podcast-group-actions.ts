@@ -355,3 +355,209 @@ export async function getPodcastGroupAction(
     };
   }
 }
+
+/**
+ * Type for creating a podcast group with new podcasts
+ */
+export interface CreatePodcastGroupWithNewPodcastsData {
+  base_title: string;
+  base_description?: string;
+  base_cover_image?: string;
+  languages: Array<{
+    language_code: string;
+    is_primary: boolean;
+    // Podcast metadata
+    title: string;
+    description: string;
+    cover_image?: string;
+    image_style?: string;
+    // Content source
+    contentSource: 'telegram' | 'urls';
+    telegramChannel?: string;
+    telegramHours?: number;
+    urls?: string[];
+    // Podcast config
+    creator: string;
+    podcastName: string;
+    outputLanguage: 'english' | 'hebrew';
+    slogan?: string;
+    creativityLevel: number;
+    isLongPodcast: boolean;
+    discussionRounds: number;
+    minCharsPerRound: number;
+    episodeFrequency: number;
+    conversationStyle: string;
+    speaker1Role: string;
+    speaker2Role: string;
+    mixingTechniques: string[];
+    additionalInstructions?: string;
+  }>;
+}
+
+/**
+ * Create a podcast group with new podcasts in one transaction
+ *
+ * This is now the PRIMARY and ONLY way to create podcasts in the system.
+ * All podcasts are created as part of a podcast group, even if they only have one language.
+ *
+ * This action creates:
+ * 1. All individual podcasts with their configs
+ * 2. The podcast group
+ * 3. Language variant records
+ * 4. Links podcasts to the group
+ *
+ * @param data - Complete podcast group creation data
+ * @returns The created podcast group with languages
+ */
+export async function createPodcastGroupWithNewPodcastsAction(
+  data: CreatePodcastGroupWithNewPodcastsData
+): Promise<ActionResult<PodcastGroupWithLanguages>> {
+  try {
+    // Verify admin access
+    await checkIsAdmin({ redirectOnFailure: true });
+
+    // Validate at least one language is marked as primary
+    const hasPrimary = data.languages.some(lang => lang.is_primary);
+    if (!hasPrimary) {
+      return {
+        success: false,
+        error: 'At least one language must be marked as primary'
+      };
+    }
+
+    // Import podcast creation utilities
+    const { podcastsApi, podcastConfigsApi } = await import('@/lib/db/api');
+
+    // Track created podcast IDs for rollback if needed
+    const createdPodcastIds: string[] = [];
+
+    try {
+      // Step 1: Create all podcasts
+      for (const langData of data.languages) {
+        // Create podcast metadata
+        const podcast = await podcastsApi.createPodcast({
+          title: langData.title,
+          description: langData.description,
+          cover_image: langData.cover_image || null,
+          image_style: langData.image_style || null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+
+        if (!podcast) {
+          throw new Error(`Failed to create podcast for language ${langData.language_code}`);
+        }
+
+        createdPodcastIds.push(podcast.id);
+
+        // Filter and prepare URLs
+        const filteredUrls = langData.urls
+          ? langData.urls.filter(url => url && url.trim() !== '')
+          : [];
+
+        // Create podcast config
+        await podcastConfigsApi.createPodcastConfig({
+          podcast_id: podcast.id,
+          content_source: langData.contentSource,
+          telegram_channel: langData.telegramChannel || null,
+          telegram_hours: langData.telegramHours || null,
+          urls: filteredUrls.length > 0 ? filteredUrls : null,
+          creator: langData.creator,
+          podcast_name: langData.podcastName,
+          slogan: langData.slogan || null,
+          language: langData.outputLanguage,
+          creativity_level: Math.round(langData.creativityLevel * 100),
+          is_long_podcast: langData.isLongPodcast,
+          discussion_rounds: langData.discussionRounds,
+          min_chars_per_round: langData.minCharsPerRound,
+          conversation_style: langData.conversationStyle,
+          speaker1_role: langData.speaker1Role,
+          speaker2_role: langData.speaker2Role,
+          mixing_techniques: langData.mixingTechniques,
+          additional_instructions: langData.additionalInstructions || null,
+          episode_frequency: langData.episodeFrequency,
+        });
+      }
+
+      // Step 2: Create the podcast group
+      const group = await createPodcastGroup({
+        base_title: data.base_title,
+        base_description: data.base_description,
+        base_cover_image: data.base_cover_image
+      });
+
+      // Step 3: Add language variants and link podcasts
+      for (let i = 0; i < data.languages.length; i++) {
+        const langData = data.languages[i];
+        const podcastId = createdPodcastIds[i];
+
+        // Add language variant
+        await addLanguageVariant({
+          podcast_group_id: group.id,
+          language_code: langData.language_code,
+          title: langData.title,
+          description: langData.description,
+          cover_image: langData.cover_image,
+          is_primary: langData.is_primary,
+          podcast_id: podcastId
+        });
+
+        // Link podcast to group
+        await linkPodcastToGroup(
+          podcastId,
+          group.id,
+          langData.language_code
+        );
+      }
+
+      // Fetch the complete group with languages
+      const completeGroup = await getPodcastGroupWithLanguages(group.id);
+
+      if (!completeGroup) {
+        throw new Error('Failed to retrieve created podcast group');
+      }
+
+      // Revalidate relevant pages
+      revalidatePath('/admin/podcasts');
+      revalidatePath('/podcasts');
+
+      return {
+        success: true,
+        data: completeGroup
+      };
+    } catch (innerError) {
+      // Rollback: delete all created podcasts
+      console.error('[createPodcastGroupWithNewPodcastsAction] Rolling back created podcasts');
+      for (const podcastId of createdPodcastIds) {
+        try {
+          await podcastsApi.deletePodcast(podcastId);
+        } catch (deleteError) {
+          console.error(`Failed to rollback podcast ${podcastId}:`, deleteError);
+        }
+      }
+      throw innerError;
+    }
+  } catch (error) {
+    console.error('[createPodcastGroupWithNewPodcastsAction] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create podcast group with new podcasts'
+    };
+  }
+}
+
+/**
+ * Alias for createPodcastGroupWithNewPodcastsAction
+ *
+ * This is the simplified, user-friendly name for the podcast creation action.
+ * Since ALL podcasts are now created as groups (even single-language ones),
+ * this provides a clearer, more intuitive API.
+ *
+ * @param data - Complete podcast creation data
+ * @returns The created podcast group with languages
+ */
+export async function createPodcastAction(
+  data: CreatePodcastGroupWithNewPodcastsData
+): Promise<ActionResult<PodcastGroupWithLanguages>> {
+  return createPodcastGroupWithNewPodcastsAction(data);
+}

@@ -2,6 +2,7 @@ import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
 import { ServerPodcastsList } from '@/components/admin/server-podcasts-list';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PodcastsPageTabs } from '@/components/admin/podcasts-page-tabs';
 
 export const metadata = {
   title: 'Manage Podcasts | Admin Dashboard | Podcasto',
@@ -22,15 +23,24 @@ function PodcastsListSkeleton() {
   );
 }
 
-export default async function PodcastsPage() {
+export default async function PodcastsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   // Ensure user is an admin
   await checkIsAdmin({ redirectOnFailure: true });
-  
+
+  const params = await searchParams;
+  const viewMode = (params.view === 'groups' ? 'groups' : 'all') as 'all' | 'groups';
+
   return (
     <div className="space-y-6">
+      <PodcastsPageTabs currentView={viewMode} />
+
       <Suspense fallback={<PodcastsListSkeleton />}>
-        <ServerPodcastsList />
+        <ServerPodcastsList viewMode={viewMode} />
       </Suspense>
     </div>
   );
-} 
+}
