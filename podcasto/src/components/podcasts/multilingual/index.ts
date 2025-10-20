@@ -18,8 +18,4 @@ export type {
 } from '../subscription-language-selector';
 
 export { GroupedPodcastCard } from '../grouped-podcast-card';
-export type {
-  GroupedPodcastCardProps,
-  PodcastGroupWithLanguages,
-  PodcastGroupLanguage
-} from '../grouped-podcast-card/index';
+export type { GroupedPodcastCardProps } from '../grouped-podcast-card/index';

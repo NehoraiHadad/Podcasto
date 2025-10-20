@@ -2,23 +2,23 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/main-layout';
-import { PodcastCard } from '@/components/podcasts/podcast-card';
+import { GroupedPodcastCard } from '@/components/podcasts/grouped-podcast-card';
 import { Search } from 'lucide-react';
-import { PodcastWithConfig } from '@/lib/db/api/podcasts';
+import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
 
 interface PodcastsPagePresenterProps {
-  podcasts: PodcastWithConfig[];
+  podcastGroups: PodcastGroupWithLanguages[];
   searchQuery: string;
   searchParamValue?: string;
 }
 
 /**
  * Presenter component for Podcasts Page
- * Receives podcasts data and search state as props and renders UI
+ * Receives podcast groups data and search state as props and renders UI
  * Pure Server Component - no data fetching or business logic
  */
 export function PodcastsPagePresenter({
-  podcasts,
+  podcastGroups,
   searchQuery,
   searchParamValue
 }: PodcastsPagePresenterProps) {
@@ -50,11 +50,11 @@ export function PodcastsPagePresenter({
         {searchQuery && (
           <div className="mb-8 text-center">
             <p className="text-muted-foreground">
-              {podcasts.length === 0
+              {podcastGroups.length === 0
                 ? `No results found for "${searchParamValue}"`
-                : `Showing ${podcasts.length} result${podcasts.length === 1 ? '' : 's'} for "${searchParamValue}"`}
+                : `Showing ${podcastGroups.length} result${podcastGroups.length === 1 ? '' : 's'} for "${searchParamValue}"`}
             </p>
-            {podcasts.length === 0 && (
+            {podcastGroups.length === 0 && (
               <Link href="/podcasts">
                 <Button variant="link" className="mt-2 text-primary">View all podcasts</Button>
               </Link>
@@ -63,9 +63,9 @@ export function PodcastsPagePresenter({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {podcasts.length > 0 ? (
-            podcasts.map((podcast) => (
-              <PodcastCard key={podcast.id} podcast={podcast} />
+          {podcastGroups.length > 0 ? (
+            podcastGroups.map((group) => (
+              <GroupedPodcastCard key={group.id} podcastGroup={group} />
             ))
           ) : (
             <div className="col-span-3 text-center py-12">

@@ -6,23 +6,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LanguageBadgeList } from './language-badge-list';
-
-export interface PodcastGroupLanguage {
-  code: string;
-  title: string;
-  description?: string;
-  podcast_id: string;
-  episode_count?: number;
-  cover_image?: string;
-  is_primary?: boolean;
-}
-
-export interface PodcastGroupWithLanguages {
-  id: string;
-  name: string;
-  slug: string;
-  languages: PodcastGroupLanguage[];
-}
+import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
 
 export interface GroupedPodcastCardProps {
   podcastGroup: PodcastGroupWithLanguages;
@@ -35,21 +19,6 @@ export interface GroupedPodcastCardProps {
  *
  * Displays a podcast card with multiple language variants.
  * Shows language badges that navigate to the selected variant.
- * Extends the existing podcast-card pattern with multilingual support.
- *
- * @example
- * <GroupedPodcastCard
- *   podcastGroup={{
- *     id: '123',
- *     name: 'Abuali Express',
- *     slug: 'abuali-express',
- *     languages: [
- *       { code: 'he', title: 'Hebrew Edition', podcast_id: 'abc', is_primary: true },
- *       { code: 'en', title: 'English Edition', podcast_id: 'def' }
- *     ]
- *   }}
- *   currentLanguage="he"
- * />
  */
 export function GroupedPodcastCard({
   podcastGroup,
@@ -61,13 +30,16 @@ export function GroupedPodcastCard({
   // Determine which language variant to display
   const primaryLanguage = podcastGroup.languages.find(l => l.is_primary) || podcastGroup.languages[0];
   const currentLang = currentLanguage
-    ? podcastGroup.languages.find(l => l.code === currentLanguage)
+    ? podcastGroup.languages.find(l => l.language_code === currentLanguage)
     : null;
   const displayLanguage = currentLang || primaryLanguage;
 
   if (!displayLanguage) {
     return null;
   }
+
+  // Use base cover image or language-specific one
+  const coverImage = displayLanguage.cover_image || podcastGroup.base_cover_image;
 
   return (
     <Card
@@ -78,10 +50,10 @@ export function GroupedPodcastCard({
       )}
     >
       {/* Cover Image */}
-      {displayLanguage.cover_image && (
+      {coverImage && (
         <div className="relative w-full aspect-[16/9] overflow-hidden bg-muted">
           <Image
-            src={displayLanguage.cover_image}
+            src={coverImage}
             alt={displayLanguage.title}
             fill
             className="object-cover"
@@ -97,19 +69,20 @@ export function GroupedPodcastCard({
             {displayLanguage.title}
           </h3>
 
-          <LanguageBadgeList
-            languages={podcastGroup.languages}
-            currentLanguageCode={displayLanguage.code}
-            podcastSlug={podcastGroup.slug}
-            onLanguageHover={setHoveredLanguage}
-            hoveredLanguage={hoveredLanguage}
-          />
-
-          {/* Episode Count */}
-          {displayLanguage.episode_count !== undefined && (
-            <div className="text-sm text-muted-foreground">
-              {displayLanguage.episode_count} {displayLanguage.episode_count === 1 ? 'episode' : 'episodes'}
-            </div>
+          {/* Show language badges only if multiple languages */}
+          {podcastGroup.languages.length > 1 && (
+            <LanguageBadgeList
+              languages={podcastGroup.languages.map(lang => ({
+                code: lang.language_code,
+                title: lang.title,
+                podcast_id: lang.podcast_id,
+                is_primary: lang.is_primary
+              }))}
+              currentLanguageCode={displayLanguage.language_code}
+              podcastSlug={podcastGroup.id}
+              onLanguageHover={setHoveredLanguage}
+              hoveredLanguage={hoveredLanguage}
+            />
           )}
         </div>
 

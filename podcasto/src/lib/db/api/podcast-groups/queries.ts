@@ -175,3 +175,26 @@ export async function getPodcastGroupByPodcastId(podcastId: string): Promise<Pod
 
   return await getPodcastGroupById(result[0].podcast_group_id);
 }
+
+/**
+ * Get all active podcast groups for public display
+ * Only returns groups that have at least one language variant
+ *
+ * @returns Array of podcast groups with their language variants
+ */
+export async function getActivePodcastGroups(): Promise<PodcastGroupWithLanguages[]> {
+  const groups = await getAllPodcastGroups();
+
+  const groupsWithLanguages = await Promise.all(
+    groups.map(async (group) => {
+      const languages = await getPodcastLanguagesByGroupId(group.id);
+      return {
+        ...group,
+        languages: languages as PodcastLanguageWithPodcast[]
+      };
+    })
+  );
+
+  // Filter out groups without any languages
+  return groupsWithLanguages.filter(group => group.languages.length > 0);
+}

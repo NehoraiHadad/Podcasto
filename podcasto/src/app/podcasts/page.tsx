@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getAllPodcasts } from '@/lib/db/api/podcasts';
+import { getActivePodcastGroups } from '@/lib/db/api/podcast-groups';
 import { PodcastsPagePresenter } from '@/components/pages/podcasts-page-presenter';
 
 export const metadata: Metadata = {
@@ -13,19 +13,23 @@ interface PodcastsPageProps {
 
 export default async function PodcastsPage({ searchParams }: PodcastsPageProps) {
   const resolvedSearchParams = await searchParams || {};
-  const podcasts = await getAllPodcasts();
+  const podcastGroups = await getActivePodcastGroups();
 
   const searchQuery = resolvedSearchParams?.search?.toLowerCase() || '';
-  const filteredPodcasts = searchQuery
-    ? podcasts.filter(
-        (podcast) =>
-          podcast.title.toLowerCase().includes(searchQuery) ||
-          podcast.description?.toLowerCase().includes(searchQuery))
-    : podcasts;
+  const filteredGroups = searchQuery
+    ? podcastGroups.filter(
+        (group) =>
+          group.base_title.toLowerCase().includes(searchQuery) ||
+          group.base_description?.toLowerCase().includes(searchQuery) ||
+          group.languages.some(lang =>
+            lang.title.toLowerCase().includes(searchQuery) ||
+            lang.description?.toLowerCase().includes(searchQuery)
+          ))
+    : podcastGroups;
 
   return (
     <PodcastsPagePresenter
-      podcasts={filteredPodcasts}
+      podcastGroups={filteredGroups}
       searchQuery={searchQuery}
       searchParamValue={resolvedSearchParams?.search}
     />
