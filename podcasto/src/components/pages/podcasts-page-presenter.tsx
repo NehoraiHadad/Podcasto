@@ -3,25 +3,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MainLayout } from '@/components/layout/main-layout';
 import { GroupedPodcastCard } from '@/components/podcasts/grouped-podcast-card';
+import { PodcastCard } from '@/components/podcasts/podcast-card';
 import { Search } from 'lucide-react';
 import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
+import type { Podcast } from '@/lib/db/api/podcasts';
 
 interface PodcastsPagePresenterProps {
   podcastGroups: PodcastGroupWithLanguages[];
+  legacyPodcasts: Podcast[];
   searchQuery: string;
   searchParamValue?: string;
 }
 
 /**
  * Presenter component for Podcasts Page
- * Receives podcast groups data and search state as props and renders UI
+ * Receives podcast groups and legacy podcasts data and search state as props
  * Pure Server Component - no data fetching or business logic
  */
 export function PodcastsPagePresenter({
   podcastGroups,
+  legacyPodcasts,
   searchQuery,
   searchParamValue
 }: PodcastsPagePresenterProps) {
+  const totalCount = podcastGroups.length + legacyPodcasts.length;
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -50,11 +55,11 @@ export function PodcastsPagePresenter({
         {searchQuery && (
           <div className="mb-8 text-center">
             <p className="text-muted-foreground">
-              {podcastGroups.length === 0
+              {totalCount === 0
                 ? `No results found for "${searchParamValue}"`
-                : `Showing ${podcastGroups.length} result${podcastGroups.length === 1 ? '' : 's'} for "${searchParamValue}"`}
+                : `Showing ${totalCount} result${totalCount === 1 ? '' : 's'} for "${searchParamValue}"`}
             </p>
-            {podcastGroups.length === 0 && (
+            {totalCount === 0 && (
               <Link href="/podcasts">
                 <Button variant="link" className="mt-2 text-primary">View all podcasts</Button>
               </Link>
@@ -63,10 +68,17 @@ export function PodcastsPagePresenter({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {podcastGroups.length > 0 ? (
-            podcastGroups.map((group) => (
-              <GroupedPodcastCard key={group.id} podcastGroup={group} />
-            ))
+          {totalCount > 0 ? (
+            <>
+              {/* Render podcast groups first */}
+              {podcastGroups.map((group) => (
+                <GroupedPodcastCard key={`group-${group.id}`} podcastGroup={group} />
+              ))}
+              {/* Render legacy podcasts */}
+              {legacyPodcasts.map((podcast) => (
+                <PodcastCard key={`legacy-${podcast.id}`} podcast={podcast} />
+              ))}
+            </>
           ) : (
             <div className="col-span-3 text-center py-12">
               <p className="text-xl text-muted-foreground">No podcasts found. Please try again later.</p>

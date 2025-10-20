@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getActivePodcastGroups } from '@/lib/db/api/podcast-groups';
+import { getActivePodcastGroups, getLegacyPodcasts } from '@/lib/db/api/podcast-groups';
 import { PodcastsPagePresenter } from '@/components/pages/podcasts-page-presenter';
 
 export const metadata: Metadata = {
@@ -13,9 +13,16 @@ interface PodcastsPageProps {
 
 export default async function PodcastsPage({ searchParams }: PodcastsPageProps) {
   const resolvedSearchParams = await searchParams || {};
-  const podcastGroups = await getActivePodcastGroups();
+
+  // Fetch both podcast groups and legacy podcasts
+  const [podcastGroups, legacyPodcasts] = await Promise.all([
+    getActivePodcastGroups(),
+    getLegacyPodcasts()
+  ]);
 
   const searchQuery = resolvedSearchParams?.search?.toLowerCase() || '';
+
+  // Filter podcast groups
   const filteredGroups = searchQuery
     ? podcastGroups.filter(
         (group) =>
@@ -27,9 +34,19 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
           ))
     : podcastGroups;
 
+  // Filter legacy podcasts
+  const filteredLegacy = searchQuery
+    ? legacyPodcasts.filter(
+        (podcast) =>
+          podcast.title.toLowerCase().includes(searchQuery) ||
+          podcast.description?.toLowerCase().includes(searchQuery)
+      )
+    : legacyPodcasts;
+
   return (
     <PodcastsPagePresenter
       podcastGroups={filteredGroups}
+      legacyPodcasts={filteredLegacy}
       searchQuery={searchQuery}
       searchParamValue={resolvedSearchParams?.search}
     />

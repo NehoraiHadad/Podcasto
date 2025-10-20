@@ -27,7 +27,8 @@ export {
   getAllPodcastGroupsWithLanguages,
   languageExistsInGroup,
   getPodcastGroupByPodcastId,
-  getActivePodcastGroups
+  getActivePodcastGroups,
+  getLegacyPodcasts
 } from './queries';
 
 // Export mutation functions

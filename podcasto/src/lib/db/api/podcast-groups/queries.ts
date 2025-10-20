@@ -1,5 +1,5 @@
 import { podcastGroups, podcastLanguages, podcasts } from '../../schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import { db } from '../../index';
 import type {
@@ -197,4 +197,19 @@ export async function getActivePodcastGroups(): Promise<PodcastGroupWithLanguage
 
   // Filter out groups without any languages
   return groupsWithLanguages.filter(group => group.languages.length > 0);
+}
+
+/**
+ * Get legacy podcasts (podcasts not part of any group)
+ * Returns podcasts where podcast_group_id IS NULL
+ *
+ * @returns Array of legacy podcasts
+ */
+export async function getLegacyPodcasts() {
+  const result = await db
+    .select()
+    .from(podcasts)
+    .where(isNull(podcasts.podcast_group_id));
+
+  return result;
 }
