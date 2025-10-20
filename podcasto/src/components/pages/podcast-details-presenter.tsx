@@ -4,11 +4,14 @@ import { EpisodeCard } from '@/components/episodes/episode-card';
 import { Podcast } from '@/lib/db/api/podcasts';
 import { Episode } from '@/lib/db/api/episodes';
 import { SubscribeButtonServer } from '@/app/podcasts/[id]/subscribe-button-server';
+import { PodcastDetailsLanguageSwitcher } from './podcast-details-language-switcher';
+import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
 
 interface PodcastDetailsPresenterProps {
   podcast: Podcast;
   episodes: Episode[];
   podcastId: string;
+  podcastGroup?: PodcastGroupWithLanguages | null;
 }
 
 /**
@@ -19,7 +22,8 @@ interface PodcastDetailsPresenterProps {
 export function PodcastDetailsPresenter({
   podcast,
   episodes,
-  podcastId
+  podcastId,
+  podcastGroup
 }: PodcastDetailsPresenterProps) {
   return (
     <MainLayout>
@@ -34,6 +38,15 @@ export function PodcastDetailsPresenter({
                 priority
               />
             </div>
+
+            {/* Language Switcher - only shows if podcast has multiple languages */}
+            {podcastGroup && (
+              <PodcastDetailsLanguageSwitcher
+                podcastGroup={podcastGroup}
+                currentPodcastId={podcastId}
+              />
+            )}
+
             <h1 className="text-2xl font-bold mb-2">{podcast.title}</h1>
             <p className="text-gray-600 mb-6">{episodes.length} episodes</p>
             <p className="text-gray-700 mb-6">{podcast.description}</p>
