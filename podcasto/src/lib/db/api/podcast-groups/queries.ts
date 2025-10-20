@@ -180,23 +180,44 @@ export async function getPodcastGroupByPodcastId(podcastId: string): Promise<Pod
  * Get all active podcast groups for public display
  * Only returns groups that have at least one language variant
  *
+ * OPTIMIZED: Uses single JOIN query instead of N+1 queries
+ *
  * @returns Array of podcast groups with their language variants
  */
 export async function getActivePodcastGroups(): Promise<PodcastGroupWithLanguages[]> {
-  const groups = await getAllPodcastGroups();
+  // Single optimized query with JOIN
+  const result = await db
+    .select()
+    .from(podcastGroups)
+    .leftJoin(podcastLanguages, eq(podcastLanguages.podcast_group_id, podcastGroups.id));
 
-  const groupsWithLanguages = await Promise.all(
-    groups.map(async (group) => {
-      const languages = await getPodcastLanguagesByGroupId(group.id);
-      return {
+  // Group results by podcast_group_id
+  const groupedByPodcastGroup = new Map<string, PodcastGroupWithLanguages>();
+
+  for (const row of result) {
+    const group = row.podcast_groups;
+    const language = row.podcast_languages;
+
+    // Skip if no group (shouldn't happen with our query)
+    if (!group) continue;
+
+    // Initialize group if not seen before
+    if (!groupedByPodcastGroup.has(group.id)) {
+      groupedByPodcastGroup.set(group.id, {
         ...group,
-        languages: languages as PodcastLanguageWithPodcast[]
-      };
-    })
-  );
+        languages: []
+      });
+    }
 
-  // Filter out groups without any languages
-  return groupsWithLanguages.filter(group => group.languages.length > 0);
+    // Add language variant if it exists
+    if (language) {
+      groupedByPodcastGroup.get(group.id)!.languages.push(language as PodcastLanguageWithPodcast);
+    }
+  }
+
+  // Convert map to array and filter out groups without languages
+  return Array.from(groupedByPodcastGroup.values())
+    .filter(group => group.languages.length > 0);
 }
 
 /**
