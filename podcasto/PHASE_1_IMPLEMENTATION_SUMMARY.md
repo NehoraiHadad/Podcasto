@@ -320,6 +320,32 @@ src/
 
 ---
 
+## ⚠️ Important Notes
+
+### Backward Compatibility
+
+**The existing podcast creation flow is NOT affected by this implementation.**
+
+- Existing podcasts continue to work normally with `migration_status='legacy'`
+- The `PodcastFormBase` component (`src/components/admin/podcast-form/podcast-form-base.tsx`) remains unchanged
+- New podcasts created via the existing form will have:
+  - `podcast_group_id = null`
+  - `language_code = null`
+  - `migration_status = 'legacy'`
+- The `PodcastGroupForm` is a **separate** component for creating multilingual podcast groups
+
+### When to Use Each Form
+
+1. **Use `PodcastFormBase`** (existing):
+   - Single-language podcasts
+   - Traditional podcast creation workflow
+   - Located at: `/admin/podcasts/create`
+
+2. **Use `PodcastGroupForm`** (new):
+   - Multilingual podcast groups
+   - When you want to link multiple language variants
+   - Will need a new route: `/admin/podcasts/groups/create`
+
 ## 🚀 What's Next: Phase 2 (Migration)
 
 Now that Phase 1 infrastructure is complete, Phase 2 will focus on migrating existing podcasts:
