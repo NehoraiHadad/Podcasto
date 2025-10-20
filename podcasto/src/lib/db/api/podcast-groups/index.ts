@@ -16,6 +16,8 @@ export type {
   AddLanguageVariantData
 } from './types';
 
+export type { UnifiedPodcastDisplay } from './queries';
+
 // Export query functions
 export {
   getPodcastGroupById,
@@ -28,7 +30,8 @@ export {
   languageExistsInGroup,
   getPodcastGroupByPodcastId,
   getActivePodcastGroups,
-  getLegacyPodcasts
+  getLegacyPodcasts,
+  getAllPodcastsForDisplay
 } from './queries';
 
 // Export mutation functions

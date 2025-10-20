@@ -5,28 +5,25 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { GroupedPodcastCard } from '@/components/podcasts/grouped-podcast-card';
 import { PodcastCard } from '@/components/podcasts/podcast-card';
 import { Search } from 'lucide-react';
-import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
-import type { Podcast } from '@/lib/db/api/podcasts';
+import type { UnifiedPodcastDisplay } from '@/lib/db/api/podcast-groups';
 
 interface PodcastsPagePresenterProps {
-  podcastGroups: PodcastGroupWithLanguages[];
-  legacyPodcasts: Podcast[];
+  podcasts: UnifiedPodcastDisplay[];
   searchQuery: string;
   searchParamValue?: string;
 }
 
 /**
  * Presenter component for Podcasts Page
- * Receives podcast groups and legacy podcasts data and search state as props
+ * Receives unified podcasts data and search state as props
  * Pure Server Component - no data fetching or business logic
  */
 export function PodcastsPagePresenter({
-  podcastGroups,
-  legacyPodcasts,
+  podcasts,
   searchQuery,
   searchParamValue
 }: PodcastsPagePresenterProps) {
-  const totalCount = podcastGroups.length + legacyPodcasts.length;
+  const totalCount = podcasts.length;
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -69,16 +66,24 @@ export function PodcastsPagePresenter({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {totalCount > 0 ? (
-            <>
-              {/* Render podcast groups first */}
-              {podcastGroups.map((group) => (
-                <GroupedPodcastCard key={`group-${group.id}`} podcastGroup={group} />
-              ))}
-              {/* Render legacy podcasts */}
-              {legacyPodcasts.map((podcast) => (
-                <PodcastCard key={`legacy-${podcast.id}`} podcast={podcast} />
-              ))}
-            </>
+            podcasts.map((item) => {
+              if (item.type === 'group' && item.group_data) {
+                return (
+                  <GroupedPodcastCard
+                    key={`group-${item.id}`}
+                    podcastGroup={item.group_data}
+                  />
+                );
+              } else if (item.type === 'legacy' && item.podcast_data) {
+                return (
+                  <PodcastCard
+                    key={`legacy-${item.id}`}
+                    podcast={item.podcast_data}
+                  />
+                );
+              }
+              return null;
+            })
           ) : (
             <div className="col-span-3 text-center py-12">
               <p className="text-xl text-muted-foreground">No podcasts found. Please try again later.</p>

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getActivePodcastGroups, getLegacyPodcasts } from '@/lib/db/api/podcast-groups';
+import { getAllPodcastsForDisplay } from '@/lib/db/api/podcast-groups';
 import { PodcastsPagePresenter } from '@/components/pages/podcasts-page-presenter';
 
 export const metadata: Metadata = {
@@ -14,39 +14,35 @@ interface PodcastsPageProps {
 export default async function PodcastsPage({ searchParams }: PodcastsPageProps) {
   const resolvedSearchParams = await searchParams || {};
 
-  // Fetch both podcast groups and legacy podcasts
-  const [podcastGroups, legacyPodcasts] = await Promise.all([
-    getActivePodcastGroups(),
-    getLegacyPodcasts()
-  ]);
+  // Fetch all podcasts in unified format (optimized single query)
+  const allPodcasts = await getAllPodcastsForDisplay();
 
   const searchQuery = resolvedSearchParams?.search?.toLowerCase() || '';
 
-  // Filter podcast groups
-  const filteredGroups = searchQuery
-    ? podcastGroups.filter(
-        (group) =>
-          group.base_title.toLowerCase().includes(searchQuery) ||
-          group.base_description?.toLowerCase().includes(searchQuery) ||
-          group.languages.some(lang =>
-            lang.title.toLowerCase().includes(searchQuery) ||
-            lang.description?.toLowerCase().includes(searchQuery)
-          ))
-    : podcastGroups;
+  // Filter podcasts - works on unified format
+  const filteredPodcasts = searchQuery
+    ? allPodcasts.filter((item) => {
+        // Search in title and description
+        const titleMatch = item.title.toLowerCase().includes(searchQuery);
+        const descMatch = item.description?.toLowerCase().includes(searchQuery);
 
-  // Filter legacy podcasts
-  const filteredLegacy = searchQuery
-    ? legacyPodcasts.filter(
-        (podcast) =>
-          podcast.title.toLowerCase().includes(searchQuery) ||
-          podcast.description?.toLowerCase().includes(searchQuery)
-      )
-    : legacyPodcasts;
+        // For groups, also search in all language variants
+        if (item.type === 'group' && item.group_data) {
+          const langMatch = item.group_data.languages.some(
+            lang =>
+              lang.title.toLowerCase().includes(searchQuery) ||
+              lang.description?.toLowerCase().includes(searchQuery)
+          );
+          return titleMatch || descMatch || langMatch;
+        }
+
+        return titleMatch || descMatch;
+      })
+    : allPodcasts;
 
   return (
     <PodcastsPagePresenter
-      podcastGroups={filteredGroups}
-      legacyPodcasts={filteredLegacy}
+      podcasts={filteredPodcasts}
       searchQuery={searchQuery}
       searchParamValue={resolvedSearchParams?.search}
     />

@@ -213,3 +213,101 @@ export async function getLegacyPodcasts() {
 
   return result;
 }
+
+/**
+ * Unified display item - represents either a podcast group or a legacy podcast
+ */
+export interface UnifiedPodcastDisplay {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image: string | null;
+  created_at: Date | null;
+  updated_at: Date | null;
+  type: 'group' | 'legacy';
+  // For groups: the podcast group data
+  group_data?: PodcastGroupWithLanguages;
+  // For legacy: the podcast data
+  podcast_data?: {
+    id: string;
+    title: string;
+    description: string | null;
+    cover_image: string | null;
+    image_style: string | null;
+    is_paused: boolean;
+    podcast_group_id: string | null;
+    language_code: string | null;
+    migration_status: string | null;
+    created_at: Date | null;
+    updated_at: Date | null;
+  };
+}
+
+/**
+ * Get all podcasts for public display in a unified format
+ * Returns both podcast groups (with primary language) and legacy podcasts
+ * in a single, optimized query structure.
+ *
+ * This is the RECOMMENDED query for public-facing podcast lists.
+ *
+ * @returns Array of unified podcast display items
+ */
+export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[]> {
+  // Fetch both types in parallel
+  const [groups, legacyPodcasts] = await Promise.all([
+    getActivePodcastGroups(),
+    getLegacyPodcasts()
+  ]);
+
+  const items: UnifiedPodcastDisplay[] = [];
+
+  // Convert podcast groups
+  for (const group of groups) {
+    const primaryLang = group.languages.find(l => l.is_primary) || group.languages[0];
+    items.push({
+      id: group.id,
+      title: primaryLang.title,
+      description: primaryLang.description,
+      cover_image: primaryLang.cover_image || group.base_cover_image,
+      created_at: group.created_at,
+      updated_at: group.updated_at,
+      type: 'group',
+      group_data: group
+    });
+  }
+
+  // Add legacy podcasts
+  for (const podcast of legacyPodcasts) {
+    items.push({
+      id: podcast.id,
+      title: podcast.title,
+      description: podcast.description,
+      cover_image: podcast.cover_image,
+      created_at: podcast.created_at,
+      updated_at: podcast.updated_at,
+      type: 'legacy',
+      podcast_data: {
+        id: podcast.id,
+        title: podcast.title,
+        description: podcast.description,
+        cover_image: podcast.cover_image,
+        image_style: podcast.image_style,
+        is_paused: podcast.is_paused,
+        podcast_group_id: podcast.podcast_group_id,
+        language_code: podcast.language_code,
+        migration_status: podcast.migration_status,
+        created_at: podcast.created_at,
+        updated_at: podcast.updated_at
+      }
+    });
+  }
+
+  // Sort by updated_at descending (newest first)
+  items.sort((a, b) => {
+    const dateA = a.updated_at?.getTime() || 0;
+    const dateB = b.updated_at?.getTime() || 0;
+    return dateB - dateA;
+  });
+
+  return items;
+}
