@@ -94,18 +94,28 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
         return true;
       }
       
-      // Calculate the next episode date based on frequency (in days)
-      const nextEpisodeDate = new Date(podcast.latestEpisodeDate);
-      nextEpisodeDate.setDate(nextEpisodeDate.getDate() + podcast.frequency);
-      
-      // If next episode date is today or earlier, this podcast needs a new episode
-      const needsEpisode = nextEpisodeDate <= now;
-      
+      // Reset to start of day for accurate date comparison (ignore time)
+      const latestDate = new Date(podcast.latestEpisodeDate);
+      latestDate.setHours(0, 0, 0, 0);
+
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate full days since last episode
+      const daysSinceLastEpisode = Math.floor(
+        (today.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Check if enough days have passed based on frequency
+      const needsEpisode = daysSinceLastEpisode >= podcast.frequency;
+
       console.log(`[PODCAST_FINDER] Podcast ${podcast.title}:`);
       console.log(`  - Last episode date: ${podcast.latestEpisodeDate.toISOString()}`);
+      console.log(`  - Last episode date (day): ${latestDate.toISOString()}`);
       console.log(`  - Frequency: ${podcast.frequency} days`);
-      console.log(`  - Next episode due: ${nextEpisodeDate.toISOString()}`);
+      console.log(`  - Days since last episode: ${daysSinceLastEpisode}`);
       console.log(`  - Current date: ${now.toISOString()}`);
+      console.log(`  - Current date (day): ${today.toISOString()}`);
       console.log(`  - Needs new episode: ${needsEpisode}`);
       
       return needsEpisode;
