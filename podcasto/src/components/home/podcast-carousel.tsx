@@ -35,7 +35,10 @@ export async function PodcastCarousel() {
           created_by: null,
           podcast_group_id: item.id,
           language_code: primaryLang.language_code,
-          migration_status: 'grouped' as const
+          migration_status: 'grouped' as const,
+          auto_generation_enabled: null,
+          last_auto_generated_at: null,
+          next_scheduled_generation: null
         };
       } else {
         // Legacy podcast - use podcast_data
@@ -51,7 +54,10 @@ export async function PodcastCarousel() {
           created_by: item.podcast_data!.created_by,
           podcast_group_id: null,
           language_code: null,
-          migration_status: 'legacy' as const
+          migration_status: 'legacy' as const,
+          auto_generation_enabled: item.podcast_data!.auto_generation_enabled,
+          last_auto_generated_at: item.podcast_data!.last_auto_generated_at,
+          next_scheduled_generation: item.podcast_data!.next_scheduled_generation
         };
       }
     });

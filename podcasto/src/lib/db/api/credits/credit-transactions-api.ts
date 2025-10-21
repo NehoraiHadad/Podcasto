@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { creditTransactions } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 /**
  * Credit Transactions API
@@ -84,8 +84,10 @@ export async function getUserTransactionsByType(
   const transactions = await db
     .select()
     .from(creditTransactions)
-    .where(eq(creditTransactions.user_id, userId))
-    .where(eq(creditTransactions.transaction_type, type))
+    .where(and(
+      eq(creditTransactions.user_id, userId),
+      eq(creditTransactions.transaction_type, type)
+    ))
     .orderBy(desc(creditTransactions.created_at))
     .limit(limit);
 

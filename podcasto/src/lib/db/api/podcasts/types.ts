@@ -51,6 +51,11 @@ export type PodcastWithConfig = Podcast & {
   // Mixing techniques
   mixing_techniques?: string[];
   additional_instructions?: string;
+
+  // Scheduling fields (from podcasts table)
+  auto_generation_enabled?: boolean | null;
+  last_auto_generated_at?: Date | null;
+  next_scheduled_generation?: Date | null;
 };
 
 /**

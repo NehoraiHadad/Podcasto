@@ -1,0 +1,192 @@
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Play, Settings, Calendar, Loader2, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { generateEpisodeWithCreditsAction } from '@/lib/actions/episode/generation-with-credits';
+import { EpisodeCostIndicator } from './episode-cost-indicator';
+import type { Podcast } from '@/lib/db/api/podcasts/types';
+
+interface PodcastCardUserProps {
+  podcast: Podcast;
+  episodeCount: number;
+  userCredits: number;
+  episodeCost: number;
+}
+
+export function PodcastCardUser({
+  podcast,
+  episodeCount,
+  userCredits,
+  episodeCost
+}: PodcastCardUserProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
+
+  const hasEnoughCredits = userCredits >= episodeCost;
+
+  const handleGenerateEpisode = async () => {
+    if (!hasEnoughCredits) {
+      toast({
+        title: 'Insufficient credits',
+        description: `You need ${episodeCost - userCredits} more credits to generate an episode.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const result = await generateEpisodeWithCreditsAction(podcast.id);
+
+      if (result.success) {
+        toast({
+          title: 'Episode generation started',
+          description: 'Your episode is being generated. This may take a few minutes.',
+        });
+
+        // Redirect to the episode page after a short delay
+        if (result.data?.episodeId) {
+          setTimeout(() => {
+            window.location.href = `/podcasts/${podcast.id}`;
+          }, 1500);
+        }
+      } else {
+        toast({
+          title: 'Generation failed',
+          description: result.error || 'Failed to generate episode',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error generating episode:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const truncateDescription = (text: string | null, maxLength: number = 120) => {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+  };
+
+  return (
+    <Card className="flex flex-col h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <Link href={`/podcasts/${podcast.id}`} className="hover:underline">
+              <CardTitle className="text-lg line-clamp-2">{podcast.title}</CardTitle>
+            </Link>
+
+            <CardDescription className="mt-1.5 line-clamp-2">
+              {truncateDescription(podcast.description)}
+            </CardDescription>
+          </div>
+
+          {podcast.cover_image && (
+            <div className="relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
+              <Image
+                src={podcast.cover_image}
+                alt={podcast.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          {podcast.auto_generation_enabled && (
+            <Badge variant="secondary" className="gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Auto-generate enabled
+            </Badge>
+          )}
+
+          {podcast.is_paused && (
+            <Badge variant="outline">Paused</Badge>
+          )}
+
+          <Badge variant="outline" className="gap-1">
+            <Play className="h-3 w-3" />
+            {episodeCount} {episodeCount === 1 ? 'episode' : 'episodes'}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex-1 pb-3">
+        <EpisodeCostIndicator
+          userCredits={userCredits}
+          episodeCost={episodeCost}
+          showLabel={false}
+          className="justify-start"
+        />
+      </CardContent>
+
+      <CardFooter className="flex flex-col gap-2 pt-3">
+        <Button
+          onClick={handleGenerateEpisode}
+          disabled={isGenerating || !hasEnoughCredits || podcast.is_paused}
+          className="w-full"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Play className="mr-2 h-4 w-4" />
+              Generate Episode
+            </>
+          )}
+        </Button>
+
+        <div className="flex gap-2 w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="flex-1"
+          >
+            <Link href={`/podcasts/${podcast.id}`}>
+              <Play className="mr-2 h-3 w-3" />
+              View Episodes
+            </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="flex-1"
+          >
+            <Link href={`/podcasts/${podcast.id}/settings`}>
+              <Settings className="mr-2 h-3 w-3" />
+              Settings
+            </Link>
+          </Button>
+        </div>
+
+        {podcast.next_scheduled_generation && podcast.auto_generation_enabled && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <Calendar className="h-3 w-3" />
+            Next: {new Date(podcast.next_scheduled_generation).toLocaleDateString()}
+          </div>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}

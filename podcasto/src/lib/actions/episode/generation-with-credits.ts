@@ -27,7 +27,7 @@ export async function generateEpisodeWithCreditsAction(
     }
 
     // Check if user is admin (admins bypass credit checks)
-    const { isAdmin } = await checkIsAdmin({ redirectOnFailure: false });
+    const isAdmin = await checkIsAdmin({ redirectOnFailure: false });
 
     if (!isAdmin) {
       // Regular users: Check if podcast belongs to user

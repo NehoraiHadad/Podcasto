@@ -15,7 +15,7 @@ import { createMiddlewareClient, updateSession } from '@/lib/auth/session/middle
 /**
  * Routes that require authentication
  */
-const PROTECTED_ROUTES = ['/profile', '/settings', '/podcasts/my'];
+const PROTECTED_ROUTES = ['/profile', '/settings', '/podcasts/my', '/credits'];
 
 /**
  * Routes that require admin role

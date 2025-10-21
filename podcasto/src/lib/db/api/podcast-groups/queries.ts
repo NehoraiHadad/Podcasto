@@ -262,6 +262,9 @@ export interface UnifiedPodcastDisplay {
     migration_status: string | null;
     created_at: Date | null;
     updated_at: Date | null;
+    auto_generation_enabled: boolean | null;
+    last_auto_generated_at: Date | null;
+    next_scheduled_generation: Date | null;
   };
 }
 
@@ -320,7 +323,10 @@ export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[
         language_code: podcast.language_code,
         migration_status: podcast.migration_status,
         created_at: podcast.created_at,
-        updated_at: podcast.updated_at
+        updated_at: podcast.updated_at,
+        auto_generation_enabled: podcast.auto_generation_enabled,
+        last_auto_generated_at: podcast.last_auto_generated_at,
+        next_scheduled_generation: podcast.next_scheduled_generation
       }
     });
   }

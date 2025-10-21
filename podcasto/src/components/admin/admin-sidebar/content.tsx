@@ -10,7 +10,8 @@ import {
   Settings,
   PlusCircle,
   BarChart,
-  DollarSign
+  DollarSign,
+  CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from './context';
@@ -77,6 +78,12 @@ export function SidebarContent() {
       title: 'Costs',
       href: '/admin/costs',
       icon: <DollarSign className="h-5 w-5" />,
+      exact: false,
+    },
+    {
+      title: 'Credits',
+      href: '/admin/credits',
+      icon: <CreditCard className="h-5 w-5" />,
       exact: false,
     },
     {

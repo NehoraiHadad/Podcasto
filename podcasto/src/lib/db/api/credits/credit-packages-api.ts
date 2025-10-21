@@ -130,7 +130,7 @@ export async function deleteCreditPackage(packageId: string): Promise<boolean> {
     .delete(creditPackages)
     .where(eq(creditPackages.id, packageId));
 
-  return result.rowCount > 0;
+  return Array.isArray(result) ? result.length > 0 : true;
 }
 
 /**

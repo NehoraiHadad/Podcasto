@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/scheduled-episodes",
+      "schedule": "0 * * * *"
+    }
+  ],
   "functions": {
     "app/api/episodes/[id]/generate-image/route.js": {
       "maxDuration": 60
