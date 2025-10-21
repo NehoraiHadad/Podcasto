@@ -12,7 +12,6 @@ import type { Control } from 'react-hook-form';
 import type { PodcastGroupCreationFormValues } from './schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 
 /**
  * Props for LanguageVariantCreationCard component
@@ -62,11 +61,10 @@ export function LanguageVariantCreationCard({
 
       <CardContent className="space-y-4">
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
             <TabsTrigger value="style">Style</TabsTrigger>
           </TabsList>
 
@@ -300,64 +298,6 @@ export function LanguageVariantCreationCard({
                 </FormItem>
               )}
             />
-          </TabsContent>
-
-          {/* Advanced Tab */}
-          <TabsContent value="advanced" className="space-y-4">
-            <FormField
-              control={control}
-              name={`languages.${index}.isLongPodcast`}
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Long Podcast</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name={`languages.${index}.discussionRounds`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Discussion Rounds</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={control}
-              name={`languages.${index}.minCharsPerRound`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Min Characters Per Round</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={control}
               name={`languages.${index}.episodeFrequency`}

@@ -29,10 +29,7 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
 
-    // Advanced settings
-    isLongPodcast: z.boolean().default(false),
-    discussionRounds: z.number().min(1).max(20).default(5),
-    minCharsPerRound: z.number().min(100).max(2000).default(500),
+    // Episode settings
     episodeFrequency: z.number().min(1).max(30).default(7),
 
     // Style and roles
@@ -77,10 +74,7 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
 
-    // Advanced settings
-    isLongPodcast: z.boolean().default(false),
-    discussionRounds: z.number().min(1).max(20).default(5),
-    minCharsPerRound: z.number().min(100).max(2000).default(500),
+    // Episode settings
     episodeFrequency: z.number().min(1).max(30).default(7),
 
     // Style and roles
