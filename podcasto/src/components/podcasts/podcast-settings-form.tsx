@@ -38,6 +38,7 @@ import type { PodcastConfig } from '@/lib/db/api/podcast-configs';
 const settingsSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
+  coverImage: z.string().url().optional().or(z.literal('')),
   episodeFrequency: z.number().int().min(1).max(30),
   autoGenerationEnabled: z.boolean(),
 });
@@ -61,6 +62,7 @@ export function PodcastSettingsForm({ podcast, config }: PodcastSettingsFormProp
     defaultValues: {
       title: podcast.title,
       description: podcast.description || '',
+      coverImage: podcast.cover_image || '',
       episodeFrequency: config?.episode_frequency || 7,
       autoGenerationEnabled: podcast.auto_generation_enabled || false,
     },
@@ -73,6 +75,7 @@ export function PodcastSettingsForm({ podcast, config }: PodcastSettingsFormProp
       const result = await updateUserPodcastAction(podcast.id, {
         title: values.title,
         description: values.description,
+        coverImage: values.coverImage,
         episodeFrequency: values.episodeFrequency,
         autoGenerationEnabled: values.autoGenerationEnabled,
       });
@@ -212,6 +215,24 @@ export function PodcastSettingsForm({ podcast, config }: PodcastSettingsFormProp
                     <FormControl>
                       <Textarea rows={3} {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Cover Image */}
+              <FormField
+                control={form.control}
+                name="coverImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cover Image URL</FormLabel>
+                    <FormControl>
+                      <Input type="url" placeholder="https://example.com/podcast-cover.jpg" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Optional: Provide a URL to your podcast cover image. Leave empty to use the default image.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -13,6 +13,7 @@ import type { ActionResult } from './shared/types';
 interface UpdatePodcastData {
   title?: string;
   description?: string;
+  coverImage?: string;
   episodeFrequency?: number;
   autoGenerationEnabled?: boolean;
 }
@@ -50,10 +51,11 @@ export async function updateUserPodcastAction(
     }
 
     // Update podcast metadata
-    if (data.title || data.description !== undefined) {
+    if (data.title || data.description !== undefined || data.coverImage !== undefined) {
       await podcastsApi.updatePodcast(podcastId, {
         title: data.title,
         description: data.description,
+        cover_image: data.coverImage,
         updated_at: new Date()
       });
     }
