@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CoverImageField } from '@/components/shared';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -221,21 +222,9 @@ export function PodcastSettingsForm({ podcast, config }: PodcastSettingsFormProp
               />
 
               {/* Cover Image */}
-              <FormField
+              <CoverImageField
                 control={form.control}
                 name="coverImage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cover Image URL</FormLabel>
-                    <FormControl>
-                      <Input type="url" placeholder="https://example.com/podcast-cover.jpg" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Optional: Provide a URL to your podcast cover image. Leave empty to use the default image.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
               />
 
               {/* Episode Frequency */}

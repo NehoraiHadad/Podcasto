@@ -12,6 +12,7 @@ import type { Control } from 'react-hook-form';
 import type { PodcastGroupCreationFormValues } from './schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import { CoverImageField } from '@/components/shared';
 
 /**
  * Props for LanguageVariantCreationCard component
@@ -149,21 +150,10 @@ export function LanguageVariantCreationCard({
               )}
             />
 
-            <FormField
+            <CoverImageField
               control={control}
               name={`languages.${index}.cover_image`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cover Image URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="https://example.com/image.jpg" type="url" />
-                  </FormControl>
-                  <FormDescription>
-                    Provide a cover image URL. Leave empty to use Telegram channel photo.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              description="Provide a cover image URL. Leave empty to use Telegram channel photo."
             />
           </TabsContent>
 

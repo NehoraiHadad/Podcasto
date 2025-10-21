@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { createPodcastAction } from '@/lib/actions/podcast-group-actions';
+import { CoverImageField } from '@/components/shared';
 
 const createPodcastSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -162,25 +163,11 @@ export function CreatePodcastForm({ userCredits }: CreatePodcastFormProps) {
         />
 
         {/* Cover Image URL */}
-        <FormField
+        <CoverImageField
           control={form.control}
           name="coverImage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cover Image URL</FormLabel>
-              <FormControl>
-                <Input
-                  type="url"
-                  placeholder="https://example.com/podcast-cover.jpg"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Optional: Provide a URL to your podcast cover image. We'll fetch the channel image from Telegram if left empty.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Cover Image URL"
+          description="Optional: Provide a URL to your podcast cover image. We'll fetch the channel image from Telegram if left empty."
         />
 
         {/* Telegram Channel */}
