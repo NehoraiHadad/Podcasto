@@ -75,7 +75,8 @@ export class GeminiProvider implements AIProvider {
     titleOptions?: TitleGenerationOptions,
     summaryOptions?: SummaryGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<TitleSummaryResult> {
     try {
       return await withRetry(async () => {
@@ -101,6 +102,7 @@ export class GeminiProvider implements AIProvider {
             await trackCostEvent({
               episodeId,
               podcastId,
+              userId,
               eventType: 'ai_api_call',
               service: 'gemini_text',
               quantity: response.usageMetadata.totalTokenCount || 0,
@@ -141,10 +143,11 @@ export class GeminiProvider implements AIProvider {
     description: string,
     options?: ImageGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageGenerationResult> {
     // Delegate to the specialized image generator
-    return this.imageGenerator.generateImage(description, options, episodeId, podcastId);
+    return this.imageGenerator.generateImage(description, options, episodeId, podcastId, userId);
   }
 
   /**
@@ -163,6 +166,7 @@ export class GeminiProvider implements AIProvider {
     modelName?: string;
     episodeId?: string;
     podcastId?: string;
+    userId?: string;
   }): Promise<string> {
     return this.textGenerator.generateText(prompt, options);
   }

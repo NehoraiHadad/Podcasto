@@ -1,5 +1,6 @@
 import { pgTable, uuid, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { podcastGroups } from './podcast-groups';
+import { profiles } from './profiles';
 
 export const podcasts = pgTable('podcasts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -8,6 +9,9 @@ export const podcasts = pgTable('podcasts', {
   cover_image: text('cover_image'),
   image_style: text('image_style'), // Style used for podcast cover (e.g., 'modern-professional')
   is_paused: boolean('is_paused').default(false).notNull(),
+
+  // User ownership (null for legacy/system podcasts)
+  created_by: uuid('created_by').references(() => profiles.id, { onDelete: 'set null' }),
 
   // Multilingual podcast group support (nullable for backward compatibility)
   podcast_group_id: uuid('podcast_group_id').references(() => podcastGroups.id, { onDelete: 'set null' }),

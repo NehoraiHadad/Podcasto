@@ -79,7 +79,8 @@ export class PromptGenerator {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string> {
     try {
       console.log(`[PROMPT_GENERATOR] Generating image prompt from summary`);
@@ -104,7 +105,8 @@ export class PromptGenerator {
         temperature: 0.7,
         maxTokens: 300,
         episodeId,
-        podcastId
+        podcastId,
+        userId
       });
 
       if (!result || !result.trim()) {

@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, numeric, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { episodes } from './episodes';
 import { podcasts } from './podcasts';
+import { profiles } from './profiles';
 
 /**
  * Raw event log for all cost-generating operations
@@ -12,6 +13,9 @@ export const costTrackingEvents = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     episode_id: uuid('episode_id').references(() => episodes.id, { onDelete: 'cascade' }),
     podcast_id: uuid('podcast_id').references(() => podcasts.id, { onDelete: 'cascade' }),
+
+    // User ownership (null for system/legacy operations)
+    user_id: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }),
 
     // Event classification
     event_type: text('event_type').notNull(), // 'ai_api_call', 'lambda_execution', 's3_operation', 'ses_email', 'sqs_message', 'storage_usage'
@@ -43,6 +47,7 @@ export const costTrackingEvents = pgTable(
   (table) => ({
     episodeIdx: index('cost_tracking_events_episode_idx').on(table.episode_id),
     podcastIdx: index('cost_tracking_events_podcast_idx').on(table.podcast_id),
+    userIdx: index('cost_tracking_events_user_idx').on(table.user_id),
     timestampIdx: index('cost_tracking_events_timestamp_idx').on(table.timestamp),
     serviceIdx: index('cost_tracking_events_service_idx').on(table.service)
   })

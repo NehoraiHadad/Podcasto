@@ -14,6 +14,7 @@ import { episodeCosts } from './episode-costs';
 import { dailyCostSummary } from './daily-cost-summary';
 import { monthlyCostSummary } from './monthly-cost-summary';
 import { costPricingConfig } from './cost-pricing-config';
+import { userCosts } from './user-costs';
 
 // Export all schema objects
 export {
@@ -31,7 +32,8 @@ export {
   episodeCosts,
   dailyCostSummary,
   monthlyCostSummary,
-  costPricingConfig
+  costPricingConfig,
+  userCosts
 };
 
 // Export relationships for use in queries

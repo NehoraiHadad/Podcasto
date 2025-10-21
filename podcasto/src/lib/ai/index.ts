@@ -72,7 +72,8 @@ export class AIService {
     titleOptions?: TitleGenerationOptions,
     summaryOptions?: SummaryGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<TitleSummaryResult> {
     try {
       console.log(`[AI_SERVICE] Generating title and summary using primary provider`);
@@ -81,7 +82,8 @@ export class AIService {
         titleOptions,
         summaryOptions,
         episodeId,
-        podcastId
+        podcastId,
+        userId
       );
     } catch (error) {
       console.error(`[AI_SERVICE] Error generating title/summary with primary provider:`, error);
@@ -95,7 +97,8 @@ export class AIService {
             titleOptions,
             summaryOptions,
             episodeId,
-            podcastId
+            podcastId,
+            userId
           );
         } catch (fallbackError) {
           console.error(`[AI_SERVICE] Fallback provider also failed for title/summary:`, fallbackError);
@@ -114,20 +117,21 @@ export class AIService {
     description: string,
     options?: ImageGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageGenerationResult> {
     console.log(`[AI_SERVICE] Starting image generation for prompt: "${description.substring(0, 50)}..."`);
 
     try {
       // First try with the dedicated image generator
-      const result = await this.imageGenerator.generateImage(description, options, episodeId, podcastId);
+      const result = await this.imageGenerator.generateImage(description, options, episodeId, podcastId, userId);
       if (result.imageData) {
         return result;
       }
 
       // If the image generator didn't produce an image, try the text provider
       console.log(`[AI_SERVICE] Dedicated image generator returned no image, trying primary provider`);
-      const primaryResult = await this.provider.generateImage(description, options, episodeId, podcastId);
+      const primaryResult = await this.provider.generateImage(description, options, episodeId, podcastId, userId);
       if (primaryResult.imageData) {
         return primaryResult;
       }
@@ -135,7 +139,7 @@ export class AIService {
       // Try fallback provider as last resort
       if (this.fallbackProvider) {
         console.log(`[AI_SERVICE] Primary provider returned no image, trying fallback provider`);
-        const fallbackResult = await this.fallbackProvider.generateImage(description, options, episodeId, podcastId);
+        const fallbackResult = await this.fallbackProvider.generateImage(description, options, episodeId, podcastId, userId);
         if (fallbackResult.imageData) {
           return fallbackResult;
         }
@@ -151,7 +155,7 @@ export class AIService {
       if (this.fallbackProvider) {
         console.log(`[AI_SERVICE] Attempting to use fallback provider for image generation`);
         try {
-          return await this.fallbackProvider.generateImage(description, options, episodeId, podcastId);
+          return await this.fallbackProvider.generateImage(description, options, episodeId, podcastId, userId);
         } catch (fallbackError) {
           console.error(`[AI_SERVICE] Fallback provider also failed for image generation:`, fallbackError);
         }

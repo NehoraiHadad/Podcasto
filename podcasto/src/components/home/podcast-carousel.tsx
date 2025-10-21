@@ -32,6 +32,7 @@ export async function PodcastCarousel() {
           updated_at: item.updated_at,
           image_style: null,
           is_paused: false,
+          created_by: null,
           podcast_group_id: item.id,
           language_code: primaryLang.language_code,
           migration_status: 'grouped' as const
@@ -47,6 +48,7 @@ export async function PodcastCarousel() {
           updated_at: item.podcast_data!.updated_at,
           image_style: item.podcast_data!.image_style,
           is_paused: item.podcast_data!.is_paused,
+          created_by: item.podcast_data!.created_by,
           podcast_group_id: null,
           language_code: null,
           migration_status: 'legacy' as const

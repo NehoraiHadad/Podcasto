@@ -5,7 +5,7 @@
  * Accepts base64-encoded image data from file upload.
  */
 
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getUser } from '@/lib/auth';
 import { enhanceImageWithAI } from './shared';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 
@@ -29,6 +29,7 @@ export async function generatePodcastImageFromFile(
 ): Promise<ImageActionResult> {
   try {
     await requireAdmin();
+    const user = await getUser();
 
     console.log(`[IMAGE_FILE] Generating image from uploaded file for podcast ${podcastId}`);
 
@@ -39,7 +40,10 @@ export async function generatePodcastImageFromFile(
     return await enhanceImageWithAI(
       imageBuffer,
       podcastTitle,
-      options
+      options,
+      undefined, // No episode ID in podcast creation
+      podcastId,
+      user?.id
     );
   } catch (error) {
     console.error('[IMAGE_FILE] Error generating from file:', error);

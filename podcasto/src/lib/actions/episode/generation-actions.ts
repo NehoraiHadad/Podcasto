@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getUser } from '@/lib/auth';
 import { episodesApi } from '@/lib/db/api';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { getPostProcessingConfig } from '@/lib/utils/post-processing-utils';
@@ -22,11 +22,12 @@ export async function generateEpisodeTitleAndDescription(
 }> {
   // Ensure the user is an admin
   await requireAdmin();
+  const user = await getUser();
 
   try {
     // Get the episode
     const episode = await episodesApi.getEpisodeById(episodeId);
-    
+
     if (!episode) {
       throw new Error('Episode not found');
     }
@@ -56,18 +57,18 @@ export async function generateEpisodeTitleAndDescription(
       episode.podcast_id,
       episodeId
     );
-    
+
     if (!transcript) {
       throw new Error('No transcript found for this episode. Cannot generate title and description without transcript.');
     }
 
     // Use episode language or default to English
     const language = episode.language === 'hebrew' ? 'Hebrew' : 'English';
-    
+
     // Preprocess transcript
     const processedTranscript = transcriptProcessor.preprocessTranscript(transcript);
-    
-    // Generate title and summary using AI service
+
+    // Generate title and summary using AI service with userId for cost tracking
     const { title, summary } = await aiService.generateTitleAndSummary(
       processedTranscript,
       {
@@ -81,7 +82,8 @@ export async function generateEpisodeTitleAndDescription(
         maxLength: 150
       },
       episodeId,
-      episode.podcast_id
+      episode.podcast_id,
+      user?.id
     );
 
     return {

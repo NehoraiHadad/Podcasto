@@ -21,16 +21,17 @@ export async function createPodcast(data: PodcastCreationData): Promise<ActionRe
   try {
     // Validate the input data
     const validatedData = podcastCreationSchema.parse(data);
-    
-    // Check if user has admin role 
-    await requireAdmin();
-    
+
+    // Check if user has admin role
+    const user = await requireAdmin();
+
     // Create the podcast in the database
     const podcast = await podcastsApi.createPodcast({
       title: validatedData.title,
       description: validatedData.description,
       cover_image: validatedData.coverImage,
       image_style: validatedData.imageStyle,
+      created_by: user?.id,
     });
     
     if (!podcast) {
@@ -96,10 +97,10 @@ export async function createSimplePodcast(data: SimplePodcastData): Promise<Acti
   try {
     // Validate the input data
     const validatedData = simplePodcastSchema.parse(data);
-    
+
     // Check if the user has admin permissions
-    await requireAdmin();
-    
+    const user = await requireAdmin();
+
     // Validate required fields
     if (!validatedData.title || validatedData.title.trim().length < 3) {
       return {
@@ -107,7 +108,7 @@ export async function createSimplePodcast(data: SimplePodcastData): Promise<Acti
         error: 'Title is required and must be at least 3 characters',
       };
     }
-    
+
     // Check if a podcast with the same title already exists
     const exists = await podcastsApi.podcastExistsByTitle(validatedData.title);
     if (exists) {
@@ -116,13 +117,14 @@ export async function createSimplePodcast(data: SimplePodcastData): Promise<Acti
         error: 'A podcast with this title already exists',
       };
     }
-    
+
     // Create the podcast in the database
     const podcast = await podcastsApi.createPodcast({
       title: validatedData.title,
       description: validatedData.description,
       cover_image: validatedData.cover_image,
       image_style: validatedData.image_style,
+      created_by: user?.id,
       created_at: new Date(),
       updated_at: new Date(),
     });

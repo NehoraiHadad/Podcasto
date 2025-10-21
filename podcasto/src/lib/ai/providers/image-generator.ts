@@ -23,7 +23,8 @@ export class ImageGenerator {
     description: string,
     options?: ImageGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageGenerationResult> {
     const retryCount = 0;
 
@@ -112,6 +113,7 @@ IMPORTANT: Only generate an image based on this description. Do not provide any 
             await trackCostEvent({
               episodeId,
               podcastId,
+              userId,
               eventType: 'ai_api_call',
               service: 'gemini_image',
               quantity: 1,

@@ -6,6 +6,7 @@
  */
 
 import { revalidatePath } from 'next/cache';
+import { getUser } from '@/lib/auth';
 import {
   checkEnvironmentConfiguration,
   validateDateRange,
@@ -45,8 +46,16 @@ export async function generatePodcastEpisode(
       }
     }
 
+    // Get current user if available (will be null for cron jobs)
+    const user = await getUser();
+
     // Log the generation request
     console.log(`[PODCAST_GEN] Starting generation for podcast ID: ${podcastId}`);
+    if (user) {
+      console.log(`[PODCAST_GEN] Triggered by user: ${user.id}`);
+    } else {
+      console.log(`[PODCAST_GEN] Triggered by automated scheduler`);
+    }
     if (dateRange) {
       console.log(`[PODCAST_GEN] Using custom date range: ${dateRange.startDate.toISOString()} to ${dateRange.endDate.toISOString()}`);
     }
@@ -65,7 +74,7 @@ export async function generatePodcastEpisode(
 
     // Create a new episode record
     const timestamp = new Date().toISOString();
-    const episodeResult = await createPendingEpisode(podcastId, timestamp, dateRange);
+    const episodeResult = await createPendingEpisode(podcastId, timestamp, dateRange, user?.id);
     if (!episodeResult.success) {
       return episodeResult;
     }

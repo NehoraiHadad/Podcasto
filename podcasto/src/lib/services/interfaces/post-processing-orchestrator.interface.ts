@@ -21,6 +21,7 @@ export interface IPostProcessingOrchestrator {
    * @param podcastId - Podcast identifier
    * @param episodeId - Episode identifier
    * @param options - Processing options
+   * @param userId - Optional user ID for cost tracking
    * @returns Processing result with updated episode data
    */
   processCompletedEpisode(
@@ -31,7 +32,8 @@ export interface IPostProcessingOrchestrator {
       skipTitleGeneration?: boolean;
       skipSummaryGeneration?: boolean;
       skipImageGeneration?: boolean;
-    }
+    },
+    userId?: string
   ): Promise<PostProcessingResult>;
 
   /**
@@ -46,9 +48,18 @@ export interface IPostProcessingOrchestrator {
    * Generate episode image preview (doesn't save)
    * @param summary - Episode summary
    * @param title - Optional episode title
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Image preview result
    */
-  generateEpisodeImagePreview(summary: string, title?: string): Promise<ImagePreviewResult>;
+  generateEpisodeImagePreview(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string,
+    userId?: string
+  ): Promise<ImagePreviewResult>;
 
   /**
    * Save generated image to S3 and update episode

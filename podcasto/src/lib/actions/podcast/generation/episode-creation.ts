@@ -15,12 +15,14 @@ import type { DateRange, EpisodeCreationResult } from './types';
  * @param podcastId - The ID of the podcast to create episode for
  * @param timestamp - ISO timestamp for tracking generation
  * @param dateRange - Optional date range for content collection
+ * @param userId - Optional user ID who triggered the generation
  * @returns EpisodeCreationResult with new episode ID or error
  */
 export async function createPendingEpisode(
   podcastId: string,
   timestamp: string,
-  dateRange?: DateRange
+  dateRange?: DateRange,
+  userId?: string
 ): Promise<EpisodeCreationResult> {
   try {
     // Get podcast config to retrieve language
@@ -37,6 +39,7 @@ export async function createPendingEpisode(
       language: language,
       content_start_date: dateRange?.startDate,
       content_end_date: dateRange?.endDate,
+      created_by: userId,
       metadata: JSON.stringify({
         generation_timestamp: timestamp,
         s3_key: `podcasts/${podcastId}/${timestamp}/podcast.mp3`,

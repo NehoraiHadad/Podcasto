@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getUser } from '@/lib/auth';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { createPostProcessingWithConfig, extractEpisodeDescription } from '@/lib/utils/post-processing-utils';
 
@@ -20,45 +20,49 @@ export async function generateEpisodeImagePreview(
 }> {
   // Ensure the user is an admin
   await requireAdmin();
-  
+  const user = await getUser();
+
   try {
     // Get the episode
     const episode = await episodesApi.getEpisodeById(episodeId);
-    
+
     if (!episode) {
       throw new Error('Episode not found');
     }
-    
+
     if (!episode.podcast_id) {
       throw new Error('Episode has no associated podcast');
     }
-    
+
     // Extract usable description for image generation
     const description = await extractEpisodeDescription(episode);
-    
+
     // Still no usable description
     if (!description) {
       throw new Error('Episode has no description for image generation');
     }
-    
+
     // Create post-processing service with AI config only (no S3 needed for preview)
     const postProcessingService = await createPostProcessingWithConfig(true, false);
-    
+
     // Get the episode title
     const title = episode.title || undefined;
-    
+
     // Type guard to ensure we have the correct service type
     if (!('generateEpisodeImagePreview' in postProcessingService)) {
       throw new Error('Service does not support image preview generation');
     }
-    
+
     // TypeScript now knows this service has generateEpisodeImagePreview method
     const imageService = postProcessingService as Extract<typeof postProcessingService, { generateEpisodeImagePreview: unknown }>;
-    
-    // Generate the image preview
+
+    // Generate the image preview with cost tracking IDs
     const previewResult = await imageService.generateEpisodeImagePreview(
       description,
-      title
+      title,
+      episodeId,
+      episode.podcast_id as string,
+      user?.id
     );
     
     if (previewResult.success && previewResult.imageData) {

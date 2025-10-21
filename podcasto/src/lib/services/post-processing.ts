@@ -50,7 +50,8 @@ export class PostProcessingService {
       skipTitleGeneration?: boolean;
       skipSummaryGeneration?: boolean;
       skipImageGeneration?: boolean;
-    }
+    },
+    userId?: string
   ): Promise<{ success: boolean; message: string; episode?: Episode }> {
     try {
       const episode = await this.getEpisode(episodeId);
@@ -70,7 +71,8 @@ export class PostProcessingService {
         { language, style: 'engaging', maxLength: 60 },
         { language, style: 'concise', maxLength: 150 },
         episodeId,
-        podcastId
+        podcastId,
+        userId
       );
 
       await this.episodeUpdater.updateEpisodeWithSummary(
@@ -82,7 +84,7 @@ export class PostProcessingService {
       const updatedEpisode = { id: episodeId, title, description: summary };
 
       if (!options?.skipImageGeneration) {
-        await this.imageHandler.generateEpisodeImage(episodeId, episode.podcast_id, summary);
+        await this.imageHandler.generateEpisodeImage(episodeId, episode.podcast_id, summary, userId);
       }
 
       // Calculate episode cost after processing completes
@@ -110,7 +112,10 @@ export class PostProcessingService {
 
   async generateEpisodeImagePreview(
     summary: string,
-    title?: string
+    title?: string,
+    episodeId?: string,
+    podcastId?: string,
+    userId?: string
   ): Promise<{
     success: boolean;
     imageData: Buffer | null;
@@ -119,7 +124,7 @@ export class PostProcessingService {
     error?: string;
   }> {
     try {
-      const result = await this.imageHandler.generateImagePreview(summary, title);
+      const result = await this.imageHandler.generateImagePreview(summary, title, episodeId, podcastId, userId);
       return {
         success: !!result.imageData,
         imageData: result.imageData,

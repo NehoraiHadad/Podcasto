@@ -256,6 +256,7 @@ export interface UnifiedPodcastDisplay {
     cover_image: string | null;
     image_style: string | null;
     is_paused: boolean;
+    created_by: string | null;
     podcast_group_id: string | null;
     language_code: string | null;
     migration_status: string | null;
@@ -314,6 +315,7 @@ export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[
         cover_image: podcast.cover_image,
         image_style: podcast.image_style,
         is_paused: podcast.is_paused,
+        created_by: podcast.created_by,
         podcast_group_id: podcast.podcast_group_id,
         language_code: podcast.language_code,
         migration_status: podcast.migration_status,

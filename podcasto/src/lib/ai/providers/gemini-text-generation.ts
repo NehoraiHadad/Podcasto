@@ -14,6 +14,7 @@ export interface TextGenerationOptions {
   responseSchema?: object; // Schema for structured JSON output
   episodeId?: string;
   podcastId?: string;
+  userId?: string;
 }
 
 /**
@@ -73,6 +74,7 @@ export class GeminiTextGenerator {
             await trackCostEvent({
               episodeId: options?.episodeId,
               podcastId: options?.podcastId,
+              userId: options?.userId,
               eventType: 'ai_api_call',
               service: 'gemini_text',
               quantity: response.usageMetadata.totalTokenCount || 0,
@@ -108,7 +110,8 @@ export class GeminiTextGenerator {
   async generateSummary(
     transcript: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string> {
     const prompt = `
     Summarize the following podcast transcript in a concise way:
@@ -120,7 +123,7 @@ export class GeminiTextGenerator {
     Use 3-5 paragraphs and highlight the most valuable content.
     `;
 
-    return this.generateText(prompt, { episodeId, podcastId });
+    return this.generateText(prompt, { episodeId, podcastId, userId });
   }
 
   /**
@@ -129,7 +132,8 @@ export class GeminiTextGenerator {
   async generateTitle(
     input: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string> {
     const prompt = `
     Create an engaging and concise title for a podcast episode based on the following content:
@@ -145,6 +149,6 @@ export class GeminiTextGenerator {
     Respond with ONLY the title, no additional text or explanation.
     `;
 
-    return this.generateText(prompt, { episodeId, podcastId });
+    return this.generateText(prompt, { episodeId, podcastId, userId });
   }
 } 

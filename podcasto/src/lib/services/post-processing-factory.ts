@@ -42,7 +42,10 @@ export function createImageOnlyService(config: {
 
     async generateEpisodeImagePreview(
       summary: string,
-      title?: string
+      title?: string,
+      episodeId?: string,
+      podcastId?: string,
+      userId?: string
     ): Promise<{
       success: boolean;
       imageData: Buffer | null;
@@ -53,7 +56,7 @@ export function createImageOnlyService(config: {
       try {
         const { ImageGenerationService } = await import('./image-generation');
         const imageService = new ImageGenerationService(aiService);
-        const result = await imageService.generateImagePreview(summary, title);
+        const result = await imageService.generateImagePreview(summary, title, episodeId, podcastId, userId);
         return {
           success: !!result.imageData,
           imageData: result.imageData,

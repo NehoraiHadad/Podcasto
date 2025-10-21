@@ -1,5 +1,6 @@
 import { pgTable, uuid, text, integer, timestamp, varchar, jsonb } from 'drizzle-orm/pg-core';
 import { podcasts } from './podcasts';
+import { profiles } from './profiles';
 
 export const episodes = pgTable('episodes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -19,6 +20,9 @@ export const episodes = pgTable('episodes', {
   speaker2_role: text('speaker2_role'),
   content_start_date: timestamp('content_start_date', { withTimezone: true }),
   content_end_date: timestamp('content_end_date', { withTimezone: true }),
+
+  // User ownership (null for legacy/system episodes)
+  created_by: uuid('created_by').references(() => profiles.id, { onDelete: 'set null' }),
 
   // Processing stage tracking
   current_stage: text('current_stage'),

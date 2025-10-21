@@ -46,6 +46,7 @@ export interface IImageGenerationService {
    * @param title - Optional episode title
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Enhanced image generation prompt
    * @throws Error if prompt generation fails
    */
@@ -53,7 +54,8 @@ export interface IImageGenerationService {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string>;
 
   /**
@@ -62,12 +64,14 @@ export interface IImageGenerationService {
    * @param title - Optional episode title
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Image preview result with buffer and metadata
    */
   generateImagePreview(
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImagePreviewResult>;
 }

@@ -43,9 +43,10 @@ export class ImageHandler implements IImageHandler {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string> {
-    return this.imageService.generateImagePrompt(summary, title, episodeId, podcastId);
+    return this.imageService.generateImagePrompt(summary, title, episodeId, podcastId, userId);
   }
 
   /**
@@ -55,7 +56,8 @@ export class ImageHandler implements IImageHandler {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<{
     success: boolean;
     imageData: Buffer | null;
@@ -63,7 +65,7 @@ export class ImageHandler implements IImageHandler {
     error?: string;
     generatedFromPrompt?: string;
   }> {
-    return this.imageService.generateImagePreview(summary, title, episodeId, podcastId);
+    return this.imageService.generateImagePreview(summary, title, episodeId, podcastId, userId);
   }
 
   /**
@@ -129,7 +131,8 @@ export class ImageHandler implements IImageHandler {
   async generateEpisodeImage(
     episodeId: string,
     podcastId: string,
-    summary: string
+    summary: string,
+    userId?: string
   ): Promise<boolean> {
     try {
       console.log(`[IMAGE_HANDLER] Generating image for episode ${episodeId}`);
@@ -139,7 +142,7 @@ export class ImageHandler implements IImageHandler {
       const title = episode?.title || undefined;
 
       // Generate image preview first with episodeId and podcastId for cost tracking
-      const previewResult = await this.generateImagePreview(summary, title, episodeId, podcastId);
+      const previewResult = await this.generateImagePreview(summary, title, episodeId, podcastId, userId);
 
       // If generation was successful, save it
       if (previewResult.success && previewResult.imageData) {

@@ -5,6 +5,7 @@
 
 import type { EnhancementOptions, EnhancementResult, SingleVariation, ImageAnalysis } from './podcast-image-enhancer';
 import { detectImageMimeType, createEnhancementPrompt } from './podcast-image-utils';
+import { trackCostEvent } from './cost-tracker';
 
 /**
  * Generate multiple variations of an enhanced image in parallel
@@ -46,7 +47,10 @@ export async function enhanceImageMultiple(
         mimeType,
         enhancementPrompt,
         options,
-        index
+        index,
+        options.episodeId,
+        options.podcastId,
+        options.userId
       )
     );
 
@@ -103,6 +107,9 @@ export async function enhanceImageMultiple(
  * @param prompt - Enhancement prompt
  * @param options - Enhancement options
  * @param index - Variation index (used for temperature adjustment)
+ * @param episodeId - Optional episode ID for cost tracking
+ * @param podcastId - Optional podcast ID for cost tracking
+ * @param userId - Optional user ID for cost tracking
  * @returns Single variation or null if generation fails
  */
 async function generateSingleVariation(
@@ -111,7 +118,10 @@ async function generateSingleVariation(
   mimeType: string,
   prompt: string,
   options: EnhancementOptions,
-  index: number
+  index: number,
+  episodeId?: string,
+  podcastId?: string,
+  userId?: string
 ): Promise<SingleVariation | null> {
   try {
     console.log(`[PODCAST_ENHANCER_MULTI] Generating variation ${index + 1}...`);
@@ -147,6 +157,27 @@ async function generateSingleVariation(
         responseModalities: ['Image'] // Only image output
       }
     });
+
+    // Track cost for this variation
+    try {
+      await trackCostEvent({
+        episodeId,
+        podcastId,
+        userId,
+        eventType: 'ai_api_call',
+        service: 'gemini_image',
+        quantity: 1,
+        unit: 'images',
+        metadata: {
+          model: 'gemini-2.5-flash-image',
+          operation: 'enhanceImageVariation',
+          variation_index: index,
+          temperature
+        }
+      });
+    } catch (costError) {
+      console.error(`[PODCAST_ENHANCER_MULTI] Cost tracking failed for variation ${index + 1}:`, costError);
+    }
 
     // Extract image from response
     const candidates = response.candidates;

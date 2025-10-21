@@ -3,7 +3,7 @@
  * Contains common logic used across multiple image actions.
  */
 
-import { createPodcastImageEnhancer, type ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
+import { createPodcastImageEnhancer, type ImageAnalysis, type EnhancementOptions } from '@/lib/services/podcast-image-enhancer';
 import { createPodcastImageAnalyzer } from '@/lib/services/podcast-image-analyzer';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 
@@ -15,12 +15,18 @@ import type { ImageActionResult, ImageGenerationOptions } from './types';
  * @param imageBuffer - The source image buffer to enhance
  * @param podcastTitle - Title of the podcast (used for AI context)
  * @param options - Generation options (style, variations)
+ * @param episodeId - Optional episode ID for cost tracking
+ * @param podcastId - Optional podcast ID for cost tracking
+ * @param userId - Optional user ID for cost tracking
  * @returns Result containing base64 image data (not uploaded to S3 yet)
  */
 export async function enhanceImageWithAI(
   imageBuffer: Buffer,
   podcastTitle: string,
-  options?: ImageGenerationOptions
+  options?: ImageGenerationOptions,
+  episodeId?: string,
+  podcastId?: string,
+  userId?: string
 ): Promise<ImageActionResult> {
   let finalImageBuffer = imageBuffer;
   let enhancedWithAI = false;
@@ -44,7 +50,10 @@ export async function enhanceImageWithAI(
           podcastTitle,
           podcastStyle: options?.style || 'modern, professional',
           aspectRatio: '1:1',
-          variationsCount
+          variationsCount,
+          episodeId,
+          podcastId,
+          userId
         }
       );
 

@@ -6,12 +6,16 @@
 import { ImageGenerator } from '../ai/providers';
 import type { IPodcastImageAnalyzer, IPodcastImageEnhancer } from './interfaces';
 import { detectImageMimeType, createEnhancementPrompt, createFromScratchPrompt } from './podcast-image-utils';
+import { trackCostEvent } from './cost-tracker';
 
 export interface EnhancementOptions {
   podcastTitle: string;
   podcastStyle?: string;
   aspectRatio?: '1:1' | '16:9' | '4:3' | '21:9';
   variationsCount?: number; // Number of variations to generate (1-3)
+  episodeId?: string;
+  podcastId?: string;
+  userId?: string;
 }
 
 export interface SingleVariation {
@@ -82,7 +86,10 @@ export class PodcastImageEnhancer implements IPodcastImageEnhancer {
     // Analyze the image first (AI will also generate the enhancement prompt)
     const analysis = await this.analyzer.analyzeImage(
       sourceImageBuffer,
-      options.podcastStyle || 'modern, professional'
+      options.podcastStyle || 'modern, professional',
+      options.episodeId,
+      options.podcastId,
+      options.userId
     );
 
     // Generate multiple variations in parallel
@@ -155,6 +162,25 @@ export class PodcastImageEnhancer implements IPodcastImageEnhancer {
       });
 
       console.log('[PODCAST_ENHANCER] Received response from Gemini');
+
+      // Track cost for image generation
+      try {
+        await trackCostEvent({
+          episodeId: options.episodeId,
+          podcastId: options.podcastId,
+          userId: options.userId,
+          eventType: 'ai_api_call',
+          service: 'gemini_image',
+          quantity: 1,
+          unit: 'images',
+          metadata: {
+            model: 'gemini-2.5-flash-image',
+            operation: 'enhanceImage'
+          }
+        });
+      } catch (costError) {
+        console.error('[PODCAST_ENHANCER] Cost tracking failed for enhanceImage:', costError);
+      }
 
       // Extract image from response
       const candidates = response.candidates;
@@ -241,9 +267,15 @@ export class PodcastImageEnhancer implements IPodcastImageEnhancer {
 
       const textPrompt = createFromScratchPrompt(options);
 
-      const result = await this.imageGenerator.generateImage(textPrompt, {
-        style: options.podcastStyle || 'modern, professional podcast cover'
-      });
+      const result = await this.imageGenerator.generateImage(
+        textPrompt,
+        {
+          style: options.podcastStyle || 'modern, professional podcast cover'
+        },
+        options.episodeId,
+        options.podcastId,
+        options.userId
+      );
 
       if (result.imageData) {
         return {

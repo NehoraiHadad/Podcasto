@@ -6,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CostsOverview } from '@/components/admin/costs/costs-overview';
 import { EpisodeCostsTable } from '@/components/admin/costs/episode-costs-table';
 import { PodcastCostsTable } from '@/components/admin/costs/podcast-costs-table';
+import { UserCostsTable } from '@/components/admin/costs/user-costs-table';
+import { CostDataManagement } from '@/components/admin/costs/cost-data-management';
+import { getAllUserCosts } from '@/lib/actions/cost';
 
 export const metadata = {
   title: 'Cost Tracking | Admin Dashboard | Podcasto',
@@ -110,6 +113,11 @@ export default async function CostsPage() {
       avgCostPerEpisode: Number(p.totalCost) / Number(p.episodeCount),
     }));
 
+  // Fetch all user costs
+  const userCostsResult = await getAllUserCosts();
+  const usersList = userCostsResult.success && userCostsResult.users ? userCostsResult.users : [];
+  const grandTotalCost = userCostsResult.success && userCostsResult.grandTotalCost ? userCostsResult.grandTotalCost : 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -124,6 +132,8 @@ export default async function CostsPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="episodes">Episodes</TabsTrigger>
           <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
+          <TabsTrigger value="users">משתמשים</TabsTrigger>
+          <TabsTrigger value="manage">ניהול נתונים</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -152,6 +162,19 @@ export default async function CostsPage() {
             </h3>
             <PodcastCostsTable podcasts={podcastsList} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              עלויות לפי משתמש ({usersList.length})
+            </h3>
+            <UserCostsTable users={usersList} grandTotalCost={grandTotalCost} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="manage" className="space-y-4">
+          <CostDataManagement />
         </TabsContent>
       </Tabs>
     </div>

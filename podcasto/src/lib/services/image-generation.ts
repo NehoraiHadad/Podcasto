@@ -39,9 +39,10 @@ export class ImageGenerationService implements IImageGenerationService {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string> {
-    return this.promptGenerator.generateImagePrompt(summary, title, episodeId, podcastId);
+    return this.promptGenerator.generateImagePrompt(summary, title, episodeId, podcastId, userId);
   }
 
   /**
@@ -51,7 +52,8 @@ export class ImageGenerationService implements IImageGenerationService {
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<{
     success: boolean;
     imageData: Buffer | null;
@@ -64,12 +66,12 @@ export class ImageGenerationService implements IImageGenerationService {
 
       // First, generate an enhanced image prompt
       // Cost tracking happens inside generateImagePrompt via GeminiTextGenerator
-      const jsonPrompt = await this.generateImagePrompt(summary, title, episodeId, podcastId);
+      const jsonPrompt = await this.generateImagePrompt(summary, title, episodeId, podcastId, userId);
 
       // Generate image based on the enhanced prompt
       // Cost tracking happens inside generateImage via ImageGenerator
       console.log(`[IMAGE_SERVICE] Using enhanced description for image generator`);
-      const imageResult = await this.aiService.generateImage(jsonPrompt, undefined, episodeId, podcastId);
+      const imageResult = await this.aiService.generateImage(jsonPrompt, undefined, episodeId, podcastId, userId);
 
       if (imageResult.imageData) {
         console.log(`[IMAGE_SERVICE] Successfully generated image preview`);

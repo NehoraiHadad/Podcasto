@@ -83,7 +83,8 @@ export interface AIProvider {
     titleOptions?: TitleGenerationOptions,
     summaryOptions?: SummaryGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<TitleSummaryResult>;
 
   /**
@@ -93,6 +94,7 @@ export interface AIProvider {
     description: string,
     options?: ImageGenerationOptions,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageGenerationResult>;
 } 

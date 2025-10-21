@@ -11,6 +11,9 @@ export interface EnhancementOptions {
   podcastStyle?: string;
   aspectRatio?: '1:1' | '16:9' | '4:3' | '21:9';
   variationsCount?: number; // Number of variations to generate (1-3)
+  episodeId?: string;
+  podcastId?: string;
+  userId?: string;
 }
 
 /**
@@ -82,13 +85,15 @@ export interface IPodcastImageAnalyzer {
    * @param podcastStyle - The desired podcast style for the enhancement (default: 'modern, professional')
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Image analysis with AI-generated enhancement prompt, or null if analysis fails
    */
   analyzeImage(
     sourceImageBuffer: Buffer,
     podcastStyle?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageAnalysis | null>;
 }
 
@@ -103,13 +108,15 @@ export interface IImageHandler {
    * @param title - Optional episode title
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Generated image prompt
    */
   generateImagePrompt(
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<string>;
 
   /**
@@ -118,13 +125,15 @@ export interface IImageHandler {
    * @param title - Optional episode title
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Preview result with image data
    */
   generateImagePreview(
     summary: string,
     title?: string,
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<{
     success: boolean;
     imageData: Buffer | null;

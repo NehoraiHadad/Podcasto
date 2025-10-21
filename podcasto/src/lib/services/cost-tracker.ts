@@ -11,6 +11,7 @@ import type {
 export interface TrackCostEventParams {
   episodeId?: string;
   podcastId?: string;
+  userId?: string;
   eventType: CostEventType;
   service: CostService;
   quantity: number;
@@ -46,7 +47,7 @@ export async function trackCostEvent(
   params: TrackCostEventParams
 ): Promise<TrackCostEventResult> {
   try {
-    const { episodeId, podcastId, eventType, service, quantity, unit, metadata } = params;
+    const { episodeId, podcastId, userId, eventType, service, quantity, unit, metadata } = params;
     const unitCostUsd = getCurrentPricing({ service });
     const totalCostUsd = quantity * unitCostUsd;
 
@@ -55,6 +56,7 @@ export async function trackCostEvent(
       .values({
         episode_id: episodeId,
         podcast_id: podcastId,
+        user_id: userId,
         event_type: eventType,
         service,
         quantity: quantity.toString(),
@@ -71,6 +73,7 @@ export async function trackCostEvent(
     console.error("[Cost Tracker] Failed to track cost event:", {
       error: errorMessage,
       params,
+      userId: params.userId,
     });
     return { success: false, error: errorMessage };
   }
@@ -97,6 +100,7 @@ export async function trackCostEventBatch(
       return {
         episode_id: event.episodeId,
         podcast_id: event.podcastId,
+        user_id: event.userId,
         event_type: event.eventType,
         service: event.service,
         quantity: event.quantity.toString(),

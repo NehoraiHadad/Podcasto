@@ -29,13 +29,15 @@ export class PodcastImageAnalyzer implements IPodcastImageAnalyzer {
    * @param podcastStyle - The desired podcast style for the enhancement
    * @param episodeId - Optional episode ID for cost tracking
    * @param podcastId - Optional podcast ID for cost tracking
+   * @param userId - Optional user ID for cost tracking
    * @returns Image analysis with AI-generated enhancement prompt, or null if analysis fails
    */
   async analyzeImage(
     sourceImageBuffer: Buffer,
     podcastStyle: string = 'modern, professional',
     episodeId?: string,
-    podcastId?: string
+    podcastId?: string,
+    userId?: string
   ): Promise<ImageAnalysis | null> {
     try {
       console.log('[PODCAST_ANALYZER] Analyzing source image...');
@@ -137,6 +139,7 @@ Format your response as JSON with these exact keys: description, colors, style, 
           await trackCostEvent({
             episodeId,
             podcastId,
+            userId,
             eventType: 'ai_api_call',
             service: 'gemini_text',
             quantity: response.usageMetadata.totalTokenCount || 0,
