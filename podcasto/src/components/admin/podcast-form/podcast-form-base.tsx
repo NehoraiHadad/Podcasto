@@ -48,9 +48,6 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       podcastName: '',
       outputLanguage: 'english',
       creativityLevel: 0.7,
-      isLongPodcast: false,
-      discussionRounds: 5,
-      minCharsPerRound: 500,
       conversationStyle: 'engaging',
       speaker1Role: 'host',
       speaker2Role: 'expert',
@@ -80,13 +77,8 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       outputLanguage: podcast?.output_language || 'english',
       slogan: podcast?.slogan || '',
       creativityLevel: podcast?.creativity_level || 0.7,
-      
-      // Advanced settings
-      isLongPodcast: podcast?.is_long_podcast || false,
-      discussionRounds: podcast?.discussion_rounds || 5,
-      minCharsPerRound: podcast?.min_chars_per_round || 500,
       episodeFrequency: podcast?.episode_frequency || 7,
-      
+
       // Style and roles
       conversationStyle: (podcast?.conversation_style as "engaging" | "dynamic" | "enthusiastic" | "educational" | "casual" | "professional" | "friendly" | "formal") || 'engaging',
       speaker1Role: (podcast?.speaker1_role as "interviewer" | "host" | "moderator" | "guide") || 'host',

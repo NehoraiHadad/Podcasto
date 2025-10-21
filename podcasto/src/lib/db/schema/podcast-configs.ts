@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
 import { podcasts } from './podcasts';
 
 export const podcastConfigs = pgTable('podcast_configs', {
@@ -13,9 +13,6 @@ export const podcastConfigs = pgTable('podcast_configs', {
   slogan: text('slogan'),
   language: text('language').default('english'),
   creativity_level: integer('creativity_level').notNull(),
-  is_long_podcast: boolean('is_long_podcast').notNull(),
-  discussion_rounds: integer('discussion_rounds').notNull(),
-  min_chars_per_round: integer('min_chars_per_round').notNull(),
   conversation_style: text('conversation_style').notNull(),
   speaker1_role: text('speaker1_role').notNull(),
   speaker2_role: text('speaker2_role').notNull(),

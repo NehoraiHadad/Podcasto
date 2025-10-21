@@ -81,25 +81,6 @@ export function buildConfigUpdateObject(
     updateConfig.creativity_level = existingConfig.creativity_level;
   }
 
-  // Handle boolean fields
-  if (data.isLongPodcast !== undefined) {
-    updateConfig.is_long_podcast = data.isLongPodcast;
-  } else if (existingConfig?.is_long_podcast !== undefined) {
-    updateConfig.is_long_podcast = existingConfig.is_long_podcast;
-  }
-
-  // Handle numeric fields
-  if (data.discussionRounds !== undefined && data.discussionRounds !== null) {
-    updateConfig.discussion_rounds = data.discussionRounds;
-  } else if (existingConfig?.discussion_rounds !== undefined && existingConfig?.discussion_rounds !== null) {
-    updateConfig.discussion_rounds = existingConfig.discussion_rounds;
-  }
-
-  if (data.minCharsPerRound !== undefined && data.minCharsPerRound !== null) {
-    updateConfig.min_chars_per_round = data.minCharsPerRound;
-  } else if (existingConfig?.min_chars_per_round !== undefined && existingConfig?.min_chars_per_round !== null) {
-    updateConfig.min_chars_per_round = existingConfig.min_chars_per_round;
-  }
 
   // Handle array fields
   if (data.mixingTechniques && Array.isArray(data.mixingTechniques) && data.mixingTechniques.length > 0) {

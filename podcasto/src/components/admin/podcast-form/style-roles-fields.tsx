@@ -4,6 +4,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSelectField, FormTextareaField } from '@/components/ui/form-fields';
+import { TooltipLabel } from '@/components/ui/tooltip-label';
 
 export interface FormValues {
   conversationStyle?: string;
@@ -20,48 +21,69 @@ interface StyleRolesFieldsProps {
 export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
   return (
     <>
-      <FormSelectField
-        control={form.control}
-        name="conversationStyle"
-        label="Conversation Style"
-        placeholder="Select style"
-        options={[
-          { value: 'engaging', label: 'Engaging' },
-          { value: 'dynamic', label: 'Dynamic' },
-          { value: 'enthusiastic', label: 'Enthusiastic' },
-          { value: 'educational', label: 'Educational' },
-          { value: 'casual', label: 'Casual' },
-          { value: 'professional', label: 'Professional' },
-          { value: 'friendly', label: 'Friendly' },
-          { value: 'formal', label: 'Formal' },
-        ]}
-      />
+      <div className="space-y-2">
+        <TooltipLabel
+          label="Conversation Style"
+          tooltip="The overall tone and approach of the podcast conversation. This sets the mood and personality of your podcast."
+          required
+        />
+        <FormSelectField
+          control={form.control}
+          name="conversationStyle"
+          label=""
+          placeholder="Select a conversation style"
+          options={[
+            { value: 'engaging', label: 'Engaging - Captivating and interesting' },
+            { value: 'dynamic', label: 'Dynamic - Energetic and varied' },
+            { value: 'enthusiastic', label: 'Enthusiastic - Passionate and excited' },
+            { value: 'educational', label: 'Educational - Informative and teaching' },
+            { value: 'casual', label: 'Casual - Relaxed and informal' },
+            { value: 'professional', label: 'Professional - Formal and business-like' },
+            { value: 'friendly', label: 'Friendly - Warm and approachable' },
+            { value: 'formal', label: 'Formal - Structured and traditional' },
+          ]}
+        />
+      </div>
 
-      <FormSelectField
-        control={form.control}
-        name="speaker1Role"
-        label="Speaker 1 Role"
-        placeholder="Select role"
-        options={[
-          { value: 'interviewer', label: 'Interviewer' },
-          { value: 'host', label: 'Host' },
-          { value: 'moderator', label: 'Moderator' },
-          { value: 'guide', label: 'Guide' },
-        ]}
-      />
+      <div className="space-y-2">
+        <TooltipLabel
+          label="Speaker 1 Role"
+          tooltip="The role of the first speaker in the conversation. This person typically leads the discussion and asks questions."
+          required
+        />
+        <FormSelectField
+          control={form.control}
+          name="speaker1Role"
+          label=""
+          placeholder="Select Speaker 1's role"
+          options={[
+            { value: 'host', label: 'Host - Leads and facilitates the conversation' },
+            { value: 'interviewer', label: 'Interviewer - Asks probing questions' },
+            { value: 'moderator', label: 'Moderator - Guides and manages the discussion' },
+            { value: 'guide', label: 'Guide - Explains and educates' },
+          ]}
+        />
+      </div>
 
-      <FormSelectField
-        control={form.control}
-        name="speaker2Role"
-        label="Speaker 2 Role"
-        placeholder="Select role"
-        options={[
-          { value: 'domain-expert', label: 'Domain Expert' },
-          { value: 'guest', label: 'Guest' },
-          { value: 'expert', label: 'Expert' },
-          { value: 'analyst', label: 'Analyst' },
-        ]}
-      />
+      <div className="space-y-2">
+        <TooltipLabel
+          label="Speaker 2 Role"
+          tooltip="The role of the second speaker. This person typically provides expertise and detailed information."
+          required
+        />
+        <FormSelectField
+          control={form.control}
+          name="speaker2Role"
+          label=""
+          placeholder="Select Speaker 2's role"
+          options={[
+            { value: 'expert', label: 'Expert - Provides specialized knowledge' },
+            { value: 'domain-expert', label: 'Domain Expert - Deep expertise in specific field' },
+            { value: 'guest', label: 'Guest - Shares experiences and insights' },
+            { value: 'analyst', label: 'Analyst - Analyzes and interprets information' },
+          ]}
+        />
+      </div>
       
       <FormField
         control={form.control}
@@ -69,21 +91,25 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
         render={() => (
           <FormItem>
             <div className="mb-4">
-              <FormLabel className="text-base">Mixing Techniques</FormLabel>
-              <FormDescription>
-                Select the techniques to use in the podcast
+              <TooltipLabel
+                label="Mixing Techniques"
+                tooltip="Techniques that will be used to make your podcast more engaging and interesting. Select multiple options to create a richer listening experience."
+                required
+              />
+              <FormDescription className="mt-2">
+                Choose the storytelling and engagement techniques for your podcast
               </FormDescription>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
-                { id: 'rhetorical-questions', label: 'Rhetorical Questions' },
-                { id: 'personal-anecdotes', label: 'Personal Anecdotes' },
-                { id: 'quotes', label: 'Quotes' },
-                { id: 'short-stories', label: 'Short Stories' },
-                { id: 'analogies', label: 'Analogies' },
-                { id: 'humor', label: 'Humor' },
-                { id: 'statistics', label: 'Statistics' },
-                { id: 'expert-opinions', label: 'Expert Opinions' },
+                { id: 'rhetorical-questions', label: 'Rhetorical Questions', desc: 'Pose thought-provoking questions' },
+                { id: 'personal-anecdotes', label: 'Personal Anecdotes', desc: 'Share relatable stories' },
+                { id: 'quotes', label: 'Quotes', desc: 'Include relevant quotations' },
+                { id: 'short-stories', label: 'Short Stories', desc: 'Tell illustrative narratives' },
+                { id: 'analogies', label: 'Analogies', desc: 'Explain using comparisons' },
+                { id: 'humor', label: 'Humor', desc: 'Add light-hearted moments' },
+                { id: 'statistics', label: 'Statistics', desc: 'Use data and numbers' },
+                { id: 'expert-opinions', label: 'Expert Opinions', desc: 'Reference authoritative views' },
               ].map((item) => (
                 <FormField
                   key={item.id}
@@ -94,7 +120,7 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
                     return (
                       <FormItem
                         key={item.id}
-                        className="flex flex-row items-start space-x-3 space-y-0"
+                        className="flex flex-row items-start space-x-3 space-y-0 border rounded-md p-3 hover:bg-gray-50 transition-colors"
                       >
                         <FormControl>
                           <Checkbox
@@ -110,9 +136,14 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
                             }}
                           />
                         </FormControl>
-                        <FormLabel className="font-normal">
-                          {item.label}
-                        </FormLabel>
+                        <div className="flex-1">
+                          <FormLabel className="font-normal cursor-pointer">
+                            {item.label}
+                          </FormLabel>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {item.desc}
+                          </p>
+                        </div>
                       </FormItem>
                     )
                   }}
@@ -124,14 +155,19 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
         )}
       />
 
-
-      <FormTextareaField
-        control={form.control}
-        name="additionalInstructions"
-        label="Additional Instructions (Optional)"
-        placeholder="Enter any additional instructions for podcast generation"
-        className="min-h-[100px]"
-      />
+      <div className="space-y-2">
+        <TooltipLabel
+          label="Additional Instructions (Optional)"
+          tooltip="Any specific guidance or requirements for the AI when generating your podcast. For example, tone preferences, topics to avoid, or specific formats to follow."
+        />
+        <FormTextareaField
+          control={form.control}
+          name="additionalInstructions"
+          label=""
+          placeholder="Example: Focus on beginner-friendly explanations, avoid technical jargon, include actionable takeaways at the end of each episode..."
+          className="min-h-[100px]"
+        />
+      </div>
     </>
   );
 } 

@@ -55,11 +55,6 @@ export async function enrichPodcastWithConfig(
     podcastWithCount.creativity_level = podcastConfig.creativity_level
       ? podcastConfig.creativity_level / 100
       : 0.7;
-
-    // Advanced settings
-    podcastWithCount.is_long_podcast = podcastConfig.is_long_podcast;
-    podcastWithCount.discussion_rounds = podcastConfig.discussion_rounds;
-    podcastWithCount.min_chars_per_round = podcastConfig.min_chars_per_round;
     podcastWithCount.episode_frequency =
       podcastConfig.episode_frequency ?? undefined;
 

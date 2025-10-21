@@ -19,35 +19,39 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
     urls: z.array(z.string().optional()).optional(),
     
     // Metadata
-    title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
-    creator: z.string().min(2, { message: 'Creator name must be at least 2 characters' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
+    title: z.string()
+      .min(3, { message: 'Podcast title must be at least 3 characters' })
+      .max(100, { message: 'Podcast title must be less than 100 characters' }),
+    creator: z.string()
+      .min(2, { message: 'Creator name must be at least 2 characters' })
+      .max(100, { message: 'Creator name must be less than 100 characters' }),
+    description: z.string()
+      .min(10, { message: 'Description must be at least 10 characters' })
+      .max(1000, { message: 'Description must be less than 1000 characters' }),
     cover_image: z.string().optional(),
     image_style: z.string().optional(),
-    
+
     // Basic Settings
-    podcastName: z.string().min(3, { message: 'Podcast name must be at least 3 characters' }),
+    podcastName: z.string()
+      .min(3, { message: 'Technical name must be at least 3 characters' })
+      .max(50, { message: 'Technical name must be at most 50 characters' })
+      .regex(/^[a-z0-9-]+$/, { message: 'Technical name can only contain lowercase letters, numbers, and hyphens' }),
     outputLanguage: z.enum(['english', 'hebrew']),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
-    
-    // Advanced Settings
-    isLongPodcast: z.boolean().default(false),
-    discussionRounds: z.number().min(1).max(20).default(5),
-    minCharsPerRound: z.number().min(100).max(2000).default(500),
     episodeFrequency: z.number().min(1).max(30).default(7),
-    
+
     // Style and Roles
     conversationStyle: z.enum([
-      'engaging', 'dynamic', 'enthusiastic', 'educational', 
+      'engaging', 'dynamic', 'enthusiastic', 'educational',
       'casual', 'professional', 'friendly', 'formal'
     ]),
     speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
     speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
-    
+
     // Mixing Techniques
     mixingTechniques: z.array(z.string()),
-    
+
     // Additional Instructions
     additionalInstructions: z.string().optional(),
   }),
@@ -62,35 +66,39 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
       }),
     
     // Metadata
-    title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
-    creator: z.string().min(2, { message: 'Creator name must be at least 2 characters' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
+    title: z.string()
+      .min(3, { message: 'Podcast title must be at least 3 characters' })
+      .max(100, { message: 'Podcast title must be less than 100 characters' }),
+    creator: z.string()
+      .min(2, { message: 'Creator name must be at least 2 characters' })
+      .max(100, { message: 'Creator name must be less than 100 characters' }),
+    description: z.string()
+      .min(10, { message: 'Description must be at least 10 characters' })
+      .max(1000, { message: 'Description must be less than 1000 characters' }),
     cover_image: z.string().optional(),
     image_style: z.string().optional(),
-    
+
     // Basic Settings
-    podcastName: z.string().min(3, { message: 'Podcast name must be at least 3 characters' }),
+    podcastName: z.string()
+      .min(3, { message: 'Technical name must be at least 3 characters' })
+      .max(50, { message: 'Technical name must be at most 50 characters' })
+      .regex(/^[a-z0-9-]+$/, { message: 'Technical name can only contain lowercase letters, numbers, and hyphens' }),
     outputLanguage: z.enum(['english', 'hebrew']),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
-    
-    // Advanced Settings
-    isLongPodcast: z.boolean().default(false),
-    discussionRounds: z.number().min(1).max(20).default(5),
-    minCharsPerRound: z.number().min(100).max(2000).default(500),
     episodeFrequency: z.number().min(1).max(30).default(7),
-    
+
     // Style and Roles
     conversationStyle: z.enum([
-      'engaging', 'dynamic', 'enthusiastic', 'educational', 
+      'engaging', 'dynamic', 'enthusiastic', 'educational',
       'casual', 'professional', 'friendly', 'formal'
     ]),
     speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
     speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
-    
+
     // Mixing Techniques
     mixingTechniques: z.array(z.string()),
-    
+
     // Additional Instructions
     additionalInstructions: z.string().optional(),
   })
@@ -110,13 +118,8 @@ export const podcastEditSchema = podcastBaseSchema.extend({
   urls: z.array(z.string().optional()).optional(),
   outputLanguage: z.enum(['english', 'hebrew']).optional(),
   creativityLevel: z.number().min(0).max(1).optional(),
-  
-  // Advanced settings
-  isLongPodcast: z.boolean().optional(),
-  discussionRounds: z.number().min(1).max(20).optional(),
-  minCharsPerRound: z.number().min(100).max(2000).optional(),
   episodeFrequency: z.number().min(1).max(30).optional(),
-  
+
   // Style and roles
   conversationStyle: z.enum([
     'engaging', 'dynamic', 'enthusiastic', 'educational', 

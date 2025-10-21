@@ -41,11 +41,6 @@ export type PodcastWithConfig = Podcast & {
   output_language?: 'english' | 'hebrew';
   slogan?: string;
   creativity_level?: number;
-
-  // Advanced settings
-  is_long_podcast?: boolean;
-  discussion_rounds?: number;
-  min_chars_per_round?: number;
   episode_frequency?: number;
 
   // Style and roles

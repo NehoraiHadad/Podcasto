@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormTextField, FormNumberField } from '@/components/ui/form-fields';
+import { TooltipLabel } from '@/components/ui/tooltip-label';
 
 type FormValues = {
   contentSource?: string;
@@ -28,7 +29,11 @@ export function ContentSourceFields<T extends FormValues>({ form }: ContentSourc
         name={"contentSource" as const as Path<T>}
         render={({ field }) => (
           <FormItem className="space-y-3">
-            <FormLabel>Content Source Type</FormLabel>
+            <TooltipLabel
+              label="Content Source Type"
+              tooltip="Choose where your podcast content will come from. Telegram channels are great for news and updates, while URLs work well for blog posts and articles."
+              required
+            />
             <FormControl>
               <RadioGroup
                 onValueChange={field.onChange}
@@ -37,17 +42,28 @@ export function ContentSourceFields<T extends FormValues>({ form }: ContentSourc
               >
                 <div className="flex items-center space-x-3 border rounded-md p-3 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="telegram" id="telegram" className="h-5 w-5" />
-                  <Label htmlFor="telegram" className="font-medium cursor-pointer flex-1">Telegram Channel</Label>
+                  <div className="flex-1">
+                    <Label htmlFor="telegram" className="font-medium cursor-pointer block">
+                      Telegram Channel
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Fetch content from a public Telegram channel
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-3 border rounded-md p-3 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="urls" id="urls" className="h-5 w-5" />
-                  <Label htmlFor="urls" className="font-medium cursor-pointer flex-1">URLs (up to 5)</Label>
+                  <div className="flex-1">
+                    <Label htmlFor="urls" className="font-medium cursor-pointer block">
+                      URLs (up to 5)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use content from specific web pages or RSS feeds
+                    </p>
+                  </div>
                 </div>
               </RadioGroup>
             </FormControl>
-            <FormDescription className="text-xs">
-              Choose how you want to source content for your podcast
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -55,41 +71,58 @@ export function ContentSourceFields<T extends FormValues>({ form }: ContentSourc
       
       {contentSource === 'telegram' ? (
         <div className="space-y-4 mt-4">
-          <div className="bg-gray-50 p-3 md:p-4 rounded-md border border-gray-100">
-            <FormTextField
-              control={form.control}
-              name={"telegramChannel" as const as Path<T>}
-              label="Telegram Channel Username"
-              placeholder="@channelname"
-              className="bg-white"
-              description="Enter the Telegram channel username without the @ symbol"
-            />
+          <div className="bg-gray-50 p-3 md:p-4 rounded-md border border-gray-100 space-y-4">
+            <div className="space-y-2">
+              <TooltipLabel
+                label="Telegram Channel Username"
+                tooltip="The username of the public Telegram channel. You can find this in the channel info. For example, if the channel URL is t.me/mychannel, enter 'mychannel' (without the @ symbol)."
+                required
+              />
+              <FormTextField
+                control={form.control}
+                name={"telegramChannel" as const as Path<T>}
+                label=""
+                placeholder="channelname"
+                className="bg-white"
+                description="Channel username without the @ symbol (e.g., 'technews')"
+              />
+            </div>
 
-            <FormNumberField
-              control={form.control}
-              name={"telegramHours" as const as Path<T>}
-              label="Hours to Fetch"
-              min={1}
-              max={72}
-              className="mt-4"
-              description="Number of hours of content to fetch (1-72)"
-            />
+            <div className="space-y-2">
+              <TooltipLabel
+                label="Hours to Fetch"
+                tooltip="How many hours of recent content to fetch from the channel. For example, 24 hours will get all posts from the last day."
+                required
+              />
+              <FormNumberField
+                control={form.control}
+                name={"telegramHours" as const as Path<T>}
+                label=""
+                min={1}
+                max={72}
+                className="bg-white"
+                description="Fetch posts from the last 1-72 hours (default: 24)"
+              />
+            </div>
           </div>
         </div>
       ) : (
         <div className="space-y-4 mt-4">
           <div className="bg-gray-50 p-3 md:p-4 rounded-md border border-gray-100">
+            <p className="text-sm text-muted-foreground mb-4">
+              Add up to 5 URLs to use as content sources. These can be blog posts, news articles, or RSS feed URLs.
+            </p>
             {[0, 1, 2, 3, 4].map((index) => (
-              <FormTextField
-                key={index}
-                control={form.control}
-                name={`urls.${index}` as Path<T>}
-                label={`URL ${index + 1}`}
-                type="url"
-                placeholder="https://example.com"
-                className={`bg-white ${index > 0 ? 'mt-4' : ''}`}
-                description={index === 0 ? 'Enter up to 5 URLs to use as content sources' : undefined}
-              />
+              <div key={index} className={index > 0 ? 'mt-4' : ''}>
+                <FormTextField
+                  control={form.control}
+                  name={`urls.${index}` as Path<T>}
+                  label={index === 0 ? 'URL 1 (required)' : `URL ${index + 1} (optional)`}
+                  type="url"
+                  placeholder="https://example.com/article"
+                  className="bg-white"
+                />
+              </div>
             ))}
           </div>
         </div>

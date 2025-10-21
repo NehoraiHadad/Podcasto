@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { PodcastFormMode } from './types';
 import { ContentSourceFields } from './content-source-fields';
 import { BasicSettingsFields } from './basic-settings-fields';
-import { AdvancedSettingsFields } from './advanced-settings-fields';
 import { StyleRolesFields, FormValues as StyleRolesFormValues } from './style-roles-fields';
 import { BasicInfoFields } from './basic-info-fields';
 import { MobileTabNavigation } from './mobile-tab-navigation';
@@ -29,7 +28,6 @@ const TAB_VALUES = {
   BASIC_INFO: "basic-info",
   CONTENT_SOURCE: "content-source",
   BASIC_SETTINGS: "basic-settings",
-  ADVANCED_SETTINGS: "advanced-settings",
   STYLE_ROLES: "style-roles"
 };
 
@@ -44,7 +42,6 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
     { value: TAB_VALUES.BASIC_INFO, label: "Basic Info" },
     { value: TAB_VALUES.CONTENT_SOURCE, label: "Content" },
     { value: TAB_VALUES.BASIC_SETTINGS, label: "Settings" },
-    { value: TAB_VALUES.ADVANCED_SETTINGS, label: "Advanced" },
     { value: TAB_VALUES.STYLE_ROLES, label: "Style" }
   ], []);
   
@@ -85,7 +82,7 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         {/* Desktop view tabs - hidden on mobile */}
         <div className="hidden md:block w-full overflow-x-auto pb-2">
-          <TabsList className="grid w-full grid-cols-5 gap-1">
+          <TabsList className="grid w-full grid-cols-4 gap-1">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
@@ -149,21 +146,7 @@ export function PodcastFormTabs<T extends CombinedFormValues>({ form, mode, inco
             </CardContent>
           </Card>
         </TabsContent>
-        
-        <TabsContent value={TAB_VALUES.ADVANCED_SETTINGS}>
-          <Card className="border-0 shadow-sm md:border md:shadow">
-            <CardHeader className="px-4 py-3 md:px-6 md:py-4">
-              <CardTitle>Advanced Settings</CardTitle>
-              <CardDescription>
-                Configure advanced settings for your podcast
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-6 space-y-4">
-              <AdvancedSettingsFields form={form} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
+
         <TabsContent value={TAB_VALUES.STYLE_ROLES}>
           <Card className="border-0 shadow-sm md:border md:shadow">
             <CardHeader className="px-4 py-3 md:px-6 md:py-4">

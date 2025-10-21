@@ -17,8 +17,7 @@ export function hasConfigFields(data: PodcastUpdateData): boolean {
   return !!(
     data.contentSource || data.telegramChannel || data.telegramHours || data.urls ||
     data.creator || data.podcastName || data.outputLanguage || data.slogan ||
-    data.creativityLevel !== undefined || data.isLongPodcast !== undefined ||
-    data.discussionRounds || data.minCharsPerRound || data.episodeFrequency ||
+    data.creativityLevel !== undefined || data.episodeFrequency ||
     data.conversationStyle || data.speaker1Role || data.speaker2Role ||
     data.mixingTechniques || data.additionalInstructions
   );

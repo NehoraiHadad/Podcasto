@@ -382,9 +382,6 @@ export interface CreatePodcastGroupWithNewPodcastsData {
     outputLanguage: 'english' | 'hebrew';
     slogan?: string;
     creativityLevel: number;
-    isLongPodcast: boolean;
-    discussionRounds: number;
-    minCharsPerRound: number;
     episodeFrequency: number;
     conversationStyle: string;
     speaker1Role: string;
@@ -467,9 +464,6 @@ export async function createPodcastGroupWithNewPodcastsAction(
           slogan: langData.slogan || null,
           language: langData.outputLanguage,
           creativity_level: Math.round(langData.creativityLevel * 100),
-          is_long_podcast: langData.isLongPodcast,
-          discussion_rounds: langData.discussionRounds,
-          min_chars_per_round: langData.minCharsPerRound,
           conversation_style: langData.conversationStyle,
           speaker1_role: langData.speaker1Role,
           speaker2_role: langData.speaker2Role,

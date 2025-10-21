@@ -28,10 +28,7 @@ export const podcastCreationSchema = z.object({
   slogan: z.string().optional(),
   creativityLevel: z.number().min(0).max(1),
   
-  // Advanced Settings
-  isLongPodcast: z.boolean().default(false),
-  discussionRounds: z.number().min(1).max(20).default(5),
-  minCharsPerRound: z.number().min(100).max(2000).default(500),
+  // Episode Settings
   episodeFrequency: z.number().min(1).max(30).default(7),
   
   // Style and Roles
@@ -79,10 +76,7 @@ export const podcastUpdateSchema = z.object({
   outputLanguage: z.enum(['english', 'hebrew']).optional(),
   slogan: z.string().optional(),
   creativityLevel: z.number().optional(),
-  // Advanced settings fields (optional)
-  isLongPodcast: z.boolean().optional(),
-  discussionRounds: z.number().optional(),
-  minCharsPerRound: z.number().optional(),
+  // Episode settings fields (optional)
   episodeFrequency: z.number().optional(),
   // Style and roles fields (optional)
   conversationStyle: z.string().optional(),
