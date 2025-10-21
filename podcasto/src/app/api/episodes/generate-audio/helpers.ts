@@ -2,6 +2,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { episodesApi } from '@/lib/db/api';
 import { logError } from '@/lib/api';
 import type { EpisodeForSQS, SQSSendResult, BatchSQSResult } from './types';
+import { trackCostEvent } from '@/lib/services/cost-tracker';
 
 const logPrefix = '[AUDIO_TRIGGER]';
 
@@ -136,6 +137,25 @@ export async function sendEpisodeToSQS(
     });
 
     const response = await sqsClient.send(command);
+
+    // Track SQS cost
+    try {
+      await trackCostEvent({
+        episodeId: episode.id,
+        podcastId: episode.podcast_id,
+        eventType: 'sqs_message',
+        service: 'sqs',
+        quantity: 1,
+        unit: 'requests',
+        metadata: {
+          queue_url: queueUrl,
+          message_count: 1,
+          region: process.env.AWS_REGION || 'us-east-1'
+        }
+      });
+    } catch (costError) {
+      console.error(`${logPrefix} Cost tracking failed for SQS:`, costError);
+    }
 
     return {
       success: true,

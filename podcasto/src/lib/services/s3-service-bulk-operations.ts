@@ -10,6 +10,7 @@ import {
   buildPodcastFolderPrefix
 } from '@/lib/utils/s3-path-utils';
 import type { DetailedDeleteResult } from './s3-service-types';
+import { trackCostEventBatch } from './cost-tracker';
 
 /**
  * Bulk operations for S3Service
@@ -17,10 +18,12 @@ import type { DetailedDeleteResult } from './s3-service-types';
 export class S3BulkOperations {
   private s3Client: S3Client;
   private bucketName: string;
+  private region: string;
 
-  constructor(s3Client: S3Client, bucketName: string) {
+  constructor(s3Client: S3Client, bucketName: string, region?: string) {
     this.s3Client = s3Client;
     this.bucketName = bucketName;
+    this.region = region || process.env.AWS_REGION || 'us-east-1';
   }
 
   async listAllObjectsWithPrefix(prefix: string): Promise<_Object[]> {
@@ -110,6 +113,31 @@ export class S3BulkOperations {
 
       const keys = objects.map(obj => obj.Key!).filter(key => key);
       const { deletedCount, failedKeys } = await this.deleteBatch(keys);
+
+      // Track S3 DELETE costs in batch (only for successfully deleted files)
+      if (deletedCount > 0) {
+        try {
+          const costEvents = keys
+            .filter(key => !failedKeys.includes(key))
+            .map(key => ({
+              episodeId,
+              podcastId,
+              eventType: 's3_operation' as const,
+              service: 's3_delete' as const,
+              quantity: 1,
+              unit: 'requests' as const,
+              metadata: {
+                operation: 'DELETE',
+                s3_key: key,
+                region: this.region
+              }
+            }));
+
+          await trackCostEventBatch({ events: costEvents });
+        } catch (costError) {
+          console.error('[S3_BULK_OPS] Cost tracking failed for bulk S3 DELETE:', costError);
+        }
+      }
 
       if (failedKeys.length > 0) {
         return {

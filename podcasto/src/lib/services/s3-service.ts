@@ -9,6 +9,7 @@ import { S3ServiceInitializer } from './s3-service-init';
 import { getFileType, isTextFile, sortS3Files } from './s3-service-helpers';
 import type { S3ServiceConfig, S3FileInfo, S3FileContent, DetailedDeleteResult, S3FileMetadata } from './s3-service-types';
 import type { IS3Service } from './interfaces';
+import { trackCostEvent } from './cost-tracker';
 
 /**
  * Unified S3 service for all S3 operations
@@ -39,7 +40,7 @@ export class S3Service implements IS3Service {
     if (!client) return { success: false, error };
 
     this.s3Client = client;
-    const helpers = S3ServiceInitializer.createHelpers(client, this.config.bucket);
+    const helpers = S3ServiceInitializer.createHelpers(client, this.config.bucket, this.config.region);
     this.transcriptUtils = helpers.transcriptUtils;
     this.bulkOps = helpers.bulkOps;
     return { success: true };
@@ -71,7 +72,11 @@ export class S3Service implements IS3Service {
     }
   }
 
-  async getFileContent(key: string): Promise<{ content: S3FileContent | null; error?: string }> {
+  async getFileContent(
+    key: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{ content: S3FileContent | null; error?: string }> {
     const clientResult = await this.ensureClient();
     if (!clientResult.success || !this.s3Client) return { content: null, error: clientResult.error };
 
@@ -81,9 +86,53 @@ export class S3Service implements IS3Service {
       if (isTextFile(key)) {
         const response = await this.s3Client.send(command);
         const content = await response.Body?.transformToString('utf-8');
+
+        // Track S3 GET cost
+        try {
+          const fileSizeMB = (response.ContentLength || 0) / (1024 * 1024);
+          await trackCostEvent({
+            episodeId,
+            podcastId,
+            eventType: 's3_operation',
+            service: 's3_get',
+            quantity: 1,
+            unit: 'requests',
+            metadata: {
+              operation: 'GET',
+              s3_key: key,
+              file_size_mb: fileSizeMB,
+              content_type: response.ContentType,
+              region: this.config.region
+            }
+          });
+        } catch (costError) {
+          console.error('[S3_SERVICE] Cost tracking failed for S3 GET:', costError);
+        }
+
         return { content: { content: content || null, isText: true } };
       } else {
         const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
+
+        // Track S3 GET cost (for signed URL generation)
+        try {
+          await trackCostEvent({
+            episodeId,
+            podcastId,
+            eventType: 's3_operation',
+            service: 's3_get',
+            quantity: 1,
+            unit: 'requests',
+            metadata: {
+              operation: 'GET',
+              s3_key: key,
+              content_type: 'signed_url',
+              region: this.config.region
+            }
+          });
+        } catch (costError) {
+          console.error('[S3_SERVICE] Cost tracking failed for S3 GET (signed URL):', costError);
+        }
+
         return { content: { content: null, signedUrl, isText: false } };
       }
     } catch (error) {
@@ -126,6 +175,28 @@ export class S3Service implements IS3Service {
         ContentType: mimeType
       }));
 
+      // Track S3 PUT cost
+      try {
+        const fileSizeMB = imageData.length / (1024 * 1024);
+        await trackCostEvent({
+          episodeId,
+          podcastId,
+          eventType: 's3_operation',
+          service: 's3_put',
+          quantity: 1,
+          unit: 'requests',
+          metadata: {
+            operation: 'PUT',
+            s3_key: imageKey,
+            file_size_mb: fileSizeMB,
+            content_type: mimeType,
+            region: this.config.region
+          }
+        });
+      } catch (costError) {
+        console.error('[S3_SERVICE] Cost tracking failed for S3 PUT:', costError);
+      }
+
       const url = await buildS3Url({ bucket: this.config.bucket, region: this.config.region, key: imageKey });
       return { url };
     } catch (error) {
@@ -133,12 +204,36 @@ export class S3Service implements IS3Service {
     }
   }
 
-  async deleteFile(key: string): Promise<{ success: boolean; error?: string }> {
+  async deleteFile(
+    key: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{ success: boolean; error?: string }> {
     const clientResult = await this.ensureClient();
     if (!clientResult.success || !this.s3Client) return { success: false, error: clientResult.error };
 
     try {
       await this.s3Client.send(new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }));
+
+      // Track S3 DELETE cost
+      try {
+        await trackCostEvent({
+          episodeId,
+          podcastId,
+          eventType: 's3_operation',
+          service: 's3_delete',
+          quantity: 1,
+          unit: 'requests',
+          metadata: {
+            operation: 'DELETE',
+            s3_key: key,
+            region: this.config.region
+          }
+        });
+      } catch (costError) {
+        console.error('[S3_SERVICE] Cost tracking failed for S3 DELETE:', costError);
+      }
+
       console.log(`[S3_SERVICE] Deleted file: ${key}`);
       return { success: true };
     } catch (error) {

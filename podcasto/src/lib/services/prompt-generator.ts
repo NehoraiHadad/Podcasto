@@ -75,43 +75,51 @@ export class PromptGenerator {
   /**
    * Generate an AI prompt and process the result
    */
-  async generateImagePrompt(summary: string, title?: string): Promise<string> {
+  async generateImagePrompt(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<string> {
     try {
       console.log(`[PROMPT_GENERATOR] Generating image prompt from summary`);
-      
+
       // Get template and fill placeholders
       const template = this.getPromptTemplate();
       const prompt = this.fillPromptTemplate(template, summary, title);
-      
+
       // Log the actual prompt we're sending to the model
-      console.log(`[PROMPT_GENERATOR] Using prompt template with placeholders filled:`, 
+      console.log(`[PROMPT_GENERATOR] Using prompt template with placeholders filled:`,
         prompt.substring(0, 200) + '...');
-      
+
       // Create a provider
       const provider = new GeminiProvider({
         apiKey: this.apiKey,
         modelName: this.modelName
       });
-      
+
       // Generate the prompt with standard text generation
+      // Cost tracking happens inside generateText via GeminiTextGenerator
       const result = await provider.generateText(prompt, {
         temperature: 0.7,
-        maxTokens: 300
+        maxTokens: 300,
+        episodeId,
+        podcastId
       });
-      
+
       if (!result || !result.trim()) {
         console.warn(`[PROMPT_GENERATOR] No image prompt was generated, using original summary`);
         return `Create a podcast cover image WITHOUT ANY TEXT based on: ${summary}`;
       }
-      
+
       // Try to parse the JSON response
       const cleanDescription = this.promptCleaner.extractVisualDescription(result);
       if (cleanDescription) {
         return cleanDescription;
       }
-      
+
       console.warn(`[PROMPT_GENERATOR] Could not find valid JSON in response, falling back to text cleaning`);
-      
+
       // If parsing JSON fails, fall back to our text cleaner
       const cleanedResult = this.promptCleaner.cleanImagePromptResult(result);
       console.log(`[PROMPT_GENERATOR] Returning cleaned text result (${cleanedResult.length} chars)`);

@@ -11,6 +11,7 @@ import { errorToString } from '@/lib/utils/error-utils';
 import type { RecipientInfo, BulkBatchResult } from './batch-builder';
 import { buildBulkDestinations } from './batch-builder';
 import { withRetry, DEFAULT_RETRY_CONFIG } from './retry-utils';
+import { trackCostEvent } from '@/lib/services/cost-tracker';
 
 /**
  * SES Template name created via create-ses-template.sh script
@@ -24,6 +25,7 @@ const SES_TEMPLATE_NAME = 'podcasto-new-episode-v1';
  * @param batch - Batch of recipients
  * @param defaultTemplateData - Default template data
  * @param episodeId - Episode ID for tracking
+ * @param podcastId - Podcast ID for cost tracking
  * @param logPrefix - Log prefix
  * @returns Bulk batch result with success/failure counts
  */
@@ -31,6 +33,7 @@ export async function sendBulkBatch(
   batch: RecipientInfo[],
   defaultTemplateData: SESTemplateData,
   episodeId: string,
+  podcastId: string,
   logPrefix: string
 ): Promise<BulkBatchResult> {
   const result: BulkBatchResult = {
@@ -88,6 +91,29 @@ export async function sendBulkBatch(
           result.errors.push(errorMsg);
           console.error(`${logPrefix} ${errorMsg}`);
         }
+      }
+    }
+
+    // Track SES cost (only successful sends)
+    if (result.successCount > 0) {
+      try {
+        await trackCostEvent({
+          episodeId,
+          podcastId,
+          eventType: 'ses_email',
+          service: 'ses',
+          quantity: result.successCount,
+          unit: 'emails',
+          metadata: {
+            template: SES_TEMPLATE_NAME,
+            batch_size: batch.length,
+            success_count: result.successCount,
+            failed_count: result.failureCount,
+            region: process.env.AWS_SES_REGION || process.env.AWS_REGION || 'us-east-1'
+          }
+        });
+      } catch (costError) {
+        console.error(`${logPrefix} Cost tracking failed for SES:`, costError);
       }
     }
 

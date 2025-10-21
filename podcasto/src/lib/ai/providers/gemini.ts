@@ -10,6 +10,7 @@ import { withRetry, RetryConfig, DEFAULT_RETRY_CONFIG } from '../utils/retry';
 import { ImageGenerator } from './image-generator';
 import { GeminiTextGenerator } from './gemini-text-generation';
 import { listGeminiModels } from './gemini-model-utils';
+import { trackCostEvent } from '@/lib/services/cost-tracker';
 
 /**
  * Configuration for the Gemini provider
@@ -72,7 +73,9 @@ export class GeminiProvider implements AIProvider {
   async generateTitleAndSummary(
     transcript: string,
     titleOptions?: TitleGenerationOptions,
-    summaryOptions?: SummaryGenerationOptions
+    summaryOptions?: SummaryGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<TitleSummaryResult> {
     try {
       return await withRetry(async () => {
@@ -92,9 +95,31 @@ export class GeminiProvider implements AIProvider {
           }
         });
 
+        // Track cost using usageMetadata
+        try {
+          if (response.usageMetadata) {
+            await trackCostEvent({
+              episodeId,
+              podcastId,
+              eventType: 'ai_api_call',
+              service: 'gemini_text',
+              quantity: response.usageMetadata.totalTokenCount || 0,
+              unit: 'tokens',
+              metadata: {
+                model: this.textModel,
+                operation: 'generateTitleAndSummary',
+                input_tokens: response.usageMetadata.promptTokenCount || 0,
+                output_tokens: response.usageMetadata.candidatesTokenCount || 0
+              }
+            });
+          }
+        } catch (costError) {
+          console.error('[GEMINI_PROVIDER] Cost tracking failed for generateTitleAndSummary:', costError);
+        }
+
         // The SDK now automatically parses the structured response
         const parsedResponse = JSON.parse(response.text || '{}');
-        
+
         return {
           title: parsedResponse.title || 'Untitled Episode',
           summary: parsedResponse.summary || 'No summary available.'
@@ -114,10 +139,12 @@ export class GeminiProvider implements AIProvider {
    */
   async generateImage(
     description: string,
-    options?: ImageGenerationOptions
+    options?: ImageGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<ImageGenerationResult> {
     // Delegate to the specialized image generator
-    return this.imageGenerator.generateImage(description, options);
+    return this.imageGenerator.generateImage(description, options, episodeId, podcastId);
   }
 
   /**
@@ -134,6 +161,8 @@ export class GeminiProvider implements AIProvider {
     temperature?: number;
     maxTokens?: number;
     modelName?: string;
+    episodeId?: string;
+    podcastId?: string;
   }): Promise<string> {
     return this.textGenerator.generateText(prompt, options);
   }

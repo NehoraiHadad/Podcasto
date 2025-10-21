@@ -44,16 +44,30 @@ export interface IImageGenerationService {
    * Generate a detailed image prompt using AI model
    * @param summary - Episode summary
    * @param title - Optional episode title
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Enhanced image generation prompt
    * @throws Error if prompt generation fails
    */
-  generateImagePrompt(summary: string, title?: string): Promise<string>;
+  generateImagePrompt(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<string>;
 
   /**
    * Generate image for an episode but don't upload (for preview)
    * @param summary - Episode summary
    * @param title - Optional episode title
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Image preview result with buffer and metadata
    */
-  generateImagePreview(summary: string, title?: string): Promise<ImagePreviewResult>;
+  generateImagePreview(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<ImagePreviewResult>;
 }

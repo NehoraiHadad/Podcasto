@@ -89,6 +89,7 @@ export async function sendNewEpisodeNotification(
       userDataMap,
       sesTemplateData,
       episodeId,
+      podcast.id,
       rateLimiter,
       `[EMAIL_NOTIFICATION:${episodeId}]`,
       result

@@ -70,18 +70,22 @@ export class AIService {
   async generateTitleAndSummary(
     transcript: string,
     titleOptions?: TitleGenerationOptions,
-    summaryOptions?: SummaryGenerationOptions
+    summaryOptions?: SummaryGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<TitleSummaryResult> {
     try {
       console.log(`[AI_SERVICE] Generating title and summary using primary provider`);
       return await this.provider.generateTitleAndSummary(
         transcript,
         titleOptions,
-        summaryOptions
+        summaryOptions,
+        episodeId,
+        podcastId
       );
     } catch (error) {
       console.error(`[AI_SERVICE] Error generating title/summary with primary provider:`, error);
-      
+
       // Try fallback provider if available
       if (this.fallbackProvider) {
         console.log(`[AI_SERVICE] Attempting to use fallback provider for title/summary generation`);
@@ -89,13 +93,15 @@ export class AIService {
           return await this.fallbackProvider.generateTitleAndSummary(
             transcript,
             titleOptions,
-            summaryOptions
+            summaryOptions,
+            episodeId,
+            podcastId
           );
         } catch (fallbackError) {
           console.error(`[AI_SERVICE] Fallback provider also failed for title/summary:`, fallbackError);
         }
       }
-      
+
       // No fallback or fallback failed, re-throw the original error
       throw error;
     }
@@ -106,49 +112,51 @@ export class AIService {
    */
   async generateImage(
     description: string,
-    options?: ImageGenerationOptions
+    options?: ImageGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<ImageGenerationResult> {
     console.log(`[AI_SERVICE] Starting image generation for prompt: "${description.substring(0, 50)}..."`);
-    
+
     try {
       // First try with the dedicated image generator
-      const result = await this.imageGenerator.generateImage(description, options);
+      const result = await this.imageGenerator.generateImage(description, options, episodeId, podcastId);
       if (result.imageData) {
         return result;
       }
-      
+
       // If the image generator didn't produce an image, try the text provider
       console.log(`[AI_SERVICE] Dedicated image generator returned no image, trying primary provider`);
-      const primaryResult = await this.provider.generateImage(description, options);
+      const primaryResult = await this.provider.generateImage(description, options, episodeId, podcastId);
       if (primaryResult.imageData) {
         return primaryResult;
       }
-      
+
       // Try fallback provider as last resort
       if (this.fallbackProvider) {
         console.log(`[AI_SERVICE] Primary provider returned no image, trying fallback provider`);
-        const fallbackResult = await this.fallbackProvider.generateImage(description, options);
+        const fallbackResult = await this.fallbackProvider.generateImage(description, options, episodeId, podcastId);
         if (fallbackResult.imageData) {
           return fallbackResult;
         }
       }
-      
+
       // If we reached here, no successful image was generated
       console.warn(`[AI_SERVICE] All providers failed to generate an image`);
       return { imageData: null, mimeType: 'image/jpeg' };
     } catch (error) {
       console.error(`[AI_SERVICE] Error generating image:`, error);
-      
+
       // Try fallback provider if available and not already tried
       if (this.fallbackProvider) {
         console.log(`[AI_SERVICE] Attempting to use fallback provider for image generation`);
         try {
-          return await this.fallbackProvider.generateImage(description, options);
+          return await this.fallbackProvider.generateImage(description, options, episodeId, podcastId);
         } catch (fallbackError) {
           console.error(`[AI_SERVICE] Fallback provider also failed for image generation:`, fallbackError);
         }
       }
-      
+
       // Return empty result after all failures
       return { imageData: null, mimeType: 'image/jpeg' };
     }

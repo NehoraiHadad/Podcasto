@@ -22,6 +22,7 @@ type Subscription = InferSelectModel<typeof subscriptions>;
  * @param userDataMap - Map of user data
  * @param emailData - Episode email data (as SESTemplateData)
  * @param episodeId - Episode ID
+ * @param podcastId - Podcast ID for cost tracking
  * @param rateLimiter - Rate limiter instance
  * @param logPrefix - Log prefix
  * @param result - Result object to update
@@ -32,6 +33,7 @@ export async function sendBulkEmailsToSubscribers(
   userDataMap: Map<string, BatchUserData>,
   emailData: SESTemplateData,
   episodeId: string,
+  podcastId: string,
   rateLimiter: SESRateLimiter,
   logPrefix: string,
   result: EmailNotificationResult
@@ -131,7 +133,7 @@ export async function sendBulkEmailsToSubscribers(
     }
 
     // Send the batch
-    const batchResult = await sendBulkBatch(batch, emailData, episodeId, `${logPrefix}[Batch ${batchNumber}]`);
+    const batchResult = await sendBulkBatch(batch, emailData, episodeId, podcastId, `${logPrefix}[Batch ${batchNumber}]`);
 
     // Update overall result
     result.emailsSent += batchResult.successCount;

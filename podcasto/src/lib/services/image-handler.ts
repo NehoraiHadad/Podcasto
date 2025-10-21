@@ -39,21 +39,31 @@ export class ImageHandler implements IImageHandler {
   /**
    * Generate image prompt
    */
-  async generateImagePrompt(summary: string, title?: string): Promise<string> {
-    return this.imageService.generateImagePrompt(summary, title);
+  async generateImagePrompt(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<string> {
+    return this.imageService.generateImagePrompt(summary, title, episodeId, podcastId);
   }
 
   /**
    * Generate image preview (doesn't save to S3)
    */
-  async generateImagePreview(summary: string, title?: string): Promise<{ 
+  async generateImagePreview(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{
     success: boolean;
     imageData: Buffer | null;
     mimeType: string;
     error?: string;
     generatedFromPrompt?: string;
   }> {
-    return this.imageService.generateImagePreview(summary, title);
+    return this.imageService.generateImagePreview(summary, title, episodeId, podcastId);
   }
 
   /**
@@ -117,20 +127,20 @@ export class ImageHandler implements IImageHandler {
    * Generate and save episode image (complete process)
    */
   async generateEpisodeImage(
-    episodeId: string, 
-    podcastId: string, 
+    episodeId: string,
+    podcastId: string,
     summary: string
   ): Promise<boolean> {
     try {
       console.log(`[IMAGE_HANDLER] Generating image for episode ${episodeId}`);
-      
-      // Get episode info to include title 
+
+      // Get episode info to include title
       const episode = await episodesApi.getEpisodeById(episodeId);
       const title = episode?.title || undefined;
-      
-      // Generate image preview first
-      const previewResult = await this.generateImagePreview(summary, title);
-      
+
+      // Generate image preview first with episodeId and podcastId for cost tracking
+      const previewResult = await this.generateImagePreview(summary, title, episodeId, podcastId);
+
       // If generation was successful, save it
       if (previewResult.success && previewResult.imageData) {
         const saveResult = await this.saveGeneratedImage(
@@ -139,22 +149,22 @@ export class ImageHandler implements IImageHandler {
           previewResult.imageData,
           previewResult.mimeType
         );
-        
+
         return saveResult.success;
       } else {
         console.warn(`[IMAGE_HANDLER] No image was generated for episode ${episodeId}: ${previewResult.error}`);
-        
+
         // Mark as published even without image (episode is still complete)
         await this.episodeUpdater.markEpisodeAsPublished(episodeId);
-        
+
         return false;
       }
     } catch (error) {
       console.error(`[IMAGE_HANDLER] Error generating image for episode ${episodeId}:`, error);
-      
+
       // Update episode metadata with error info but don't mark as failed
       await this.episodeUpdater.trackImageGenerationError(episodeId, error);
-      
+
       return false;
     }
   }

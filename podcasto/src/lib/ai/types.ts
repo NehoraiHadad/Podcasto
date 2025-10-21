@@ -81,14 +81,18 @@ export interface AIProvider {
   generateTitleAndSummary(
     transcript: string,
     titleOptions?: TitleGenerationOptions,
-    summaryOptions?: SummaryGenerationOptions
+    summaryOptions?: SummaryGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<TitleSummaryResult>;
-  
+
   /**
    * Generate an image based on a description
    */
   generateImage(
     description: string,
-    options?: ImageGenerationOptions
+    options?: ImageGenerationOptions,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<ImageGenerationResult>;
 } 

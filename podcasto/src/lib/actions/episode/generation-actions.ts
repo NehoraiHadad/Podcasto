@@ -70,16 +70,18 @@ export async function generateEpisodeTitleAndDescription(
     // Generate title and summary using AI service
     const { title, summary } = await aiService.generateTitleAndSummary(
       processedTranscript,
-      { 
+      {
         language,
         style: 'engaging',
-        maxLength: 60 
+        maxLength: 60
       },
-      { 
+      {
         language,
         style: 'concise',
-        maxLength: 150 
-      }
+        maxLength: 150
+      },
+      episodeId,
+      episode.podcast_id
     );
 
     return {

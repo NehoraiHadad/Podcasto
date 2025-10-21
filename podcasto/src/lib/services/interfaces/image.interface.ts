@@ -80,9 +80,16 @@ export interface IPodcastImageAnalyzer {
    * Uses Gemini 2.5 Flash for multimodal analysis with structured JSON output
    * @param sourceImageBuffer - The image buffer to analyze
    * @param podcastStyle - The desired podcast style for the enhancement (default: 'modern, professional')
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Image analysis with AI-generated enhancement prompt, or null if analysis fails
    */
-  analyzeImage(sourceImageBuffer: Buffer, podcastStyle?: string): Promise<ImageAnalysis | null>;
+  analyzeImage(
+    sourceImageBuffer: Buffer,
+    podcastStyle?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<ImageAnalysis | null>;
 }
 
 /**
@@ -94,19 +101,30 @@ export interface IImageHandler {
    * Generate image prompt from summary and title
    * @param summary - Episode summary
    * @param title - Optional episode title
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Generated image prompt
    */
-  generateImagePrompt(summary: string, title?: string): Promise<string>;
+  generateImagePrompt(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<string>;
 
   /**
    * Generate image preview (doesn't save to S3)
    * @param summary - Episode summary
    * @param title - Optional episode title
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Preview result with image data
    */
   generateImagePreview(
     summary: string,
-    title?: string
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
   ): Promise<{
     success: boolean;
     imageData: Buffer | null;

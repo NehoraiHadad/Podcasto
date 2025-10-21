@@ -6,6 +6,7 @@
 import type { ImageAnalysis } from './podcast-image-enhancer';
 import { detectImageMimeType } from './podcast-image-utils';
 import type { IPodcastImageAnalyzer } from './interfaces';
+import { trackCostEvent } from '@/lib/services/cost-tracker';
 
 /**
  * Service for analyzing images with AI to understand content and generate enhancement prompts
@@ -26,11 +27,15 @@ export class PodcastImageAnalyzer implements IPodcastImageAnalyzer {
    *
    * @param sourceImageBuffer - The image buffer to analyze
    * @param podcastStyle - The desired podcast style for the enhancement
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Image analysis with AI-generated enhancement prompt, or null if analysis fails
    */
   async analyzeImage(
     sourceImageBuffer: Buffer,
-    podcastStyle: string = 'modern, professional'
+    podcastStyle: string = 'modern, professional',
+    episodeId?: string,
+    podcastId?: string
   ): Promise<ImageAnalysis | null> {
     try {
       console.log('[PODCAST_ANALYZER] Analyzing source image...');
@@ -125,6 +130,28 @@ Format your response as JSON with these exact keys: description, colors, style, 
           responseSchema
         }
       });
+
+      // Track cost using usageMetadata
+      try {
+        if (response.usageMetadata) {
+          await trackCostEvent({
+            episodeId,
+            podcastId,
+            eventType: 'ai_api_call',
+            service: 'gemini_text',
+            quantity: response.usageMetadata.totalTokenCount || 0,
+            unit: 'tokens',
+            metadata: {
+              model: 'gemini-2.5-flash',
+              operation: 'analyzeImage',
+              input_tokens: response.usageMetadata.promptTokenCount || 0,
+              output_tokens: response.usageMetadata.candidatesTokenCount || 0
+            }
+          });
+        }
+      } catch (costError) {
+        console.error('[PODCAST_ANALYZER] Cost tracking failed for analyzeImage:', costError);
+      }
 
       const candidate = response.candidates?.[0];
       if (!candidate?.content?.parts?.[0]?.text) {

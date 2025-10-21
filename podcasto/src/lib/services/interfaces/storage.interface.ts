@@ -33,10 +33,16 @@ export interface IS3Service {
    * For text files, returns the content as string
    * For binary files, returns a signed URL for download
    * @param key - S3 object key
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns File content or signed URL
    * @throws Never throws - returns error in result object
    */
-  getFileContent(key: string): Promise<{ content: S3FileContent | null; error?: string }>;
+  getFileContent(
+    key: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{ content: S3FileContent | null; error?: string }>;
 
   /**
    * Gets metadata for a file in S3
@@ -65,10 +71,16 @@ export interface IS3Service {
   /**
    * Deletes a single file from S3
    * @param key - S3 object key
+   * @param episodeId - Optional episode ID for cost tracking
+   * @param podcastId - Optional podcast ID for cost tracking
    * @returns Success status and any error
    * @throws Never throws - returns error in result object
    */
-  deleteFile(key: string): Promise<{ success: boolean; error?: string }>;
+  deleteFile(
+    key: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{ success: boolean; error?: string }>;
 
   /**
    * Deletes all files in an episode folder

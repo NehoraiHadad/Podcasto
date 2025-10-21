@@ -36,13 +36,13 @@ export class S3ServiceInitializer {
     return { client };
   }
 
-  static createHelpers(client: S3Client, bucket: string): {
+  static createHelpers(client: S3Client, bucket: string, region?: string): {
     transcriptUtils: TranscriptFileUtils;
     bulkOps: S3BulkOperations;
   } {
     return {
       transcriptUtils: createTranscriptFileUtils(client, bucket),
-      bulkOps: new S3BulkOperations(client, bucket)
+      bulkOps: new S3BulkOperations(client, bucket, region)
     };
   }
 }

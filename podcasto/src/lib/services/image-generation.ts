@@ -35,14 +35,24 @@ export class ImageGenerationService implements IImageGenerationService {
   /**
    * Generate a detailed image prompt using the AI model
    */
-  async generateImagePrompt(summary: string, title?: string): Promise<string> {
-    return this.promptGenerator.generateImagePrompt(summary, title);
+  async generateImagePrompt(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<string> {
+    return this.promptGenerator.generateImagePrompt(summary, title, episodeId, podcastId);
   }
 
   /**
    * Generate image for an episode but don't upload (for preview)
    */
-  async generateImagePreview(summary: string, title?: string): Promise<{ 
+  async generateImagePreview(
+    summary: string,
+    title?: string,
+    episodeId?: string,
+    podcastId?: string
+  ): Promise<{
     success: boolean;
     imageData: Buffer | null;
     mimeType: string;
@@ -51,14 +61,16 @@ export class ImageGenerationService implements IImageGenerationService {
   }> {
     try {
       console.log(`[IMAGE_SERVICE] Generating image preview from summary`);
-      
+
       // First, generate an enhanced image prompt
-      const jsonPrompt = await this.generateImagePrompt(summary, title);
-      
+      // Cost tracking happens inside generateImagePrompt via GeminiTextGenerator
+      const jsonPrompt = await this.generateImagePrompt(summary, title, episodeId, podcastId);
+
       // Generate image based on the enhanced prompt
+      // Cost tracking happens inside generateImage via ImageGenerator
       console.log(`[IMAGE_SERVICE] Using enhanced description for image generator`);
-      const imageResult = await this.aiService.generateImage(jsonPrompt);
-      
+      const imageResult = await this.aiService.generateImage(jsonPrompt, undefined, episodeId, podcastId);
+
       if (imageResult.imageData) {
         console.log(`[IMAGE_SERVICE] Successfully generated image preview`);
         return {

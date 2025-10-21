@@ -5,6 +5,7 @@ import { EpisodeUpdater } from './episode-updater';
 import { ImageHandler } from './image-handler';
 import { ImageGenerationService } from './image-generation';
 import { episodesApi } from '../db/api';
+import { calculateEpisodeCost } from './cost-calculator';
 
 export interface Episode {
   id: string;
@@ -67,7 +68,9 @@ export class PostProcessingService {
       const { title, summary } = await this.aiService.generateTitleAndSummary(
         processedTranscript,
         { language, style: 'engaging', maxLength: 60 },
-        { language, style: 'concise', maxLength: 150 }
+        { language, style: 'concise', maxLength: 150 },
+        episodeId,
+        podcastId
       );
 
       await this.episodeUpdater.updateEpisodeWithSummary(
@@ -80,6 +83,15 @@ export class PostProcessingService {
 
       if (!options?.skipImageGeneration) {
         await this.imageHandler.generateEpisodeImage(episodeId, episode.podcast_id, summary);
+      }
+
+      // Calculate episode cost after processing completes
+      try {
+        await calculateEpisodeCost({ episodeId });
+        console.log(`[POST_PROCESSING] Cost calculated for episode ${episodeId}`);
+      } catch (costError) {
+        // Don't fail episode processing if cost calculation fails
+        console.error(`[POST_PROCESSING] Cost calculation failed for episode ${episodeId}:`, costError);
       }
 
       return { success: true, message: 'Episode processed successfully', episode: updatedEpisode };
