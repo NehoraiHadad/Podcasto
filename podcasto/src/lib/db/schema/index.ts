@@ -15,6 +15,10 @@ import { dailyCostSummary } from './daily-cost-summary';
 import { monthlyCostSummary } from './monthly-cost-summary';
 import { costPricingConfig } from './cost-pricing-config';
 import { userCosts } from './user-costs';
+import { userCredits } from './user-credits';
+import { creditTransactions } from './credit-transactions';
+import { creditPackages } from './credit-packages';
+import { userSubscriptions } from './user-subscriptions';
 
 // Export all schema objects
 export {
@@ -33,7 +37,11 @@ export {
   dailyCostSummary,
   monthlyCostSummary,
   costPricingConfig,
-  userCosts
+  userCosts,
+  userCredits,
+  creditTransactions,
+  creditPackages,
+  userSubscriptions
 };
 
 // Export relationships for use in queries

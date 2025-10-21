@@ -64,6 +64,13 @@
       "when": 1761053727088,
       "tag": "0008_workable_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1761066622642,
+      "tag": "0009_sour_mastermind",
+      "breakpoints": true
     }
   ]
 }
