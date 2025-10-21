@@ -1,17 +1,16 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Coins, Sparkles, ArrowRight, Zap } from 'lucide-react';
 
 /**
- * Welcome page shown after successful user registration
- * Displays free credits notification and guides user to next steps
+ * Welcome page content component
  */
-export default function WelcomePage() {
+function WelcomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const showCredits = searchParams.get('credits') === 'true';
@@ -179,5 +178,24 @@ export default function WelcomePage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Welcome page shown after successful user registration
+ * Displays free credits notification and guides user to next steps
+ */
+export default function WelcomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Coins className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <WelcomePageContent />
+    </Suspense>
   );
 }

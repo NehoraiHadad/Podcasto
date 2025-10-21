@@ -3,13 +3,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, Podcast as PodcastIcon } from 'lucide-react';
 import { getUser } from '@/lib/auth';
-import { podcastsApi } from '@/lib/db/api';
 import { getUserCreditsAction, getEpisodeCostAction } from '@/lib/actions/credit/credit-core-actions';
 import { Button } from '@/components/ui/button';
 import { PodcastCardUser } from '@/components/podcasts';
 import { db } from '@/lib/db';
 import { podcasts, episodes } from '@/lib/db/schema';
-import { eq, and, count } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
 
 export const metadata: Metadata = {
   title: 'My Podcasts | Podcasto',
