@@ -1,5 +1,3 @@
-"use server";
-
 import { db } from "@/lib/db";
 import { costTrackingEvents } from "@/lib/db/schema";
 import { getUnitCost } from "@/lib/constants/pricing";

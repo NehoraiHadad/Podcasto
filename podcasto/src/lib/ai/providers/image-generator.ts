@@ -25,7 +25,7 @@ export class ImageGenerator {
     episodeId?: string,
     podcastId?: string
   ): Promise<ImageGenerationResult> {
-    let retryCount = 0;
+    const retryCount = 0;
 
     try {
       const result = await withRetry(async () => {

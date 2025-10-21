@@ -3,7 +3,6 @@
 import { db } from '@/lib/db';
 import { dailyCostSummary } from '@/lib/db/schema';
 import { desc, gte, lte, and } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
 
 export interface DailyCostSummaryRecord {
   date: string;
