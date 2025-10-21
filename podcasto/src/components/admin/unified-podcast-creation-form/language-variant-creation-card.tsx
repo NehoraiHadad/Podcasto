@@ -3,7 +3,7 @@
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -156,8 +156,11 @@ export function LanguageVariantCreationCard({
                 <FormItem>
                   <FormLabel>Cover Image URL</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="https://example.com/image.jpg" />
+                    <Input {...field} placeholder="https://example.com/image.jpg" type="url" />
                   </FormControl>
+                  <FormDescription>
+                    Provide a cover image URL. Leave empty to use Telegram channel photo.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

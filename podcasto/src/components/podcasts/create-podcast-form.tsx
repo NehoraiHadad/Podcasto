@@ -19,6 +19,7 @@ import { createPodcastAction } from '@/lib/actions/podcast-group-actions';
 const createPodcastSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
+  coverImage: z.string().url().optional().or(z.literal('')),
   telegramChannel: z.string().min(1, 'Telegram channel is required'),
   language: z.enum(['english', 'hebrew']),
   episodeFrequency: z.number().int().min(1).max(30),
@@ -41,6 +42,7 @@ export function CreatePodcastForm({ userCredits }: CreatePodcastFormProps) {
     defaultValues: {
       title: '',
       description: '',
+      coverImage: '',
       telegramChannel: '',
       language: 'english',
       episodeFrequency: 7,
@@ -53,17 +55,19 @@ export function CreatePodcastForm({ userCredits }: CreatePodcastFormProps) {
 
     try {
       // Transform form values to match the createPodcastAction interface
+      const coverImageUrl = values.coverImage || 'https://picsum.photos/400/300';
+
       const result = await createPodcastAction({
         base_title: values.title,
         base_description: values.description || '',
-        base_cover_image: 'https://picsum.photos/400/300', // Default placeholder
+        base_cover_image: coverImageUrl,
         languages: [
           {
             language_code: values.language === 'english' ? 'en' : 'he',
             is_primary: true,
             title: values.title,
             description: values.description || '',
-            cover_image: 'https://picsum.photos/400/300',
+            cover_image: coverImageUrl,
 
             // Content source
             contentSource: 'telegram',
@@ -151,6 +155,28 @@ export function CreatePodcastForm({ userCredits }: CreatePodcastFormProps) {
               </FormControl>
               <FormDescription>
                 Optional description for your podcast
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Cover Image URL */}
+        <FormField
+          control={form.control}
+          name="coverImage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cover Image URL</FormLabel>
+              <FormControl>
+                <Input
+                  type="url"
+                  placeholder="https://example.com/podcast-cover.jpg"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Optional: Provide a URL to your podcast cover image. We'll fetch the channel image from Telegram if left empty.
               </FormDescription>
               <FormMessage />
             </FormItem>
