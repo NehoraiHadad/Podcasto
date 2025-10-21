@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Headphones, 
-  Radio, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Headphones,
+  Radio,
+  Users,
+  Settings,
   PlusCircle,
-  BarChart
+  BarChart,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from './context';
@@ -70,6 +71,12 @@ export function SidebarContent() {
       title: 'Analytics',
       href: '/admin/analytics',
       icon: <BarChart className="h-5 w-5" />,
+      exact: false,
+    },
+    {
+      title: 'Costs',
+      href: '/admin/costs',
+      icon: <DollarSign className="h-5 w-5" />,
       exact: false,
     },
     {
