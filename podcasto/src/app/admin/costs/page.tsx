@@ -132,8 +132,8 @@ export default async function CostsPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="episodes">Episodes</TabsTrigger>
           <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
-          <TabsTrigger value="users">משתמשים</TabsTrigger>
-          <TabsTrigger value="manage">ניהול נתונים</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="manage">Data Management</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -167,7 +167,7 @@ export default async function CostsPage() {
         <TabsContent value="users" className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-4">
-              עלויות לפי משתמש ({usersList.length})
+              Costs by User ({usersList.length})
             </h3>
             <UserCostsTable users={usersList} grandTotalCost={grandTotalCost} />
           </div>

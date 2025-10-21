@@ -62,13 +62,13 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
     try {
       const result = await recalculateUserCostsAdmin(userId);
       if (result.success) {
-        toast.success('עלויות המשתמש חושבו מחדש בהצלחה');
+        toast.success('User costs recalculated successfully');
         router.refresh();
       } else {
-        toast.error(result.error || 'שגיאה בחישוב מחדש');
+        toast.error(result.error || 'Failed to recalculate costs');
       }
     } catch (error) {
-      toast.error('שגיאה בחישוב מחדש');
+      toast.error('Failed to recalculate costs');
       console.error(error);
     } finally {
       setRecalculatingUserId(null);
@@ -101,14 +101,14 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="חיפוש משתמשים..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
         </div>
         <div className="text-sm text-muted-foreground">
-          <span className="font-semibold">סה"כ כללי: </span>
+          <span className="font-semibold">Grand Total: </span>
           <span className="text-lg font-bold text-foreground">
             ${grandTotalCost.toFixed(4)}
           </span>
@@ -119,20 +119,20 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>משתמש</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>AI Cost</TableHead>
               <TableHead>AWS Cost</TableHead>
               <TableHead>Total Cost</TableHead>
               <TableHead>Tokens</TableHead>
-              <TableHead>עודכן לאחרונה</TableHead>
-              <TableHead className="text-left">פעולות</TableHead>
+              <TableHead>Last Updated</TableHead>
+              <TableHead className="text-left">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  לא נמצאו משתמשים
+                  No users found
                 </TableCell>
               </TableRow>
             ) : (
@@ -202,7 +202,7 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
                           recalculatingUserId === user.userId ? 'animate-spin' : ''
                         }`}
                       />
-                      <span className="ml-2">חשב מחדש</span>
+                      <span className="ml-2">Recalculate</span>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -213,7 +213,7 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
       </div>
 
       <div className="text-sm text-muted-foreground">
-        מציג {filteredUsers.length} מתוך {users.length} משתמשים
+        Showing {filteredUsers.length} of {users.length} users
       </div>
     </div>
   );
