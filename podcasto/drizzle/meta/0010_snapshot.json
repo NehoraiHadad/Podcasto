@@ -1,5 +1,5 @@
 {
-  "id": "889c2f8e-69f8-4896-a002-92f10c2ca92e",
+  "id": "6e59ff5c-b19e-42f2-99b4-5ff20e8341f2",
   "prevId": "b9e7857a-d5f5-4d2a-8efb-9fbd033d0991",
   "version": "7",
   "dialect": "postgresql",
@@ -1804,24 +1804,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
-        },
-        "auto_generation_frequency": {
-          "name": "auto_generation_frequency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "auto_generation_day_of_week": {
-          "name": "auto_generation_day_of_week",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "auto_generation_time": {
-          "name": "auto_generation_time",
-          "type": "time",
-          "primaryKey": false,
-          "notNull": false
         },
         "last_auto_generated_at": {
           "name": "last_auto_generated_at",

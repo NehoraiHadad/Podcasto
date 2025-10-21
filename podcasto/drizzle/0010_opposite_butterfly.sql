@@ -55,9 +55,6 @@ CREATE TABLE "user_subscriptions" (
 );
 --> statement-breakpoint
 ALTER TABLE "podcasts" ADD COLUMN "auto_generation_enabled" boolean DEFAULT false;--> statement-breakpoint
-ALTER TABLE "podcasts" ADD COLUMN "auto_generation_frequency" text;--> statement-breakpoint
-ALTER TABLE "podcasts" ADD COLUMN "auto_generation_day_of_week" integer;--> statement-breakpoint
-ALTER TABLE "podcasts" ADD COLUMN "auto_generation_time" time;--> statement-breakpoint
 ALTER TABLE "podcasts" ADD COLUMN "last_auto_generated_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "podcasts" ADD COLUMN "next_scheduled_generation" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "credit_transactions" ADD CONSTRAINT "credit_transactions_user_id_profiles_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

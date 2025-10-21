@@ -5,3 +5,4 @@
 
 export * from './user-credits-api';
 export * from './credit-transactions-api';
+export * from './credit-packages-api';

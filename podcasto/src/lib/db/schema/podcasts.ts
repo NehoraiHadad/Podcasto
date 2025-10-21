@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean, integer, time } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { podcastGroups } from './podcast-groups';
 import { profiles } from './profiles';
 
@@ -19,10 +19,8 @@ export const podcasts = pgTable('podcasts', {
   migration_status: text('migration_status').default('legacy'), // 'legacy' | 'migrating' | 'migrated'
 
   // Automatic episode generation scheduling
+  // Note: Uses episode_frequency from podcast_configs, this just tracks when to run next
   auto_generation_enabled: boolean('auto_generation_enabled').default(false),
-  auto_generation_frequency: text('auto_generation_frequency'), // 'daily' | 'weekly' | 'biweekly' | 'monthly'
-  auto_generation_day_of_week: integer('auto_generation_day_of_week'), // 0-6 (Sunday-Saturday)
-  auto_generation_time: time('auto_generation_time'), // Time of day for generation
   last_auto_generated_at: timestamp('last_auto_generated_at', { withTimezone: true }),
   next_scheduled_generation: timestamp('next_scheduled_generation', { withTimezone: true }),
 
