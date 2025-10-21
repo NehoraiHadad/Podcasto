@@ -27,10 +27,11 @@ export type PlanType = 'free' | 'basic' | 'pro' | 'enterprise';
 export const PREMIUM_PLANS: PlanType[] = ['pro', 'enterprise'];
 
 /**
- * Minimum credit threshold for advanced features
+ * Default minimum credit threshold for advanced features
+ * Actual value is fetched from system_settings table
  * Users with one-time purchases can access advanced features if they have enough credits
  */
-export const PREMIUM_CREDIT_THRESHOLD = 100;
+export const DEFAULT_PREMIUM_CREDIT_THRESHOLD = 100;
 
 /**
  * Get active subscription for a user
@@ -111,6 +112,10 @@ export async function hasAdvancedPodcastAccess(
     userCredits = creditsResult.success ? creditsResult.data.total_credits : 0;
   }
 
+  // Get dynamic threshold from system settings
+  const { getPremiumCreditThreshold } = await import('@/lib/db/api/system-settings');
+  const threshold = await getPremiumCreditThreshold();
+
   // Check if user has enough credits for advanced access
-  return userCredits >= PREMIUM_CREDIT_THRESHOLD;
+  return userCredits >= threshold;
 }

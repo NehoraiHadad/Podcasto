@@ -19,6 +19,7 @@ import { userCredits } from './user-credits';
 import { creditTransactions } from './credit-transactions';
 import { creditPackages } from './credit-packages';
 import { userSubscriptions } from './user-subscriptions';
+import { systemSettings } from './system-settings';
 
 // Export all schema objects
 export {
@@ -41,7 +42,8 @@ export {
   userCredits,
   creditTransactions,
   creditPackages,
-  userSubscriptions
+  userSubscriptions,
+  systemSettings
 };
 
 // Export relationships for use in queries

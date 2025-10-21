@@ -78,6 +78,13 @@
       "when": 1761067537716,
       "tag": "0010_opposite_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1761075392555,
+      "tag": "0011_organic_red_wolf",
+      "breakpoints": true
     }
   ]
 }
