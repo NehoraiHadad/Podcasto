@@ -41,7 +41,7 @@ export function CostDataManagement() {
       setStats(result.stats);
     } else {
       toast({
-        title: 'שגיאה',
+        title: 'Error',
         description: result.error || 'Failed to load statistics',
         variant: 'destructive',
       });
@@ -55,8 +55,8 @@ export function CostDataManagement() {
 
     if (result.success) {
       toast({
-        title: 'הצלחה',
-        description: `נמחקו ${result.deletedCounts?.events} אירועי עלות, ${result.deletedCounts?.episodeCosts} עלויות פרקים`,
+        title: 'Success',
+        description: `Deleted ${result.deletedCounts?.events} cost events, ${result.deletedCounts?.episodeCosts} episode costs`,
       });
       setStats(null);
       setShowDeleteDialog(false);
@@ -64,7 +64,7 @@ export function CostDataManagement() {
       window.location.reload();
     } else {
       toast({
-        title: 'שגיאה',
+        title: 'Error',
         description: result.error || 'Failed to delete cost data',
         variant: 'destructive',
       });
@@ -77,10 +77,10 @@ export function CostDataManagement() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-destructive">
           <AlertTriangle className="h-5 w-5" />
-          ניהול נתוני עלויות
+          Cost Data Management
         </CardTitle>
         <CardDescription>
-          מחק נתוני עלויות היסטוריים שעלולים להיות לא מדויקים
+          Delete historical cost data that may be inaccurate
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -90,15 +90,15 @@ export function CostDataManagement() {
             <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div className="text-sm text-muted-foreground space-y-1">
               <p>
-                <strong>למה למחוק?</strong> נתוני העלויות הקודמים עלולים להיות לא מדויקים כי
-                לא עקבנו אחרי כל הקריאות ל-AI.
+                <strong>Why delete?</strong> Previous cost data may be inaccurate because
+                we weren't tracking all AI API calls.
               </p>
               <p>
-                <strong>מה קורה?</strong> המערכת תמחק את כל נתוני העלויות ההיסטוריים. מעכשיו,
-                כל הקריאות ל-AI מעוקבות במדויק.
+                <strong>What happens?</strong> The system will delete all historical cost data.
+                From now on, all AI calls are tracked accurately.
               </p>
               <p className="text-destructive font-medium">
-                <strong>אזהרה:</strong> פעולה זו בלתי הפיכה!
+                <strong>Warning:</strong> This action is irreversible!
               </p>
             </div>
           </div>
@@ -107,38 +107,38 @@ export function CostDataManagement() {
         {/* Statistics */}
         {!stats && (
           <Button onClick={loadStats} disabled={loading} variant="outline">
-            {loading ? 'טוען...' : 'הצג סטטיסטיקה לפני מחיקה'}
+            {loading ? 'Loading...' : 'Show Statistics Before Deleting'}
           </Button>
         )}
 
         {stats && (
           <div className="rounded-lg border p-4 space-y-2">
-            <h4 className="font-semibold text-sm">סטטיסטיקת נתונים קיימים:</h4>
+            <h4 className="font-semibold text-sm">Existing Data Statistics:</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <span className="text-muted-foreground">סה"כ אירועי עלות:</span>{' '}
+                <span className="text-muted-foreground">Total cost events:</span>{' '}
                 <strong>{stats.totalEvents.toLocaleString()}</strong>
               </div>
               <div>
-                <span className="text-muted-foreground">עלויות פרקים:</span>{' '}
+                <span className="text-muted-foreground">Episode costs:</span>{' '}
                 <strong>{stats.totalEpisodeCosts.toLocaleString()}</strong>
               </div>
               <div>
-                <span className="text-muted-foreground">עלויות רמת פודקאסט:</span>{' '}
+                <span className="text-muted-foreground">Podcast-level costs:</span>{' '}
                 <strong>{stats.podcastLevelEvents.toLocaleString()}</strong>
               </div>
               <div>
-                <span className="text-muted-foreground">עלויות רמת פרק:</span>{' '}
+                <span className="text-muted-foreground">Episode-level costs:</span>{' '}
                 <strong>{stats.episodeLevelEvents.toLocaleString()}</strong>
               </div>
               {stats.oldestEvent && (
                 <div className="col-span-2">
-                  <span className="text-muted-foreground">טווח זמן:</span>{' '}
+                  <span className="text-muted-foreground">Time range:</span>{' '}
                   <strong>
-                    {new Date(stats.oldestEvent).toLocaleDateString('he-IL')} -{' '}
+                    {new Date(stats.oldestEvent).toLocaleDateString('en-US')} -{' '}
                     {stats.newestEvent
-                      ? new Date(stats.newestEvent).toLocaleDateString('he-IL')
-                      : 'עכשיו'}
+                      ? new Date(stats.newestEvent).toLocaleDateString('en-US')
+                      : 'Now'}
                   </strong>
                 </div>
               )}
@@ -154,7 +154,7 @@ export function CostDataManagement() {
           className="w-full"
         >
           <Trash2 className="h-4 w-4 mr-2" />
-          מחק את כל נתוני העלויות
+          Delete All Cost Data
         </Button>
 
         {/* Delete Confirmation Dialog */}
@@ -162,31 +162,31 @@ export function CostDataManagement() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-destructive">
-                האם אתה בטוח?
+                Are you sure?
               </AlertDialogTitle>
               <AlertDialogDescription className="space-y-2">
                 <p>
-                  פעולה זו תמחק את <strong>כל נתוני העלויות</strong> מהמערכת:
+                  This action will delete <strong>all cost data</strong> from the system:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>{stats?.totalEvents.toLocaleString()} אירועי עלות</li>
-                  <li>{stats?.totalEpisodeCosts.toLocaleString()} רשומות עלות פרקים</li>
-                  <li>{stats?.totalDailySummaries.toLocaleString()} סיכומים יומיים</li>
-                  <li>{stats?.totalMonthlySummaries.toLocaleString()} סיכומים חודשיים</li>
+                  <li>{stats?.totalEvents.toLocaleString()} cost events</li>
+                  <li>{stats?.totalEpisodeCosts.toLocaleString()} episode cost records</li>
+                  <li>{stats?.totalDailySummaries.toLocaleString()} daily summaries</li>
+                  <li>{stats?.totalMonthlySummaries.toLocaleString()} monthly summaries</li>
                 </ul>
                 <p className="text-destructive font-medium mt-2">
-                  לא ניתן לשחזר נתונים אלו!
+                  This data cannot be recovered!
                 </p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={loading}>ביטול</AlertDialogCancel>
+              <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 disabled={loading}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {loading ? 'מוחק...' : 'כן, מחק הכל'}
+                {loading ? 'Deleting...' : 'Yes, Delete Everything'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
