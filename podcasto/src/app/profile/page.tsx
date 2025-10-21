@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/actions/user-actions';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { ProfilePagePresenter } from '@/components/pages/profile-page-presenter';
 
 export const metadata: Metadata = {
@@ -28,10 +29,15 @@ export default async function ProfilePage() {
 
   const emailNotificationsEnabled = userProfile?.email_notifications ?? true;
 
+  // Fetch user credits
+  const creditsResult = await getUserCreditsAction();
+  const credits = creditsResult.success ? creditsResult.data : null;
+
   return (
     <ProfilePagePresenter
       user={user}
       emailNotificationsEnabled={emailNotificationsEnabled}
+      credits={credits}
     />
   );
 } 

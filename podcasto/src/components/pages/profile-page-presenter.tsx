@@ -2,11 +2,15 @@ import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { User } from '@supabase/supabase-js';
+import { Coins, ShoppingCart, History, Zap, TrendingUp } from 'lucide-react';
+import type { UserCreditsData } from '@/lib/actions/credit';
 
 interface ProfilePagePresenterProps {
   user: User;
   emailNotificationsEnabled: boolean;
+  credits: UserCreditsData | null;
 }
 
 /**
@@ -16,8 +20,21 @@ interface ProfilePagePresenterProps {
  */
 export function ProfilePagePresenter({
   user,
-  emailNotificationsEnabled
+  emailNotificationsEnabled,
+  credits
 }: ProfilePagePresenterProps) {
+  const usagePercentage = credits && credits.total_credits > 0
+    ? (credits.used_credits / credits.total_credits) * 100
+    : 0;
+
+  const purchasedCredits = credits
+    ? credits.total_credits - credits.free_credits
+    : 0;
+
+  const episodesPossible = credits
+    ? Math.floor(credits.available_credits / 10)
+    : 0;
+
   return (
     <MainLayout>
       <div className="container mx-auto py-8">
@@ -36,7 +53,7 @@ export function ProfilePagePresenter({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">User ID</p>
-                  <p className="text-base">{user.id}</p>
+                  <p className="text-base font-mono text-xs">{user.id}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Last Sign In</p>
@@ -48,25 +65,84 @@ export function ProfilePagePresenter({
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Credits Section */}
+          <Card className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50">
             <CardHeader>
-              <CardTitle>Subscription Status</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-yellow-600" />
+                Credit Balance
+              </CardTitle>
+              <CardDescription>
+                Manage your credits and track usage
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Current Plan</p>
-                  <p className="text-base">Free Plan</p>
+            <CardContent className="space-y-4">
+              {credits ? (
+                <>
+                  <div className="text-center py-4">
+                    <div className="text-5xl font-bold text-yellow-600">
+                      {credits.available_credits}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Available Credits
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Usage</span>
+                      <span className="font-medium">
+                        {credits.used_credits} / {credits.total_credits} used
+                      </span>
+                    </div>
+                    <Progress value={usagePercentage} className="h-2" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="bg-white rounded-lg p-3 border">
+                      <p className="text-xs text-gray-500">Free Credits</p>
+                      <p className="text-xl font-bold text-green-600">
+                        {credits.free_credits}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border">
+                      <p className="text-xs text-gray-500">Purchased</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        {purchasedCredits}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <div className="text-sm">
+                      <span className="text-gray-700">You can create </span>
+                      <span className="font-bold text-blue-700">{episodesPossible} episodes</span>
+                      <span className="text-gray-700"> (10 credits each)</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Link href="/credits" className="flex-1">
+                      <Button variant="outline" className="w-full" size="sm">
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Buy Credits
+                      </Button>
+                    </Link>
+                    <Link href="/credits/history" className="flex-1">
+                      <Button variant="outline" className="w-full" size="sm">
+                        <History className="h-4 w-4 mr-2" />
+                        History
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Coins className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Loading credit information...</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Features</p>
-                  <ul className="list-disc list-inside text-base">
-                    <li>Basic podcast access</li>
-                    <li>Standard audio quality</li>
-                    <li>Limited downloads</li>
-                  </ul>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
