@@ -12,12 +12,12 @@ import { createServerClient } from '@/lib/auth';
 
 export interface UserSubscription {
   id: string;
-  podcast_id: string;
+  podcast_id: string | null;
   podcast_title: string;
   podcast_description: string | null;
   cover_image: string | null;
   email_notifications: boolean;
-  created_at: Date;
+  created_at: Date | null;
 }
 
 /**

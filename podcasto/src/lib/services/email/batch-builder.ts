@@ -71,9 +71,9 @@ export function buildBulkDestinations(
       : settingsUrl; // Fallback to settings if no token
 
     // Podcast-specific unsubscribe URL
-    const unsubscribePodcastUrl = token
+    const unsubscribePodcastUrl = token && recipient.subscription.podcast_id
       ? `${siteUrl}/unsubscribe?token=${token}&podcast=${recipient.subscription.podcast_id}`
-      : settingsUrl; // Fallback to settings if no token
+      : settingsUrl; // Fallback to settings if no token or podcast_id
 
     // Per-recipient personalization
     const replacementData: Partial<SESTemplateData> = {
