@@ -45,8 +45,12 @@ export function useStatusPolling({
       const statusUrl = `/api/podcasts/${podcastId}/status?${param}`;
       const response = await fetch(statusUrl);
       if (!response.ok) throw new Error('Failed to check podcast status');
-      const data = await response.json();
+      const result = await response.json();
+
+      // Extract data from standardized API response format
+      const data = result.data;
       const newStatus = data.status as StatusType;
+
       if (newStatus !== status) {
         setStatus(newStatus);
         onStatusChange?.(newStatus);

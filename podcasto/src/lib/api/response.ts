@@ -102,30 +102,3 @@ export function apiError(
   return NextResponse.json(response, { status });
 }
 
-/**
- * Create a success response for legacy endpoints that don't use the data wrapper
- * Use this for backward compatibility with existing clients
- *
- * @example
- * ```typescript
- * // Legacy format: { success: true, message: '...', ...otherFields }
- * return apiSuccessLegacy({ message: 'Completed', count: 5 });
- * ```
- *
- * @param data - Response data (will be spread into response)
- * @param status - HTTP status code (default: 200)
- * @returns NextResponse with legacy success format
- */
-export function apiSuccessLegacy<T extends Record<string, unknown>>(
-  data: T,
-  status = 200
-): NextResponse<T & { success: true; timestamp: string }> {
-  return NextResponse.json(
-    {
-      success: true,
-      ...data,
-      timestamp: new Date().toISOString(),
-    },
-    { status }
-  );
-}

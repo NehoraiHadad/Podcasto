@@ -31,7 +31,6 @@
 export {
   apiSuccess,
   apiError,
-  apiSuccessLegacy,
   type ApiSuccessResponse,
   type ApiErrorResponse,
 } from './response';

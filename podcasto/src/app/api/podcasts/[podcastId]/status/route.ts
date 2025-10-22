@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
-import { apiSuccessLegacy, apiError, logError } from '@/lib/api';
+import { apiSuccess, apiError, logError } from '@/lib/api';
 
 /**
  * API route to check podcast generation status
@@ -74,7 +74,7 @@ export async function GET(
       message = `Podcast status: ${status}`;
     }
 
-    return apiSuccessLegacy({
+    return apiSuccess({
       podcastId,
       episodeId: targetEpisode.id,
       timestamp: timestamp,

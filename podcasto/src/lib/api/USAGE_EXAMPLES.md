@@ -39,15 +39,6 @@ return apiError('Episode not found', 404);
 return apiError('Invalid episode ID', 400);
 ```
 
-### Legacy Format (for backward compatibility)
-
-```typescript
-import { apiSuccessLegacy } from '@/lib/api';
-
-// Returns: { success: true, message: '...', count: 5, timestamp: '...' }
-return apiSuccessLegacy({ message: 'Processing complete', count: 5 });
-```
-
 ## Authentication Helpers
 
 ### CRON Job Authentication
