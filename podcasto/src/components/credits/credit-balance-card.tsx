@@ -9,14 +9,12 @@ interface CreditBalanceCardProps {
 
 /**
  * Displays user's credit balance with visual progress indicator
- * Shows available, used, and total credits with breakdown
+ * Shows available, used, and total credits
  */
 export function CreditBalanceCard({ data }: CreditBalanceCardProps) {
   const usagePercentage = data.total_credits > 0
     ? (data.used_credits / data.total_credits) * 100
     : 0;
-
-  const purchasedCredits = data.total_credits - data.free_credits;
 
   return (
     <Card>
@@ -44,21 +42,6 @@ export function CreditBalanceCard({ data }: CreditBalanceCardProps) {
             </span>
           </div>
           <Progress value={usagePercentage} className="h-2" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-          <div>
-            <p className="text-xs text-muted-foreground">Free Credits</p>
-            <p className="text-2xl font-semibold text-green-600">
-              {data.free_credits}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Purchased</p>
-            <p className="text-2xl font-semibold text-blue-600">
-              {purchasedCredits}
-            </p>
-          </div>
         </div>
 
         {data.last_purchase_at && (
