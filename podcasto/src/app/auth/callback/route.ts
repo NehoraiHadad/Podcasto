@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const token_hash = requestUrl.searchParams.get('token_hash');
   const type = requestUrl.searchParams.get('type') as EmailOtpType | null;
-  const redirect = requestUrl.searchParams.get('redirect') || '/podcasts';
+  const redirect = requestUrl.searchParams.get('redirect') || '/';
 
   if (code) {
     const supabase = await createServerClient();

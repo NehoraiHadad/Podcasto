@@ -167,7 +167,7 @@ export async function middleware(request: NextRequest) {
 
     // Check if there's a redirect parameter
     const redirectParam = request.nextUrl.searchParams.get('redirect');
-    const redirectPath = redirectParam || '/podcasts';
+    const redirectPath = redirectParam || '/';
 
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
