@@ -27,10 +27,6 @@ export function ProfilePagePresenter({
     ? (credits.used_credits / credits.total_credits) * 100
     : 0;
 
-  const purchasedCredits = credits
-    ? credits.total_credits - credits.free_credits
-    : 0;
-
   const episodesPossible = credits
     ? Math.floor(credits.available_credits / 10)
     : 0;
@@ -98,22 +94,7 @@ export function ProfilePagePresenter({
                     <Progress value={usagePercentage} className="h-2" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="bg-white rounded-lg p-3 border">
-                      <p className="text-xs text-gray-500">Free Credits</p>
-                      <p className="text-xl font-bold text-green-600">
-                        {credits.free_credits}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 border">
-                      <p className="text-xs text-gray-500">Purchased</p>
-                      <p className="text-xl font-bold text-blue-600">
-                        {purchasedCredits}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2 mt-4">
                     <Zap className="h-4 w-4 text-blue-600 flex-shrink-0" />
                     <div className="text-sm">
                       <span className="text-gray-700">You can create </span>
