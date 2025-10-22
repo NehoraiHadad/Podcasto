@@ -52,6 +52,15 @@ class SpeakerRole(str, Enum):
 
 
 @dataclass
+class TopicInfo:
+    """Information about a specific topic in the content"""
+    topic_name: str  # Brief topic name (e.g., "AI Model Launch", "Market Analysis")
+    message_indices: list  # Which message indices relate to this topic
+    importance: str  # "high", "medium", "low"
+    suggested_duration: str  # "brief", "moderate", "extended"
+
+
+@dataclass
 class ContentAnalysisResult:
     """Result of content analysis with hybrid approach"""
     content_type: ContentType
@@ -59,6 +68,8 @@ class ContentAnalysisResult:
     role_description: str  # Description of the role's expertise
     confidence: float
     reasoning: str
+    topics: list = None  # List[TopicInfo] - identified topics (optional)
+    conversation_structure: str = None  # Suggested conversation flow (optional)
 
 
 class ContentAnalyzer:
@@ -161,6 +172,142 @@ class ContentAnalyzer:
     def get_gender_for_category(self, content_type: ContentType) -> str:
         """Get the default gender for a content category"""
         return self.CATEGORY_GENDER_MAPPING.get(content_type, "male")
+
+    def analyze_topics_and_structure(self, telegram_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze content to identify distinct topics and suggest conversation structure
+
+        Args:
+            telegram_data: Raw Telegram data with messages
+
+        Returns:
+            Dict with topics list and conversation_structure suggestion
+        """
+        logger.info("[CONTENT_ANALYZER] Analyzing topics and conversation structure")
+
+        try:
+            content_text = self.content_extractor.extract_content_text_only(telegram_data)
+            messages = telegram_data.get('messages', [])
+
+            if not content_text or len(messages) < 2:
+                logger.info("[CONTENT_ANALYZER] Too few messages for topic analysis")
+                return {
+                    'topics': [],
+                    'conversation_structure': 'single_topic'
+                }
+
+            # Analyze with Gemini for topic identification
+            result = self._analyze_topics_with_gemini(content_text, len(messages))
+
+            logger.info(f"[CONTENT_ANALYZER] Identified {len(result.get('topics', []))} topics")
+            logger.info(f"[CONTENT_ANALYZER] Structure: {result.get('conversation_structure', 'unknown')}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[CONTENT_ANALYZER] Error in topic analysis: {str(e)}")
+            return {
+                'topics': [],
+                'conversation_structure': 'linear'
+            }
+
+    def _analyze_topics_with_gemini(self, content_text: str, message_count: int) -> Dict[str, Any]:
+        """Use Gemini to identify topics and suggest conversation structure"""
+
+        # Define schema for topic analysis
+        response_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "topics": {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "topic_name": {
+                                "type": "STRING",
+                                "description": "Brief, catchy topic name (2-5 words)"
+                            },
+                            "importance": {
+                                "type": "STRING",
+                                "enum": ["high", "medium", "low"],
+                                "description": "How central is this topic to the content"
+                            },
+                            "suggested_duration": {
+                                "type": "STRING",
+                                "enum": ["brief", "moderate", "extended"],
+                                "description": "How much time to spend on this topic"
+                            }
+                        },
+                        "required": ["topic_name", "importance", "suggested_duration"]
+                    }
+                },
+                "conversation_structure": {
+                    "type": "STRING",
+                    "enum": ["single_topic", "linear", "thematic_clusters", "narrative_arc"],
+                    "description": "How to structure the conversation flow"
+                },
+                "transition_style": {
+                    "type": "STRING",
+                    "description": "Recommended style for transitions between topics"
+                }
+            },
+            "required": ["topics", "conversation_structure", "transition_style"]
+        }
+
+        # Truncate if too long
+        max_length = 2000
+        if len(content_text) > max_length:
+            content_text = content_text[:max_length] + "..."
+
+        prompt = f"""
+Analyze the following content and identify the main topics for a podcast conversation.
+
+CONTENT ({message_count} messages):
+{content_text}
+
+TASK:
+1. Identify 2-7 distinct topics (don't over-segment - group related items)
+2. Rate each topic's importance (high/medium/low)
+3. Suggest duration for each topic (brief/moderate/extended)
+4. Recommend conversation structure:
+   - single_topic: All content is about one main subject
+   - linear: Topics follow chronological or logical sequence
+   - thematic_clusters: Group related topics together
+   - narrative_arc: Build from intro to climax to conclusion
+5. Suggest transition style (how to move between topics naturally)
+
+GUIDELINES:
+- For NEWS content: Group by category (politics, economy, tech, etc.)
+- For TECH content: Group by product/company or technology area
+- For MIXED content: Find thematic connections
+- Prioritize natural conversation flow over strict categorization
+- Consider: Can these topics be woven together into a story?
+
+TRANSITION STYLE SUGGESTIONS:
+- "seamless" - Topics naturally flow into each other
+- "explicit" - Clear topic changes ("Moving on to...", "Another thing...")
+- "narrative" - Build a story connecting the topics
+- "contrast" - Highlight differences between topics for interest
+"""
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash-001',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=response_schema,
+                    temperature=0.3,
+                    max_output_tokens=2048
+                )
+            )
+
+            result = json.loads(response.text)
+            return result
+
+        except Exception as e:
+            logger.error(f"[CONTENT_ANALYZER] Gemini topic analysis failed: {str(e)}")
+            raise
     
 
     

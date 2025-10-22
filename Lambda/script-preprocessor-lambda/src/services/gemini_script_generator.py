@@ -119,16 +119,19 @@ class GeminiScriptGenerator:
             episode_id=episode_id,
             content_analysis=podcast_config.get('content_analysis'),
             content_type=content_type,
-            content_metrics=content_metrics
+            content_metrics=content_metrics,
+            podcast_config=podcast_config
         )
 
         try:
             # Generate script using Gemini
+            # Note: Higher temperature (0.9) encourages more natural, varied conversation
+            # while still maintaining coherence with the detailed prompt structure
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    temperature=0.8,
+                    temperature=0.9,  # Increased from 0.8 for more natural variation
                     max_output_tokens=32768,  # Increased to allow longer scripts
                 )
             )
@@ -159,7 +162,8 @@ class GeminiScriptGenerator:
         episode_id: str = None,
         content_analysis: str = None,
         content_type: str = 'general',
-        content_metrics: Dict[str, Any] = None
+        content_metrics: Dict[str, Any] = None,
+        podcast_config: Dict[str, Any] = None
     ) -> str:
         """Build the conversation script generation prompt with clean content and adaptive instructions"""
         
@@ -199,8 +203,67 @@ CONTENT ANALYSIS:
 - Analysis Confidence: {content_analysis.get('confidence', 0.5):.2f}
 - Selection Reasoning: {content_analysis.get('reasoning', 'Dynamic role selection based on content')}
 
-The {content_analysis.get('specific_role', speaker2_role)} should demonstrate expertise as: {content_analysis.get('role_description', 'an expert in the field')}. 
+The {content_analysis.get('specific_role', speaker2_role)} should demonstrate expertise as: {content_analysis.get('role_description', 'an expert in the field')}.
 Focus on insights and analysis that match this specific expertise area within {content_analysis.get('content_type', 'general')} topics."""
+
+        # Topic analysis and conversation structure
+        topic_structure_info = ""
+        topic_analysis = podcast_config.get('topic_analysis', {}) if podcast_config else {}
+        if topic_analysis and topic_analysis.get('topics'):
+            topics = topic_analysis.get('topics', [])
+            structure = topic_analysis.get('conversation_structure', 'linear')
+            transition_style = topic_analysis.get('transition_style', 'natural')
+
+            topic_list = "\n".join([
+                f"   {i+1}. {t['topic_name']} (importance: {t['importance']}, duration: {t['suggested_duration']})"
+                for i, t in enumerate(topics)
+            ])
+
+            structure_descriptions = {
+                'single_topic': 'Focus deeply on one main subject throughout',
+                'linear': 'Cover topics in chronological or logical order',
+                'thematic_clusters': 'Group related topics together for thematic flow',
+                'narrative_arc': 'Build a story from introduction to climax to conclusion'
+            }
+
+            transition_guidance = {
+                'seamless': 'Make topics flow naturally into each other without explicit announcements',
+                'explicit': 'Use clear transitions like "Moving on to...", "Another interesting topic is..."',
+                'narrative': 'Connect topics with a story thread, showing cause-effect relationships',
+                'contrast': 'Highlight differences between topics for added interest'
+            }
+
+            topic_structure_info = f"""
+CONVERSATION STRUCTURE & TOPICS:
+
+Identified Topics ({len(topics)} topics):
+{topic_list}
+
+Recommended Structure: {structure}
+- {structure_descriptions.get(structure, 'Cover topics naturally')}
+
+Transition Style: {transition_style}
+- {transition_guidance.get(transition_style, 'Use natural transitions')}
+
+TOPIC COVERAGE GUIDELINES:
+1. **High Importance Topics**: Spend 40-50% of conversation time, multiple exchanges, deep dive
+2. **Medium Importance Topics**: Spend 25-35% of time, adequate coverage
+3. **Low Importance Topics**: Spend 10-20% of time, brief mentions or weave into other topics
+
+TRANSITION TECHNIQUES:
+- **Between High Topics**: Use [pause long], build excitement: "Now, here's something really interesting..."
+- **To Medium Topics**: Natural segues: "Speaking of that...", "This reminds me of..."
+- **Brief Topics**: Quick mentions: "By the way, there's also...", "Oh, and..."
+- **Thematic Links**: Find connections: "What's interesting is how this relates to..."
+
+PACING:
+- Start with high-energy opening on most important topic
+- Vary energy levels throughout - don't stay at one intensity
+- Build to exciting moments when appropriate
+- End with strong takeaway or call-to-action
+
+Remember: The conversation should feel like a natural discussion, not a checklist!
+"""
 
         # Get the specific role from content analysis or fallback to configured role
         actual_speaker2_role = content_analysis.get('specific_role', speaker2_role) if content_analysis else speaker2_role
@@ -301,15 +364,17 @@ Focus on insights and analysis that match this specific expertise area within {c
 
         # Build comprehensive prompt
         conversation_prompt = f"""
-You are an expert podcast script writer specializing in natural, engaging conversations between two speakers.
+You are an expert podcast script writer specializing in NATURAL, UNSCRIPTED-SOUNDING conversations between two speakers.
 
 {content_info}
+
+{topic_structure_info}
 
 {voice_info}
 
 {adaptive_instructions}
 
-CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
+CREATE AN AUTHENTIC, HUMAN-LIKE CONVERSATION SCRIPT with the following specifications:
 
 **PODCAST DETAILS:**
 - Podcast Name: {podcast_name}
@@ -317,9 +382,27 @@ CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 - Target Duration: {target_duration} minutes
 - Episode Context: {channel_context}
 
-**SPEAKERS:**
-- **{speaker1_role}**: {speaker1_gender} voice, consistent host persona
-- **{actual_speaker2_role}**: {speaker2_gender} voice, expert knowledge in the topic
+**SPEAKER PERSONALITIES:**
+- **{speaker1_role}** ({speaker1_gender} voice):
+  * Curious and engaging host persona
+  * Asks insightful questions and shows genuine interest
+  * Uses natural interjections ("really?", "wow", "interesting!")
+  * Occasionally interrupts with excitement or clarification
+  * Personality: Friendly, relatable, occasionally humorous
+
+- **{actual_speaker2_role}** ({speaker2_gender} voice):
+  * Expert with deep knowledge but approachable style
+  * Explains complex topics in accessible ways
+  * Shows enthusiasm for the subject matter
+  * Uses examples and analogies naturally
+  * Personality: Knowledgeable yet conversational, patient
+
+**DYNAMIC BETWEEN SPEAKERS:**
+- Create genuine rapport and chemistry
+- Include moments of agreement ("Exactly!", "Right!", "That's a great point")
+- Add friendly disagreements or different perspectives when appropriate
+- Build on each other's points naturally
+- Show active listening through reactions
 
 ⚠️ **CRITICAL: NO SPEAKER NAMES IN CONTENT**
 - The speaker roles above (e.g., "{speaker1_role}", "{actual_speaker2_role}") are ONLY for identifying who speaks
@@ -329,38 +412,106 @@ CREATE A NATURAL CONVERSATION SCRIPT with the following specifications:
 - Keep the dialogue natural and direct without personal names
 - Speakers can refer to each other using "you" or contextual references only
 
-**TTS MARKUP INSTRUCTIONS:**
-IMPORTANT: Include natural speech markup in your script to enhance TTS delivery:
+**ADVANCED TTS MARKUP FOR NATURAL DELIVERY:**
+Use these markup techniques extensively to create lifelike, expressive speech:
 
-1. **Natural Pauses**: Use [pause], [pause short], [pause long] for:
-   - Between speakers: "{speaker1_role}: [pause short] ..."
-   - Before questions: "...really? [pause] What do you think?"
-   - After important points: "That's crucial. [pause] Let me explain..."
+1. **Timing and Rhythm**:
+   - [pause short] - Brief natural pause (between phrases, after commas)
+   - [pause] - Standard pause (between sentences, before questions)
+   - [pause long] - Extended pause (topic transitions, dramatic moments)
+   - [extremely fast] - Rapid speech for excitement or lists
 
-2. **Emphasis**: Use [emphasis]...[/emphasis] for:
-   - Key terms and names
-   - Important statistics or facts
-   - Breaking news or urgent information
+   Examples:
+   - "So, [pause short] what we're seeing here is..."
+   - "That's incredible! [pause long] Tell me more."
+   - "אז [pause short] מה שקורה פה זה..."
 
-3. **Content-Specific Markup**:
-   {f"- **News Content**: Add [emphasis] around breaking news, important names" if content_type == 'news' else ""}
-   {f"- **Technology Content**: Add [pause short] around technical terms like AI, API, blockchain" if content_type == 'technology' else ""}
-   {f"- **Entertainment Content**: Use more dynamic [emphasis] for exciting moments" if content_type == 'entertainment' else ""}
-   {f"- **Finance Content**: Add [pause] before important numbers and statistics" if content_type == 'finance' else ""}
+2. **Emotional Delivery & Tone**:
+   - [excited] - High energy, enthusiastic delivery
+   - [curious] - Inquisitive, questioning tone
+   - [thoughtful] - Reflective, contemplative pace
+   - [sarcasm] - Subtle sarcastic tone
+   - [whispering] - Quieter, intimate delivery
+   - [amused] - Light, humorous tone
 
-4. **Conversation Flow**: Natural markers like:
-   - "אז, [pause short] בואו נדבר על..."
-   - "כן, [pause] זה נכון"
-   - "Well, [pause] that's interesting"
-   - End sentences with: "...point. [pause short]"
+   Examples:
+   - "{speaker1_role}: [excited] Wait, really? That's amazing!"
+   - "{actual_speaker2_role}: [thoughtful] Well, [pause] when you think about it..."
+   - "[amused] I know, right? [pause short] It's pretty wild."
 
-**SCRIPT REQUIREMENTS:**
-1. Write in {language} language
-2. Create natural, flowing conversation with realistic interruptions and reactions
-3. Include TTS markup naturally within the dialogue
-4. Make the conversation engaging and informative
-5. Ensure both speakers have distinct personalities and speaking styles
-6. Include natural conversation elements: agreements, clarifications, examples
+3. **Emphasis and Stress**:
+   - [emphasis]text[/emphasis] - Stress important words
+   - Use for: numbers, names, key terms, surprising facts
+
+   Examples:
+   - "This affected [emphasis]millions[/emphasis] of users"
+   - "The [emphasis]most important[/emphasis] thing to understand is..."
+   - "זה השפיע על [emphasis]מיליוני[/emphasis] משתמשים"
+
+4. **Natural Speech Patterns**:
+   - Include filler words naturally: "you know", "I mean", "sort of", "actually"
+   - Add thinking sounds: "hmm", "uh", "um" (sparingly, don't overdo)
+   - Use conversational connectors: "by the way", "speaking of which"
+
+   Examples:
+   - "So, um, [pause short] what I found interesting was..."
+   - "Yeah, I mean, [pause] that makes total sense"
+   - "אז, אממ, [pause short] מה שמעניין זה..."
+
+5. **Content-Specific Markup**:
+   {f"- **News Content**: [emphasis] for breaking news, [pause] before major announcements" if content_type == 'news' else ""}
+   {f"- **Technology Content**: [thoughtful] for complex explanations, [excited] for innovations" if content_type == 'technology' else ""}
+   {f"- **Entertainment Content**: [amused] for funny moments, [excited] for dramatic reveals" if content_type == 'entertainment' else ""}
+   {f"- **Finance Content**: [emphasis] on numbers, [pause] before key statistics" if content_type == 'finance' else ""}
+
+6. **Conversation Dynamics**:
+   - Interruptions: Mid-sentence speaker changes for natural flow
+   - Reactions: Quick interjections like "Oh!", "Wow!", "אוי!"
+   - Building excitement: Gradually increase pace and energy
+   - Transitions: Use [pause long] between major topics
+
+**SCRIPT REQUIREMENTS FOR AUTHENTIC DIALOGUE:**
+
+1. **Language & Style**: Write entirely in {language} with conversational, unscripted-sounding tone
+
+2. **Natural Imperfections** (CRITICAL for realism):
+   - Add occasional false starts: "Well, I think... actually, let me put it this way..."
+   - Include mid-thought corrections: "This happened in 2023... no wait, 2024"
+   - Use thinking pauses: "Hmm, [pause] that's a good question"
+   - Add natural fillers sparingly: "you know", "I mean", "like", "sort of"
+   - Hebrew equivalents: "אז", "כאילו", "בעצם", "נו"
+
+3. **Conversational Dynamics**:
+   - Speakers should interrupt naturally when excited
+   - Build on each other's ideas: "Exactly! And to add to that..."
+   - Ask follow-up questions that show genuine curiosity
+   - Include small talk and banter between topics
+   - React authentically: "Wow!", "No way!", "That's wild!", "באמת?!", "וואו!"
+
+4. **Pacing and Energy**:
+   - Start with high energy in opening
+   - Vary pace throughout - mix fast exciting parts with slower explanations
+   - Use [extremely fast] for listing or excited moments
+   - Use [thoughtful] and [pause] for complex topics
+   - Build to exciting moments when appropriate
+
+5. **Personality Consistency**:
+   - {speaker1_role} should sound curious, ask questions, guide the conversation
+   - {actual_speaker2_role} should share knowledge but remain approachable
+   - Each speaker maintains consistent "voice" throughout
+   - Include personal touches: "That reminds me of...", "I recently read..."
+
+6. **Content Integration**:
+   - Weave facts naturally into conversation, don't list them
+   - Use analogies and examples to explain complex ideas
+   - Connect different topics with natural transitions
+   - Reference earlier points: "Like you mentioned earlier..."
+
+7. **TTS Markup Integration**:
+   - Apply markup liberally but naturally throughout
+   - Use at least 2-3 markup tags per speaker turn
+   - Match markup to emotional content of the sentence
+   - Prioritize [pause], [excited], [thoughtful], [emphasis] for impact
 
 **CONTENT TO DISCUSS:**
 {self._format_clean_content_for_prompt(clean_content)}
@@ -378,7 +529,47 @@ Use this format (the roles are IDENTIFIERS ONLY, not names to be spoken):
 
 REMEMBER: The script content should NEVER include the speakers' names or invented names. The roles ({speaker1_role}, {actual_speaker2_role}) are only format markers.
 
-Begin the conversation now:
+---
+
+**EXAMPLES OF NATURAL DIALOGUE PATTERNS:**
+
+Example 1 - Excited Discovery (English):
+{speaker1_role}: [excited] Wait, so you're telling me this actually happened? [pause] That's incredible!
+{actual_speaker2_role}: [amused] I know, right? [pause short] When I first heard about it, I thought, [pause] no way this is real.
+{speaker1_role}: [curious] Okay, so walk me through this... [pause] how did it all start?
+
+Example 2 - Thoughtful Explanation (English):
+{actual_speaker2_role}: [thoughtful] Well, [pause] it's a bit more complex than that. [pause short] Think of it this way...
+{speaker1_role}: Hmm, [pause short] okay, I think I'm following.
+{actual_speaker2_role}: Right! So basically, [pause] what we're seeing is... [pause short] actually, let me give you an example.
+
+Example 3 - Natural Hebrew Conversation:
+{speaker1_role}: [excited] רגע, אז אתה אומר שזה באמת קרה? [pause] זה לא יאומן!
+{actual_speaker2_role}: [amused] כן! [pause short] גם אני בהתחלה חשבתי, [pause] בטח זה לא אמיתי.
+{speaker1_role}: [curious] אוקיי, אז תסביר לי... [pause] איך זה התחיל?
+{actual_speaker2_role}: [thoughtful] אז בעצם, [pause] זה קצת יותר מסובך. [pause short] תחשוב על זה ככה...
+
+Example 4 - Building on Each Other:
+{speaker1_role}: That's a really good point about the technology side.
+{actual_speaker2_role}: [pause short] Exactly! And to add to that, [pause] there's also the human factor we need to consider.
+{speaker1_role}: Oh, [pause short] like the [emphasis]user experience[/emphasis] aspect?
+{actual_speaker2_role}: [excited] Yes! [pause] You nailed it. [pause short] That's exactly what I'm talking about.
+
+Example 5 - Natural Interruption:
+{actual_speaker2_role}: So the main issue here is that the system wasn't designed to—
+{speaker1_role}: [excited] Wait wait wait, [pause] before you continue, [pause short] can you clarify what you mean by "system"?
+{actual_speaker2_role}: [pause short] Oh, good question! [pause] I'm talking about the entire infrastructure that...
+
+KEY PATTERNS TO EMULATE:
+- Start strong with energy and curiosity
+- Layer in emotional markers authentically
+- Use pauses before and after important points
+- Build natural back-and-forth rhythm
+- Include thinking moments and reactions
+- Vary sentence length and structure
+- Add connective tissue between topics
+
+Now, create the conversation script following ALL the guidelines above:
 """
 
         return conversation_prompt

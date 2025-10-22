@@ -118,16 +118,26 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
         clean_content = self.extractor.extract_clean_content(telegram_data)
         analysis: ContentAnalysisResult = self.content_analyzer.analyze_content(telegram_data)
+
+        # NEW: Analyze topics and conversation structure
+        topic_analysis = self.content_analyzer.analyze_topics_and_structure(telegram_data)
+
         analysis_dict = {
             "content_type": analysis.content_type.value,
             "specific_role": analysis.specific_role,
             "role_description": analysis.role_description,
             "confidence": analysis.confidence,
             "reasoning": analysis.reasoning,
+            "topics": topic_analysis.get('topics', []),
+            "conversation_structure": topic_analysis.get('conversation_structure', 'linear'),
+            "transition_style": topic_analysis.get('transition_style', 'natural')
         }
 
         podcast_config = self._get_podcast_config(msg.get("podcast_config_id"), podcast_id)
         dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id)
+
+        # Add topic analysis to dynamic config
+        dynamic_config['topic_analysis'] = topic_analysis
 
         script, content_metrics = self.script_generator.generate_script(clean_content, dynamic_config, episode_id)
 
