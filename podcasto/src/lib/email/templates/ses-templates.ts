@@ -30,8 +30,10 @@ export interface SESTemplateData {
   siteUrl: string;
   /** Settings page URL for managing subscriptions */
   settingsUrl: string;
-  /** Unsubscribe URL with user token */
-  unsubscribeUrl: string;
+  /** Global unsubscribe URL (all notifications) */
+  unsubscribeAllUrl: string;
+  /** Podcast-specific unsubscribe URL */
+  unsubscribePodcastUrl: string;
 }
 
 /**
@@ -165,7 +167,11 @@ export const NEW_EPISODE_HTML_TEMPLATE = `
     </div>
     <div class="footer">
       <p>You're receiving this because you subscribed to {{podcastTitle}}</p>
-      <p><a href="{{settingsUrl}}">Manage your subscriptions</a> · <a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+      <p>
+        <a href="{{settingsUrl}}">Manage your subscriptions</a> ·
+        <a href="{{unsubscribePodcastUrl}}">Unsubscribe from this podcast</a> ·
+        <a href="{{unsubscribeAllUrl}}">Unsubscribe from all emails</a>
+      </p>
     </div>
   </div>
 </body>
@@ -197,7 +203,10 @@ Listen now: {{episodeUrl}}
 
 ---
 You're receiving this because you subscribed to {{podcastTitle}}
-Manage your subscriptions: {{episodeUrl}}
+
+Manage your subscriptions: {{settingsUrl}}
+Unsubscribe from this podcast: {{unsubscribePodcastUrl}}
+Unsubscribe from all emails: {{unsubscribeAllUrl}}
 `.trim();
 
 /**
@@ -244,6 +253,7 @@ export function convertToSESTemplateData(
     episodeUrl,
     siteUrl,
     settingsUrl: `${siteUrl}/settings/notifications`,
-    unsubscribeUrl: `${siteUrl}/settings/notifications`, // Default fallback, will be personalized per recipient
+    unsubscribeAllUrl: `${siteUrl}/unsubscribe?token={{token}}`,
+    unsubscribePodcastUrl: `${siteUrl}/unsubscribe?token={{token}}&podcast=${podcastId}`,
   };
 }

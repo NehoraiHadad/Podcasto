@@ -92,6 +92,20 @@
       "when": 1761135738123,
       "tag": "0012_purple_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1761158917152,
+      "tag": "0013_daily_jack_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1761160330075,
+      "tag": "0014_broad_shooting_star",
+      "breakpoints": true
     }
   ]
 }

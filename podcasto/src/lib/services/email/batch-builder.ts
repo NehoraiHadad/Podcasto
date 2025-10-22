@@ -63,15 +63,24 @@ export function buildBulkDestinations(
   return batch.map((recipient) => {
     // Build settings and unsubscribe URLs
     const settingsUrl = `${siteUrl}/settings/notifications`;
-    const unsubscribeUrl = recipient.userData.unsubscribe_token
-      ? `${siteUrl}/unsubscribe?token=${recipient.userData.unsubscribe_token}`
+    const token = recipient.userData.unsubscribe_token;
+
+    // Global unsubscribe URL (all notifications)
+    const unsubscribeAllUrl = token
+      ? `${siteUrl}/unsubscribe?token=${token}`
+      : settingsUrl; // Fallback to settings if no token
+
+    // Podcast-specific unsubscribe URL
+    const unsubscribePodcastUrl = token
+      ? `${siteUrl}/unsubscribe?token=${token}&podcast=${recipient.subscription.podcast_id}`
       : settingsUrl; // Fallback to settings if no token
 
     // Per-recipient personalization
     const replacementData: Partial<SESTemplateData> = {
       episodeUrl: recipient.episodeUrl,
       settingsUrl,
-      unsubscribeUrl,
+      unsubscribeAllUrl,
+      unsubscribePodcastUrl,
     };
 
     return {

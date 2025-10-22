@@ -373,8 +373,9 @@ const protectedRoutes = ['/profile', '/settings', '/admin'];
    - Track over time to identify issues
 
 3. **Bounce Rate**
-   - Set up SNS topics for bounce notifications (future enhancement)
-   - Automatically disable emails for hard bounces
+   - ✅ SNS topics configured for bounce notifications
+   - ✅ Automatic disabling for hard bounces via Lambda
+   - Query `email_bounces` table for bounce metrics
 
 4. **Daily Send Volume**
    - Ensure staying within SES limits
@@ -401,16 +402,154 @@ LIMIT 10;
 
 -- Users without tokens (need token generation)
 SELECT COUNT(*) FROM profiles WHERE unsubscribe_token IS NULL;
+
+-- Bounce and complaint metrics
+SELECT
+  event_type,
+  COUNT(*) as count,
+  COUNT(DISTINCT user_id) as unique_users
+FROM email_bounces
+WHERE created_at > NOW() - INTERVAL '30 days'
+GROUP BY event_type;
+
+-- Hard bounce breakdown
+SELECT
+  bounce_type,
+  sub_type,
+  COUNT(*) as count
+FROM email_bounces
+WHERE event_type = 'bounce' AND created_at > NOW() - INTERVAL '30 days'
+GROUP BY bounce_type, sub_type
+ORDER BY count DESC;
 ```
 
 ---
 
-## Future Enhancements
+## Bounce & Complaint Handling
+
+### Overview
+
+Podcasto automatically handles email delivery failures and spam complaints via AWS SES → SNS → Lambda integration:
+
+1. **SES** sends bounce/complaint notifications → **SNS Topics**
+2. **SNS** triggers **Lambda function** (`ses-notification-handler-prod`)
+3. **Lambda** processes events and updates database
+
+### Architecture
+
+```
+Email Bounce/Complaint
+    ↓
+AWS SES
+    ↓
+SNS Topics (podcasto-ses-bounces, podcasto-ses-complaints)
+    ↓
+Lambda (ses-notification-handler-prod)
+    ↓
+Supabase Database
+    ├── INSERT into email_bounces (tracking)
+    └── UPDATE profiles SET email_notifications = false (hard bounces & complaints)
+```
+
+### Configured Components
+
+1. **SNS Topics**:
+   - `arn:aws:sns:us-east-1:638520701769:podcasto-ses-bounces`
+   - `arn:aws:sns:us-east-1:638520701769:podcasto-ses-complaints`
+
+2. **Lambda Function**: `ses-notification-handler-prod`
+   - **Location**: `/Lambda/ses-notification-handler/`
+   - **Runtime**: Python 3.10
+   - **Secrets**: Uses `podcasto-secrets` from AWS Secrets Manager
+
+3. **Database Table**: `email_bounces`
+   - Columns: `user_id`, `email`, `event_type`, `bounce_type`, `sub_type`, `raw_message`, `created_at`
+
+### Bounce Types
+
+| Type | Subtype | Action | Description |
+|------|---------|--------|-------------|
+| Permanent | General | Disable emails | Invalid email address |
+| Permanent | NoEmail | Disable emails | Email address doesn't exist |
+| Permanent | Suppressed | Disable emails | On SES suppression list |
+| Transient | General | Log only | Temporary failure |
+| Transient | MailboxFull | Log only | Recipient mailbox full |
+
+### Complaint Handling
+
+When a user marks an email as spam:
+1. Event logged in `email_bounces` table
+2. `profiles.email_notifications` set to `false` immediately
+3. User will not receive future emails
+
+### Testing
+
+Test bounce handling:
+```bash
+aws ses send-email \
+  --from notifications@podcasto.org \
+  --destination ToAddresses=bounce@simulator.amazonses.com \
+  --message 'Subject={Data="Test"},Body={Text={Data="Test"}}' \
+  --region us-east-1
+```
+
+Test complaint handling:
+```bash
+aws ses send-email \
+  --from notifications@podcasto.org \
+  --destination ToAddresses=complaint@simulator.amazonses.com \
+  --message 'Subject={Data="Test"},Body={Text={Data="Test"}}' \
+  --region us-east-1
+```
+
+### Monitoring
+
+Check Lambda logs:
+```bash
+aws logs tail /aws/lambda/ses-notification-handler-prod --follow --region us-east-1
+```
+
+Verify SNS subscriptions:
+```bash
+aws sns list-subscriptions-by-topic \
+  --topic-arn arn:aws:sns:us-east-1:638520701769:podcasto-ses-bounces
+```
+
+### Troubleshooting
+
+**Issue**: Lambda not receiving notifications
+- Check SNS subscriptions are active
+- Verify SES identity notification settings: `aws ses get-identity-notification-attributes --identities podcasto.org`
+
+**Issue**: Users still receiving emails after bounce
+- Check `profiles.email_notifications` was set to false
+- Verify `email_bounces` table has the event
+- Check Lambda logs for processing errors
+
+---
+
+## AWS SES Production Requirements
+
+### Compliance (Required)
+
+✅ **Out of Sandbox**: Approved for production (50,000 emails/day, 14 emails/second)
+
+✅ **Bounce & Complaint Handling**: Implemented via SNS + Lambda
+- Permanent bounces automatically disable email notifications
+- Complaints immediately disable email notifications
+- All events logged in `email_bounces` table
+
+✅ **Unsubscribe Mechanism**: One-click unsubscribe in every email footer
+
+✅ **Best Practices**:
+- Only send to opted-in users (`email_notifications = true`)
+- Duplicate prevention via `sent_episodes` table
+- Rate limiting respects SES limits
+
+### Future Enhancements
 
 ### Phase 2 (Recommended)
 - [ ] Add `List-Unsubscribe` email header for email client support
-- [ ] Set up SNS webhooks for bounce/complaint handling
-- [ ] Automatic disabling for hard bounces
 - [ ] Per-podcast subscription controls
 
 ### Phase 3 (Optional)
@@ -432,5 +571,5 @@ For issues or questions:
 
 ---
 
-**Last Updated**: 2025-10-12
-**Version**: 1.0.0
+**Last Updated**: 2025-10-22
+**Version**: 2.0.0 (Production-ready with bounce/complaint handling)

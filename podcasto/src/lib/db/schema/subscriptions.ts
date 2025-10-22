@@ -1,4 +1,4 @@
-import { pgTable, uuid, timestamp, text, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, timestamp, text, boolean, index } from 'drizzle-orm/pg-core';
 import { podcasts } from './podcasts';
 
 export const subscriptions = pgTable('subscriptions', {
@@ -9,6 +9,11 @@ export const subscriptions = pgTable('subscriptions', {
   // Language preference for multilingual podcasts
   // When null, uses the primary language of the podcast group
   language_preference: text('language_preference'),
+
+  // Per-podcast email notification preference
+  // When true, user receives email notifications for new episodes of this podcast
+  // Defaults to true (inherits from profiles.email_notifications for backwards compatibility)
+  email_notifications: boolean('email_notifications').default(true).notNull(),
 
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow()
 }, (table) => ({

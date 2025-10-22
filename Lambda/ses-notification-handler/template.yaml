@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SES Notification Handler Lambda for Bounce and Complaint Processing
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.10
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues: [dev, prod]
+
+  SecretsManagerName:
+    Type: String
+    Default: 'podcasto-secrets'
+    Description: 'Name of the Secrets Manager secret containing DB credentials'
+
+Resources:
+  SESNotificationHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'ses-notification-handler-${Environment}'
+      CodeUri: src/
+      Handler: handler.lambda_handler
+      Description: Handles SES bounce and complaint notifications
+      Environment:
+        Variables:
+          SECRETS_MANAGER_NAME: !Ref SecretsManagerName
+      Events:
+        BounceTopic:
+          Type: SNS
+          Properties:
+            Topic: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:podcasto-ses-bounces'
+        ComplaintTopic:
+          Type: SNS
+          Properties:
+            Topic: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:podcasto-ses-complaints'
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: podcasto-ses-bounces
+        - SNSPublishMessagePolicy:
+            TopicName: podcasto-ses-complaints
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${SecretsManagerName}*'
+
+Outputs:
+  SESNotificationHandlerFunctionArn:
+    Description: SES Notification Handler Lambda Function ARN
+    Value: !GetAtt SESNotificationHandlerFunction.Arn
+
+  SESNotificationHandlerFunctionName:
+    Description: SES Notification Handler Lambda Function Name
+    Value: !Ref SESNotificationHandlerFunction

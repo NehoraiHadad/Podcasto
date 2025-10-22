@@ -39,17 +39,6 @@ function WelcomePageContent() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 p-4">
       <Card className="max-w-3xl w-full p-10 md:p-12 shadow-2xl border-2 border-purple-100 dark:border-purple-800/50">
         <div className="text-center">
-          {/* Welcome Icon */}
-          <div className="mb-8 flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-              <Sparkles className="relative h-20 w-20 text-yellow-500 animate-pulse" />
-              <div className="absolute -top-2 -right-2">
-                <Zap className="h-8 w-8 text-blue-500" />
-              </div>
-            </div>
-          </div>
-
           {/* Welcome Title with Logo */}
           <div className="mb-6">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-3 flex-wrap">
