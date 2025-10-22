@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { getUser } from '@/lib/auth';
 import type { User } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { profiles } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Server action to get the current user
@@ -37,4 +40,59 @@ export const requireAuth = async (redirectTo?: string): Promise<User> => {
   }
 
   return user;
+};
+
+/**
+ * Server action to mark the welcome page as seen for a user
+ * Used to ensure welcome page is only shown once per user
+ *
+ * @param userId The user ID to mark as having seen the welcome page
+ * @returns Promise with success/error status
+ */
+export const markWelcomeAsSeen = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await db
+      .update(profiles)
+      .set({
+        has_seen_welcome: true,
+        updated_at: new Date()
+      })
+      .where(eq(profiles.id, userId));
+
+    return { success: true };
+  } catch (error) {
+    console.error('[MARK_WELCOME_SEEN] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to mark welcome as seen'
+    };
+  }
+};
+
+/**
+ * Server action to check if a user has seen the welcome page
+ *
+ * @param userId The user ID to check
+ * @returns Promise with has_seen_welcome status
+ */
+export const hasSeenWelcome = async (userId: string): Promise<{ success: boolean; hasSeen: boolean; error?: string }> => {
+  try {
+    const [profile] = await db
+      .select({ has_seen_welcome: profiles.has_seen_welcome })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1);
+
+    return {
+      success: true,
+      hasSeen: profile?.has_seen_welcome ?? false
+    };
+  } catch (error) {
+    console.error('[HAS_SEEN_WELCOME] Error:', error);
+    return {
+      success: false,
+      hasSeen: false,
+      error: error instanceof Error ? error.message : 'Failed to check welcome status'
+    };
+  }
 }; 

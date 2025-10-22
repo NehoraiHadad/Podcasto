@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { getUserCredits } from '@/lib/db/api/credits';
 import { creditService } from '@/lib/services/credits';
+import { hasSeenWelcome, markWelcomeAsSeen } from '@/lib/actions/user-actions';
 
 /**
  * Route handler for auth callback
@@ -26,6 +27,10 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && user) {
+      // Check if user has seen welcome page
+      const welcomeStatus = await hasSeenWelcome(user.id);
+      const shouldShowWelcome = !welcomeStatus.hasSeen;
+
       // Check if this is a new user by looking for existing credits
       const existingCredits = await getUserCredits(user.id);
 
@@ -38,12 +43,24 @@ export async function GET(request: NextRequest) {
         if (result.success) {
           console.log(`[AUTH_CALLBACK] Credits initialized for user ${user.id}: ${result.newBalance} credits`);
 
+          // Mark welcome as seen before redirecting
+          await markWelcomeAsSeen(user.id);
+
           // Redirect to welcome page with credits notification
           return NextResponse.redirect(new URL('/welcome?credits=true', request.url));
         } else {
           console.error(`[AUTH_CALLBACK] Failed to initialize credits:`, result.error);
           // Continue anyway - credits can be initialized later via getUserCreditsAction
         }
+      } else if (shouldShowWelcome) {
+        // Existing user who hasn't seen welcome (edge case: users created before this feature)
+        console.log(`[AUTH_CALLBACK] Existing user ${user.id} hasn't seen welcome page, showing it now`);
+
+        // Mark welcome as seen before redirecting
+        await markWelcomeAsSeen(user.id);
+
+        // Redirect to welcome page without credits notification
+        return NextResponse.redirect(new URL('/welcome', request.url));
       }
     }
 

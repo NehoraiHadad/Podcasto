@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import Image from 'next/image';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -35,57 +36,76 @@ function WelcomePageContent() {
   const episodeCount = credits ? Math.floor(credits / 10) : 0;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 p-4">
-      <Card className="max-w-2xl w-full p-8 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 p-4">
+      <Card className="max-w-3xl w-full p-10 md:p-12 shadow-2xl border-2 border-purple-100 dark:border-purple-800/50">
         <div className="text-center">
           {/* Welcome Icon */}
-          <div className="mb-6 flex justify-center">
+          <div className="mb-8 flex justify-center">
             <div className="relative">
-              <Sparkles className="h-20 w-20 text-yellow-500 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <Sparkles className="relative h-20 w-20 text-yellow-500 animate-pulse" />
               <div className="absolute -top-2 -right-2">
                 <Zap className="h-8 w-8 text-blue-500" />
               </div>
             </div>
           </div>
 
-          {/* Welcome Title */}
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Welcome to Podcasto!
-          </h1>
+          {/* Welcome Title with Logo */}
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-800 dark:text-gray-100 flex items-center justify-center gap-3 flex-wrap">
+              <span>Welcome to</span>
+              <Image
+                src="/podcasto-logo.webp"
+                alt="Podcasto"
+                width={180}
+                height={48}
+                quality={100}
+                priority
+                className="inline-block"
+                style={{
+                  width: 'auto',
+                  height: '40px'
+                }}
+              />
+            </h1>
+          </div>
 
-          <p className="text-lg text-gray-600 mb-8">
-            Transform your Telegram content into professional AI-powered podcasts
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed max-w-xl mx-auto">
+            Transform your Telegram content into professional AI-powered podcasts with natural conversations
           </p>
 
           {/* Credits Section */}
           {showCredits && !isLoading && credits !== null && (
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-8 mb-8 shadow-sm">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <Coins className="h-10 w-10 text-green-600" />
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-2xl p-8 mb-10 shadow-lg">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-400 rounded-full blur-lg opacity-30"></div>
+                  <Coins className="relative h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
                 <div className="text-left">
-                  <span className="text-4xl font-bold text-green-700">
+                  <span className="text-5xl font-bold text-green-700 dark:text-green-400">
                     {credits}
                   </span>
-                  <span className="text-xl font-semibold text-green-600 ml-2">
+                  <span className="text-xl font-semibold text-green-600 dark:text-green-500 ml-2">
                     Credits
                   </span>
                 </div>
               </div>
 
-              <p className="text-green-700 font-medium mb-2">
-                Free credits added to your account!
+              <p className="text-green-800 dark:text-green-300 font-semibold mb-2 text-lg">
+                🎉 Free credits added to your account!
               </p>
 
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-700 bg-white/50 rounded-lg p-3 mt-4">
-                <Zap className="h-4 w-4 text-blue-600" />
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-800 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 mt-4 border border-green-200 dark:border-green-800">
+                <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <span>
                   Each podcast episode costs <strong>10 credits</strong>
                 </span>
               </div>
 
               {episodeCount > 0 && (
-                <p className="text-sm text-green-600 mt-3 font-medium">
-                  You can create up to <strong>{episodeCount} episodes</strong> with your free credits!
+                <p className="text-sm text-green-700 dark:text-green-400 mt-4 font-semibold">
+                  ✨ You can create up to <strong className="text-base">{episodeCount} episodes</strong> with your free credits!
                 </p>
               )}
             </div>
@@ -93,53 +113,55 @@ function WelcomePageContent() {
 
           {/* Loading State */}
           {showCredits && isLoading && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 mb-8">
-              <div className="flex items-center justify-center gap-2">
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-8 mb-10">
+              <div className="flex items-center justify-center gap-3">
                 <Coins className="h-6 w-6 text-gray-400 animate-spin" />
-                <span className="text-gray-600">Loading your credits...</span>
+                <span className="text-gray-600 dark:text-gray-300">Loading your credits...</span>
               </div>
             </div>
           )}
 
           {/* Getting Started Guide */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8 text-left">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <ArrowRight className="h-5 w-5 text-purple-600" />
+          <div className="bg-white dark:bg-gray-800/50 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 mb-10 text-left shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
+                <ArrowRight className="h-6 w-6 text-white" />
+              </div>
               Getting Started
             </h2>
 
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-sm">
+            <div className="space-y-5">
+              <div className="flex gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/20 dark:to-transparent border-l-4 border-purple-500">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg">
                   1
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Create a Podcast</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Create a Podcast</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     Configure your podcast with a Telegram channel as the content source
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-sm">
+              <div className="flex gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20 dark:to-transparent border-l-4 border-blue-500">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg">
                   2
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Generate Episodes</p>
-                  <p className="text-sm text-gray-600">
-                    AI will process your Telegram content into professional audio
+                  <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Generate Episodes</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                    AI will process your Telegram content into professional audio with natural conversations
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-sm">
+              <div className="flex gap-4 p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-transparent dark:from-indigo-900/20 dark:to-transparent border-l-4 border-indigo-500">
+                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg">
                   3
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800">Share & Subscribe</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Share & Subscribe</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     Receive episodes via email or share with your audience
                   </p>
                 </div>
@@ -148,10 +170,10 @@ function WelcomePageContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Button
               onClick={() => router.push('/podcasts/create')}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
               size="lg"
             >
               <Sparkles className="mr-2 h-5 w-5" />
@@ -161,7 +183,7 @@ function WelcomePageContent() {
             <Button
               onClick={() => router.push('/podcasts')}
               variant="outline"
-              className="w-full border-2 hover:bg-gray-50"
+              className="w-full border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300"
               size="lg"
             >
               Explore Podcasts
@@ -170,8 +192,8 @@ function WelcomePageContent() {
 
           {/* Skip Link */}
           <button
-            onClick={() => router.push('/podcasts')}
-            className="mt-6 text-sm text-gray-500 hover:text-gray-700 underline"
+            onClick={() => router.push('/')}
+            className="mt-8 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline transition-colors"
           >
             Skip and explore later
           </button>
