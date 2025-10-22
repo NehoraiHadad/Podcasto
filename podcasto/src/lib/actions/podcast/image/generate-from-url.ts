@@ -13,14 +13,14 @@ import type { ImageActionResult, ImageGenerationOptions } from './types';
  * Generate podcast cover image from URL.
  * Downloads the image from the provided URL and processes it.
  *
- * @param podcastId - The ID of the podcast
+ * @param podcastId - The ID of the podcast (null if in creation mode)
  * @param imageUrl - The URL of the image to download
  * @param podcastTitle - The title of the podcast
  * @param options - Generation options (style, variations)
  * @returns Result containing base64 image data (not uploaded to S3 until form save)
  */
 export async function generatePodcastImageFromUrl(
-  podcastId: string,
+  podcastId: string | null,
   imageUrl: string,
   podcastTitle: string,
   options?: ImageGenerationOptions
@@ -29,7 +29,7 @@ export async function generatePodcastImageFromUrl(
     await requireAdmin();
     const user = await getUser();
 
-    console.log(`[IMAGE_URL] Generating image from URL for podcast ${podcastId}: ${imageUrl}`);
+    console.log(`[IMAGE_URL] Generating image from URL for podcast ${podcastId || 'new'}: ${imageUrl}`);
 
     // Validate URL
     try {
@@ -72,7 +72,7 @@ export async function generatePodcastImageFromUrl(
       podcastTitle,
       options,
       undefined, // No episode ID in podcast creation
-      podcastId,
+      podcastId || undefined,
       user?.id
     );
   } catch (error) {

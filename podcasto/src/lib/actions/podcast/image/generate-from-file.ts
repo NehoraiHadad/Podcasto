@@ -13,7 +13,7 @@ import type { ImageActionResult, ImageGenerationOptions } from './types';
  * Generate podcast cover image from uploaded file.
  * Processes the uploaded image and optionally enhances it with AI.
  *
- * @param podcastId - The ID of the podcast
+ * @param podcastId - The ID of the podcast (null if in creation mode)
  * @param base64Image - The image data as base64 string
  * @param mimeType - The MIME type of the image
  * @param podcastTitle - The title of the podcast
@@ -21,7 +21,7 @@ import type { ImageActionResult, ImageGenerationOptions } from './types';
  * @returns Result containing base64 image data (not uploaded to S3 until form save)
  */
 export async function generatePodcastImageFromFile(
-  podcastId: string,
+  podcastId: string | null,
   base64Image: string,
   mimeType: string,
   podcastTitle: string,
@@ -31,7 +31,7 @@ export async function generatePodcastImageFromFile(
     await requireAdmin();
     const user = await getUser();
 
-    console.log(`[IMAGE_FILE] Generating image from uploaded file for podcast ${podcastId}`);
+    console.log(`[IMAGE_FILE] Generating image from uploaded file for podcast ${podcastId || 'new'}`);
 
     // Convert base64 to buffer
     const imageBuffer = Buffer.from(base64Image, 'base64');
@@ -42,7 +42,7 @@ export async function generatePodcastImageFromFile(
       podcastTitle,
       options,
       undefined, // No episode ID in podcast creation
-      podcastId,
+      podcastId || undefined,
       user?.id
     );
   } catch (error) {

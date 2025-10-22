@@ -9,7 +9,7 @@ interface ActionButtonsProps {
   variationCount: number;
   selectedVariationLabel?: string;
   onGenerate: () => void;
-  onLoadGallery: () => void;
+  onLoadGallery?: () => void;
 }
 
 export function ActionButtons({
@@ -40,16 +40,18 @@ export function ActionButtons({
         className="flex-1 w-full sm:w-auto"
       />
 
-      <LoadingButton
-        type="button"
-        isLoading={isLoadingGallery}
-        loadingText="Loading..."
-        idleText="Browse Gallery"
-        idleIcon={<Images className="mr-2 h-4 w-4" />}
-        onClick={onLoadGallery}
-        variant="outline"
-        className="flex-1 w-full sm:w-auto"
-      />
+      {onLoadGallery && (
+        <LoadingButton
+          type="button"
+          isLoading={isLoadingGallery}
+          loadingText="Loading..."
+          idleText="Browse Gallery"
+          idleIcon={<Images className="mr-2 h-4 w-4" />}
+          onClick={onLoadGallery}
+          variant="outline"
+          className="flex-1 w-full sm:w-auto"
+        />
+      )}
     </div>
   );
 }

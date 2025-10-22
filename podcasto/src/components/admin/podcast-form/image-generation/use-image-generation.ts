@@ -46,11 +46,7 @@ export function useImageGeneration({ podcastId, podcastTitle, onImageGenerated }
     uploadedFile?: File | null,
     manualUrl?: string
   ) => {
-    if (!podcastId) {
-      imageToasts.savePodcastFirst();
-      return;
-    }
-
+    // Validation
     if (imageSource === 'telegram' && !telegramChannel) {
       imageToasts.noTelegramChannel();
       return;
@@ -79,15 +75,22 @@ export function useImageGeneration({ podcastId, podcastTitle, onImageGenerated }
 
       let result;
 
+      // If no podcastId, we're in creation mode - call actions with null podcastId
+      const effectivePodcastId = podcastId || null;
+
       switch (imageSource) {
         case 'telegram':
-          result = await generatePodcastImageFromTelegram(podcastId, generationOptions);
+          result = await generatePodcastImageFromTelegram(effectivePodcastId, {
+            ...generationOptions,
+            telegramChannel: telegramChannel || undefined,
+            podcastTitle: podcastTitle
+          });
           break;
         case 'upload':
           if (uploadedFile) {
             const base64Image = await fileToBase64(uploadedFile);
             result = await generatePodcastImageFromFile(
-              podcastId,
+              effectivePodcastId,
               base64Image,
               uploadedFile.type,
               podcastTitle || 'My Podcast',
@@ -97,7 +100,7 @@ export function useImageGeneration({ podcastId, podcastTitle, onImageGenerated }
           break;
         case 'url':
           result = await generatePodcastImageFromUrl(
-            podcastId,
+            effectivePodcastId,
             manualUrl || '',
             podcastTitle || 'My Podcast',
             generationOptions

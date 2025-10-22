@@ -63,12 +63,17 @@ export function ImageGenerationField({
 
   const selectedVariationOption = VARIATION_OPTIONS.find(v => v.count === variationCount);
 
-  if (!podcastId) {
-    return <EmptyState />;
-  }
-
   return (
     <div className="space-y-6">
+      {!podcastId && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+          <p className="font-medium">Creating mode</p>
+          <p className="text-blue-600 mt-1">
+            Generated images will be saved with your podcast when you create it.
+          </p>
+        </div>
+      )}
+
       <GeneratedImagePreview currentImageUrl={currentImageUrl} onDelete={handleDeleteCurrentImage} />
 
       <ImageSourceSelector
@@ -95,16 +100,18 @@ export function ImageGenerationField({
         variationCount={variationCount}
         selectedVariationLabel={selectedVariationOption?.label}
         onGenerate={() => handleGenerate(imageSource, selectedStyle, variationCount, telegramChannel, uploadedFile, manualUrl)}
-        onLoadGallery={handleLoadGallery}
+        onLoadGallery={podcastId ? handleLoadGallery : undefined}
       />
 
-      <GalleryBrowser
-        isOpen={showGallery}
-        images={galleryImages}
-        onClose={() => setShowGallery(false)}
-        onSelectImage={handleSelectFromGallery}
-        onDeleteImage={handleDeleteGalleryImage}
-      />
+      {podcastId && (
+        <GalleryBrowser
+          isOpen={showGallery}
+          images={galleryImages}
+          onClose={() => setShowGallery(false)}
+          onSelectImage={handleSelectFromGallery}
+          onDeleteImage={handleDeleteGalleryImage}
+        />
+      )}
 
       <DebugInfoPanel debugInfo={debugInfo} />
 
