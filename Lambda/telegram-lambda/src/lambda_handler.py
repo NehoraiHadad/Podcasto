@@ -114,7 +114,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     if episode_id:
                         tracker.log_stage_complete(
                             episode_id,
-                            ProcessingStage.TELEGRAM_COMPLETED,
+                            ProcessingStage.TELEGRAM_PROCESSING,
                             {'s3_path': s3_path, 'sqs_sent': sqs_sent}
                         )
                 else:

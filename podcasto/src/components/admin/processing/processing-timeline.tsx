@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  ProcessingStage,
   StageStatus,
   STAGE_CONFIGS,
   type ProcessingLogEntry
@@ -68,63 +67,43 @@ export function ProcessingTimeline({ episodeId, className }: ProcessingTimelineP
     );
   }
 
-  // Group logs by stage family (telegram, script, audio)
-  // Each family can have: _PROCESSING (started), _COMPLETED, or _FAILED
-  type StageFamily = 'telegram' | 'script' | 'audio' | 'other';
+  // Filter logs to show only completed or failed logs (not started logs that weren't updated)
+  // Show started logs only if they're the latest log for that stage
+  const processedLogs: ProcessingLogEntry[] = [];
 
-  const getStageFamilyAndType = (stage: ProcessingStage): { family: StageFamily; type: 'start' | 'complete' | 'fail' | 'other' } => {
-    if (stage.includes('telegram')) {
-      if (stage === ProcessingStage.TELEGRAM_PROCESSING) return { family: 'telegram', type: 'start' };
-      if (stage === ProcessingStage.TELEGRAM_COMPLETED) return { family: 'telegram', type: 'complete' };
-      if (stage === ProcessingStage.TELEGRAM_FAILED) return { family: 'telegram', type: 'fail' };
-    }
-    if (stage.includes('script')) {
-      if (stage === ProcessingStage.SCRIPT_PROCESSING) return { family: 'script', type: 'start' };
-      if (stage === ProcessingStage.SCRIPT_COMPLETED) return { family: 'script', type: 'complete' };
-      if (stage === ProcessingStage.SCRIPT_FAILED) return { family: 'script', type: 'fail' };
-    }
-    if (stage.includes('audio')) {
-      if (stage === ProcessingStage.AUDIO_PROCESSING) return { family: 'audio', type: 'start' };
-      if (stage === ProcessingStage.AUDIO_COMPLETED) return { family: 'audio', type: 'complete' };
-      if (stage === ProcessingStage.AUDIO_FAILED) return { family: 'audio', type: 'fail' };
-    }
-    return { family: 'other', type: 'other' };
-  };
-
-  // Group by family
-  const familyMap = new Map<StageFamily, { start?: ProcessingLogEntry; complete?: ProcessingLogEntry; fail?: ProcessingLogEntry }>();
-
-  logs.forEach((log) => {
-    const { family, type } = getStageFamilyAndType(log.stage);
-    if (family === 'other') return;
-
-    if (!familyMap.has(family)) {
-      familyMap.set(family, {});
-    }
-
-    const familyLogs = familyMap.get(family)!;
-    if (type === 'start') familyLogs.start = log;
-    else if (type === 'complete') familyLogs.complete = log;
-    else if (type === 'fail') familyLogs.fail = log;
+  // Group logs by stage to find the latest status for each
+  const stageMap = new Map<string, ProcessingLogEntry[]>();
+  logs.forEach(log => {
+    const existing = stageMap.get(log.stage) || [];
+    existing.push(log);
+    stageMap.set(log.stage, existing);
   });
 
-  // Create timeline items - show the most relevant log per family
-  const timelineItems: ProcessingLogEntry[] = [];
-  const orderedFamilies: StageFamily[] = ['telegram', 'script', 'audio'];
+  // For each stage, pick the most relevant log
+  stageMap.forEach((stageLogs) => {
+    // Sort by created_at descending to get latest first
+    stageLogs.sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
-  orderedFamilies.forEach((family) => {
-    const familyLogs = familyMap.get(family);
-    if (!familyLogs) return;
+    // Priority: failed > completed > started
+    const failed = stageLogs.find(l => l.status === StageStatus.FAILED);
+    const completed = stageLogs.find(l => l.status === StageStatus.COMPLETED);
+    const started = stageLogs.find(l => l.status === StageStatus.STARTED);
 
-    // Priority: fail > complete > start
-    if (familyLogs.fail) {
-      timelineItems.push(familyLogs.fail);
-    } else if (familyLogs.complete) {
-      timelineItems.push(familyLogs.complete);
-    } else if (familyLogs.start) {
-      timelineItems.push(familyLogs.start);
+    if (failed) {
+      processedLogs.push(failed);
+    } else if (completed) {
+      processedLogs.push(completed);
+    } else if (started) {
+      processedLogs.push(started);
     }
   });
+
+  // Sort chronologically by created_at
+  const timelineItems = processedLogs.sort((a, b) =>
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   return (
     <div className={cn('space-y-0', className)}>

@@ -70,6 +70,16 @@ export const STAGE_CONFIGS: Record<ProcessingStage, Omit<StageConfig, 'stage'>> 
     description: 'Failed to generate audio',
     color: 'red'
   },
+  [ProcessingStage.IMAGE_PROCESSING]: {
+    label: 'Generating Image',
+    description: 'Creating episode cover image',
+    color: 'blue'
+  },
+  [ProcessingStage.IMAGE_FAILED]: {
+    label: 'Image Failed',
+    description: 'Failed to generate image (non-critical)',
+    color: 'red'
+  },
   [ProcessingStage.POST_PROCESSING]: {
     label: 'Post-Processing',
     description: 'Finalizing episode for publication',

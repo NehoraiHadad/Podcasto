@@ -178,7 +178,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
         # Log successful completion of script processing stage
         self.tracker.log_stage_complete(
             episode_id,
-            ProcessingStage.SCRIPT_COMPLETED,
+            ProcessingStage.SCRIPT_PROCESSING,
             {
                 'script_chars': len(script),
                 'script_url': artefacts["script"],

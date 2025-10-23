@@ -190,7 +190,7 @@ class AudioGenerationHandler:
             # Log successful completion of audio processing stage
             self.tracker.log_stage_complete(
                 episode_id,
-                ProcessingStage.AUDIO_COMPLETED,
+                ProcessingStage.AUDIO_PROCESSING,
                 {
                     'audio_url': audio_url,
                     'duration': duration,

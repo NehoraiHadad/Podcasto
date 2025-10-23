@@ -1,5 +1,7 @@
 import { episodesApi } from '../db/api';
 import type { IS3Service, IEpisodeUpdater, IImageGenerationService, IImageHandler } from './interfaces';
+import { logStageStart, logStageComplete, logStageFailure } from '../episode-tracking';
+import { ProcessingStage } from '@/types/processing';
 
 /**
  * Handler for image operation tasks
@@ -137,6 +139,9 @@ export class ImageHandler implements IImageHandler {
     try {
       console.log(`[IMAGE_HANDLER] Generating image for episode ${episodeId}`);
 
+      // Log start of image processing stage
+      await logStageStart(episodeId, ProcessingStage.IMAGE_PROCESSING);
+
       // Get episode info to include title
       const episode = await episodesApi.getEpisodeById(episodeId);
       const title = episode?.title || undefined;
@@ -153,9 +158,23 @@ export class ImageHandler implements IImageHandler {
           previewResult.mimeType
         );
 
+        if (saveResult.success) {
+          // Log successful completion of image processing
+          await logStageComplete(episodeId, ProcessingStage.IMAGE_PROCESSING, {
+            image_url: saveResult.imageUrl
+          });
+        }
+
         return saveResult.success;
       } else {
         console.warn(`[IMAGE_HANDLER] No image was generated for episode ${episodeId}: ${previewResult.error}`);
+
+        // Log failure (non-critical - episode can still be published)
+        await logStageFailure(
+          episodeId,
+          ProcessingStage.IMAGE_PROCESSING,
+          new Error(previewResult.error || 'Image generation failed')
+        );
 
         // Mark as published even without image (episode is still complete)
         await this.episodeUpdater.markEpisodeAsPublished(episodeId);
@@ -164,6 +183,13 @@ export class ImageHandler implements IImageHandler {
       }
     } catch (error) {
       console.error(`[IMAGE_HANDLER] Error generating image for episode ${episodeId}:`, error);
+
+      // Log failure
+      await logStageFailure(
+        episodeId,
+        ProcessingStage.IMAGE_PROCESSING,
+        error instanceof Error ? error : new Error(String(error))
+      );
 
       // Update episode metadata with error info but don't mark as failed
       await this.episodeUpdater.trackImageGenerationError(episodeId, error);

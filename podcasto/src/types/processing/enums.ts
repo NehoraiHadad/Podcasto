@@ -19,6 +19,8 @@ export enum ProcessingStage {
   AUDIO_PROCESSING = 'audio_processing',
   AUDIO_COMPLETED = 'audio_completed',
   AUDIO_FAILED = 'audio_failed',
+  IMAGE_PROCESSING = 'image_processing',
+  IMAGE_FAILED = 'image_failed',
   POST_PROCESSING = 'post_processing',
   PUBLISHED = 'published',
   FAILED = 'failed'

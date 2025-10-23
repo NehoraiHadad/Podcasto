@@ -29,6 +29,8 @@ class ProcessingStage(str, Enum):
     AUDIO_PROCESSING = 'audio_processing'
     AUDIO_COMPLETED = 'audio_completed'
     AUDIO_FAILED = 'audio_failed'
+    IMAGE_PROCESSING = 'image_processing'
+    IMAGE_FAILED = 'image_failed'
     POST_PROCESSING = 'post_processing'
     PUBLISHED = 'published'
     FAILED = 'failed'
@@ -329,5 +331,6 @@ class EpisodeTracker:
             ProcessingStage.SCRIPT_PROCESSING: ProcessingStage.SCRIPT_FAILED.value,
             ProcessingStage.AUDIO_QUEUED: ProcessingStage.AUDIO_FAILED.value,
             ProcessingStage.AUDIO_PROCESSING: ProcessingStage.AUDIO_FAILED.value,
+            ProcessingStage.IMAGE_PROCESSING: ProcessingStage.IMAGE_FAILED.value,
         }
         return stage_mapping.get(stage, ProcessingStage.FAILED.value)
