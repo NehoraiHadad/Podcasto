@@ -149,11 +149,40 @@ export function LanguageVariantCreationCard({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      {/* GA Languages (23) */}
                       <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="he">Hebrew</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="ar">Arabic</SelectItem>
+                      <SelectItem value="bn">Bengali</SelectItem>
+                      <SelectItem value="zh">Chinese</SelectItem>
+                      <SelectItem value="cs">Czech</SelectItem>
+                      <SelectItem value="da">Danish</SelectItem>
+                      <SelectItem value="nl">Dutch</SelectItem>
+                      <SelectItem value="fi">Finnish</SelectItem>
                       <SelectItem value="fr">French</SelectItem>
                       <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="el">Greek</SelectItem>
+                      <SelectItem value="hi">Hindi</SelectItem>
+                      <SelectItem value="hu">Hungarian</SelectItem>
+                      <SelectItem value="id">Indonesian</SelectItem>
+                      <SelectItem value="it">Italian</SelectItem>
+                      <SelectItem value="ja">Japanese</SelectItem>
+                      <SelectItem value="ko">Korean</SelectItem>
+                      <SelectItem value="pl">Polish</SelectItem>
+                      <SelectItem value="pt">Portuguese</SelectItem>
+                      <SelectItem value="ru">Russian</SelectItem>
+                      <SelectItem value="sk">Slovak</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="sv">Swedish</SelectItem>
+                      <SelectItem value="tr">Turkish</SelectItem>
+                      {/* Preview Languages (8) */}
+                      <SelectItem value="he">Hebrew</SelectItem>
+                      <SelectItem value="th">Thai</SelectItem>
+                      <SelectItem value="uk">Ukrainian</SelectItem>
+                      <SelectItem value="vi">Vietnamese</SelectItem>
+                      <SelectItem value="ro">Romanian</SelectItem>
+                      <SelectItem value="ta">Tamil</SelectItem>
+                      <SelectItem value="te">Telugu</SelectItem>
+                      <SelectItem value="mr">Marathi</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>

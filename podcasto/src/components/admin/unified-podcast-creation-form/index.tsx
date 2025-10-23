@@ -71,17 +71,21 @@ export function UnifiedPodcastCreationForm() {
   const languages = useMemo(() => watchedLanguages || [], [watchedLanguages]);
   const languageCount = languages.length;
 
+  // Watch first language variant fields for auto-fill
+  const firstLangTitle = form.watch('languages.0.title');
+  const firstLangDescription = form.watch('languages.0.description');
+  const firstLangCoverImage = form.watch('languages.0.cover_image');
+
   // Auto-fill group fields from first language when there's only 1 variant
   useEffect(() => {
     if (languageCount === 1) {
-      const firstLang = languages[0];
       // Always sync title, description, and cover_image - even if empty
       // This ensures the base fields are always in sync with the variant
-      form.setValue('base_title', firstLang.title || '', { shouldValidate: true });
-      form.setValue('base_description', firstLang.description || '', { shouldValidate: true });
-      form.setValue('base_cover_image', firstLang.cover_image || '', { shouldValidate: true });
+      form.setValue('base_title', firstLangTitle || '', { shouldValidate: true });
+      form.setValue('base_description', firstLangDescription || '', { shouldValidate: true });
+      form.setValue('base_cover_image', firstLangCoverImage || '', { shouldValidate: true });
     }
-  }, [languageCount, languages, form]);
+  }, [languageCount, firstLangTitle, firstLangDescription, firstLangCoverImage, form]);
 
   const addLanguageVariant = () => {
     const currentLanguages = form.getValues('languages');
