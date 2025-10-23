@@ -79,7 +79,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.subscriptions s ON u.id = s.user_id
     `);
 
-    const userMetrics = (userMetricsQuery as any).rows[0] as any;
+    const userMetricsRows = Array.isArray(userMetricsQuery) ? userMetricsQuery : (userMetricsQuery as any).rows || [];
+    const userMetrics = userMetricsRows[0] as any;
 
     // Engagement metrics
     const engagementQuery = await db.execute(sql`
@@ -100,7 +101,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.sent_episodes se
     `);
 
-    const engagement = (engagementQuery as any).rows[0] as any;
+    const engagementRows = Array.isArray(engagementQuery) ? engagementQuery : (engagementQuery as any).rows || [];
+    const engagement = engagementRows[0] as any;
 
     // Email health metrics
     const emailHealthQuery = await db.execute(sql`
@@ -112,7 +114,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.email_bounces eb ON se.user_id = eb.user_id
     `);
 
-    const emailHealth = (emailHealthQuery as any).rows[0] as any;
+    const emailHealthRows = Array.isArray(emailHealthQuery) ? emailHealthQuery : (emailHealthQuery as any).rows || [];
+    const emailHealth = emailHealthRows[0] as any;
     const totalEmails = emailHealth.total_emails_sent || 1; // Avoid division by zero
     const bounceRate = ((emailHealth.bounces_count || 0) / totalEmails) * 100;
     const complaintRate = ((emailHealth.complaints_count || 0) / totalEmails) * 100;
@@ -127,7 +130,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       FROM public.user_credits
     `);
 
-    const creditMetrics = (creditMetricsQuery as any).rows[0] as any;
+    const creditMetricsRows = Array.isArray(creditMetricsQuery) ? creditMetricsQuery : (creditMetricsQuery as any).rows || [];
+    const creditMetrics = creditMetricsRows[0] as any;
     const totalCreditsSold = parseFloat(creditMetrics.total_credits_sold || '0');
     const totalCreditsUsed = parseFloat(creditMetrics.total_credits_used || '0');
     const creditUsageRate = totalCreditsSold > 0 ? (totalCreditsUsed / totalCreditsSold) * 100 : 0;
@@ -143,7 +147,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.episodes e
     `);
 
-    const contentMetrics = (contentMetricsQuery as any).rows[0] as any;
+    const contentMetricsRows = Array.isArray(contentMetricsQuery) ? contentMetricsQuery : (contentMetricsQuery as any).rows || [];
+    const contentMetrics = contentMetricsRows[0] as any;
 
     const stats: AnalyticsStats = {
       userMetrics: {
@@ -216,7 +221,8 @@ export async function getUserGrowthDataAction(): Promise<{
       ORDER BY date ASC
     `);
 
-    const growthData = (growthQuery as any).rows.map((row: any) => ({
+    const growthRows = Array.isArray(growthQuery) ? growthQuery : (growthQuery as any).rows || [];
+    const growthData = growthRows.map((row: any) => ({
       date: row.date,
       count: row.count,
     }));
@@ -280,7 +286,8 @@ export async function getTopPodcastsAction(limit = 10): Promise<{
       LIMIT ${limit}
     `);
 
-    const topPodcasts = (topPodcastsQuery as any).rows.map((row: any) => ({
+    const topPodcastsRows = Array.isArray(topPodcastsQuery) ? topPodcastsQuery : (topPodcastsQuery as any).rows || [];
+    const topPodcasts = topPodcastsRows.map((row: any) => ({
       id: row.id,
       title: row.title,
       subscribersCount: row.subscribers_count || 0,
