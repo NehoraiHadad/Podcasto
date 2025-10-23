@@ -59,9 +59,19 @@ class GooglePodcastGenerator:
         logger.info(f"[GOOGLE_TTS] Content length: {len(script_content)} characters")
         logger.info(f"[GOOGLE_TTS] Pre-processed: {is_pre_processed}")
 
-        # Select voices if not already provided (for backward compatibility)
+        # CRITICAL: Voices MUST be provided for consistency
+        # If voices are not provided, it indicates a bug in the pipeline
         if not speaker1_voice or not speaker2_voice:
-            logger.info(f"[GOOGLE_TTS] Voices not provided, selecting now")
+            error_msg = (
+                f"[GOOGLE_TTS] CRITICAL ERROR: Voices not provided! "
+                f"speaker1_voice={speaker1_voice}, speaker2_voice={speaker2_voice}. "
+                f"This is a pipeline bug - voices should be pre-selected in script-preprocessor. "
+                f"Selecting voices here will cause inconsistency across chunks!"
+            )
+            logger.error(error_msg)
+
+            # Select voices as last resort, but log warning
+            logger.warning(f"[GOOGLE_TTS] Falling back to voice selection (NOT RECOMMENDED)")
             speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
                 language=language,
                 speaker1_gender=speaker1_gender,
@@ -71,9 +81,9 @@ class GooglePodcastGenerator:
                 episode_id=episode_id,
                 randomize_speaker2=bool(episode_id)
             )
-            logger.info(f"[GOOGLE_TTS] Selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+            logger.warning(f"[GOOGLE_TTS] Emergency fallback voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         else:
-            logger.info(f"[GOOGLE_TTS] Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+            logger.info(f"[GOOGLE_TTS] ✅ Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         
         # Check if content needs to be chunked
         if len(script_content) > self.chunk_manager.max_chars_per_chunk:
@@ -184,10 +194,15 @@ class GooglePodcastGenerator:
             
             # Sort chunks by their original order
             successful_chunks.sort(key=lambda x: x[0])
-            
+
+            # VALIDATION: Verify voice consistency across all chunks
+            logger.info(f"[GOOGLE_TTS] Validating voice consistency across {len(successful_chunks)} chunks")
+            logger.info(f"[GOOGLE_TTS] Expected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+
             if failed_chunks:
-                logger.error(f"[GOOGLE_TTS] WARNING: {len(failed_chunks)} chunks failed in parallel: {failed_chunks}")
+                logger.error(f"[GOOGLE_TTS] ❌ WARNING: {len(failed_chunks)} chunks failed in parallel: {failed_chunks}")
                 logger.error(f"[GOOGLE_TTS] This will result in silent parts in the final audio!")
+                logger.error(f"[GOOGLE_TTS] Consider increasing max_retries or using sequential processing")
             
             # Extract audio data for concatenation
             audio_data_list = [chunk[1] for chunk in successful_chunks]

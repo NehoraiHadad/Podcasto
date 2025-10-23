@@ -71,11 +71,26 @@ class GeminiTTSClient:
         Returns:
             Tuple of (audio_data_bytes, duration_seconds)
         """
+        # CRITICAL: Log all received parameters for debugging voice consistency
+        logger.info(f"[TTS_CLIENT] ===== Voice Selection Debug =====")
+        logger.info(f"[TTS_CLIENT] Received speaker1_voice: {speaker1_voice}")
+        logger.info(f"[TTS_CLIENT] Received speaker2_voice: {speaker2_voice}")
+        logger.info(f"[TTS_CLIENT] speaker1_role: {speaker1_role}")
+        logger.info(f"[TTS_CLIENT] speaker2_role: {speaker2_role}")
+        logger.info(f"[TTS_CLIENT] episode_id: {episode_id}")
+
         # Use pre-selected voices if provided (for consistency), otherwise select distinct voices
         if speaker1_voice and speaker2_voice:
             voice1, voice2 = speaker1_voice, speaker2_voice
-            logger.info(f"[TTS_CLIENT] Using pre-selected voices for consistency: {speaker1_role}={voice1}, {speaker2_role}={voice2}")
+            logger.info(f"[TTS_CLIENT] ✅ Using pre-selected voices for consistency:")
+            logger.info(f"[TTS_CLIENT]    {speaker1_role} = {voice1}")
+            logger.info(f"[TTS_CLIENT]    {speaker2_role} = {voice2}")
         else:
+            # ⚠️ FALLBACK - This should NOT happen if voices were pre-selected properly
+            logger.warning(f"[TTS_CLIENT] ⚠️⚠️⚠️ FALLBACK - Voices not provided, selecting now!")
+            logger.warning(f"[TTS_CLIENT] This may cause voice inconsistency across chunks!")
+            logger.warning(f"[TTS_CLIENT] Missing: speaker1_voice={speaker1_voice}, speaker2_voice={speaker2_voice}")
+
             # Select distinct voices for both speakers to ensure they are different
             voice1, voice2 = self.voice_manager.get_distinct_voices_for_speakers(
                 language=language,
@@ -87,6 +102,9 @@ class GeminiTTSClient:
                 randomize_speaker2=bool(episode_id)
             )
             logger.info(f"[TTS_CLIENT] Auto-selected distinct voices: {speaker1_role}={voice1}, {speaker2_role}={voice2}")
+
+        logger.info(f"[TTS_CLIENT] ===== End Voice Selection =====")
+
         
                 # Get enhanced speech configuration with content-aware parameters
         enhanced_speech_config = self.voice_manager.build_enhanced_speech_config(language, content_type)
@@ -256,10 +274,14 @@ class GeminiTTSClient:
         Returns:
             Tuple of (audio_data, duration) or None if failed
         """
-        logger.info(f"[TTS_CLIENT] Processing chunk {chunk_num} ({len(chunk)} chars)")
-        
+        logger.info(f"[TTS_CLIENT] ===== Processing Chunk {chunk_num} =====")
+        logger.info(f"[TTS_CLIENT] Chunk size: {len(chunk)} chars")
+        logger.info(f"[TTS_CLIENT] Pre-selected voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
+        logger.info(f"[TTS_CLIENT] Roles: {speaker1_role} / {speaker2_role}")
+
         for retry in range(max_retries + 1):
             try:
+                logger.info(f"[TTS_CLIENT] Chunk {chunk_num} attempt {retry+1}/{max_retries+1}")
                 audio_data, duration = self.generate_single_audio(
                     chunk, language, speaker1_role, speaker2_role,
                     speaker1_gender, speaker2_gender, episode_id, is_pre_processed,
@@ -272,10 +294,12 @@ class GeminiTTSClient:
 
                 # Validate audio data before returning (with silence detection enabled)
                 if chunk_manager.validate_audio_chunk(audio_data, duration, chunk_num, check_silence=True):
-                    logger.info(f"[TTS_CLIENT] Chunk {chunk_num} completed successfully: {duration}s")
+                    logger.info(f"[TTS_CLIENT] ✅ Chunk {chunk_num} completed successfully: {duration}s")
+                    logger.info(f"[TTS_CLIENT] Chunk {chunk_num} used voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
                     return audio_data, duration
                 else:
-                    logger.warning(f"[TTS_CLIENT] Chunk {chunk_num} validation failed, retry {retry+1}/{max_retries}")
+                    logger.warning(f"[TTS_CLIENT] ⚠️ Chunk {chunk_num} validation failed, retry {retry+1}/{max_retries}")
+                    logger.warning(f"[TTS_CLIENT] Validation failed for voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
                     
             except Exception as e:
                 logger.error(f"[TTS_CLIENT] Error processing chunk {chunk_num}, attempt {retry+1}: {str(e)}")

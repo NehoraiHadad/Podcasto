@@ -18,11 +18,11 @@ class VoiceConfigManager:
             'hebrew': {
                 'male': 'Alnilam',
                 'female': 'Aoede',
-                'instruction': "קרא בקול רם בטון חם ומזמין בסגנון פודקאסט דינמי. חשוב מאוד: קרא בעברית בטבעיות עם הפסקות טבעיות ואינטונציה מעניינת!",
+                'instruction': "קרא בקול רם בטון חם ומזמין בסגנון פודקאסט דינמי ואנרגטי. חשוב מאוד: קרא בעברית בטבעיות עם הפסקות טבעיות ואינטונציה מעניינת!",
                 'speech_config': {
-                    'pace_style': 'at a slightly slower, more deliberate pace for Hebrew clarity',
+                    'pace_style': 'at a natural, conversational pace with dynamic energy',
                     'tone_style': 'with natural vocal variation and warm intonation',
-                    'volume_style': 'speaking clearly and audibly with enhanced volume'
+                    'volume_style': 'speaking clearly with balanced presence'
                 }
             },
             'english': {

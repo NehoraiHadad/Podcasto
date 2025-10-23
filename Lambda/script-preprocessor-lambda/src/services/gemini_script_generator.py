@@ -125,13 +125,15 @@ class GeminiScriptGenerator:
 
         try:
             # Generate script using Gemini
-            # Note: Higher temperature (0.9) encourages more natural, varied conversation
-            # while still maintaining coherence with the detailed prompt structure
+            # Temperature 0.7: Balanced between creativity and coherence
+            # - Lower than 0.9 reduces excessive filler content
+            # - High enough to maintain natural conversational variation
+            # - Helps maintain tighter focus on source material
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    temperature=0.9,  # Increased from 0.8 for more natural variation
+                    temperature=0.7,  # Reduced from 0.9 to prevent slow, wordy dialogue
                     max_output_tokens=32768,  # Increased to allow longer scripts
                 )
             )
@@ -412,32 +414,27 @@ CREATE AN AUTHENTIC, HUMAN-LIKE CONVERSATION SCRIPT with the following specifica
 - Keep the dialogue natural and direct without personal names
 - Speakers can refer to each other using "you" or contextual references only
 
-**ADVANCED TTS MARKUP FOR NATURAL DELIVERY:**
-Use these markup techniques extensively to create lifelike, expressive speech:
+**TTS MARKUP FOR EXPRESSIVE DELIVERY:**
+Use markup techniques strategically to enhance natural conversation flow:
 
-1. **Timing and Rhythm**:
-   - [pause short] - Brief natural pause (between phrases, after commas)
-   - [pause] - Standard pause (between sentences, before questions)
-   - [pause long] - Extended pause (topic transitions, dramatic moments)
-   - [extremely fast] - Rapid speech for excitement or lists
+1. **Timing and Rhythm** (use sparingly - natural pauses are often implicit):
+   - [pause] - For significant topic transitions or dramatic moments only
+   - [extremely fast] - For excited rapid speech or lists
 
-   Examples:
-   - "So, [pause short] what we're seeing here is..."
-   - "That's incredible! [pause long] Tell me more."
-   - "אז [pause short] מה שקורה פה זה..."
+   Examples (minimal pause usage):
+   - "That's incredible! [pause] Tell me more."
+   - "אז מה שקורה פה זה..." (no pause needed for natural flow)
 
-2. **Emotional Delivery & Tone**:
+2. **Emotional Delivery & Tone** (use to convey speaker mood):
    - [excited] - High energy, enthusiastic delivery
    - [curious] - Inquisitive, questioning tone
    - [thoughtful] - Reflective, contemplative pace
-   - [sarcasm] - Subtle sarcastic tone
-   - [whispering] - Quieter, intimate delivery
    - [amused] - Light, humorous tone
 
    Examples:
    - "{speaker1_role}: [excited] Wait, really? That's amazing!"
-   - "{actual_speaker2_role}: [thoughtful] Well, [pause] when you think about it..."
-   - "[amused] I know, right? [pause short] It's pretty wild."
+   - "{actual_speaker2_role}: [thoughtful] Well, when you think about it..."
+   - "[amused] I know, right? It's pretty wild."
 
 3. **Emphasis and Stress**:
    - [emphasis]text[/emphasis] - Stress important words
@@ -448,15 +445,15 @@ Use these markup techniques extensively to create lifelike, expressive speech:
    - "The [emphasis]most important[/emphasis] thing to understand is..."
    - "זה השפיע על [emphasis]מיליוני[/emphasis] משתמשים"
 
-4. **Natural Speech Patterns**:
-   - Include filler words naturally: "you know", "I mean", "sort of", "actually"
-   - Add thinking sounds: "hmm", "uh", "um" (sparingly, don't overdo)
-   - Use conversational connectors: "by the way", "speaking of which"
+4. **Natural Speech Patterns** (use very sparingly - excessive fillers slow dialogue):
+   - Occasional filler words: "you know", "I mean", "actually" (1-2 per exchange maximum)
+   - Thinking sounds: Use rarely - "hmm" only when truly needed
+   - Conversational connectors: "by the way", "speaking of which"
 
    Examples:
-   - "So, um, [pause short] what I found interesting was..."
-   - "Yeah, I mean, [pause] that makes total sense"
-   - "אז, אממ, [pause short] מה שמעניין זה..."
+   - "So, what I found interesting was..." (direct, no fillers)
+   - "Yeah, I mean, that makes total sense" (minimal filler)
+   - "אז מה שמעניין זה..." (clean, no unnecessary pauses)
 
 5. **Content-Specific Markup**:
    {f"- **News Content**: [emphasis] for breaking news, [pause] before major announcements" if content_type == 'news' else ""}
@@ -474,12 +471,11 @@ Use these markup techniques extensively to create lifelike, expressive speech:
 
 1. **Language & Style**: Write entirely in {language} with conversational, unscripted-sounding tone
 
-2. **Natural Imperfections** (CRITICAL for realism):
-   - Add occasional false starts: "Well, I think... actually, let me put it this way..."
-   - Include mid-thought corrections: "This happened in 2023... no wait, 2024"
-   - Use thinking pauses: "Hmm, [pause] that's a good question"
-   - Add natural fillers sparingly: "you know", "I mean", "like", "sort of"
-   - Hebrew equivalents: "אז", "כאילו", "בעצם", "נו"
+2. **Natural Imperfections** (use strategically for realism, not excessively):
+   - Occasional false starts: "Well, I think... actually, let me put it this way..." (1-2 per topic)
+   - Mid-thought corrections: "This happened in 2023... no wait, 2024" (when contextually relevant)
+   - Minimal fillers: "you know", "I mean" (maximum 1-2 per speaker turn)
+   - Hebrew equivalents: "אז", "בעצם" (use naturally, not in every sentence)
 
 3. **Conversational Dynamics**:
    - Speakers should interrupt naturally when excited
@@ -488,12 +484,12 @@ Use these markup techniques extensively to create lifelike, expressive speech:
    - Include small talk and banter between topics
    - React authentically: "Wow!", "No way!", "That's wild!", "באמת?!", "וואו!"
 
-4. **Pacing and Energy**:
+4. **Pacing and Energy** (maintain dynamic, engaging tempo):
    - Start with high energy in opening
-   - Vary pace throughout - mix fast exciting parts with slower explanations
-   - Use [extremely fast] for listing or excited moments
-   - Use [thoughtful] and [pause] for complex topics
-   - Build to exciting moments when appropriate
+   - Keep pace brisk and engaging - avoid slow, plodding explanations
+   - Use [extremely fast] sparingly for listing or excited moments
+   - Use [thoughtful] for complex topics without adding [pause]
+   - Build to exciting moments with energy, not artificial pauses
 
 5. **Personality Consistency**:
    - {speaker1_role} should sound curious, ask questions, guide the conversation
@@ -507,11 +503,11 @@ Use these markup techniques extensively to create lifelike, expressive speech:
    - Connect different topics with natural transitions
    - Reference earlier points: "Like you mentioned earlier..."
 
-7. **TTS Markup Integration**:
-   - Apply markup liberally but naturally throughout
-   - Use at least 2-3 markup tags per speaker turn
-   - Match markup to emotional content of the sentence
-   - Prioritize [pause], [excited], [thoughtful], [emphasis] for impact
+7. **TTS Markup Integration** (strategic use for impact):
+   - Apply markup naturally - quality over quantity
+   - Use 1-2 emotion tags per speaker turn (not every sentence)
+   - Prioritize [excited], [thoughtful], [emphasis] for key moments
+   - Use [pause] rarely - only for major topic transitions
 
 **CONTENT TO DISCUSS:**
 {self._format_clean_content_for_prompt(clean_content)}
@@ -534,40 +530,40 @@ REMEMBER: The script content should NEVER include the speakers' names or invente
 **EXAMPLES OF NATURAL DIALOGUE PATTERNS:**
 
 Example 1 - Excited Discovery (English):
-{speaker1_role}: [excited] Wait, so you're telling me this actually happened? [pause] That's incredible!
-{actual_speaker2_role}: [amused] I know, right? [pause short] When I first heard about it, I thought, [pause] no way this is real.
-{speaker1_role}: [curious] Okay, so walk me through this... [pause] how did it all start?
+{speaker1_role}: [excited] Wait, so you're telling me this actually happened? That's incredible!
+{actual_speaker2_role}: [amused] I know, right? When I first heard about it, I thought, no way this is real.
+{speaker1_role}: [curious] Okay, so walk me through this... how did it all start?
 
 Example 2 - Thoughtful Explanation (English):
-{actual_speaker2_role}: [thoughtful] Well, [pause] it's a bit more complex than that. [pause short] Think of it this way...
-{speaker1_role}: Hmm, [pause short] okay, I think I'm following.
-{actual_speaker2_role}: Right! So basically, [pause] what we're seeing is... [pause short] actually, let me give you an example.
+{actual_speaker2_role}: [thoughtful] Well, it's a bit more complex than that. Think of it this way...
+{speaker1_role}: Okay, I think I'm following.
+{actual_speaker2_role}: Right! So basically, what we're seeing is... actually, let me give you an example.
 
 Example 3 - Natural Hebrew Conversation:
-{speaker1_role}: [excited] רגע, אז אתה אומר שזה באמת קרה? [pause] זה לא יאומן!
-{actual_speaker2_role}: [amused] כן! [pause short] גם אני בהתחלה חשבתי, [pause] בטח זה לא אמיתי.
-{speaker1_role}: [curious] אוקיי, אז תסביר לי... [pause] איך זה התחיל?
-{actual_speaker2_role}: [thoughtful] אז בעצם, [pause] זה קצת יותר מסובך. [pause short] תחשוב על זה ככה...
+{speaker1_role}: [excited] רגע, אז אתה אומר שזה באמת קרה? זה לא יאומן!
+{actual_speaker2_role}: [amused] כן! גם אני בהתחלה חשבתי, בטח זה לא אמיתי.
+{speaker1_role}: [curious] אוקיי, אז תסביר לי... איך זה התחיל?
+{actual_speaker2_role}: [thoughtful] אז בעצם, זה קצת יותר מסובך. תחשוב על זה ככה...
 
 Example 4 - Building on Each Other:
 {speaker1_role}: That's a really good point about the technology side.
-{actual_speaker2_role}: [pause short] Exactly! And to add to that, [pause] there's also the human factor we need to consider.
-{speaker1_role}: Oh, [pause short] like the [emphasis]user experience[/emphasis] aspect?
-{actual_speaker2_role}: [excited] Yes! [pause] You nailed it. [pause short] That's exactly what I'm talking about.
+{actual_speaker2_role}: Exactly! And to add to that, there's also the human factor we need to consider.
+{speaker1_role}: Oh, like the [emphasis]user experience[/emphasis] aspect?
+{actual_speaker2_role}: [excited] Yes! You nailed it. That's exactly what I'm talking about.
 
 Example 5 - Natural Interruption:
 {actual_speaker2_role}: So the main issue here is that the system wasn't designed to—
-{speaker1_role}: [excited] Wait wait wait, [pause] before you continue, [pause short] can you clarify what you mean by "system"?
-{actual_speaker2_role}: [pause short] Oh, good question! [pause] I'm talking about the entire infrastructure that...
+{speaker1_role}: [excited] Wait wait wait, before you continue, can you clarify what you mean by "system"?
+{actual_speaker2_role}: Oh, good question! I'm talking about the entire infrastructure that...
 
 KEY PATTERNS TO EMULATE:
 - Start strong with energy and curiosity
 - Layer in emotional markers authentically
-- Use pauses before and after important points
-- Build natural back-and-forth rhythm
-- Include thinking moments and reactions
+- Use [pause] only for major transitions (1-2 per topic maximum)
+- Build natural back-and-forth rhythm without excessive pauses
+- Keep dialogue tight and focused - avoid filler
 - Vary sentence length and structure
-- Add connective tissue between topics
+- Add connective tissue between topics without slowing pace
 
 Now, create the conversation script following ALL the guidelines above:
 """
