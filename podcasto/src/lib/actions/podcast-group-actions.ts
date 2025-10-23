@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { checkIsAdmin } from './admin/auth-actions';
 import type { ActionResult } from './shared/types';
+import type { OutputLanguage } from '@/lib/constants/languages';
 import {
   createPodcastGroup,
   updatePodcastGroup,
@@ -379,7 +380,7 @@ export interface CreatePodcastGroupWithNewPodcastsData {
     // Podcast config
     creator: string;
     podcastName: string;
-    outputLanguage: 'english' | 'hebrew';
+    outputLanguage: OutputLanguage;
     slogan?: string;
     creativityLevel: number;
     episodeFrequency: number;

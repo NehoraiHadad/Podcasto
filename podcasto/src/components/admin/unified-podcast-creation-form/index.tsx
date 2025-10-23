@@ -75,15 +75,11 @@ export function UnifiedPodcastCreationForm() {
   useEffect(() => {
     if (languageCount === 1) {
       const firstLang = languages[0];
-      if (firstLang.title) {
-        form.setValue('base_title', firstLang.title);
-      }
-      if (firstLang.description) {
-        form.setValue('base_description', firstLang.description);
-      }
-      if (firstLang.cover_image) {
-        form.setValue('base_cover_image', firstLang.cover_image);
-      }
+      // Always sync title, description, and cover_image - even if empty
+      // This ensures the base fields are always in sync with the variant
+      form.setValue('base_title', firstLang.title || '', { shouldValidate: true });
+      form.setValue('base_description', firstLang.description || '', { shouldValidate: true });
+      form.setValue('base_cover_image', firstLang.cover_image || '', { shouldValidate: true });
     }
   }, [languageCount, languages, form]);
 
@@ -245,6 +241,7 @@ export function UnifiedPodcastCreationForm() {
               key={index}
               index={index}
               control={form.control}
+              form={form}
               onRemove={() => removeLanguageVariant(index)}
               canRemove={languageCount > 1}
               showLanguageLabel={languageCount > 1}

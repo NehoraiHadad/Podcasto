@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SUPPORTED_OUTPUT_LANGUAGES } from '@/lib/constants/languages';
 
 // Define base schema for shared fields
 export const podcastBaseSchema = z.object({
@@ -36,7 +37,7 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
       .min(3, { message: 'Technical name must be at least 3 characters' })
       .max(50, { message: 'Technical name must be at most 50 characters' })
       .regex(/^[a-z0-9-]+$/, { message: 'Technical name can only contain lowercase letters, numbers, and hyphens' }),
-    outputLanguage: z.enum(['english', 'hebrew']),
+    outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
     episodeFrequency: z.number().min(1).max(30).default(7),
@@ -83,7 +84,7 @@ export const podcastCreationSchema = z.discriminatedUnion('contentSource', [
       .min(3, { message: 'Technical name must be at least 3 characters' })
       .max(50, { message: 'Technical name must be at most 50 characters' })
       .regex(/^[a-z0-9-]+$/, { message: 'Technical name can only contain lowercase letters, numbers, and hyphens' }),
-    outputLanguage: z.enum(['english', 'hebrew']),
+    outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
     episodeFrequency: z.number().min(1).max(30).default(7),

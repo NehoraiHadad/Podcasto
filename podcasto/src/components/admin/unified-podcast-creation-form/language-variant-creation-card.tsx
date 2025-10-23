@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Control } from 'react-hook-form';
+import type { Control, UseFormReturn } from 'react-hook-form';
 import type { PodcastGroupCreationFormValues } from './schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { CoverImageField } from '@/components/shared';
+import { SUPPORTED_OUTPUT_LANGUAGES, LANGUAGE_NAMES, type OutputLanguage } from '@/lib/constants/languages';
 
 /**
  * Props for LanguageVariantCreationCard component
@@ -20,6 +21,7 @@ import { CoverImageField } from '@/components/shared';
 export interface LanguageVariantCreationCardProps {
   index: number;
   control: Control<PodcastGroupCreationFormValues>;
+  form: UseFormReturn<PodcastGroupCreationFormValues>;
   onRemove: () => void;
   canRemove?: boolean;
   showLanguageLabel?: boolean;
@@ -33,6 +35,7 @@ export interface LanguageVariantCreationCardProps {
 export function LanguageVariantCreationCard({
   index,
   control,
+  form,
   onRemove,
   canRemove = true,
   showLanguageLabel = true,
@@ -46,6 +49,52 @@ export function LanguageVariantCreationCard({
     { id: 'storytelling', label: 'Storytelling' },
     { id: 'data-visualization', label: 'Data Visualization' },
   ];
+
+  /**
+   * Map language code to output language
+   * This helps auto-sync the audio output language with the podcast language
+   */
+  const mapLanguageCodeToOutputLanguage = (code: string): OutputLanguage => {
+    const languageMap: Record<string, OutputLanguage> = {
+      // GA Languages (23)
+      'en': 'english',
+      'ar': 'arabic',
+      'bn': 'bengali',
+      'zh': 'chinese',
+      'cmn': 'chinese',
+      'cs': 'czech',
+      'da': 'danish',
+      'nl': 'dutch',
+      'fi': 'finnish',
+      'fr': 'french',
+      'de': 'german',
+      'el': 'greek',
+      'hi': 'hindi',
+      'hu': 'hungarian',
+      'id': 'indonesian',
+      'it': 'italian',
+      'ja': 'japanese',
+      'ko': 'korean',
+      'pl': 'polish',
+      'pt': 'portuguese',
+      'ru': 'russian',
+      'sk': 'slovak',
+      'es': 'spanish',
+      'sv': 'swedish',
+      'tr': 'turkish',
+      // Preview Languages
+      'he': 'hebrew',
+      'th': 'thai',
+      'uk': 'ukrainian',
+      'vi': 'vietnamese',
+      'ro': 'romanian',
+      'ta': 'tamil',
+      'te': 'telugu',
+      'mr': 'marathi',
+    };
+
+    return languageMap[code.toLowerCase()] || 'english';
+  };
 
   return (
     <Card className="relative">
@@ -85,7 +134,15 @@ export function LanguageVariantCreationCard({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Language Code</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Auto-sync output language when language code changes
+                      const outputLang = mapLanguageCodeToOutputLanguage(value);
+                      form.setValue(`languages.${index}.outputLanguage`, outputLang);
+                    }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select language" />
@@ -99,6 +156,9 @@ export function LanguageVariantCreationCard({
                       <SelectItem value="de">German</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    The primary language of this podcast variant (affects metadata)
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -249,7 +309,7 @@ export function LanguageVariantCreationCard({
               name={`languages.${index}.outputLanguage`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Output Language</FormLabel>
+                  <FormLabel>Audio Output Language</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -257,10 +317,16 @@ export function LanguageVariantCreationCard({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="hebrew">Hebrew</SelectItem>
+                      {SUPPORTED_OUTPUT_LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {LANGUAGE_NAMES[lang as OutputLanguage]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    The language for text-to-speech generation (auto-synced from Language Code above)
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

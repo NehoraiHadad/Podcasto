@@ -16,13 +16,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useToast } from '@/hooks/use-toast';
 import { createPodcastAction } from '@/lib/actions/podcast-group-actions';
 import { CoverImageField } from '@/components/shared';
+import { SUPPORTED_OUTPUT_LANGUAGES, LANGUAGE_NAMES, type OutputLanguage } from '@/lib/constants/languages';
 
 const createPodcastSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
   coverImage: z.string().url().optional().or(z.literal('')),
   telegramChannel: z.string().min(1, 'Telegram channel is required'),
-  language: z.enum(['english', 'hebrew']),
+  language: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
   episodeFrequency: z.number().int().min(1).max(30),
   autoGeneration: z.boolean(),
 });
@@ -208,8 +209,11 @@ export function CreatePodcastForm({ userCredits }: CreatePodcastFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="hebrew">Hebrew</SelectItem>
+                  {SUPPORTED_OUTPUT_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      {LANGUAGE_NAMES[lang as OutputLanguage]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormDescription>

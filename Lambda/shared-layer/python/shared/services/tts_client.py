@@ -31,7 +31,7 @@ class GeminiTTSClient:
             raise ValueError("GEMINI_API_KEY environment variable is required")
         
         self.client = genai.Client(api_key=api_key)
-        self.model = "gemini-2.5-pro-preview-tts"
+        self.model = "gemini-2.5-pro-tts"  # Updated from preview - now GA (Generally Available)
         self.voice_manager = VoiceConfigManager()
         self.niqqud_processor = HebrewNiqqudProcessor()
         

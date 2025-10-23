@@ -9,6 +9,7 @@ import { TooltipLabel } from '@/components/ui/tooltip-label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { generateSlug } from './utils/slug-generator';
+import { SUPPORTED_OUTPUT_LANGUAGES, LANGUAGE_NAMES, type OutputLanguage } from '@/lib/constants/languages';
 
 type FormValues = {
   title?: string;
@@ -115,10 +116,10 @@ export function BasicSettingsFields<T extends FormValues>({ form }: BasicSetting
           name={"outputLanguage" as const as Path<T>}
           label=""
           placeholder="Select language"
-          options={[
-            { value: 'english', label: 'English' },
-            { value: 'hebrew', label: 'Hebrew' },
-          ]}
+          options={SUPPORTED_OUTPUT_LANGUAGES.map((lang) => ({
+            value: lang,
+            label: LANGUAGE_NAMES[lang as OutputLanguage],
+          }))}
         />
       </div>
 

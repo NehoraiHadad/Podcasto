@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SUPPORTED_OUTPUT_LANGUAGES } from '@/lib/constants/languages';
 
 /**
  * Schema for a language variant in creation mode
@@ -25,7 +26,7 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     // Podcast config
     creator: z.string().min(2, 'Creator name must be at least 2 characters'),
     podcastName: z.string().min(3, 'Podcast name must be at least 3 characters'),
-    outputLanguage: z.enum(['english', 'hebrew']),
+    outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
 
@@ -70,7 +71,7 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     // Podcast config
     creator: z.string().min(2, 'Creator name must be at least 2 characters'),
     podcastName: z.string().min(3, 'Podcast name must be at least 3 characters'),
-    outputLanguage: z.enum(['english', 'hebrew']),
+    outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
     slogan: z.string().optional(),
     creativityLevel: z.number().min(0).max(1).step(0.1),
 

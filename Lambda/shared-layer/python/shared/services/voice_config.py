@@ -16,10 +16,9 @@ class VoiceConfigManager:
         """Initialize voice configuration mappings"""
         self.voice_config = {
             'hebrew': {
-                'male': 'Alnilam',       # Firm - distinctive male voice (changed from Algenib)
-                'female': 'Aoede',       # Breezy - clear female voice
+                'male': 'Alnilam',
+                'female': 'Aoede',
                 'instruction': "קרא בקול רם בטון חם ומזמין בסגנון פודקאסט דינמי. חשוב מאוד: קרא בעברית בטבעיות עם הפסקות טבעיות ואינטונציה מעניינת!",
-                # Natural language style descriptors for Hebrew content
                 'speech_config': {
                     'pace_style': 'at a slightly slower, more deliberate pace for Hebrew clarity',
                     'tone_style': 'with natural vocal variation and warm intonation',
@@ -27,21 +26,319 @@ class VoiceConfigManager:
                 }
             },
             'english': {
-                'male': 'Gacrux',       # Mature - clear male voice
-                'female': 'Leda',       # Youthful - clear female voice  
+                'male': 'Gacrux',
+                'female': 'Leda',
                 'instruction': "Read aloud in a warm, welcoming podcast conversational tone with natural pacing and engaging delivery:",
-                # Natural language style descriptors for English content
                 'speech_config': {
                     'pace_style': 'at a natural, conversational pace',
                     'tone_style': 'with natural vocal variation and professional warmth',
                     'volume_style': 'with balanced, clear volume'
                 }
             },
+            'spanish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Lee en voz alta con un tono cálido y acogedor de podcast conversacional:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'french': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Lisez à voix haute sur un ton chaleureux et accueillant de podcast conversationnel:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'german': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Lesen Sie laut in einem warmen, einladenden Podcast-Gesprächston vor:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'italian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Leggi ad alta voce con un tono caldo e accogliente da podcast conversazionale:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'portuguese': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Leia em voz alta com um tom caloroso e acolhedor de podcast conversacional:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'russian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Читайте вслух теплым, приветливым разговорным тоном подкаста:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'polish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Czytaj na głos ciepłym, przyjaznym tonem konwersacyjnym podcastu:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'dutch': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Lees hardop voor in een warme, gastvrije podcast conversatietoon:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'chinese': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "以温暖、友好的播客对话语调大声朗读:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'japanese': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "温かく親しみやすいポッドキャストの会話調で声に出して読んでください:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'korean': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "따뜻하고 친근한 팟캐스트 대화 톤으로 소리 내어 읽으세요:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'hindi': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "गर्मजोशी और स्वागत करने वाले पॉडकास्ट संवादात्मक स्वर में जोर से पढ़ें:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'arabic': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "اقرأ بصوت عالٍ بنبرة دافئة وترحيبية للمحادثة البودكاست:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'indonesian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Bacalah dengan suara keras dengan nada percakapan podcast yang hangat dan ramah:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'turkish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Sıcak, samimi bir podcast konuşma tonuyla yüksek sesle okuyun:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'vietnamese': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Đọc to với giọng điệu trò chuyện podcast ấm áp và thân thiện:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'thai': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "อ่านออกเสียงด้วยน้ำเสียงสนทนาพอดคาสต์ที่อบอุ่นและเป็นมิตร:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'greek': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Διαβάστε δυνατά με έναν ζεστό, φιλόξενο συνομιλητικό τόνο podcast:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'swedish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Läs högt med en varm, välkomnande podcast-samtalston:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'ukrainian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Читайте вголос теплим, привітним розмовним тоном подкасту:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'romanian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Citiți cu voce tare într-un ton călduros și primitor de podcast conversațional:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'bengali': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "উষ্ণ, স্বাগত পডকাস্ট কথোপকথনের স্বরে জোরে পড়ুন:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'czech': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Čtěte nahlas teplým, vřelým podcastovým konverzačním tónem:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'danish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Læs højt med en varm, velkommende podcast-samtale tone:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'finnish': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Lue ääneen lämpimällä, tervetulleella podcast-keskustelusävyllä:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'hungarian': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Olvassa fel hangosan meleg, barátságos podcast beszélgetős hangnemben:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'slovak': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "Čítajte nahlas teplým, prívetivým podcastovým konverzačným tónom:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'tamil': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "சூடான, வரவேற்கும் பாட்காஸ்ட் உரையாடல் தொனியில் உரக்கப் படியுங்கள்:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'telugu': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "వెచ్చగా, స్వాగతించే పాడ్‌కాస్ట్ సంభాషణ స్వరంతో బిగ్గరగా చదవండి:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
+            'marathi': {
+                'male': 'Gacrux',
+                'female': 'Leda',
+                'instruction': "उबदार, स्वागत करणार्‍या पॉडकास्ट संभाषणाच्या स्वरात मोठ्याने वाचा:",
+                'speech_config': {
+                    'pace_style': 'at a natural, conversational pace',
+                    'tone_style': 'with natural vocal variation and warmth',
+                    'volume_style': 'with balanced, clear volume'
+                }
+            },
             'default': {
-                'male': 'Gacrux',       # Mature - works for most languages
-                'female': 'Leda',       # Youthful - works for most languages
+                'male': 'Gacrux',
+                'female': 'Leda',
                 'instruction': "Read aloud in a warm, welcoming podcast tone with engaging delivery:",
-                # Default natural language style descriptors
                 'speech_config': {
                     'pace_style': 'at a comfortable, slightly measured pace for clarity',
                     'tone_style': 'with natural vocal variation',
@@ -314,25 +611,84 @@ class VoiceConfigManager:
     def _normalize_language(self, language: str) -> str:
         """
         Normalize language code to internal key
-        
+
         Args:
             language: Language code or name
-            
+
         Returns:
             Normalized language key
         """
         language_lower = language.lower()
-        
-        # Hebrew variations
-        if language_lower in ['he', 'hebrew', 'heb', 'עברית']:
-            return 'hebrew'
-        
-        # English variations  
-        if language_lower in ['en', 'english', 'eng']:
-            return 'english'
-        
-        # Default for unknown languages
-        return 'default'
+
+        # Language variations mapping
+        language_map = {
+            # Hebrew
+            'he': 'hebrew', 'hebrew': 'hebrew', 'heb': 'hebrew', 'עברית': 'hebrew',
+            # English
+            'en': 'english', 'english': 'english', 'eng': 'english',
+            # Spanish
+            'es': 'spanish', 'spanish': 'spanish', 'español': 'spanish',
+            # French
+            'fr': 'french', 'french': 'french', 'français': 'french',
+            # German
+            'de': 'german', 'german': 'german', 'deutsch': 'german',
+            # Italian
+            'it': 'italian', 'italian': 'italian', 'italiano': 'italian',
+            # Portuguese
+            'pt': 'portuguese', 'portuguese': 'portuguese', 'português': 'portuguese',
+            # Russian
+            'ru': 'russian', 'russian': 'russian', 'русский': 'russian',
+            # Polish
+            'pl': 'polish', 'polish': 'polish', 'polski': 'polish',
+            # Dutch
+            'nl': 'dutch', 'dutch': 'dutch', 'nederlands': 'dutch',
+            # Chinese
+            'zh': 'chinese', 'chinese': 'chinese', '中文': 'chinese', 'cmn': 'chinese',
+            # Japanese
+            'ja': 'japanese', 'japanese': 'japanese', '日本語': 'japanese',
+            # Korean
+            'ko': 'korean', 'korean': 'korean', '한국어': 'korean',
+            # Hindi
+            'hi': 'hindi', 'hindi': 'hindi', 'हिन्दी': 'hindi',
+            # Arabic
+            'ar': 'arabic', 'arabic': 'arabic', 'العربية': 'arabic',
+            # Indonesian
+            'id': 'indonesian', 'indonesian': 'indonesian', 'bahasa': 'indonesian',
+            # Turkish
+            'tr': 'turkish', 'turkish': 'turkish', 'türkçe': 'turkish',
+            # Vietnamese
+            'vi': 'vietnamese', 'vietnamese': 'vietnamese', 'tiếng việt': 'vietnamese',
+            # Thai
+            'th': 'thai', 'thai': 'thai', 'ไทย': 'thai',
+            # Greek
+            'el': 'greek', 'greek': 'greek', 'ελληνικά': 'greek',
+            # Swedish
+            'sv': 'swedish', 'swedish': 'swedish', 'svenska': 'swedish',
+            # Ukrainian
+            'uk': 'ukrainian', 'ukrainian': 'ukrainian', 'українська': 'ukrainian',
+            # Romanian
+            'ro': 'romanian', 'romanian': 'romanian', 'română': 'romanian',
+            # Bengali
+            'bn': 'bengali', 'bengali': 'bengali', 'বাংলা': 'bengali',
+            # Czech
+            'cs': 'czech', 'czech': 'czech', 'čeština': 'czech',
+            # Danish
+            'da': 'danish', 'danish': 'danish', 'dansk': 'danish',
+            # Finnish
+            'fi': 'finnish', 'finnish': 'finnish', 'suomi': 'finnish',
+            # Hungarian
+            'hu': 'hungarian', 'hungarian': 'hungarian', 'magyar': 'hungarian',
+            # Slovak
+            'sk': 'slovak', 'slovak': 'slovak', 'slovenčina': 'slovak',
+            # Tamil
+            'ta': 'tamil', 'tamil': 'tamil', 'தமிழ்': 'tamil',
+            # Telugu
+            'te': 'telugu', 'telugu': 'telugu', 'తెలుగు': 'telugu',
+            # Marathi
+            'mr': 'marathi', 'marathi': 'marathi', 'मराठी': 'marathi'
+        }
+
+        return language_map.get(language_lower, 'default')
     
     def _get_random_voice_for_gender(self, gender: str, episode_id: str, speaker_role: str) -> str:
         """
@@ -495,19 +851,51 @@ class VoiceConfigManager:
     def _get_language_code_for_speech(self, language: str) -> str:
         """
         Get BCP-47 language code for speech configuration
-        
+
         Args:
             language: Language identifier
-            
+
         Returns:
             BCP-47 formatted language code
         """
         lang_key = self._normalize_language(language)
-        
+
         language_codes = {
-            'hebrew': 'he-IL',
+            # GA Languages (23)
             'english': 'en-US',
+            'arabic': 'ar-XA',
+            'bengali': 'bn-IN',
+            'chinese': 'cmn-CN',
+            'czech': 'cs-CZ',
+            'danish': 'da-DK',
+            'dutch': 'nl-NL',
+            'finnish': 'fi-FI',
+            'french': 'fr-FR',
+            'german': 'de-DE',
+            'greek': 'el-GR',
+            'hindi': 'hi-IN',
+            'hungarian': 'hu-HU',
+            'indonesian': 'id-ID',
+            'italian': 'it-IT',
+            'japanese': 'ja-JP',
+            'korean': 'ko-KR',
+            'polish': 'pl-PL',
+            'portuguese': 'pt-BR',
+            'russian': 'ru-RU',
+            'slovak': 'sk-SK',
+            'spanish': 'es-ES',
+            'swedish': 'sv-SE',
+            'turkish': 'tr-TR',
+            # Preview Languages
+            'hebrew': 'he-IL',
+            'thai': 'th-TH',
+            'ukrainian': 'uk-UA',
+            'vietnamese': 'vi-VN',
+            'romanian': 'ro-RO',
+            'tamil': 'ta-IN',
+            'telugu': 'te-IN',
+            'marathi': 'mr-IN',
             'default': 'en-US'
         }
-        
+
         return language_codes.get(lang_key, 'en-US') 
