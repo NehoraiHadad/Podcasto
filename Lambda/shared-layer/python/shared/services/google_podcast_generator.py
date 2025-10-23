@@ -17,7 +17,7 @@ class GooglePodcastGenerator:
     def __init__(self):
         """Initialize the podcast generator with modular components"""
         self.tts_client = GeminiTTSClient()
-        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1000, max_workers=4)
+        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1500, max_workers=4)
         self.voice_manager = VoiceConfigManager()
         
     def generate_podcast_audio(
@@ -116,7 +116,7 @@ class GooglePodcastGenerator:
     ) -> Callable[[str, int], Optional[Tuple[bytes, int]]]:
         """
         Create a chunk processor function with fixed parameters (DRY principle)
-        
+
         Args:
             language: Target language
             speaker1_role: First speaker role
@@ -128,7 +128,7 @@ class GooglePodcastGenerator:
             speaker1_voice: Pre-selected voice for speaker 1 (for consistency)
             speaker2_voice: Pre-selected voice for speaker 2 (for consistency)
             content_type: Type of content for speech optimization
-            
+
         Returns:
             Chunk processor function
         """
@@ -136,8 +136,8 @@ class GooglePodcastGenerator:
             return self.tts_client.generate_chunk_with_retry(
                 chunk, chunk_num, language, speaker1_role, speaker2_role,
                 speaker1_gender, speaker2_gender, episode_id, is_pre_processed,
-                max_retries=2, speaker1_voice=speaker1_voice, speaker2_voice=speaker2_voice,
-                content_type=content_type
+                max_retries=3, speaker1_voice=speaker1_voice, speaker2_voice=speaker2_voice,
+                content_type=content_type, chunk_manager=self.chunk_manager
             )
         return chunk_processor
     
@@ -199,10 +199,15 @@ class GooglePodcastGenerator:
             logger.info(f"[GOOGLE_TTS] Validating voice consistency across {len(successful_chunks)} chunks")
             logger.info(f"[GOOGLE_TTS] Expected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
 
+            # CRITICAL: Fail immediately if any chunks failed - DO NOT publish incomplete episodes
             if failed_chunks:
-                logger.error(f"[GOOGLE_TTS] ❌ WARNING: {len(failed_chunks)} chunks failed in parallel: {failed_chunks}")
-                logger.error(f"[GOOGLE_TTS] This will result in silent parts in the final audio!")
-                logger.error(f"[GOOGLE_TTS] Consider increasing max_retries or using sequential processing")
+                error_msg = (
+                    f"Episode generation FAILED: {len(failed_chunks)}/{len(chunks)} chunks failed after all retries. "
+                    f"Failed chunk numbers: {failed_chunks}. "
+                    f"REFUSING to generate incomplete podcast - episode will be marked as 'failed'."
+                )
+                logger.error(f"[GOOGLE_TTS] ❌ {error_msg}")
+                raise Exception(error_msg)
             
             # Extract audio data for concatenation
             audio_data_list = [chunk[1] for chunk in successful_chunks]
@@ -271,13 +276,19 @@ class GooglePodcastGenerator:
         all_audio_data, failed_chunks = self.chunk_manager.process_chunks_sequential(
             chunks, chunk_processor
         )
-        
+
         if not all_audio_data:
             raise Exception("Failed to generate any valid audio chunks")
-        
+
+        # CRITICAL: Fail immediately if any chunks failed - DO NOT publish incomplete episodes
         if failed_chunks:
-            logger.error(f"[GOOGLE_TTS] WARNING: {len(failed_chunks)} chunks failed: {failed_chunks}")
-            logger.error(f"[GOOGLE_TTS] This will result in silent parts in the final audio!")
+            error_msg = (
+                f"Episode generation FAILED (sequential): {len(failed_chunks)}/{len(chunks)} chunks failed after all retries. "
+                f"Failed chunk numbers: {failed_chunks}. "
+                f"REFUSING to generate incomplete podcast - episode will be marked as 'failed'."
+            )
+            logger.error(f"[GOOGLE_TTS] ❌ {error_msg}")
+            raise Exception(error_msg)
         
         # Concatenate all audio data
         final_audio, calculated_duration = concatenate_wav_files(all_audio_data)

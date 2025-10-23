@@ -251,7 +251,8 @@ class GeminiTTSClient:
         max_retries: int = 2,
         speaker1_voice: str = None,
         speaker2_voice: str = None,
-        content_type: str = 'general'
+        content_type: str = 'general',
+        chunk_manager = None
     ) -> Tuple[bytes, int] | None:
         """
         Generate a single chunk with retry logic - designed for parallel execution
@@ -270,7 +271,8 @@ class GeminiTTSClient:
             speaker1_voice: Pre-selected voice for speaker 1 (for consistency)
             speaker2_voice: Pre-selected voice for speaker 2 (for consistency)
             content_type: Type of content being processed
-            
+            chunk_manager: AudioChunkManager instance for validation (required)
+
         Returns:
             Tuple of (audio_data, duration) or None if failed
         """
@@ -278,6 +280,10 @@ class GeminiTTSClient:
         logger.info(f"[TTS_CLIENT] Chunk size: {len(chunk)} chars")
         logger.info(f"[TTS_CLIENT] Pre-selected voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
         logger.info(f"[TTS_CLIENT] Roles: {speaker1_role} / {speaker2_role}")
+
+        # Validate chunk_manager is provided
+        if chunk_manager is None:
+            raise ValueError("chunk_manager parameter is required for validation")
 
         for retry in range(max_retries + 1):
             try:
@@ -287,10 +293,6 @@ class GeminiTTSClient:
                     speaker1_gender, speaker2_gender, episode_id, is_pre_processed,
                     speaker1_voice, speaker2_voice, content_type
                 )
-                
-                # Import chunk manager for validation
-                from shared.services.audio_chunk_manager import AudioChunkManager
-                chunk_manager = AudioChunkManager(max_chars_per_chunk=1000)
 
                 # Validate audio data before returning (with silence detection enabled)
                 if chunk_manager.validate_audio_chunk(audio_data, duration, chunk_num, check_silence=True):

@@ -397,12 +397,12 @@ class VoiceConfigManager:
                 'volume_style': 'speaking with clear, authoritative delivery',
                 'style_instruction': "Deliver as professional news content with authority and clarity in an engaging podcast format."
             },
-            # Technology content - measured and informative
+            # Technology content - engaging and clear
             'technology': {
-                'pace_style': 'at a slightly slower, methodical pace for technical precision',
+                'pace_style': 'at a natural, engaging pace for technical clarity',
                 'tone_style': 'with focused, informative clarity',
-                'volume_style': 'speaking with focused, controlled delivery',
-                'style_instruction': "Present technical information clearly and methodically in an accessible podcast style."
+                'volume_style': 'speaking with balanced, clear delivery',
+                'style_instruction': 'Present technical information clearly and dynamically in an engaging podcast style.'
             },
             # Entertainment content - dynamic and engaging
             'entertainment': {
