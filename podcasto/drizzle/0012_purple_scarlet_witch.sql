@@ -1,1 +1,0 @@
-ALTER TABLE "profiles" ADD COLUMN "has_seen_welcome" boolean DEFAULT false;

@@ -1,1 +1,0 @@
-ALTER TABLE "podcasts" ADD COLUMN "is_paused" boolean DEFAULT false NOT NULL;
