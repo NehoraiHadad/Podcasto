@@ -194,6 +194,7 @@ aws cloudformation describe-stacks \
 
 ## 📝 Notes
 
+- **Python Runtime**: All Lambda functions use Python 3.12 for optimal performance and longer support lifecycle
 - **Automatic deployment to dev** happens on every push to `master`
 - **Production deployment** requires manual trigger + confirmation
 - **Path filters** prevent unnecessary deployments (only triggers if Lambda/ changes)

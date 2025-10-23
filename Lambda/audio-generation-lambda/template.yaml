@@ -6,7 +6,7 @@ Globals:
   Function:
     Timeout: 900  # 15 minutes for audio generation processing (SQS visibility timeout is 960s)
     MemorySize: 2048  # Increased memory for audio processing
-    Runtime: python3.10
+    Runtime: python3.12
 
 Parameters:
   Environment:

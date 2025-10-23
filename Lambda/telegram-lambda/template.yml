@@ -9,7 +9,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: src.lambda_handler.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.12
       Timeout: 300
       MemorySize: 256
       Layers:
