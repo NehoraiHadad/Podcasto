@@ -1,0 +1,133 @@
+name: Deploy Lambdas to Dev
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'Lambda/**'
+      - '.github/workflows/deploy-lambdas-dev.yml'
+
+env:
+  AWS_REGION: us-east-1
+  ENVIRONMENT: dev
+
+jobs:
+  # Job 1: Deploy shared layer first (all Lambdas depend on it)
+  deploy-shared-layer:
+    name: Deploy Shared Layer
+    runs-on: ubuntu-latest
+    outputs:
+      layer_arn: ${{ steps.get-layer-arn.outputs.arn }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Build shared layer
+        working-directory: Lambda/shared-layer
+        run: sam build
+
+      - name: Deploy shared layer
+        working-directory: Lambda/shared-layer
+        run: |
+          sam deploy \
+            --stack-name podcasto-shared-layer-${{ env.ENVIRONMENT }} \
+            --no-confirm-changeset \
+            --parameter-overrides "Environment=${{ env.ENVIRONMENT }}" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3
+
+      - name: Get new layer ARN
+        id: get-layer-arn
+        run: |
+          LAYER_ARN=$(aws cloudformation describe-stacks \
+            --stack-name podcasto-shared-layer-${{ env.ENVIRONMENT }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`SharedLayerArn`].OutputValue' \
+            --output text)
+          echo "New layer ARN: $LAYER_ARN"
+          echo "arn=$LAYER_ARN" >> $GITHUB_OUTPUT
+
+  # Job 2: Update Lambda functions with new layer version
+  update-lambdas:
+    name: Update Lambda Functions
+    runs-on: ubuntu-latest
+    needs: deploy-shared-layer
+    strategy:
+      matrix:
+        lambda:
+          - podcasto-audio-generation-dev
+          - podcasto-script-preprocessor-dev
+      fail-fast: false
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ${{ matrix.lambda }} with new layer
+        run: |
+          echo "Updating ${{ matrix.lambda }} with layer: ${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+          aws lambda update-function-configuration \
+            --function-name ${{ matrix.lambda }} \
+            --layers ${{ needs.deploy-shared-layer.outputs.layer_arn }}
+
+      - name: Wait for update to complete
+        run: |
+          echo "Waiting for ${{ matrix.lambda }} to finish updating..."
+          aws lambda wait function-updated-v2 --function-name ${{ matrix.lambda }}
+          echo "✅ ${{ matrix.lambda }} updated successfully"
+
+  # Job 3: Verify deployment
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: update-lambdas
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify Lambda configurations
+        run: |
+          echo "Verifying deployed Lambdas..."
+
+          for lambda in podcasto-audio-generation-dev podcasto-script-preprocessor-dev; do
+            echo "Checking $lambda..."
+            CONFIG=$(aws lambda get-function-configuration --function-name $lambda)
+            STATE=$(echo $CONFIG | jq -r '.State')
+            LAST_UPDATE_STATUS=$(echo $CONFIG | jq -r '.LastUpdateStatus')
+            LAYER_ARN=$(echo $CONFIG | jq -r '.Layers[0].Arn')
+
+            echo "  State: $STATE"
+            echo "  Last Update Status: $LAST_UPDATE_STATUS"
+            echo "  Layer ARN: $LAYER_ARN"
+
+            if [ "$STATE" != "Active" ] || [ "$LAST_UPDATE_STATUS" != "Successful" ]; then
+              echo "❌ $lambda deployment failed!"
+              exit 1
+            fi
+            echo "✅ $lambda is healthy"
+          done
+
+          echo ""
+          echo "🎉 All Lambdas deployed successfully!"

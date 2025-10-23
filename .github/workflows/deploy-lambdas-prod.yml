@@ -1,0 +1,152 @@
+name: Deploy Lambdas to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type "DEPLOY TO PRODUCTION" to confirm'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  ENVIRONMENT: prod
+
+jobs:
+  # Safety check: Validate confirmation input
+  validate-confirmation:
+    name: Validate Deployment Confirmation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "DEPLOY TO PRODUCTION" ]; then
+            echo "❌ Deployment cancelled: Confirmation text does not match"
+            echo "Expected: DEPLOY TO PRODUCTION"
+            echo "Received: ${{ github.event.inputs.confirmation }}"
+            exit 1
+          fi
+          echo "✅ Deployment confirmed"
+
+  # Job 1: Deploy shared layer to production
+  deploy-shared-layer:
+    name: Deploy Shared Layer to Production
+    runs-on: ubuntu-latest
+    needs: validate-confirmation
+    outputs:
+      layer_arn: ${{ steps.get-layer-arn.outputs.arn }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Build shared layer
+        working-directory: Lambda/shared-layer
+        run: sam build
+
+      - name: Deploy shared layer to PRODUCTION
+        working-directory: Lambda/shared-layer
+        run: |
+          echo "🚀 Deploying to PRODUCTION environment..."
+          sam deploy \
+            --stack-name podcasto-shared-layer-${{ env.ENVIRONMENT }} \
+            --no-confirm-changeset \
+            --parameter-overrides "Environment=${{ env.ENVIRONMENT }}" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3
+
+      - name: Get new layer ARN
+        id: get-layer-arn
+        run: |
+          LAYER_ARN=$(aws cloudformation describe-stacks \
+            --stack-name podcasto-shared-layer-${{ env.ENVIRONMENT }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`SharedLayerArn`].OutputValue' \
+            --output text)
+          echo "Production layer ARN: $LAYER_ARN"
+          echo "arn=$LAYER_ARN" >> $GITHUB_OUTPUT
+
+  # Job 2: Update production Lambda functions
+  update-lambdas:
+    name: Update Production Lambda Functions
+    runs-on: ubuntu-latest
+    needs: deploy-shared-layer
+    strategy:
+      matrix:
+        lambda:
+          - podcasto-audio-generation-prod
+          - podcasto-script-preprocessor-prod
+      fail-fast: true  # Stop immediately if any Lambda fails in production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ${{ matrix.lambda }} with new layer
+        run: |
+          echo "🚀 Updating PRODUCTION ${{ matrix.lambda }} with layer: ${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+          aws lambda update-function-configuration \
+            --function-name ${{ matrix.lambda }} \
+            --layers ${{ needs.deploy-shared-layer.outputs.layer_arn }}
+
+      - name: Wait for update to complete
+        run: |
+          echo "Waiting for ${{ matrix.lambda }} to finish updating..."
+          aws lambda wait function-updated-v2 --function-name ${{ matrix.lambda }}
+          echo "✅ ${{ matrix.lambda }} updated successfully"
+
+  # Job 3: Verify production deployment
+  verify-deployment:
+    name: Verify Production Deployment
+    runs-on: ubuntu-latest
+    needs: update-lambdas
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify production Lambda configurations
+        run: |
+          echo "Verifying PRODUCTION Lambdas..."
+
+          for lambda in podcasto-audio-generation-prod podcasto-script-preprocessor-prod; do
+            echo "Checking $lambda..."
+            CONFIG=$(aws lambda get-function-configuration --function-name $lambda)
+            STATE=$(echo $CONFIG | jq -r '.State')
+            LAST_UPDATE_STATUS=$(echo $CONFIG | jq -r '.LastUpdateStatus')
+            LAYER_ARN=$(echo $CONFIG | jq -r '.Layers[0].Arn')
+
+            echo "  State: $STATE"
+            echo "  Last Update Status: $LAST_UPDATE_STATUS"
+            echo "  Layer ARN: $LAYER_ARN"
+
+            if [ "$STATE" != "Active" ] || [ "$LAST_UPDATE_STATUS" != "Successful" ]; then
+              echo "❌ PRODUCTION $lambda deployment failed!"
+              exit 1
+            fi
+            echo "✅ $lambda is healthy"
+          done
+
+          echo ""
+          echo "🎉 All PRODUCTION Lambdas deployed successfully!"
+          echo "Deployment commit: ${{ github.sha }}"
+          echo "Deployed by: ${{ github.actor }}"
