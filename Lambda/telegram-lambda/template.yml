@@ -5,7 +5,7 @@ Resources:
   TelegramCollector:
     Type: AWS::Serverless::Function
     Metadata:
-      BuildMethod: python3.10
+      BuildMethod: python3.12
     Properties:
       CodeUri: .
       Handler: src.lambda_handler.lambda_handler
