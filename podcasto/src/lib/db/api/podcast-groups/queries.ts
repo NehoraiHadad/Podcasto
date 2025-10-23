@@ -289,11 +289,23 @@ export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[
   // Convert podcast groups
   for (const group of groups) {
     const primaryLang = group.languages.find(l => l.is_primary) || group.languages[0];
+
+    // Fallback logic for cover image:
+    // 1. Base cover image (if set)
+    // 2. Primary language cover image (if available)
+    // 3. Any language variant with a cover image
+    // 4. Default placeholder image
+    const coverImage =
+      group.base_cover_image ||
+      primaryLang.cover_image ||
+      group.languages.find(l => l.cover_image)?.cover_image ||
+      'https://picsum.photos/400/300';
+
     items.push({
       id: group.id,
       title: primaryLang.title,
       description: primaryLang.description,
-      cover_image: primaryLang.cover_image || group.base_cover_image,
+      cover_image: coverImage,
       created_at: group.created_at,
       updated_at: group.updated_at,
       type: 'group',

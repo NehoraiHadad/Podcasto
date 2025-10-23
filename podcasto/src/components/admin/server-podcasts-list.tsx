@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { unstable_noStore as noStore } from 'next/cache';
 import { podcastsApi } from '@/lib/db/api';
 import { getAllPodcastGroupsWithLanguages } from '@/lib/db/api/podcast-groups';
-import { Pause, Globe } from 'lucide-react';
+import { Pause, Globe, Edit } from 'lucide-react';
 import { getLanguageFlag, getLanguageName } from '@/lib/utils/language-utils';
 
 import {
@@ -233,6 +233,12 @@ async function PodcastGroupsView() {
                     <p className="text-sm text-muted-foreground">{group.base_description}</p>
                   )}
                 </div>
+                <Link href={`/admin/podcasts/groups/${group.id}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Edit className="h-4 w-4" />
+                    Edit Group
+                  </Button>
+                </Link>
               </div>
 
               {/* Language Variants */}

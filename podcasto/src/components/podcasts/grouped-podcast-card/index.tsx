@@ -38,8 +38,16 @@ export function GroupedPodcastCard({
     return null;
   }
 
-  // Use base cover image or language-specific one
-  const coverImage = displayLanguage.cover_image || podcastGroup.base_cover_image;
+  // Fallback logic for cover image:
+  // 1. Base cover image (if set)
+  // 2. Primary language cover image (if available)
+  // 3. Any language variant with a cover image
+  // 4. Default placeholder image
+  const coverImage =
+    podcastGroup.base_cover_image ||
+    primaryLanguage.cover_image ||
+    podcastGroup.languages.find(l => l.cover_image)?.cover_image ||
+    'https://picsum.photos/400/300';
 
   return (
     <Card
