@@ -40,7 +40,7 @@ Resources:
       Timeout: 300
       MemorySize: 256
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:3'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:11'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
@@ -50,7 +50,7 @@ Resources:
           S3_BUCKET_NAME: !Ref S3BucketName
           SQS_QUEUE_URL: !Ref SQSQueueUrl
           SUPABASE_URL: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_URL}}'
-          SUPABASE_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_SERVICE_KEY}}'
+          SUPABASE_SERVICE_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_SERVICE_KEY}}'
           API_ENDPOINT: !Ref ApiEndpoint
           INTERNAL_API_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:INTERNAL_API_KEY}}'
           LOG_LEVEL: DEBUG

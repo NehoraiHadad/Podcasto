@@ -38,7 +38,7 @@ Resources:
       CodeUri: src/
       Handler: handlers.script_preprocessor_handler.lambda_handler
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:3'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:11'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
