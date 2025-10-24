@@ -14,6 +14,7 @@ interface GenerationResult {
   success: boolean;
   episodeId?: string;
   message: string;
+  reason?: 'success' | 'no_messages' | 'insufficient_credits' | 'error';
   checkerResult?: EpisodeCheckerDetailedResult;
 }
 
@@ -89,14 +90,34 @@ export async function generateEpisodesForPodcasts(
       // Call the existing server action to generate the episode with date range
       const actionResult = await generatePodcastEpisode(podcast.id, dateRange);
 
+      // Determine the reason for success/failure
+      let reason: 'success' | 'no_messages' | 'insufficient_credits' | 'error' = 'error';
+      if (actionResult.success) {
+        reason = 'success';
+      } else if (actionResult.error?.includes('No new messages') || actionResult.error?.includes('no new messages')) {
+        reason = 'no_messages';
+      } else if (actionResult.error?.includes('Insufficient credits')) {
+        reason = 'insufficient_credits';
+      }
+
       generationResult = {
         ...generationResult,
         success: actionResult.success,
         episodeId: actionResult.episodeId,
+        reason,
         message: actionResult.success
           ? `Generation started for podcast: ${podcast.title}`
-          : `Error: ${actionResult.error}`,
+          : `${reason === 'no_messages' ? 'No messages' : 'Error'}: ${actionResult.error}`,
       };
+
+      // Enhanced logging based on reason
+      if (reason === 'no_messages') {
+        console.log(`[PODCAST_GENERATOR] No new messages in Telegram channel for "${podcast.title}" - email notification sent to creator`);
+      } else if (reason === 'insufficient_credits') {
+        console.warn(`[PODCAST_GENERATOR] Insufficient credits for "${podcast.title}"`);
+      } else if (!actionResult.success) {
+        console.error(`[PODCAST_GENERATOR] Generation failed for "${podcast.title}":`, actionResult.error);
+      }
 
       // Deduct credits if episode was successfully created for a user podcast (non-admin only)
       if (actionResult.success && actionResult.episodeId && podcastRecord.created_by) {

@@ -3,6 +3,12 @@
  * Uses t.me/s/{channel} to extract profile photos without requiring Bot API
  */
 
+import {
+  fetchTelegramChannelPage,
+  parseChannelImageFromHTML,
+  cleanChannelUsername,
+} from './telegram/telegram-scraper-base';
+
 interface TelegramImageResult {
   success: boolean;
   imageUrl?: string;
@@ -18,73 +24,42 @@ export async function getTelegramChannelImageUrl(
   channelUsername: string
 ): Promise<TelegramImageResult> {
   try {
-    // Clean channel username (remove @ if present)
-    const cleanChannel = channelUsername.replace(/^@/, '').trim();
+    const cleanChannel = cleanChannelUsername(channelUsername);
 
     if (!cleanChannel) {
       return {
         success: false,
-        error: 'Invalid channel username'
+        error: 'Invalid channel username',
       };
     }
 
-    // Fetch the public Telegram channel page
-    const url = `https://t.me/s/${cleanChannel}`;
-    console.log(`[TELEGRAM_SCRAPER] Fetching channel page: ${url}`);
+    console.log(`[TELEGRAM_SCRAPER] Fetching channel image for: ${cleanChannel}`);
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
+    // Fetch the channel page HTML
+    const html = await fetchTelegramChannelPage(cleanChannel);
 
-    if (!response.ok) {
-      console.error(`[TELEGRAM_SCRAPER] HTTP ${response.status}: ${response.statusText}`);
+    // Parse the image URL from HTML
+    const imageUrl = parseChannelImageFromHTML(html);
+
+    if (!imageUrl) {
+      console.warn(`[TELEGRAM_SCRAPER] No image found for channel: ${cleanChannel}`);
       return {
         success: false,
-        error: `Channel not found or not accessible (${response.status})`
+        error: 'No profile image found for this channel',
       };
     }
 
-    const html = await response.text();
+    console.log(`[TELEGRAM_SCRAPER] Found channel image: ${imageUrl.substring(0, 80)}...`);
 
-    // Extract og:image meta tag which contains the channel profile photo
-    const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
-
-    if (ogImageMatch && ogImageMatch[1]) {
-      const imageUrl = ogImageMatch[1];
-      console.log(`[TELEGRAM_SCRAPER] Found channel image: ${imageUrl.substring(0, 80)}...`);
-
-      return {
-        success: true,
-        imageUrl
-      };
-    }
-
-    // Fallback: try to find the channel photo directly
-    const photoMatch = html.match(/class="tgme_page_photo_image"[^>]+style="background-image:url\('([^']+)'\)"/);
-
-    if (photoMatch && photoMatch[1]) {
-      const imageUrl = photoMatch[1];
-      console.log(`[TELEGRAM_SCRAPER] Found channel photo (fallback): ${imageUrl.substring(0, 80)}...`);
-
-      return {
-        success: true,
-        imageUrl
-      };
-    }
-
-    console.warn(`[TELEGRAM_SCRAPER] No image found for channel: ${cleanChannel}`);
     return {
-      success: false,
-      error: 'No profile image found for this channel'
+      success: true,
+      imageUrl,
     };
-
   } catch (error) {
     console.error('[TELEGRAM_SCRAPER] Error fetching channel image:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -125,7 +100,7 @@ export async function validateTelegramChannel(
   channelUsername: string
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    const cleanChannel = channelUsername.replace(/^@/, '').trim();
+    const cleanChannel = cleanChannelUsername(channelUsername);
 
     if (!cleanChannel) {
       return { valid: false, error: 'Invalid channel username' };
@@ -135,8 +110,8 @@ export async function validateTelegramChannel(
     const response = await fetch(url, {
       method: 'HEAD',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
     });
 
     if (response.ok) {
@@ -149,7 +124,7 @@ export async function validateTelegramChannel(
   } catch (error) {
     return {
       valid: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -181,13 +156,13 @@ export async function getTelegramChannelImage(
     return {
       success: true,
       imageUrl: result.imageUrl,
-      imageBuffer
+      imageBuffer,
     };
   } catch (error) {
     console.error('[TELEGRAM_SCRAPER] Error in getTelegramChannelImage:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

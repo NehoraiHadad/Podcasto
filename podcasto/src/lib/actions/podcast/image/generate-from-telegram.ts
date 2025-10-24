@@ -6,7 +6,7 @@
  */
 
 import { requireAdmin, getUser } from '@/lib/auth';
-import { getTelegramChannelImage } from '@/lib/services/telegram-image-scraper';
+import { getTelegramChannelImage } from '@/lib/services/telegram-scraper';
 import { db } from '@/lib/db';
 import { podcasts, podcastConfigs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

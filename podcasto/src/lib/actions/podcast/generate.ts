@@ -14,6 +14,9 @@ import {
   createPendingEpisode,
   invokeLambdaFunction
 } from './generation';
+import { checkForNewMessages } from '@/lib/services/telegram';
+import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notification';
+import { getPodcastById } from '@/lib/db/api/podcasts/queries';
 
 // Re-export types for backward compatibility
 export type { DateRange, GenerationResult } from './generation/types';
@@ -71,6 +74,113 @@ export async function generatePodcastEpisode(
     if (!configResult.success || !configResult.config) {
       return { success: false, error: configResult.error || 'Failed to get podcast config' };
     }
+
+    const podcastConfig = configResult.config as {
+      telegram_channel?: string;
+      telegram_hours?: number;
+      podcast_name: string;
+      [key: string]: unknown;
+    };
+
+    // ============================================================================
+    // PRE-CHECK: Verify there are new messages before creating episode
+    // ============================================================================
+    if (podcastConfig.telegram_channel) {
+      console.log(`[PODCAST_GEN] Checking for new messages in ${podcastConfig.telegram_channel}`);
+
+      try {
+        // Calculate date range for message check
+        let messageCheckOptions: { startDate: Date; endDate: Date } | number;
+        if (dateRange) {
+          // Use custom date range if provided
+          messageCheckOptions = {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+          };
+        } else {
+          // Use telegram_hours from config (convert to days)
+          const hoursBack = podcastConfig.telegram_hours || 24;
+          messageCheckOptions = hoursBack / 24;
+        }
+
+        // Check for new messages
+        const messageCheck = await checkForNewMessages(
+          podcastConfig.telegram_channel,
+          messageCheckOptions
+        );
+
+        console.log(`[PODCAST_GEN] Message check result:`, {
+          hasNewMessages: messageCheck.hasNewMessages,
+          latestMessageDate: messageCheck.latestMessageDate,
+          checkedAt: messageCheck.checkedAt
+        });
+
+        // If no new messages found, handle based on trigger source
+        if (!messageCheck.hasNewMessages) {
+          console.log(`[PODCAST_GEN] No new messages found in ${podcastConfig.telegram_channel}`);
+
+          // Determine if this is an automated CRON trigger (no user session)
+          const isAutomatedTrigger = !user;
+
+          if (isAutomatedTrigger) {
+            // For CRON triggers: send email notification to creator
+            console.log(`[PODCAST_GEN] Automated trigger detected - will send email notification`);
+
+            // Get podcast record to find creator
+            const podcast = await getPodcastById(podcastId);
+
+            if (podcast?.created_by) {
+              // Calculate actual date range used for checking
+              const actualDateRange = typeof messageCheckOptions === 'number'
+                ? {
+                    start: new Date(Date.now() - messageCheckOptions * 24 * 60 * 60 * 1000),
+                    end: new Date()
+                  }
+                : {
+                    start: messageCheckOptions.startDate,
+                    end: messageCheckOptions.endDate
+                  };
+
+              // Send notification (non-blocking - errors logged but don't fail the flow)
+              const notificationResult = await sendNoMessagesNotification({
+                podcastId,
+                creatorUserId: podcast.created_by,
+                channelName: podcastConfig.telegram_channel,
+                dateRange: actualDateRange
+              });
+
+              if (notificationResult.success) {
+                console.log(`[PODCAST_GEN] Email notification sent successfully`);
+              } else {
+                console.warn(`[PODCAST_GEN] Failed to send email notification:`, notificationResult.error);
+              }
+            }
+          }
+
+          // Return error response (prevents episode creation and Lambda invocation)
+          return {
+            success: false,
+            error: `No new messages found in ${podcastConfig.telegram_channel} for the specified time range. ${
+              messageCheck.latestMessageDate
+                ? `Latest message: ${messageCheck.latestMessageDate.toISOString()}`
+                : 'No recent messages detected'
+            }`
+          };
+        }
+
+        console.log(`[PODCAST_GEN] New messages detected - proceeding with episode generation`);
+      } catch (error) {
+        // Log error but don't fail the entire generation
+        // This ensures that if the pre-check fails, we still try to generate
+        console.error(`[PODCAST_GEN] Error during message pre-check:`, error);
+        console.log(`[PODCAST_GEN] Continuing with episode generation despite pre-check error`);
+      }
+    } else {
+      console.log(`[PODCAST_GEN] No Telegram channel configured, skipping pre-check`);
+    }
+    // ============================================================================
+    // END PRE-CHECK
+    // ============================================================================
 
     // Create a new episode record
     const timestamp = new Date().toISOString();
