@@ -137,16 +137,7 @@ jobs:
             --no-fail-on-empty-changeset \
             --capabilities CAPABILITY_IAM \
             --resolve-s3 \
-            --parameter-overrides \
-              SupabaseUrl="${{ secrets.SUPABASE_URL }}" \
-              SupabaseKey="${{ secrets.SUPABASE_SERVICE_KEY }}" \
-              TelegramApiId="${{ secrets.TELEGRAM_API_ID }}" \
-              TelegramApiHash="${{ secrets.TELEGRAM_API_HASH }}" \
-              TelegramSession="${{ secrets.TELEGRAM_SESSION }}" \
-              InternalApiKey="${{ secrets.INTERNAL_API_KEY }}" \
-              S3BucketName="podcasto-podcasts" \
-              SQSQueueUrl="https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue-prod" \
-              ApiEndpoint="https://podcasto.org"
+            --parameter-overrides "SupabaseUrl=${{ secrets.SUPABASE_URL }} SupabaseKey=${{ secrets.SUPABASE_SERVICE_KEY }} TelegramApiId=${{ secrets.TELEGRAM_API_ID }} TelegramApiHash=${{ secrets.TELEGRAM_API_HASH }} TelegramSession=${{ secrets.TELEGRAM_SESSION }} InternalApiKey=${{ secrets.INTERNAL_API_KEY }} S3BucketName=podcasto-podcasts SQSQueueUrl=https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue-prod ApiEndpoint=https://podcasto.org"
 
       - name: Wait for ${{ matrix.function_name }} to be ready
         run: |
