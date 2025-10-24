@@ -236,6 +236,41 @@ class SupabaseClient:
             logger.error(f"[SUPABASE] Error marking episode {episode_id} as failed: {e}")
             return False
     
+    def update_episode_status(self, episode_id: str, status: str, podcast_id: Optional[str] = None) -> bool:
+        """
+        Update episode status using RPC function to bypass RLS
+
+        Args:
+            episode_id: The episode ID
+            status: New status to set
+            podcast_id: The podcast ID (not used, kept for backward compatibility)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info(f"[SUPABASE] Updating episode {episode_id} status to: {status}")
+
+            result = self.client.rpc(
+                "update_episode_status",
+                {
+                    "episode_id": episode_id,
+                    "new_status": status
+                }
+            ).execute()
+
+            if result.data and result.data.get('success', False):
+                logger.info(f"[SUPABASE] Successfully updated episode {episode_id} status to: {status}")
+                return True
+            else:
+                error = result.data.get('error') if result.data else "Unknown error"
+                logger.error(f"[SUPABASE] Failed to update episode {episode_id} status: {error}")
+                return False
+
+        except Exception as e:
+            logger.error(f"[SUPABASE] Error updating episode {episode_id} status to {status}: {e}")
+            return False
+
     def _get_current_timestamp(self) -> str:
         """Get current timestamp in ISO format"""
         from datetime import datetime

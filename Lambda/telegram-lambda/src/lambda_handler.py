@@ -11,7 +11,7 @@ from src.config import ConfigManager
 from src.channel_processor import ChannelProcessor
 from src.result_formatter import ResultFormatter
 from src.clients.sqs_client import SQSClient
-from src.clients.supabase_client import SupabaseClient
+from shared.clients.supabase_client import SupabaseClient
 from src.utils.logging import get_logger, log_event, log_error
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 

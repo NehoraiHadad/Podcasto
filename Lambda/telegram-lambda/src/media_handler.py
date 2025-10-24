@@ -8,7 +8,7 @@ from telethon.tl.types import Message, MessageMediaPhoto, MessageMediaDocument
 from telethon.tl.types import DocumentAttributeVideo, DocumentAttributeAudio
 from telethon import TelegramClient
 
-from src.clients.s3_client import S3Client
+from shared.clients.s3_client import S3Client
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -132,19 +132,18 @@ class MediaHandler:
             
             # Upload to S3 if not in local mode
             if not self.is_local:
-                s3_path = self.s3_client.upload_file(
-                    local_path=local_path,
-                    podcast_id=self.podcast_id,
-                    episode_id=self.episode_id,
-                    file_type="images",
-                    filename=filename
-                )
-                
-                if s3_path:
+                try:
+                    s3_path = self.s3_client.upload_file(
+                        file_path=local_path,
+                        podcast_id=self.podcast_id,
+                        episode_id=self.episode_id,
+                        file_type="images",
+                        filename=filename
+                    )
                     logger.info(f"Uploaded photo to S3: {s3_path}")
                     return f"[Image: {s3_path}]"
-                else:
-                    logger.warning(f"Failed to upload photo to S3, using local path: {local_path}")
+                except Exception as upload_error:
+                    logger.warning(f"Failed to upload photo to S3: {upload_error}, using local path: {local_path}")
                     return f"[Image: local://{local_path}]"
             else:
                 return f"[Image: local://{local_path}]"
@@ -165,19 +164,18 @@ class MediaHandler:
             
             # Upload to S3 if not in local mode
             if not self.is_local:
-                s3_path = self.s3_client.upload_file(
-                    local_path=local_path,
-                    podcast_id=self.podcast_id,
-                    episode_id=self.episode_id,
-                    file_type="videos",
-                    filename=filename
-                )
-                
-                if s3_path:
+                try:
+                    s3_path = self.s3_client.upload_file(
+                        file_path=local_path,
+                        podcast_id=self.podcast_id,
+                        episode_id=self.episode_id,
+                        file_type="videos",
+                        filename=filename
+                    )
                     logger.info(f"Uploaded video to S3: {s3_path}")
                     return f"[Video: {s3_path}]"
-                else:
-                    logger.warning(f"Failed to upload video to S3, using local path: {local_path}")
+                except Exception as upload_error:
+                    logger.warning(f"Failed to upload video to S3: {upload_error}, using local path: {local_path}")
                     return f"[Video: local://{local_path}]"
             else:
                 return f"[Video: local://{local_path}]"
@@ -198,19 +196,18 @@ class MediaHandler:
             
             # Upload to S3 if not in local mode
             if not self.is_local:
-                s3_path = self.s3_client.upload_file(
-                    local_path=local_path,
-                    podcast_id=self.podcast_id,
-                    episode_id=self.episode_id,
-                    file_type="audio",
-                    filename=filename
-                )
-                
-                if s3_path:
+                try:
+                    s3_path = self.s3_client.upload_file(
+                        file_path=local_path,
+                        podcast_id=self.podcast_id,
+                        episode_id=self.episode_id,
+                        file_type="audio",
+                        filename=filename
+                    )
                     logger.info(f"Uploaded audio to S3: {s3_path}")
                     return f"[Audio: {s3_path}]"
-                else:
-                    logger.warning(f"Failed to upload audio to S3, using local path: {local_path}")
+                except Exception as upload_error:
+                    logger.warning(f"Failed to upload audio to S3: {upload_error}, using local path: {local_path}")
                     return f"[Audio: local://{local_path}]"
             else:
                 return f"[Audio: local://{local_path}]"
@@ -240,19 +237,18 @@ class MediaHandler:
             
             # Upload to S3 if not in local mode
             if not self.is_local:
-                s3_path = self.s3_client.upload_file(
-                    local_path=local_path,
-                    podcast_id=self.podcast_id,
-                    episode_id=self.episode_id,
-                    file_type="files",
-                    filename=filename
-                )
-                
-                if s3_path:
+                try:
+                    s3_path = self.s3_client.upload_file(
+                        file_path=local_path,
+                        podcast_id=self.podcast_id,
+                        episode_id=self.episode_id,
+                        file_type="files",
+                        filename=filename
+                    )
                     logger.info(f"Uploaded file to S3: {s3_path}")
                     return f"[File: {s3_path}]"
-                else:
-                    logger.warning(f"Failed to upload file to S3, using local path: {local_path}")
+                except Exception as upload_error:
+                    logger.warning(f"Failed to upload file to S3: {upload_error}, using local path: {local_path}")
                     return f"[File: local://{local_path}]"
             else:
                 return f"[File: local://{local_path}]"

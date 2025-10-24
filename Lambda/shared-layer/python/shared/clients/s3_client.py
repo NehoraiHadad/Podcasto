@@ -4,8 +4,10 @@ Unified version combining both script-preprocessor and audio-generation implemen
 """
 import os
 import re
+import time
+import json
 import boto3
-from typing import Optional
+from typing import Optional, Dict, Any
 from botocore.exceptions import ClientError
 
 from shared.utils.logging import get_logger
@@ -18,6 +20,20 @@ class S3Client:
     def __init__(self):
         self.s3_client = boto3.client('s3')
         self.bucket_name = os.environ.get('S3_BUCKET_NAME', 'podcasto-podcasts')
+        self.max_retries = 3
+        self.retry_delay = 1  # seconds
+
+    def _execute_with_retry(self, operation_name: str, operation_func, *args, **kwargs):
+        """Execute S3 operation with retry logic and exponential backoff"""
+        for attempt in range(self.max_retries):
+            try:
+                return operation_func(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"[S3] {operation_name} failed (attempt {attempt+1}/{self.max_retries}): {e}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay * (2 ** attempt))
+                else:
+                    raise
 
     def upload_audio(
         self,
@@ -47,18 +63,21 @@ class S3Client:
 
             logger.info(f"[S3] Uploading audio to s3://{self.bucket_name}/{s3_key}")
 
-            # Upload to S3
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=s3_key,
-                Body=audio_buffer,
-                ContentType=f'audio/{file_format}',
-                Metadata={
-                    'podcast_id': podcast_id,
-                    'episode_id': episode_id,
-                    'content_type': 'podcast_audio'
-                }
-            )
+            # Upload to S3 with retry logic
+            def upload_op():
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=s3_key,
+                    Body=audio_buffer,
+                    ContentType=f'audio/{file_format}',
+                    Metadata={
+                        'podcast_id': podcast_id,
+                        'episode_id': episode_id,
+                        'content_type': 'podcast_audio'
+                    }
+                )
+
+            self._execute_with_retry("upload_audio", upload_op)
 
             # Generate public URL
             s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
@@ -102,11 +121,14 @@ class S3Client:
 
             logger.info(f"[S3] Uploading file to s3://{self.bucket_name}/{s3_key}")
 
-            self.s3_client.upload_file(
-                file_path,
-                self.bucket_name,
-                s3_key
-            )
+            def upload_op():
+                self.s3_client.upload_file(
+                    file_path,
+                    self.bucket_name,
+                    s3_key
+                )
+
+            self._execute_with_retry("upload_file", upload_op)
 
             s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
 
@@ -143,18 +165,21 @@ class S3Client:
 
             logger.info(f"[S3] Uploading transcript to s3://{self.bucket_name}/{s3_key}")
 
-            # Upload transcript content to S3
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=s3_key,
-                Body=transcript_content.encode('utf-8'),
-                ContentType='text/plain',
-                Metadata={
-                    'podcast_id': podcast_id,
-                    'episode_id': episode_id,
-                    'content_type': 'podcast_transcript'
-                }
-            )
+            # Upload transcript content to S3 with retry logic
+            def upload_op():
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=s3_key,
+                    Body=transcript_content.encode('utf-8'),
+                    ContentType='text/plain',
+                    Metadata={
+                        'podcast_id': podcast_id,
+                        'episode_id': episode_id,
+                        'content_type': 'podcast_transcript'
+                    }
+                )
+
+            self._execute_with_retry("upload_transcript", upload_op)
 
             # Generate public URL
             s3_url = f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}"
@@ -251,4 +276,41 @@ class S3Client:
             return self.read_from_url(s3_url)
         except Exception as e:
             logger.error(f"[S3] Failed to download text from S3: {e}")
+            return None
+
+    def upload_data(self, data: Dict[str, Any], podcast_id: str, episode_id: str) -> Optional[str]:
+        """
+        Upload JSON data to S3
+
+        Args:
+            data: The data dictionary to upload
+            podcast_id: The podcast ID
+            episode_id: The episode ID
+
+        Returns:
+            S3 URL of uploaded file or None if failed
+        """
+        try:
+            filename = "content.json"
+            s3_key = f"podcasts/{podcast_id}/{episode_id}/{filename}"
+            json_data = json.dumps(data, ensure_ascii=False, indent=2)
+
+            logger.info(f"[S3] Uploading data to s3://{self.bucket_name}/{s3_key}")
+
+            def upload_op():
+                self.s3_client.put_object(
+                    Bucket=self.bucket_name,
+                    Key=s3_key,
+                    Body=json_data.encode('utf-8'),
+                    ContentType='application/json'
+                )
+
+            self._execute_with_retry("upload_data", upload_op)
+
+            s3_url = f"s3://{self.bucket_name}/{s3_key}"
+            logger.info(f"[S3] Successfully uploaded data: {s3_url}")
+            return s3_url
+
+        except Exception as e:
+            logger.error(f"[S3] Failed to upload data: {e}")
             return None

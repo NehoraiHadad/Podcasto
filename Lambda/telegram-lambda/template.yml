@@ -40,7 +40,7 @@ Resources:
       Timeout: 300
       MemorySize: 256
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:11'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:12'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment

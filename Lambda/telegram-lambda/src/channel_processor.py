@@ -11,7 +11,7 @@ from src.config import PodcastConfig
 from src.message_processor import MessageProcessor
 from src.media_handler import MediaHandler
 from src.clients.telegram_client import TelegramClientWrapper
-from src.clients.s3_client import S3Client
+from shared.clients.s3_client import S3Client
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
