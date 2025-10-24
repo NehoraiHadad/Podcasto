@@ -1,6 +1,7 @@
 """
 TTS Client Module
 Handles core Google Gemini TTS API interactions for audio generation
+Updated: 2025-10-24 - Using Gemini AI API only (not Vertex AI)
 """
 import os
 from typing import Tuple
@@ -26,15 +27,34 @@ class GeminiTTSClient:
     
     def __init__(self):
         """Initialize the Google Gemini TTS client"""
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required")
-        
-        self.client = genai.Client(api_key=api_key)
-        self.model = "gemini-2.5-pro-tts"  # Updated from preview - now GA (Generally Available)
+        # Check if we should use Vertex AI
+        use_vertexai = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "false").lower() == "true"
+
+        if use_vertexai:
+            # Vertex AI Express Mode - uses API key instead of Service Account
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY environment variable is required when using Vertex AI Express Mode")
+
+            self.client = genai.Client(
+                vertexai=True,
+                api_key=api_key
+            )
+            self.model = "gemini-2.5-pro-tts"  # GA model available in Vertex AI
+            logger.info(f"[TTS_CLIENT] Using Vertex AI Express Mode with API key (model={self.model})")
+        else:
+            # Standard Gemini AI API configuration
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY environment variable is required")
+
+            self.client = genai.Client(api_key=api_key)
+            self.model = "gemini-2.5-pro-preview-tts"  # Preview model for Gemini AI API
+            logger.info(f"[TTS_CLIENT] Using Gemini AI API (model={self.model})")
+
         self.voice_manager = VoiceConfigManager()
         self.niqqud_processor = HebrewNiqqudProcessor()
-        
+
         # Optimized generation settings to prevent silent audio
         self.temperature = 0.8  # CRITICAL: Higher temperature prevents silent generation
     

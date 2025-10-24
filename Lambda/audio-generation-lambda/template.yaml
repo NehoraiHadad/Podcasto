@@ -43,7 +43,7 @@ Resources:
       CodeUri: src/
       Handler: handlers.audio_generation_handler.lambda_handler
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:5'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:11'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
@@ -55,7 +55,9 @@ Resources:
           API_BASE_URL: !Ref ApiBaseUrl
           LAMBDA_CALLBACK_SECRET: !Ref LambdaCallbackSecret
           LOG_LEVEL: 'INFO'
-          LAST_UPDATED: '2025-06-13-07:30'
+          LAST_UPDATED: '2025-10-24-04:55'
+          # Use Gemini AI API (not Vertex AI) - Vertex AI doesn't support multi-speaker in Express Mode
+          # GOOGLE_GENAI_USE_VERTEXAI: 'false'
       Events:
         SQSEvent:
           Type: SQS
