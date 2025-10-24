@@ -1,5 +1,6 @@
 """
 Lambda handler for the Telegram collector Lambda function.
+Updated to fix environment variable configuration.
 """
 import json
 import os
