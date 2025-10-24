@@ -3,6 +3,7 @@ import { podcasts } from './podcasts';
 import { podcastGroups } from './podcast-groups';
 import { podcastLanguages } from './podcast-languages';
 import { episodes } from './episodes';
+import { episodeGenerationAttempts } from './episode-generation-attempts';
 import { episodeProcessingLogs } from './episode-processing-logs';
 import { subscriptions } from './subscriptions';
 import { sentEpisodes } from './sent-episodes';
@@ -28,6 +29,7 @@ export {
   podcastGroups,
   podcastLanguages,
   episodes,
+  episodeGenerationAttempts,
   episodeProcessingLogs,
   subscriptions,
   sentEpisodes,

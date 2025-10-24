@@ -2,6 +2,7 @@
 export * as podcastsApi from './podcasts';
 export * as episodesApi from './episodes';
 export * as episodeProcessingLogsApi from './episode-processing-logs';
+export * as episodeGenerationAttemptsApi from './episode-generation-attempts';
 export * as subscriptionsApi from './subscriptions';
 export * as sentEpisodesApi from './sent-episodes';
 export * as userRolesApi from './user-roles';
@@ -15,4 +16,10 @@ export type { Subscription, NewSubscription } from './subscriptions';
 export type { SentEpisode, NewSentEpisode } from './sent-episodes';
 export type { UserRole, NewUserRole } from './user-roles';
 export type { PodcastConfig, NewPodcastConfig } from './podcast-configs';
-export type { Profile, NewProfile, UpdateProfile } from './profiles'; 
+export type { Profile, NewProfile, UpdateProfile } from './profiles';
+export type {
+  LogGenerationAttemptParams,
+  GenerationAttemptRecord,
+  DailySummaryRecord,
+  ProblematicPodcastRecord,
+} from './episode-generation-attempts'; 

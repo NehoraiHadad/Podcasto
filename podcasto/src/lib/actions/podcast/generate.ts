@@ -17,6 +17,8 @@ import {
 import { checkForNewMessages } from '@/lib/services/telegram';
 import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notification';
 import { getPodcastById } from '@/lib/db/api/podcasts/queries';
+import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
+import { isUserAdmin } from '@/lib/db/api/user-roles';
 
 // Re-export types for backward compatibility
 export type { DateRange, GenerationResult } from './generation/types';
@@ -157,6 +159,40 @@ export async function generatePodcastEpisode(
             }
           }
 
+          // Log the failed attempt for tracking
+          try {
+            // Determine trigger source based on user role
+            let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
+            if (user) {
+              const isAdmin = await isUserAdmin(user.id);
+              triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
+            }
+
+            await logGenerationAttempt({
+              podcastId,
+              triggeredBy: user?.id,
+              status: 'failed_no_messages',
+              triggerSource,
+              contentStartDate: typeof messageCheckOptions === 'object'
+                ? messageCheckOptions.startDate
+                : new Date(Date.now() - messageCheckOptions * 24 * 60 * 60 * 1000),
+              contentEndDate: typeof messageCheckOptions === 'object'
+                ? messageCheckOptions.endDate
+                : new Date(),
+              failureReason: `No new messages found in ${podcastConfig.telegram_channel}`,
+              errorDetails: {
+                channel_name: podcastConfig.telegram_channel,
+                latest_message_date: messageCheck.latestMessageDate?.toISOString(),
+                error_message: 'No new messages in specified time range',
+              },
+            });
+
+            console.log(`[PODCAST_GEN] Logged failed attempt (no messages) for podcast ${podcastId}`);
+          } catch (logError) {
+            // Non-blocking: don't fail the flow if logging fails
+            console.error(`[PODCAST_GEN] Error logging failed attempt:`, logError);
+          }
+
           // Return error response (prevents episode creation and Lambda invocation)
           return {
             success: false,
@@ -205,6 +241,31 @@ export async function generatePodcastEpisode(
     // Revalidate the podcasts page to show the updated status
     revalidatePath('/admin/podcasts');
 
+    // Log the successful generation attempt
+    try {
+      // Determine trigger source
+      let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
+      if (user) {
+        const isAdmin = await isUserAdmin(user.id);
+        triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
+      }
+
+      await logGenerationAttempt({
+        podcastId,
+        episodeId: episodeResult.episodeId,
+        triggeredBy: user?.id,
+        status: 'success',
+        triggerSource,
+        contentStartDate: dateRange?.startDate,
+        contentEndDate: dateRange?.endDate,
+      });
+
+      console.log(`[PODCAST_GEN] Logged successful attempt for podcast ${podcastId}`);
+    } catch (logError) {
+      // Non-blocking: don't fail on logging errors
+      console.error(`[PODCAST_GEN] Error logging successful attempt:`, logError);
+    }
+
     return {
       success: true,
       message: 'Podcast generation has been triggered',
@@ -213,6 +274,34 @@ export async function generatePodcastEpisode(
     };
   } catch (error) {
     console.error('Error in generatePodcastEpisode:', error);
+
+    // Log the error attempt
+    try {
+      const user = await getUser();
+      let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
+      if (user) {
+        const isAdmin = await isUserAdmin(user.id);
+        triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
+      }
+
+      await logGenerationAttempt({
+        podcastId,
+        triggeredBy: user?.id,
+        status: 'failed_error',
+        triggerSource,
+        contentStartDate: dateRange?.startDate,
+        contentEndDate: dateRange?.endDate,
+        failureReason: error instanceof Error ? error.message : 'Unknown error',
+        errorDetails: {
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          error_type: error instanceof Error ? error.constructor.name : 'UnknownError',
+          stack_trace: error instanceof Error ? error.stack : undefined,
+        },
+      });
+    } catch (logError) {
+      console.error(`[PODCAST_GEN] Error logging failed attempt:`, logError);
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to trigger podcast generation'

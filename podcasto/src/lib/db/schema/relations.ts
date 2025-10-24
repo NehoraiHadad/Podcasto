@@ -3,6 +3,7 @@ import { podcasts } from './podcasts';
 import { podcastGroups } from './podcast-groups';
 import { podcastLanguages } from './podcast-languages';
 import { episodes } from './episodes';
+import { episodeGenerationAttempts } from './episode-generation-attempts';
 import { episodeProcessingLogs } from './episode-processing-logs';
 import { subscriptions } from './subscriptions';
 import { sentEpisodes } from './sent-episodes';
@@ -10,6 +11,7 @@ import { podcastConfigs } from './podcast-configs';
 import { costTrackingEvents } from './cost-tracking-events';
 import { episodeCosts } from './episode-costs';
 import { dailyCostSummary } from './daily-cost-summary';
+import { profiles } from './profiles';
 
 // Define podcast group relations
 export const podcastGroupsRelations = relations(podcastGroups, ({ many }) => ({
@@ -34,6 +36,7 @@ export const podcastsRelations = relations(podcasts, ({ one, many }) => ({
   episodes: many(episodes),
   subscriptions: many(subscriptions),
   podcastConfigs: many(podcastConfigs),
+  generationAttempts: many(episodeGenerationAttempts),
   costTrackingEvents: many(costTrackingEvents),
   episodeCosts: many(episodeCosts),
   podcastGroup: one(podcastGroups, {
@@ -54,6 +57,7 @@ export const episodesRelations = relations(episodes, ({ one, many }) => ({
   }),
   sentEpisodes: many(sentEpisodes),
   processingLogs: many(episodeProcessingLogs),
+  generationAttempts: many(episodeGenerationAttempts),
   costTrackingEvents: many(costTrackingEvents),
   episodeCost: one(episodeCosts, {
     fields: [episodes.id],
@@ -122,5 +126,21 @@ export const dailyCostSummaryRelations = relations(dailyCostSummary, ({ one }) =
   mostExpensiveEpisode: one(episodes, {
     fields: [dailyCostSummary.most_expensive_episode_id],
     references: [episodes.id]
+  })
+}));
+
+// Define episode generation attempts relations
+export const episodeGenerationAttemptsRelations = relations(episodeGenerationAttempts, ({ one }) => ({
+  podcast: one(podcasts, {
+    fields: [episodeGenerationAttempts.podcast_id],
+    references: [podcasts.id]
+  }),
+  episode: one(episodes, {
+    fields: [episodeGenerationAttempts.episode_id],
+    references: [episodes.id]
+  }),
+  triggeredBy: one(profiles, {
+    fields: [episodeGenerationAttempts.triggered_by],
+    references: [profiles.id]
   })
 })); 

@@ -4,6 +4,7 @@ import { EpisodeCheckerDetailedResult } from '@/components/admin/cron-runner-con
 import { CreditService } from '@/lib/services/credits/credit-service';
 import { getPodcastById } from '@/lib/db/api/podcasts/queries';
 import { isUserAdmin } from '@/lib/db/api/user-roles';
+import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
 
 /**
  * Represents the result of attempting to generate an episode for a single podcast.
@@ -109,6 +110,46 @@ export async function generateEpisodesForPodcasts(
           ? `Generation started for podcast: ${podcast.title}`
           : `${reason === 'no_messages' ? 'No messages' : 'Error'}: ${actionResult.error}`,
       };
+
+      // Log the generation attempt to database for tracking and reporting
+      try {
+        const attemptLogResult = await logGenerationAttempt({
+          podcastId: podcast.id,
+          episodeId: actionResult.episodeId,
+          triggeredBy: undefined, // CRON has no user
+          status: reason === 'success'
+            ? 'success'
+            : reason === 'no_messages'
+              ? 'failed_no_messages'
+              : reason === 'insufficient_credits'
+                ? 'failed_insufficient_credits'
+                : 'failed_error',
+          triggerSource: 'cron',
+          contentStartDate: startDate,
+          contentEndDate: now,
+          failureReason: !actionResult.success ? actionResult.error : undefined,
+          errorDetails: !actionResult.success ? {
+            error_message: actionResult.error,
+            channel_name: podcastRecord.title,
+            ...(reason === 'no_messages' && {
+              latest_message_date: new Date().toISOString(), // Best effort estimate
+            }),
+            ...(reason === 'insufficient_credits' && {
+              credits_required: 1, // Standard episode cost
+              credits_available: 0, // Unknown from this context
+            }),
+          } : undefined,
+        });
+
+        if (!attemptLogResult.success) {
+          console.warn(`[PODCAST_GENERATOR] Failed to log attempt for "${podcast.title}": ${attemptLogResult.error}`);
+        } else {
+          console.log(`[PODCAST_GENERATOR] Logged attempt for "${podcast.title}" (status: ${reason})`);
+        }
+      } catch (logError) {
+        // Non-blocking: log the error but continue processing
+        console.error(`[PODCAST_GENERATOR] Error logging generation attempt:`, logError);
+      }
 
       // Enhanced logging based on reason
       if (reason === 'no_messages') {
