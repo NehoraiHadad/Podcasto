@@ -27,9 +27,9 @@ export default async function EpisodesPage() {
   await checkIsAdmin({ redirectOnFailure: true });
   
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Episodes</h1>
-      
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold">Episodes</h1>
+
       <Suspense fallback={<EpisodesListSkeleton />}>
         <ServerEpisodesList />
       </Suspense>

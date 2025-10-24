@@ -26,10 +26,10 @@ export function PodcastsPagePresenter({
   const totalCount = podcasts.length;
   return (
     <MainLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold mb-4">Discover Podcasts</h1>
-          <p className="text-xl text-foreground/80 mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
+        <div className="text-center mb-8 sm:mb-10 md:mb-12">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Discover Podcasts</h1>
+          <p className="text-base sm:text-lg md:text-xl text-foreground/80 mb-6 sm:mb-8">
             Listen to daily news podcasts on topics that interest you
           </p>
           <div className="max-w-md mx-auto">
@@ -50,8 +50,8 @@ export function PodcastsPagePresenter({
         </div>
 
         {searchQuery && (
-          <div className="mb-8 text-center">
-            <p className="text-muted-foreground">
+          <div className="mb-6 sm:mb-8 text-center">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {totalCount === 0
                 ? `No results found for "${searchParamValue}"`
                 : `Showing ${totalCount} result${totalCount === 1 ? '' : 's'} for "${searchParamValue}"`}
@@ -64,7 +64,7 @@ export function PodcastsPagePresenter({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           {totalCount > 0 ? (
             podcasts.map((item) => {
               if (item.type === 'group' && item.group_data) {
@@ -85,8 +85,8 @@ export function PodcastsPagePresenter({
               return null;
             })
           ) : (
-            <div className="col-span-3 text-center py-12">
-              <p className="text-xl text-muted-foreground">No podcasts found. Please try again later.</p>
+            <div className="col-span-full text-center py-8 sm:py-12">
+              <p className="text-lg sm:text-xl text-muted-foreground">No podcasts found. Please try again later.</p>
             </div>
           )}
         </div>

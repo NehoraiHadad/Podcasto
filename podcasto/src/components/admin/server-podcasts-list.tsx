@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { PodcastActionsMenu } from './action-menus';
 
 // Define the expected podcast type for the component
@@ -104,19 +105,22 @@ async function AllPodcastsView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-2xl font-bold">All Podcasts</h2>
-        <div className="flex gap-2">
-          <Link href="/admin/podcasts/migrate">
-            <Button variant="outline">Migrate to Groups</Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href="/admin/podcasts/migrate" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
+              Migrate to Groups
+            </Button>
           </Link>
-          <Link href="/admin/podcasts/create">
-            <Button>Create New Podcast</Button>
+          <Link href="/admin/podcasts/create" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">Create New Podcast</Button>
           </Link>
         </div>
       </div>
 
-      <div className="border rounded-md">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
@@ -171,6 +175,60 @@ async function AllPodcastsView() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3">
+        {podcasts.map((podcast) => (
+          <Card key={podcast.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/admin/podcasts/${podcast.id}`}
+                    className="font-medium hover:underline block line-clamp-2"
+                  >
+                    {podcast.title}
+                  </Link>
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {podcast.is_paused && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Pause className="mr-1 h-3 w-3" />
+                        Paused
+                      </Badge>
+                    )}
+                    {podcast.podcast_group_id && (
+                      <Badge variant="outline" className="text-xs">
+                        <Globe className="mr-1 h-3 w-3" />
+                        Multilingual
+                      </Badge>
+                    )}
+                    {podcast.language_code && (
+                      <Badge variant="outline" className="text-xs">
+                        {getLanguageFlag(podcast.language_code)} {getLanguageName(podcast.language_code)}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {podcast.description && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      {podcast.description}
+                    </p>
+                  )}
+
+                  {podcast.created_at && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Created {format(new Date(podcast.created_at), 'MMM d, yyyy')}
+                    </p>
+                  )}
+                </div>
+
+                <PodcastActionsMenu podcast={podcast} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -202,14 +260,16 @@ async function PodcastGroupsView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-2xl font-bold">Podcast Groups</h2>
-        <div className="flex gap-2">
-          <Link href="/admin/podcasts/migrate">
-            <Button variant="outline">Migrate Existing</Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href="/admin/podcasts/migrate" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto">
+              Migrate Existing
+            </Button>
           </Link>
-          <Link href="/admin/podcasts/create">
-            <Button>Create New Podcast</Button>
+          <Link href="/admin/podcasts/create" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">Create New Podcast</Button>
           </Link>
         </div>
       </div>
@@ -220,9 +280,9 @@ async function PodcastGroupsView() {
 
           return (
             <div key={group.id} className="border rounded-lg p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
                     <h3 className="text-lg font-semibold">{group.base_title}</h3>
                     <Badge variant="default" className="text-xs">
                       <Globe className="mr-1 h-3 w-3" />
@@ -233,10 +293,11 @@ async function PodcastGroupsView() {
                     <p className="text-sm text-muted-foreground">{group.base_description}</p>
                   )}
                 </div>
-                <Link href={`/admin/podcasts/groups/${group.id}/edit`}>
-                  <Button variant="outline" size="sm" className="gap-1">
+                <Link href={`/admin/podcasts/groups/${group.id}/edit`} className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="gap-1 w-full sm:w-auto">
                     <Edit className="h-4 w-4" />
-                    Edit Group
+                    <span className="hidden sm:inline">Edit Group</span>
+                    <span className="sm:hidden">Edit</span>
                   </Button>
                 </Link>
               </div>
@@ -250,13 +311,13 @@ async function PodcastGroupsView() {
                       key={lang.id}
                       className="flex items-center justify-between p-2 border rounded-md bg-muted/30"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{getLanguageFlag(lang.language_code)}</span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{lang.title}</span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-lg flex-shrink-0">{getLanguageFlag(lang.language_code)}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="font-medium text-sm truncate">{lang.title}</span>
                             {lang.is_primary && (
-                              <Badge variant="secondary" className="text-xs">Primary</Badge>
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">Primary</Badge>
                             )}
                           </div>
                           <span className="text-xs text-muted-foreground">
@@ -265,7 +326,7 @@ async function PodcastGroupsView() {
                         </div>
                       </div>
                       {lang.podcast_id && (
-                        <Link href={`/admin/podcasts/${lang.podcast_id}`}>
+                        <Link href={`/admin/podcasts/${lang.podcast_id}`} className="flex-shrink-0">
                           <Button variant="ghost" size="sm">Manage</Button>
                         </Link>
                       )}
