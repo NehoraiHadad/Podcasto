@@ -4,10 +4,19 @@ import { checkIsAdmin } from './auth-actions';
 import {
   getAllSystemSettings,
   updateSystemSetting,
-  initializeSystemSettings
+  initializeSystemSettings,
 } from '@/lib/db/api/system-settings';
 import { SYSTEM_SETTING_KEYS } from '@/lib/db/schema/system-settings';
 import { getUser } from '@/lib/auth';
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/lib/utils/error-utils';
+
+/**
+ * Supported types for system setting values
+ */
+export type SystemSettingValue = string | number | boolean;
 
 /**
  * Get all system settings (admin only)
@@ -17,37 +26,36 @@ export async function getSystemSettingsAction() {
 
   if (!isAdmin) {
     return {
-      success: false,
-      error: 'Unauthorized: Admin access required'
+      success: false as const,
+      error: 'Unauthorized: Admin access required',
     };
   }
 
   try {
     const settings = await getAllSystemSettings();
-
-    return {
-      success: true,
-      data: settings
-    };
+    return createSuccessResponse({ settings });
   } catch (error) {
-    console.error('Error fetching system settings:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch settings'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to fetch settings',
+      'GET_SYSTEM_SETTINGS'
+    );
   }
 }
 
 /**
  * Update a system setting (admin only)
  */
-export async function updateSystemSettingAction(key: string, value: any) {
+export async function updateSystemSettingAction(
+  key: string,
+  value: SystemSettingValue
+) {
   const isAdmin = await checkIsAdmin({ redirectOnFailure: false });
 
   if (!isAdmin) {
     return {
-      success: false,
-      error: 'Unauthorized: Admin access required'
+      success: false as const,
+      error: 'Unauthorized: Admin access required',
     };
   }
 
@@ -55,16 +63,15 @@ export async function updateSystemSettingAction(key: string, value: any) {
     const user = await getUser();
     await updateSystemSetting(key, value, user?.id);
 
-    return {
-      success: true,
-      message: 'Setting updated successfully'
-    };
+    return createSuccessResponse({
+      message: 'Setting updated successfully',
+    });
   } catch (error) {
-    console.error('Error updating system setting:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update setting'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to update setting',
+      'UPDATE_SYSTEM_SETTING'
+    );
   }
 }
 
@@ -77,24 +84,23 @@ export async function initializeSystemSettingsAction() {
 
   if (!isAdmin) {
     return {
-      success: false,
-      error: 'Unauthorized: Admin access required'
+      success: false as const,
+      error: 'Unauthorized: Admin access required',
     };
   }
 
   try {
     await initializeSystemSettings();
 
-    return {
-      success: true,
-      message: 'System settings initialized successfully'
-    };
+    return createSuccessResponse({
+      message: 'System settings initialized successfully',
+    });
   } catch (error) {
-    console.error('Error initializing system settings:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to initialize settings'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to initialize settings',
+      'INITIALIZE_SYSTEM_SETTINGS'
+    );
   }
 }
 

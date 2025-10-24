@@ -12,19 +12,44 @@ export async function revalidatePaths(paths: string[]): Promise<void> {
 }
 
 /**
+ * Revalidate all podcast-related pages
+ * Commonly used pattern across 80+ locations
+ */
+export async function revalidatePodcastPages(): Promise<void> {
+  await revalidatePaths(['/admin/podcasts', '/podcasts']);
+}
+
+/**
  * Revalidate paths related to an episode
  */
-export async function revalidateEpisodePaths(episodeId: string, podcastId?: string | null): Promise<void> {
-  // Always revalidate the episodes list and specific episode page
-  const paths = [
-    '/admin/episodes',
-    `/admin/episodes/${episodeId}`,
-  ];
-  
-  // If we have a podcast ID, revalidate the podcast page too
+export async function revalidateEpisodePaths(
+  episodeId: string,
+  podcastId?: string | null
+): Promise<void> {
+  const paths = ['/admin/episodes', `/admin/episodes/${episodeId}`];
+
   if (podcastId) {
-    paths.push(`/admin/podcasts/${podcastId}`);
+    paths.push(`/admin/podcasts/${podcastId}`, `/podcasts/${podcastId}`);
   }
-  
+
   await revalidatePaths(paths);
+}
+
+/**
+ * Revalidate paths related to a specific podcast
+ */
+export async function revalidatePodcastPaths(podcastId: string): Promise<void> {
+  await revalidatePaths([
+    '/admin/podcasts',
+    `/admin/podcasts/${podcastId}`,
+    '/podcasts',
+    `/podcasts/${podcastId}`,
+  ]);
+}
+
+/**
+ * Revalidate admin pages
+ */
+export async function revalidateAdminPages(): Promise<void> {
+  await revalidatePaths(['/admin', '/admin/podcasts', '/admin/episodes']);
 } 

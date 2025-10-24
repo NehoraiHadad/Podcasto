@@ -16,8 +16,13 @@ import {
   SETTING_KEYS
 } from '@/lib/actions/admin/settings-actions';
 
+/**
+ * Supported types for system setting values
+ */
+type SystemSettingValue = string | number | boolean;
+
 type SettingValue = {
-  value: any;
+  value: SystemSettingValue;
   description: string | null;
   category: string | null;
   updated_at: Date | null;
@@ -42,21 +47,20 @@ export function SystemSettingsManager() {
     try {
       const result = await getSystemSettingsAction();
 
-      if (result.success && result.data) {
-        setSettings(result.data);
+      if (result.success && result.data?.settings) {
+        setSettings(result.data.settings);
       } else {
         toast({
           title: 'Error',
           description: result.error || 'Failed to load settings',
-          variant: 'destructive'
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
       toast({
         title: 'Error',
         description: 'Failed to load settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -93,13 +97,13 @@ export function SystemSettingsManager() {
     }
   };
 
-  const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({
+  const updateSetting = (key: string, value: SystemSettingValue) => {
+    setSettings((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
-        value
-      }
+        value,
+      },
     }));
     setHasChanges(true);
   };
