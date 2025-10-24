@@ -1,6 +1,33 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment
+
+  SecretsManagerName:
+    Type: String
+    Default: 'podcasto-secrets-dev'
+    Description: 'Name of the Secrets Manager secret containing API keys'
+
+  S3BucketName:
+    Type: String
+    Default: 'podcasto-podcasts'
+    Description: S3 Bucket Name for storing messages
+
+  SQSQueueUrl:
+    Type: String
+    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue'
+    Description: URL of the SQS queue for podcast processing
+
+  ApiEndpoint:
+    Type: String
+    Default: 'https://podcasto.vercel.app'
+    Description: Base URL for API endpoint
+
 Resources:
   TelegramCollector:
     Type: AWS::Serverless::Function
@@ -13,18 +40,19 @@ Resources:
       Timeout: 300
       MemorySize: 256
       Layers:
-        - arn:aws:lambda:us-east-1:638520701769:layer:podcasto-shared-layer-dev:3
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:3'
       Environment:
         Variables:
-          TELEGRAM_API_ID: !Ref TelegramApiId
-          TELEGRAM_API_HASH: !Ref TelegramApiHash
-          TELEGRAM_SESSION: !Ref TelegramSession
+          ENVIRONMENT: !Ref Environment
+          TELEGRAM_API_ID: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:TELEGRAM_API_ID}}'
+          TELEGRAM_API_HASH: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:TELEGRAM_API_HASH}}'
+          TELEGRAM_SESSION: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:TELEGRAM_SESSION}}'
           S3_BUCKET_NAME: !Ref S3BucketName
           SQS_QUEUE_URL: !Ref SQSQueueUrl
-          SUPABASE_URL: !Ref SupabaseUrl
-          SUPABASE_KEY: !Ref SupabaseKey
+          SUPABASE_URL: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_URL}}'
+          SUPABASE_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:SUPABASE_SERVICE_KEY}}'
           API_ENDPOINT: !Ref ApiEndpoint
-          INTERNAL_API_KEY: !Ref InternalApiKey
+          INTERNAL_API_KEY: !Sub '{{resolve:secretsmanager:${SecretsManagerName}:SecretString:INTERNAL_API_KEY}}'
           LOG_LEVEL: DEBUG
       Policies:
         - S3CrudPolicy:
@@ -34,52 +62,8 @@ Resources:
               Action:
                 - sqs:SendMessage
               Resource: "*"
-
-Parameters:
-  TelegramApiId:
-    Type: String
-    Description: Telegram API ID
-    NoEcho: true
-
-  TelegramApiHash:
-    Type: String
-    Description: Telegram API Hash
-    NoEcho: true
-
-  TelegramSession:
-    Type: String
-    Description: Telegram Session String
-    NoEcho: true
-
-  S3BucketName:
-    Type: String
-    Description: S3 Bucket Name for storing messages
-    Default: ""
-    
-  SQSQueueUrl:
-    Type: String
-    Description: URL of the SQS queue for podcast processing
-    Default: ""
-    
-  SupabaseUrl:
-    Type: String
-    Description: Supabase URL
-    Default: ""
-    NoEcho: true
-    
-  SupabaseKey:
-    Type: String
-    Description: Supabase API Key
-    Default: ""
-    NoEcho: true
-    
-  ApiEndpoint:
-    Type: String
-    Description: Base URL for API endpoint (e.g., https://yourapp.vercel.app)
-    Default: ""
-    
-  InternalApiKey:
-    Type: String
-    Description: Internal API key for authentication
-    Default: ""
-    NoEcho: true 
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${SecretsManagerName}*' 
