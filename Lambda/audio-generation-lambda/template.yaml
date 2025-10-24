@@ -62,7 +62,7 @@ Resources:
         SQSEvent:
           Type: SQS
           Properties:
-            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:audio-generation-queue'
             BatchSize: 1
             MaximumBatchingWindowInSeconds: 0
       Policies:
@@ -73,7 +73,7 @@ Resources:
                 - sqs:ReceiveMessage
                 - sqs:DeleteMessage
                 - sqs:GetQueueAttributes
-              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
+              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:audio-generation-queue'
             - Effect: Allow
               Action:
                 - s3:ListBucket
