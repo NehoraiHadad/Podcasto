@@ -51,6 +51,7 @@ jobs:
           sam deploy \
             --stack-name podcasto-shared-layer-${{ env.ENVIRONMENT }} \
             --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
             --parameter-overrides "Environment=${{ env.ENVIRONMENT }}" \
             --capabilities CAPABILITY_IAM \
             --resolve-s3
@@ -122,6 +123,7 @@ jobs:
           sam deploy \
             --stack-name ${{ matrix.stack_name }} \
             --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
             --capabilities CAPABILITY_IAM \
             --resolve-s3
 
