@@ -31,18 +31,18 @@ export default async function AdminPage() {
   await checkIsAdmin({ redirectOnFailure: true });
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-      
-      <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-4">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8">Admin Dashboard</h1>
+
+      <div className="grid gap-4 sm:gap-8 md:grid-cols-1 lg:grid-cols-4">
         <div className="lg:col-span-3">
           <Suspense fallback={<DashboardSkeleton />}>
             <ServerAdminDashboard />
           </Suspense>
         </div>
-        
+
         <div className="lg:col-span-1">
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <CronRunner />
           </div>
         </div>
