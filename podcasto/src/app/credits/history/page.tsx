@@ -25,8 +25,6 @@ export const metadata: Metadata = {
   description: 'View your credit transaction history',
 };
 
-export const dynamic = 'force-dynamic';
-
 interface TransactionIconProps {
   type: string;
   amount: number;
