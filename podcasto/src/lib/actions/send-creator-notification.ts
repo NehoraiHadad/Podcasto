@@ -94,7 +94,9 @@ export async function sendNoMessagesNotification({
     }
 
     const normalizedSiteUrl = getBaseUrl().replace(/\/$/, '');
-    const manualTriggerUrl = `${normalizedSiteUrl}/admin/podcasts/${podcastId}`;
+    // User-created podcasts: direct to their podcast settings page
+    // (System podcasts shouldn't reach here as they have no creator to notify)
+    const manualTriggerUrl = `${normalizedSiteUrl}/podcasts/${podcastId}/settings`;
 
     const { html, text } = generateNoMessagesEmail({
       channelName,
