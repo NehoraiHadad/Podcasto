@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save, Settings, DollarSign, Zap, Shield } from 'lucide-react';
+import { Loader2, Save, DollarSign, Zap, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +60,7 @@ export function SystemSettingsManager() {
       if (result.data?.settings) {
         setSettings(result.data.settings);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to load settings',
@@ -90,7 +90,7 @@ export function SystemSettingsManager() {
         description: 'System settings initialized successfully',
       });
       await loadSettings();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initialize settings',
@@ -129,7 +129,7 @@ export function SystemSettingsManager() {
 
       setHasChanges(false);
       router.refresh();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to save settings',
@@ -197,7 +197,7 @@ export function SystemSettingsManager() {
                 <Input
                   id={key}
                   type="number"
-                  value={setting.value}
+                  value={setting.value as number}
                   onChange={(e) => updateSetting(key, Number(e.target.value))}
                 />
               </div>
@@ -226,7 +226,7 @@ export function SystemSettingsManager() {
                 </div>
                 <Switch
                   id={key}
-                  checked={setting.value}
+                  checked={setting.value as boolean}
                   onCheckedChange={(checked) => updateSetting(key, checked)}
                 />
               </div>
@@ -254,7 +254,7 @@ export function SystemSettingsManager() {
                 <Input
                   id={key}
                   type="number"
-                  value={setting.value}
+                  value={setting.value as number}
                   onChange={(e) => updateSetting(key, Number(e.target.value))}
                 />
               </div>
