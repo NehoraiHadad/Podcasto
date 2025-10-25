@@ -40,6 +40,7 @@ export function SystemSettingsManager() {
   // Load settings
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSettings = async () => {
@@ -47,14 +48,17 @@ export function SystemSettingsManager() {
     try {
       const result = await getSystemSettingsAction();
 
-      if (result.success && result.data?.settings) {
-        setSettings(result.data.settings);
-      } else {
+      if (!result.success) {
         toast({
           title: 'Error',
-          description: result.error || 'Failed to load settings',
+          description: result.error,
           variant: 'destructive',
         });
+        return;
+      }
+
+      if (result.data?.settings) {
+        setSettings(result.data.settings);
       }
     } catch (error) {
       toast({
@@ -72,25 +76,25 @@ export function SystemSettingsManager() {
     try {
       const result = await initializeSystemSettingsAction();
 
-      if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'System settings initialized successfully'
-        });
-        await loadSettings();
-      } else {
+      if (!result.success) {
         toast({
           title: 'Error',
-          description: result.error || 'Failed to initialize settings',
-          variant: 'destructive'
+          description: result.error,
+          variant: 'destructive',
         });
+        return;
       }
+
+      toast({
+        title: 'Success',
+        description: 'System settings initialized successfully',
+      });
+      await loadSettings();
     } catch (error) {
-      console.error('Error initializing settings:', error);
       toast({
         title: 'Error',
         description: 'Failed to initialize settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -120,17 +124,16 @@ export function SystemSettingsManager() {
 
       toast({
         title: 'Success',
-        description: 'Settings saved successfully'
+        description: 'Settings saved successfully',
       });
 
       setHasChanges(false);
       router.refresh();
     } catch (error) {
-      console.error('Error saving settings:', error);
       toast({
         title: 'Error',
         description: 'Failed to save settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
