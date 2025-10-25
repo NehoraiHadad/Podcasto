@@ -4,6 +4,9 @@ import { getUser } from '@/lib/auth';
 import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
 import { PodcastSettingsForm } from '@/components/podcasts/podcast-settings-form';
 
+// Force dynamic rendering because this page uses authentication (cookies)
+export const dynamic = 'force-dynamic';
+
 interface PodcastSettingsPageProps {
   params: Promise<{ id: string }>;
 }

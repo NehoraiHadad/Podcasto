@@ -61,10 +61,14 @@ export const markWelcomeAsSeen = async (userId: string): Promise<{ success: bool
 
     return { success: true };
   } catch (error) {
-    console.error('[MARK_WELCOME_SEEN] Error:', error);
+    const { getErrorMessage } = await import('@/lib/utils/error-utils');
+    const { createLogger } = await import('@/lib/utils/logger');
+    const logger = createLogger('MARK_WELCOME_SEEN');
+
+    logger.error('Failed to mark welcome as seen', error, { userId });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to mark welcome as seen'
+      error: getErrorMessage(error, 'Failed to mark welcome as seen'),
     };
   }
 };
@@ -88,11 +92,15 @@ export const hasSeenWelcome = async (userId: string): Promise<{ success: boolean
       hasSeen: profile?.has_seen_welcome ?? false
     };
   } catch (error) {
-    console.error('[HAS_SEEN_WELCOME] Error:', error);
+    const { getErrorMessage } = await import('@/lib/utils/error-utils');
+    const { createLogger } = await import('@/lib/utils/logger');
+    const logger = createLogger('HAS_SEEN_WELCOME');
+
+    logger.error('Failed to check welcome status', error, { userId });
     return {
       success: false,
       hasSeen: false,
-      error: error instanceof Error ? error.message : 'Failed to check welcome status'
+      error: getErrorMessage(error, 'Failed to check welcome status'),
     };
   }
 }; 

@@ -2,8 +2,20 @@
 
 import { requireAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { costTrackingEvents, episodeCosts, dailyCostSummary, monthlyCostSummary } from '@/lib/db/schema';
+import {
+  costTrackingEvents,
+  episodeCosts,
+  dailyCostSummary,
+  monthlyCostSummary,
+} from '@/lib/db/schema';
 import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/lib/utils/error-utils';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('DELETE_COST_DATA');
 
 /**
  * Delete all cost tracking data from the system.
@@ -24,43 +36,33 @@ export async function deleteAllCostData(): Promise<{
   try {
     await requireAdmin();
 
-    console.log('[DELETE_COST_DATA] Starting deletion of all cost tracking data');
+    logger.info('Starting deletion of all cost tracking data');
 
     // Delete in reverse dependency order
-    const [dailyDeleted, monthlyDeleted, episodeCostsDeleted, eventsDeleted] = await Promise.all([
-      db.delete(dailyCostSummary),
-      db.delete(monthlyCostSummary),
-      db.delete(episodeCosts),
-      db.delete(costTrackingEvents)
-    ]);
+    const [dailyDeleted, monthlyDeleted, episodeCostsDeleted, eventsDeleted] =
+      await Promise.all([
+        db.delete(dailyCostSummary),
+        db.delete(monthlyCostSummary),
+        db.delete(episodeCosts),
+        db.delete(costTrackingEvents),
+      ]);
 
-    const eventsCount = eventsDeleted.length;
-    const episodeCostsCount = episodeCostsDeleted.length;
-    const dailyCount = dailyDeleted.length;
-    const monthlyCount = monthlyDeleted.length;
-
-    console.log('[DELETE_COST_DATA] Deleted:', {
-      events: eventsCount,
-      episodeCosts: episodeCostsCount,
-      dailySummaries: dailyCount,
-      monthlySummaries: monthlyCount
-    });
-
-    return {
-      success: true,
-      deletedCounts: {
-        events: eventsCount,
-        episodeCosts: episodeCostsCount,
-        dailySummaries: dailyCount,
-        monthlySummaries: monthlyCount
-      }
+    const deletedCounts = {
+      events: eventsDeleted.length,
+      episodeCosts: episodeCostsDeleted.length,
+      dailySummaries: dailyDeleted.length,
+      monthlySummaries: monthlyDeleted.length,
     };
+
+    logger.info('Deleted cost data', deletedCounts);
+
+    return createSuccessResponse({ deletedCounts });
   } catch (error) {
-    console.error('[DELETE_COST_DATA] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to delete cost data',
+      'DELETE_COST_DATA'
+    );
   }
 }
 
@@ -82,7 +84,7 @@ export async function deleteCostDataByDateRange(
   try {
     await requireAdmin();
 
-    console.log('[DELETE_COST_DATA] Deleting cost data from', startDate, 'to', endDate);
+    logger.info('Deleting cost data by date range', { startDate, endDate });
 
     // Delete events in date range
     const deletedEvents = await db
@@ -97,19 +99,18 @@ export async function deleteCostDataByDateRange(
     // Note: We don't delete episodeCosts here because they're aggregates.
     // After deleting events, user should recalculate episode costs.
 
-    return {
-      success: true,
-      deletedCounts: {
-        events: deletedEvents.length,
-        episodeCosts: 0 // Not deleted, needs recalculation
-      }
+    const deletedCounts = {
+      events: deletedEvents.length,
+      episodeCosts: 0, // Not deleted, needs recalculation
     };
+
+    return createSuccessResponse({ deletedCounts });
   } catch (error) {
-    console.error('[DELETE_COST_DATA] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to delete cost data by date range',
+      'DELETE_COST_DATA'
+    );
   }
 }
 
@@ -117,9 +118,7 @@ export async function deleteCostDataByDateRange(
  * Delete cost data for a specific episode.
  * Useful when an episode was deleted or needs cost recalculation.
  */
-export async function deleteEpisodeCostData(
-  episodeId: string
-): Promise<{
+export async function deleteEpisodeCostData(episodeId: string): Promise<{
   success: boolean;
   error?: string;
   deletedCounts?: {
@@ -130,26 +129,27 @@ export async function deleteEpisodeCostData(
   try {
     await requireAdmin();
 
-    console.log('[DELETE_COST_DATA] Deleting cost data for episode', episodeId);
+    logger.info('Deleting cost data for episode', { episodeId });
 
     const [deletedEvents, deletedEpisodeCosts] = await Promise.all([
-      db.delete(costTrackingEvents).where(eq(costTrackingEvents.episode_id, episodeId)),
-      db.delete(episodeCosts).where(eq(episodeCosts.episode_id, episodeId))
+      db
+        .delete(costTrackingEvents)
+        .where(eq(costTrackingEvents.episode_id, episodeId)),
+      db.delete(episodeCosts).where(eq(episodeCosts.episode_id, episodeId)),
     ]);
 
-    return {
-      success: true,
-      deletedCounts: {
-        events: deletedEvents.length,
-        episodeCosts: deletedEpisodeCosts.length
-      }
+    const deletedCounts = {
+      events: deletedEvents.length,
+      episodeCosts: deletedEpisodeCosts.length,
     };
+
+    return createSuccessResponse({ deletedCounts });
   } catch (error) {
-    console.error('[DELETE_COST_DATA] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to delete episode cost data',
+      'DELETE_COST_DATA'
+    );
   }
 }
 
@@ -159,9 +159,7 @@ export async function deleteEpisodeCostData(
  * - Podcast-level costs (where episode_id is NULL)
  * - All episode costs for this podcast
  */
-export async function deletePodcastCostData(
-  podcastId: string
-): Promise<{
+export async function deletePodcastCostData(podcastId: string): Promise<{
   success: boolean;
   error?: string;
   deletedCounts?: {
@@ -173,7 +171,7 @@ export async function deletePodcastCostData(
   try {
     await requireAdmin();
 
-    console.log('[DELETE_COST_DATA] Deleting cost data for podcast', podcastId);
+    logger.info('Deleting cost data for podcast', { podcastId });
 
     // Delete podcast-level events (no episode_id)
     const deletedPodcastEvents = await db
@@ -200,20 +198,19 @@ export async function deletePodcastCostData(
       .delete(episodeCosts)
       .where(eq(episodeCosts.podcast_id, podcastId));
 
-    return {
-      success: true,
-      deletedCounts: {
-        podcastLevelEvents: deletedPodcastEvents.length,
-        episodeLevelEvents: deletedEpisodeEvents.length,
-        episodeCosts: deletedEpisodeCosts.length
-      }
+    const deletedCounts = {
+      podcastLevelEvents: deletedPodcastEvents.length,
+      episodeLevelEvents: deletedEpisodeEvents.length,
+      episodeCosts: deletedEpisodeCosts.length,
     };
+
+    return createSuccessResponse({ deletedCounts });
   } catch (error) {
-    console.error('[DELETE_COST_DATA] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to delete podcast cost data',
+      'DELETE_COST_DATA'
+    );
   }
 }
 
@@ -246,36 +243,65 @@ export async function getCostDataStats(): Promise<{
       { oldest },
       { newest },
       { count: podcastLevelCount },
-      { count: episodeLevelCount }
+      { count: episodeLevelCount },
     ] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(costTrackingEvents).then(r => r[0]),
-      db.select({ count: sql<number>`count(*)` }).from(episodeCosts).then(r => r[0]),
-      db.select({ count: sql<number>`count(*)` }).from(dailyCostSummary).then(r => r[0]),
-      db.select({ count: sql<number>`count(*)` }).from(monthlyCostSummary).then(r => r[0]),
-      db.select({ oldest: sql<Date | null>`min(${costTrackingEvents.timestamp})` }).from(costTrackingEvents).then(r => r[0]),
-      db.select({ newest: sql<Date | null>`max(${costTrackingEvents.timestamp})` }).from(costTrackingEvents).then(r => r[0]),
-      db.select({ count: sql<number>`count(*)` }).from(costTrackingEvents).where(isNull(costTrackingEvents.episode_id)).then(r => r[0]),
-      db.select({ count: sql<number>`count(*)` }).from(costTrackingEvents).where(isNotNull(costTrackingEvents.episode_id)).then(r => r[0])
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(costTrackingEvents)
+        .then((r) => r[0]),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(episodeCosts)
+        .then((r) => r[0]),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(dailyCostSummary)
+        .then((r) => r[0]),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(monthlyCostSummary)
+        .then((r) => r[0]),
+      db
+        .select({
+          oldest: sql<Date | null>`min(${costTrackingEvents.timestamp})`,
+        })
+        .from(costTrackingEvents)
+        .then((r) => r[0]),
+      db
+        .select({
+          newest: sql<Date | null>`max(${costTrackingEvents.timestamp})`,
+        })
+        .from(costTrackingEvents)
+        .then((r) => r[0]),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(costTrackingEvents)
+        .where(isNull(costTrackingEvents.episode_id))
+        .then((r) => r[0]),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(costTrackingEvents)
+        .where(isNotNull(costTrackingEvents.episode_id))
+        .then((r) => r[0]),
     ]);
 
-    return {
-      success: true,
-      stats: {
-        totalEvents: Number(eventsCount),
-        totalEpisodeCosts: Number(episodeCostsCount),
-        totalDailySummaries: Number(dailyCount),
-        totalMonthlySummaries: Number(monthlyCount),
-        oldestEvent: oldest || null,
-        newestEvent: newest || null,
-        podcastLevelEvents: Number(podcastLevelCount),
-        episodeLevelEvents: Number(episodeLevelCount)
-      }
+    const stats = {
+      totalEvents: Number(eventsCount),
+      totalEpisodeCosts: Number(episodeCostsCount),
+      totalDailySummaries: Number(dailyCount),
+      totalMonthlySummaries: Number(monthlyCount),
+      oldestEvent: oldest || null,
+      newestEvent: newest || null,
+      podcastLevelEvents: Number(podcastLevelCount),
+      episodeLevelEvents: Number(episodeLevelCount),
     };
+
+    return createSuccessResponse({ stats });
   } catch (error) {
-    console.error('[DELETE_COST_DATA] Error getting stats:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to get cost data stats',
+      'DELETE_COST_DATA'
+    );
   }
 }

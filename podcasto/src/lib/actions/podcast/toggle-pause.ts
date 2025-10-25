@@ -3,8 +3,12 @@
 import { db } from '@/lib/db';
 import { podcasts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 import { ActionResponse } from './schemas';
+import { createErrorResponse } from '@/lib/utils/error-utils';
+import { createLogger } from '@/lib/utils/logger';
+import { revalidatePodcast } from '@/lib/actions/shared/revalidation';
+
+const logger = createLogger('PODCAST_PAUSE');
 
 /**
  * Toggle the pause state of a podcast
@@ -36,32 +40,37 @@ export async function togglePodcastPause(
     // Toggle pause state
     const newPausedState = !podcast.is_paused;
 
-    console.log(`[PODCAST_PAUSE] Toggling pause for podcast ${podcastId}: ${podcast.is_paused} → ${newPausedState}`);
+    logger.info('Toggling pause state', {
+      podcastId,
+      oldState: podcast.is_paused,
+      newState: newPausedState,
+    });
 
     // Update database
     await db
       .update(podcasts)
       .set({
         is_paused: newPausedState,
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(podcasts.id, podcastId));
 
-    console.log(`[PODCAST_PAUSE] Successfully ${newPausedState ? 'paused' : 'resumed'} podcast ${podcastId}`);
+    logger.info(`Successfully ${newPausedState ? 'paused' : 'resumed'} podcast`, {
+      podcastId,
+    });
 
     // Revalidate relevant pages
-    revalidatePath('/admin/podcasts');
-    revalidatePath(`/admin/podcasts/${podcastId}`);
+    revalidatePodcast(podcastId);
 
     return {
       success: true,
-      isPaused: newPausedState
+      isPaused: newPausedState,
     };
   } catch (error) {
-    console.error('[PODCAST_PAUSE] Error toggling podcast pause:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update podcast status'
-    };
+    return createErrorResponse(
+      error,
+      'Failed to update podcast status',
+      'PODCAST_PAUSE'
+    );
   }
 }

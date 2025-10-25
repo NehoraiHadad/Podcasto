@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Save, Settings, DollarSign, Zap, Shield } from 'lucide-react';
+import { Loader2, Save, DollarSign, Zap, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,13 @@ import {
   SETTING_KEYS
 } from '@/lib/actions/admin/settings-actions';
 
+/**
+ * Supported types for system setting values
+ */
+type SystemSettingValue = string | number | boolean;
+
 type SettingValue = {
-  value: any;
+  value: SystemSettingValue;
   description: string | null;
   category: string | null;
   updated_at: Date | null;
@@ -35,6 +40,7 @@ export function SystemSettingsManager() {
   // Load settings
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSettings = async () => {
@@ -42,21 +48,23 @@ export function SystemSettingsManager() {
     try {
       const result = await getSystemSettingsAction();
 
-      if (result.success && result.data) {
-        setSettings(result.data);
-      } else {
+      if (!result.success) {
         toast({
           title: 'Error',
-          description: result.error || 'Failed to load settings',
-          variant: 'destructive'
+          description: result.error,
+          variant: 'destructive',
         });
+        return;
       }
-    } catch (error) {
-      console.error('Error loading settings:', error);
+
+      if (result.data?.settings) {
+        setSettings(result.data.settings);
+      }
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to load settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -68,38 +76,38 @@ export function SystemSettingsManager() {
     try {
       const result = await initializeSystemSettingsAction();
 
-      if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'System settings initialized successfully'
-        });
-        await loadSettings();
-      } else {
+      if (!result.success) {
         toast({
           title: 'Error',
-          description: result.error || 'Failed to initialize settings',
-          variant: 'destructive'
+          description: result.error,
+          variant: 'destructive',
         });
+        return;
       }
-    } catch (error) {
-      console.error('Error initializing settings:', error);
+
+      toast({
+        title: 'Success',
+        description: 'System settings initialized successfully',
+      });
+      await loadSettings();
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to initialize settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({
+  const updateSetting = (key: string, value: SystemSettingValue) => {
+    setSettings((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
-        value
-      }
+        value,
+      },
     }));
     setHasChanges(true);
   };
@@ -116,17 +124,16 @@ export function SystemSettingsManager() {
 
       toast({
         title: 'Success',
-        description: 'Settings saved successfully'
+        description: 'Settings saved successfully',
       });
 
       setHasChanges(false);
       router.refresh();
-    } catch (error) {
-      console.error('Error saving settings:', error);
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to save settings',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
@@ -190,7 +197,7 @@ export function SystemSettingsManager() {
                 <Input
                   id={key}
                   type="number"
-                  value={setting.value}
+                  value={setting.value as number}
                   onChange={(e) => updateSetting(key, Number(e.target.value))}
                 />
               </div>
@@ -219,7 +226,7 @@ export function SystemSettingsManager() {
                 </div>
                 <Switch
                   id={key}
-                  checked={setting.value}
+                  checked={setting.value as boolean}
                   onCheckedChange={(checked) => updateSetting(key, checked)}
                 />
               </div>
@@ -247,7 +254,7 @@ export function SystemSettingsManager() {
                 <Input
                   id={key}
                   type="number"
-                  value={setting.value}
+                  value={setting.value as number}
                   onChange={(e) => updateSetting(key, Number(e.target.value))}
                 />
               </div>

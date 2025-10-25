@@ -17,12 +17,13 @@ import {
 import { ArrowLeft, TrendingDown, TrendingUp, Gift, RefreshCw, CreditCard } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+// Force dynamic rendering because this page uses authentication
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Transaction History | Podcasto',
   description: 'View your credit transaction history',
 };
-
-export const dynamic = 'force-dynamic';
 
 interface TransactionIconProps {
   type: string;
