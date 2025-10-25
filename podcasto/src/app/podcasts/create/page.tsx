@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   description: 'Create a new podcast from Telegram content',
 };
 
+// Force dynamic rendering because this page uses authentication (cookies)
+export const dynamic = 'force-dynamic';
+
 export default async function CreatePodcastPage() {
   // Get authenticated user
   const user = await getUser();

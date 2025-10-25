@@ -6,6 +6,9 @@ import { db, subscriptions, podcasts, profiles } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { Separator } from '@/components/ui/separator';
 
+// Force dynamic rendering because this page uses authentication (cookies)
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Email Notifications - Podcasto',
   description: 'Manage your email notification preferences',
