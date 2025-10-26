@@ -15,6 +15,7 @@ import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-
 import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 import { ProcessingTimeline } from '@/components/admin/processing';
+import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
 
 export const metadata = {
   title: 'Episode Details | Admin Dashboard | Podcasto',
@@ -56,7 +57,20 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
   if (episode.podcast_id) {
     podcast = await podcastsApi.getPodcastById(episode.podcast_id);
   }
-  
+
+  // Get signed audio URL for CORS-free playback
+  let signedAudioUrl = episode.audio_url;
+  let audioUrlError: string | undefined;
+
+  if (episode.audio_url) {
+    const audioResult = await getEpisodeAudioUrl(episode.id);
+    if (audioResult.url) {
+      signedAudioUrl = audioResult.url;
+    } else if (audioResult.error) {
+      audioUrlError = audioResult.error;
+    }
+  }
+
   // Format duration from seconds to mm:ss
   const formatDuration = (durationInSeconds: number | null): string => {
     if (!durationInSeconds) return 'Unknown';
@@ -238,11 +252,12 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             <CardTitle>Audio Player</CardTitle>
           </CardHeader>
           <CardContent>
-            {episode.audio_url ? (
+            {signedAudioUrl ? (
               <AudioPlayerClient
                 episodeId={episode.id}
-                audioUrl={episode.audio_url}
+                audioUrl={signedAudioUrl}
                 _title={episode.title}
+                audioUrlError={audioUrlError}
               />
             ) : (
               <div className="text-sm text-muted-foreground">No audio available</div>
