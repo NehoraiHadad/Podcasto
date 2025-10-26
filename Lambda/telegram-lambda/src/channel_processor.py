@@ -188,6 +188,10 @@ class ChannelProcessor:
             # Log message details for debugging
             logger.info(f"Processing message {message.id}: has_text={bool(message.text)}, text_length={len(message.text) if message.text else 0}")
 
+            # Debug: log full text of message 820
+            if message.id == 820:
+                logger.info(f"DEBUG: Full text of message 820:\n{message.text}")
+
             if not message.text:
                 logger.info(f"Skipping message {message.id}: no text")
                 return None
