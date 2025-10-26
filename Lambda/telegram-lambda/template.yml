@@ -20,8 +20,8 @@ Parameters:
 
   SQSQueueUrl:
     Type: String
-    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/script-generation-queue'
-    Description: URL of the SQS queue for script generation (next stage after Telegram collection)
+    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue'
+    Description: URL of the SQS queue for podcast processing (next stage after Telegram collection)
 
   ApiEndpoint:
     Type: String
