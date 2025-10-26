@@ -76,7 +76,7 @@ export function RegenerateAudioDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function RegenerateAudioDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1">
           <RadioGroup value={selectedMode} onValueChange={(value) => setSelectedMode(value as RegenerateMode)}>
             {modes.map((mode) => (
               <div
