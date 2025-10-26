@@ -5,7 +5,7 @@
  */
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { format, parseISO, startOfDay as startOfDayFns, endOfDay as endOfDayFns } from 'date-fns';
+import { parseISO, startOfDay as startOfDayFns, endOfDay as endOfDayFns } from 'date-fns';
 
 /**
  * Get current date/time in UTC
