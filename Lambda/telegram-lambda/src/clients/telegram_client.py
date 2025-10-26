@@ -129,8 +129,10 @@ class TelegramClientWrapper:
                         # Check if message is within our date range
                         if message.date > until_date:
                             # We've passed the end date, stop iteration
+                            logger.info(f"Message {message.id} date {message.date.isoformat()} exceeds end date {until_date.isoformat()}, stopping")
                             break
 
+                        logger.info(f"Collected message {message.id}, date={message.date.isoformat()}, has_text={bool(message.text)}, text_preview={message.text[:50] if message.text else 'None'}...")
                         messages.append(message)
 
                         # Apply limit to prevent excessive memory usage
