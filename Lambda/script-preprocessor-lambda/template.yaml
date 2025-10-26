@@ -53,7 +53,7 @@ Resources:
         SQSEvent:
           Type: SQS
           Properties:
-            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
             BatchSize: 1
             MaximumBatchingWindowInSeconds: 0
       Policies:
@@ -64,7 +64,7 @@ Resources:
                 - sqs:ReceiveMessage
                 - sqs:DeleteMessage
                 - sqs:GetQueueAttributes
-              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
+              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
             - Effect: Allow
               Action:
                 - sqs:SendMessage
