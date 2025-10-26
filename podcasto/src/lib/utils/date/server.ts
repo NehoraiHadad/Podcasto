@@ -5,7 +5,14 @@
  */
 
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { parseISO, startOfDay as startOfDayFns, endOfDay as endOfDayFns } from 'date-fns';
+import {
+  parseISO,
+  startOfDay as startOfDayFns,
+  endOfDay as endOfDayFns,
+  subDays,
+  subHours,
+  addMilliseconds as addMs
+} from 'date-fns';
 
 /**
  * Get current date/time in UTC
@@ -157,9 +164,7 @@ export function daysBetween(start: Date | string, end: Date | string): number {
  * ALWAYS use this instead of manual date arithmetic
  */
 export function subtractDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() - days);
-  return result;
+  return subDays(date, days);
 }
 
 /**
@@ -167,9 +172,7 @@ export function subtractDays(date: Date, days: number): Date {
  * ALWAYS use this instead of manual date arithmetic
  */
 export function subtractHours(date: Date, hours: number): Date {
-  const result = new Date(date);
-  result.setHours(result.getHours() - hours);
-  return result;
+  return subHours(date, hours);
 }
 
 /**
@@ -177,5 +180,5 @@ export function subtractHours(date: Date, hours: number): Date {
  * ALWAYS use this instead of manual date arithmetic
  */
 export function addMilliseconds(date: Date, ms: number): Date {
-  return new Date(date.getTime() + ms);
+  return addMs(date, ms);
 }
