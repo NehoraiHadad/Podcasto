@@ -45,7 +45,10 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
   });
 
   const canRegenerate =
-    episode.status?.toLowerCase() === 'failed' || episode.status?.toLowerCase() === 'published';
+    episode.status?.toLowerCase() === 'failed' ||
+    episode.status?.toLowerCase() === 'published' ||
+    episode.status?.toLowerCase() === 'pending' ||
+    episode.status?.toLowerCase() === 'processing';
   const canSendEmails = episode.status?.toLowerCase() === 'published';
 
   const handleDeleteWithValidation = async () => {
