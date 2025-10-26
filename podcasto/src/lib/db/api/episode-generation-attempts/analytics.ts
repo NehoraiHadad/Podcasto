@@ -92,6 +92,7 @@ export async function getProblematicPodcasts(
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
 
     console.log('[DB] Fetching problematic podcasts since:', cutoffDate.toISOString());
+    console.log('[DB] Parameters:', { daysBack, minAttempts, failureThreshold });
 
     // This is a complex query - we'll use raw SQL for clarity and performance
     const results = await db.execute(sql`
@@ -120,15 +121,21 @@ export async function getProblematicPodcasts(
       LIMIT 20
     `);
 
+    console.log('[DB] Query executed, result type:', typeof results, Array.isArray(results));
+
     // Handle different result formats from db.execute
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = Array.isArray(results) ? results : (results as any).rows || [];
+    console.log('[DB] Found problematic podcasts:', rows.length);
+
     return { success: true, data: rows as ProblematicPodcastRecord[] };
   } catch (error) {
     console.error('[DB] Error fetching problematic podcasts:', error);
+    console.error('[DB] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('[DB] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return {
       success: false,
-      error: 'Failed to fetch problematic podcasts',
+      error: `Failed to fetch problematic podcasts: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
