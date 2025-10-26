@@ -42,32 +42,6 @@ class MessageProcessor:
         if filtered_domains:
             for domain in filtered_domains:
                 self.blocked_domains.add(domain)
-        
-        self.promo_markers = [
-            'תוכן פרסומי',
-            'תוכן שיווקי',
-            'פרסומת',
-            'מודעה',
-            'sponsored',
-            'ad',
-            'advertisement',
-            'קישור לרכישה',
-            'לרכישה:',
-            'לרכישה כאן',
-            'קנו עכשיו',
-            'buy now',
-            'shop now',
-            'affiliate',
-            '°'  # Added degree symbol as promotional marker
-        ]
-        
-        self.promo_patterns = [
-            r'₪\s*\d+',  # Price in shekels
-            r'\$\s*\d+',  # Price in dollars
-            r'\d+\s*₪',   # Price in shekels (reverse order)
-            r'\d+\s*\$',  # Price in dollars (reverse order)
-            r'(?:^|\s)(?:קופון|קוד הנחה|הנחה|מבצע):?\s*[A-Za-z0-9]+',  # Discount codes (require whitespace or start of line before)
-        ]
     
     def clean_text(self, text: str) -> str:
         """
@@ -180,39 +154,6 @@ class MessageProcessor:
                 
         return filtered_urls
     
-    def is_promotional(self, text: str) -> bool:
-        """
-        Check if the message is promotional.
-
-        Args:
-            text: The text to check
-
-        Returns:
-            True if the message is promotional, False otherwise
-        """
-        if not text:
-            return False
-
-        # Check for promotional markers
-        for marker in self.promo_markers:
-            if marker in text:
-                # Log which marker was found for debugging
-                from src.utils.logging import get_logger
-                logger = get_logger(__name__)
-                logger.info(f"Found promotional marker '{marker}' in text (first 200 chars): {text[:200]}")
-                return True
-
-        # Check for promotional patterns
-        for pattern in self.promo_patterns:
-            if re.search(pattern, text):
-                # Log which pattern was found for debugging
-                from src.utils.logging import get_logger
-                logger = get_logger(__name__)
-                logger.info(f"Found promotional pattern '{pattern}' in text (first 200 chars): {text[:200]}")
-                return True
-
-        return False
-        
     def should_include(self, text: str) -> bool:
         """
         Check if the message should be included in the results.

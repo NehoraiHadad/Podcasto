@@ -185,29 +185,14 @@ class ChannelProcessor:
     async def _process_single_message(self, message: Any) -> Optional[Dict[str, Any]]:
         """Process a single message and return its content if relevant."""
         try:
-            # Log message details for debugging
-            logger.info(f"Processing message {message.id}: has_text={bool(message.text)}, text_length={len(message.text) if message.text else 0}")
-
-            # Debug: log full text of message 820
-            if message.id == 820:
-                logger.info(f"DEBUG: Full text of message 820:\n{message.text}")
-
             if not message.text:
-                logger.info(f"Skipping message {message.id}: no text")
                 return None
 
-            # Check if message is promotional - do this first as it's fastest
-            if self.message_processor.is_promotional(message.text):
-                logger.info(f"Skipping message {message.id}: promotional content")
-                return None
-            
             # Clean the text
             cleaned_text = self.message_processor.clean_text(message.text)
-            logger.info(f"Message {message.id}: cleaned_text_length={len(cleaned_text)}, word_count={len(cleaned_text.split())}")
 
             # Check if message should be included
             if not self.message_processor.should_include(cleaned_text):
-                logger.info(f"Skipping message {message.id}: failed should_include check")
                 return None
             
             # Extract URLs from the original text
