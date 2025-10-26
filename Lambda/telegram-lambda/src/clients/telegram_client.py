@@ -112,10 +112,14 @@ class TelegramClientWrapper:
                 until_date = end_date
                 logger.info(f"Collecting messages from {channel_username} from {since_date.isoformat()} to {until_date.isoformat()}")
             else:
-                # Use days_back parameter (backward compatible)
-                since_date = datetime.now(timezone.utc) - timedelta(days=days_back)
-                until_date = datetime.now(timezone.utc)
-                logger.info(f"Collecting messages from {channel_username} since {since_date.isoformat()}")
+                # Use days_back parameter - get messages from start of day N days ago until now
+                # This ensures we get full days, not just 24-hour windows
+                # Example: days_back=1 means from 00:00 yesterday until now
+                now = datetime.now(timezone.utc)
+                # Calculate start of day N days ago
+                since_date = (now - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
+                until_date = now
+                logger.info(f"Collecting messages from {channel_username} since {since_date.isoformat()} (start of day {days_back} days ago)")
 
             # Collect messages
             messages = []
