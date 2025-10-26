@@ -66,7 +66,7 @@ class MessageProcessor:
             r'\$\s*\d+',  # Price in dollars
             r'\d+\s*₪',   # Price in shekels (reverse order)
             r'\d+\s*\$',  # Price in dollars (reverse order)
-            r'(?:קופון|קוד הנחה|הנחה|מבצע):?\s*[A-Za-z0-9]+',  # Discount codes
+            r'\b(?:קופון|קוד הנחה|הנחה|מבצע):?\s*[A-Za-z0-9]+',  # Discount codes (with word boundary)
         ]
     
     def clean_text(self, text: str) -> str:
