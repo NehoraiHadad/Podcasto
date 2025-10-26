@@ -45,18 +45,18 @@ class AudioGenerationHandler:
     def process_event(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         """Process SQS event containing episode generation requests"""
         logger.info(f"[AUDIO_GEN] Lambda invoked with event: {json.dumps(event, default=str)}")
-        
+
         results = []
         records = event.get('Records', [])
-        
+
         for record in records:
             try:
                 message_body = record.get('body', '{}')
                 message = json.loads(message_body)
                 request_id = record.get('messageId', 'unknown')
-                
+
                 logger.info(f"[AUDIO_GEN] Processing message {request_id}: {message}")
-                
+
                 if not self.should_process_for_audio(message):
                     logger.info(f"[AUDIO_GEN] Message {request_id} not relevant for audio generation, skipping")
                     results.append({
@@ -65,8 +65,8 @@ class AudioGenerationHandler:
                         'reason': 'Not an audio generation request'
                     })
                     continue
-                
-                result = self.process_audio_generation_request(message, request_id)
+
+                result = self.process_audio_generation_request(message, request_id, context)
                 result['message_id'] = request_id
                 results.append(result)
                 
@@ -116,14 +116,25 @@ class AudioGenerationHandler:
             logger.error(f"[AUDIO_GEN] Error checking episode status: {str(e)}")
             return False
 
-    def process_audio_generation_request(self, message: Dict[str, Any], request_id: str) -> Dict[str, Any]:
-        """Process individual audio generation request"""
+    def process_audio_generation_request(self, message: Dict[str, Any], request_id: str, context: Any) -> Dict[str, Any]:
+        """Process individual audio generation request with timeout detection"""
         episode_id = None
 
         try:
             episode_id = message.get('episode_id')
             podcast_id = message.get('podcast_id')
             podcast_config_id = message.get('podcast_config_id')
+
+            # TIMEOUT DETECTION: Check remaining time at start
+            remaining_time_ms = context.get_remaining_time_in_millis()
+            MIN_TIME_REQUIRED_MS = 120000  # 2 minutes minimum to start processing
+
+            logger.info(f"[AUDIO_GEN] [{request_id}] Remaining time: {remaining_time_ms}ms (required: {MIN_TIME_REQUIRED_MS}ms)")
+
+            if remaining_time_ms < MIN_TIME_REQUIRED_MS:
+                error_msg = f"Insufficient time remaining to process episode ({remaining_time_ms}ms < {MIN_TIME_REQUIRED_MS}ms required). Marking as failed to prevent timeout."
+                logger.error(f"[AUDIO_GEN] [{request_id}] {error_msg}")
+                raise TimeoutError(error_msg)
 
             logger.info(f"[AUDIO_GEN] [{request_id}] Processing audio generation for episode {episode_id}")
 
@@ -165,7 +176,18 @@ class AudioGenerationHandler:
             processed_script, niqqud_script = self._process_hebrew_script(
                 script, dynamic_config.get('language', 'en'), request_id
             )
-            
+
+            # TIMEOUT DETECTION: Check remaining time before expensive audio generation
+            remaining_time_ms = context.get_remaining_time_in_millis()
+            MIN_TIME_FOR_AUDIO_MS = 60000  # 1 minute minimum for audio generation
+
+            logger.info(f"[AUDIO_GEN] [{request_id}] Before audio generation - remaining time: {remaining_time_ms}ms (required: {MIN_TIME_FOR_AUDIO_MS}ms)")
+
+            if remaining_time_ms < MIN_TIME_FOR_AUDIO_MS:
+                error_msg = f"Insufficient time for audio generation ({remaining_time_ms}ms < {MIN_TIME_FOR_AUDIO_MS}ms required). Marking as failed to prevent timeout."
+                logger.error(f"[AUDIO_GEN] [{request_id}] {error_msg}")
+                raise TimeoutError(error_msg)
+
             # Generate audio using processed script
             # If we got a niqqud script, it means the text was pre-processed
             is_pre_processed = niqqud_script is not None

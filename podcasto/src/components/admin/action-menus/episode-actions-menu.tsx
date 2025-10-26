@@ -17,6 +17,7 @@ import { useActionMenu } from './hooks/use-action-menu';
 import { ActionMenuWrapper } from './shared/action-menu-wrapper';
 import { ActionDropdownItem } from './shared/action-dropdown-item';
 import { DeleteConfirmationDialog } from './shared/delete-confirmation-dialog';
+import { RegenerateAudioDialog } from './shared/regenerate-audio-dialog';
 import { EpisodeItem, ActionMenuItem } from './types';
 
 interface EpisodeActionsMenuProps {
@@ -26,6 +27,7 @@ interface EpisodeActionsMenuProps {
 export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
   const router = useRouter();
   const [confirmS3Delete, setConfirmS3Delete] = useState(false);
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
 
   const {
     menuOpen,
@@ -61,6 +63,10 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
     }
   };
 
+  const handleRegenerateConfirm = async (mode: 'full' | 'script+audio' | 'audio-only') => {
+    await handleStatusChange?.('regenerate', mode);
+  };
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Play Episode',
@@ -82,7 +88,10 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
     {
       label: 'Regenerate Audio',
       icon: <RefreshCw className="h-4 w-4" />,
-      onClick: () => handleStatusChange?.('regenerate'),
+      onClick: () => {
+        setMenuOpen(false);
+        setRegenerateDialogOpen(true);
+      },
       disabled: isUpdating || !canRegenerate,
       show: canRegenerate,
     },
@@ -169,6 +178,13 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
             </div>
           </>
         }
+      />
+
+      <RegenerateAudioDialog
+        open={regenerateDialogOpen}
+        onOpenChange={setRegenerateDialogOpen}
+        onConfirm={handleRegenerateConfirm}
+        episodeTitle={episode.title || 'Unknown Episode'}
       />
     </>
   );

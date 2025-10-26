@@ -87,15 +87,19 @@ export function useActionMenu<T extends PodcastItem | EpisodeItem>({
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string, mode?: 'full' | 'script+audio' | 'audio-only') => {
     if (itemType !== 'episode') return;
 
     try {
       setIsUpdating(true);
 
       if (newStatus === 'regenerate') {
-        await regenerateEpisodeAudio(item.id);
-        toast.success('Audio regeneration started');
+        const result = await regenerateEpisodeAudio(item.id, mode || 'audio-only');
+        if (result.success) {
+          toast.success('Audio regeneration started');
+        } else {
+          toast.error(`Failed to start regeneration: ${result.error}`);
+        }
       } else if (newStatus === 'send-emails') {
         const result = await resendEpisodeEmails(item.id);
         if (result.success) {

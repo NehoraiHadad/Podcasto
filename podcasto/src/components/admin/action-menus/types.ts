@@ -35,7 +35,7 @@ export interface UseActionMenuReturn {
   isUpdating: boolean;
   handleDelete: () => Promise<void>;
   handleToggleStatus?: () => Promise<void>;
-  handleStatusChange?: (newStatus: string) => Promise<void>;
+  handleStatusChange?: (newStatus: string, mode?: 'full' | 'script+audio' | 'audio-only') => Promise<void>;
   closeMenu: () => void;
   openDeleteDialog: () => void;
 }
