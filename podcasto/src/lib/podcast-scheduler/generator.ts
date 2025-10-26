@@ -53,7 +53,10 @@ export async function generateEpisodesForPodcasts(
         continue;
       }
 
-      // Check if podcast has an owner (user-created) and verify credits
+      // Check if podcast has an owner (user-created) and deduct credits BEFORE generation
+      let deductionTransactionId: string | undefined;
+      let creditsDeducted = false;
+
       if (podcastRecord.created_by) {
         // Check if the creator is an admin - admins never pay credits
         const isAdmin = await isUserAdmin(podcastRecord.created_by);
@@ -61,7 +64,7 @@ export async function generateEpisodesForPodcasts(
         if (isAdmin) {
           console.log(`[PODCAST_GENERATOR] Admin user (${podcastRecord.created_by}) - skipping credit check for podcast "${podcast.title}"`);
         } else {
-          // Non-admin users: check and validate credits
+          // Non-admin users: check and deduct credits BEFORE generation
           console.log(`[PODCAST_GENERATOR] Checking credits for user ${podcastRecord.created_by}`);
 
           const creditCheck = await creditService.checkCreditsForEpisode(podcastRecord.created_by);
@@ -74,6 +77,25 @@ export async function generateEpisodesForPodcasts(
           }
 
           console.log(`[PODCAST_GENERATOR] Credits verified for user ${podcastRecord.created_by}: ${creditCheck.available} available`);
+
+          // DEDUCT CREDITS NOW (before episode generation)
+          console.log(`[PODCAST_GENERATOR] Deducting credits for user ${podcastRecord.created_by} BEFORE generation`);
+          const deductionResult = await creditService.deductCreditsForEpisode(
+            podcastRecord.created_by,
+            'pending-episode', // Temporary ID
+            podcast.id
+          );
+
+          if (!deductionResult.success) {
+            generationResult.message = `Failed to deduct credits for "${podcast.title}": ${deductionResult.error}`;
+            console.error(`[PODCAST_GENERATOR] ${generationResult.message}`);
+            results.push(generationResult);
+            continue;
+          }
+
+          deductionTransactionId = deductionResult.transactionId;
+          creditsDeducted = true;
+          console.log(`[PODCAST_GENERATOR] Credits deducted successfully, balance: ${deductionResult.newBalance}, transaction: ${deductionTransactionId}`);
         }
       } else {
         console.log(`[PODCAST_GENERATOR] System podcast (no owner) - no credit check required`);
@@ -91,6 +113,23 @@ export async function generateEpisodesForPodcasts(
 
       // Call the existing server action to generate the episode with date range
       const actionResult = await generatePodcastEpisode(podcast.id, dateRange);
+
+      // If generation failed and credits were deducted, REFUND them
+      if (!actionResult.success && creditsDeducted && podcastRecord.created_by) {
+        console.log(`[PODCAST_GENERATOR] Generation failed after credit deduction, refunding credits for user ${podcastRecord.created_by}`);
+        const refundResult = await creditService.refundCreditsForEpisode(
+          podcastRecord.created_by,
+          'failed-episode',
+          podcast.id,
+          'Episode generation failed'
+        );
+
+        if (!refundResult.success) {
+          console.error(`[PODCAST_GENERATOR] CRITICAL: Failed to refund credits after generation failure:`, refundResult.error);
+        } else {
+          console.log(`[PODCAST_GENERATOR] Credits refunded successfully, balance: ${refundResult.newBalance}`);
+        }
+      }
 
       // Determine the reason for success/failure
       let reason: 'success' | 'no_messages' | 'insufficient_credits' | 'error' = 'error';
@@ -161,27 +200,19 @@ export async function generateEpisodesForPodcasts(
         console.error(`[PODCAST_GENERATOR] Generation failed for "${podcast.title}":`, actionResult.error);
       }
 
-      // Deduct credits if episode was successfully created for a user podcast (non-admin only)
+      // Log credit status in generation result message
       if (actionResult.success && actionResult.episodeId && podcastRecord.created_by) {
         const isAdmin = await isUserAdmin(podcastRecord.created_by);
 
         if (!isAdmin) {
-          try {
-            await creditService.deductCreditsForEpisode(
-              podcastRecord.created_by,
-              actionResult.episodeId,
-              podcast.id
-            );
-            console.log(`[PODCAST_GENERATOR] Credits deducted for user ${podcastRecord.created_by}`);
-            generationResult.message += ' | Credits deducted';
-          } catch (creditError) {
-            console.error(`[PODCAST_GENERATOR] Error deducting credits:`, creditError);
-            generationResult.message += ' | Warning: Credit deduction failed';
-          }
+          console.log(`[PODCAST_GENERATOR] Credits were charged for user ${podcastRecord.created_by}`);
+          generationResult.message += ' | Credits charged';
         } else {
-          console.log(`[PODCAST_GENERATOR] Admin user - skipping credit deduction`);
+          console.log(`[PODCAST_GENERATOR] Admin user - no credits charged`);
           generationResult.message += ' | Admin - no credits charged';
         }
+      } else if (!actionResult.success && creditsDeducted) {
+        generationResult.message += ' | Credits refunded';
       }
 
       // If the episode was created successfully and we have an ID,

@@ -12,6 +12,8 @@ import {
 } from './constants';
 import { createPostProcessingService } from '@/lib/services/post-processing'; // Needed for type
 import { sendNewEpisodeNotification } from '@/lib/services/email';
+import { creditService } from '@/lib/services/credits';
+import { isUserAdmin } from '@/lib/db/api/user-roles';
 
 // Define the type using InferSelectModel
 type Episode = InferSelectModel<typeof episodes>;
@@ -47,18 +49,61 @@ export async function processSingleEpisode(
   const baseLogPrefix = `[EPISODE_PROCESSOR:${episode.id}]`;
 
   try {
-    // --- Check PENDING status --- 
+    // --- Check PENDING status ---
     if (episode.status === PENDING_STATUS) {
       // 1. Check for timeout
       if (episode.created_at && new Date(episode.created_at) < timeoutThreshold) {
         console.log(`${baseLogPrefix} Pending timeout threshold reached.`);
         await db.update(episodes)
-          .set({ 
+          .set({
             status: FAILED_STATUS,
             description: 'Episode generation timed out'
           })
           .where(eq(episodes.id, episode.id));
-        console.log(`${baseLogPrefix} Marked as FAILED.`);
+        console.log(`${baseLogPrefix} Marked as FAILED due to timeout.`);
+
+        // Refund credits if applicable
+        if (episode.created_by && episode.podcast_id) {
+          // Check if user is admin (admins never pay credits, so no refund needed)
+          const isAdmin = await isUserAdmin(episode.created_by);
+
+          if (isAdmin) {
+            console.log(`${baseLogPrefix} Episode belongs to admin user - no refund needed`);
+          } else {
+            // Check if credits were deducted (look for credit_transaction_id in metadata)
+            let metadata: Record<string, unknown> = {};
+            if (episode.metadata) {
+              try {
+                metadata = typeof episode.metadata === 'string'
+                  ? JSON.parse(episode.metadata)
+                  : episode.metadata;
+              } catch (parseError) {
+                console.warn(`${baseLogPrefix} Could not parse episode metadata:`, parseError);
+              }
+            }
+
+            // If there's a credit transaction ID, credits were deducted - refund them
+            if (metadata.credit_transaction_id) {
+              console.log(`${baseLogPrefix} Refunding credits for timed out episode (user: ${episode.created_by})`);
+
+              const refundResult = await creditService.refundCreditsForEpisode(
+                episode.created_by,
+                episode.id,
+                episode.podcast_id,
+                'Episode generation timed out'
+              );
+
+              if (refundResult.success) {
+                console.log(`${baseLogPrefix} Successfully refunded credits, new balance: ${refundResult.newBalance}`);
+              } else {
+                console.error(`${baseLogPrefix} CRITICAL: Failed to refund credits:`, refundResult.error);
+              }
+            } else {
+              console.log(`${baseLogPrefix} Episode has no credit transaction - no refund needed`);
+            }
+          }
+        }
+
         return { status: 'timed_out', episodeId: episode.id };
       }
       

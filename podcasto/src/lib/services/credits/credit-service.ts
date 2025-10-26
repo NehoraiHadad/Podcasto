@@ -3,6 +3,7 @@ import {
   createUserCredits,
   addCreditsToUser,
   deductCreditsFromUser,
+  refundCreditsToUser,
   hasEnoughCredits,
   getOrCreateUserCredits,
   createCreditTransaction,
@@ -205,6 +206,55 @@ export class CreditService {
    */
   calculateEpisodeCost(): number {
     return PRICING.EPISODE_GENERATION_COST;
+  }
+
+  /**
+   * Refund credits for a failed episode generation
+   * Creates a refund transaction record and updates user balance
+   * Used for rollback scenarios when episode creation fails after credit deduction
+   */
+  async refundCreditsForEpisode(
+    userId: string,
+    episodeId: string,
+    podcastId: string,
+    reason: string
+  ): Promise<CreditAdditionResult> {
+    try {
+      const cost = PRICING.EPISODE_GENERATION_COST;
+
+      // Refund credits
+      const updated = await refundCreditsToUser(userId, cost.toString());
+
+      // Create refund transaction record
+      const transaction = await createCreditTransaction({
+        user_id: userId,
+        amount: cost.toString(),
+        transaction_type: 'refund',
+        balance_after: updated.available_credits,
+        episode_id: episodeId,
+        podcast_id: podcastId,
+        description: `Refund: ${reason}`,
+        metadata: {
+          episode_id: episodeId,
+          podcast_id: podcastId,
+          cost,
+          refund_reason: reason
+        }
+      });
+
+      return {
+        success: true,
+        newBalance: parseFloat(updated.available_credits),
+        transactionId: transaction.id
+      };
+    } catch (error) {
+      return {
+        success: false,
+        newBalance: 0,
+        transactionId: '',
+        error: error instanceof Error ? error.message : 'Failed to refund credits'
+      };
+    }
   }
 }
 

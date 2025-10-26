@@ -149,3 +149,25 @@ export async function getOrCreateUserCredits(
     free_credits: initialFreeCredits
   });
 }
+
+/**
+ * Refund credits to user account
+ * This reverses a previous credit deduction by updating used_credits and available_credits
+ * Used for rollback scenarios when episode generation fails after credit deduction
+ */
+export async function refundCreditsToUser(
+  userId: string,
+  amount: string
+): Promise<UserCreditsRecord> {
+  const [updated] = await db
+    .update(userCredits)
+    .set({
+      used_credits: sql`${userCredits.used_credits} - ${amount}`,
+      available_credits: sql`${userCredits.available_credits} + ${amount}`,
+      updated_at: new Date()
+    })
+    .where(eq(userCredits.user_id, userId))
+    .returning();
+
+  return updated;
+}
