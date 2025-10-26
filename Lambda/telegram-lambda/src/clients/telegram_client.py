@@ -119,18 +119,24 @@ class TelegramClientWrapper:
 
             # Collect messages
             messages = []
-            
+
             # Use retry logic for the message collection
             for attempt in range(self.max_retries):
                 try:
-                    async for message in self.client.iter_messages(channel, offset_date=since_date, reverse=True, limit=limit):
-                        # If using custom date range, filter messages by end_date
-                        if start_date and end_date:
-                            if message.date > until_date:
-                                continue  # Skip messages after end_date
-                            if message.date < since_date:
-                                break  # Stop iteration if we've passed the start_date
+                    # Use offset_date with reverse=True to get messages FROM since_date onwards
+                    # With reverse=True, offset_date is exclusive and starts from that point forward
+                    async for message in self.client.iter_messages(channel, offset_date=since_date, reverse=True):
+                        # Check if message is within our date range
+                        if message.date > until_date:
+                            # We've passed the end date, stop iteration
+                            break
+
                         messages.append(message)
+
+                        # Apply limit to prevent excessive memory usage
+                        if len(messages) >= limit:
+                            logger.warning(f"Reached limit of {limit} messages, stopping iteration")
+                            break
 
                     logger.info(f"Collected {len(messages)} messages from {channel_username}")
                     return messages
