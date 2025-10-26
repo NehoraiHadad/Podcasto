@@ -90,8 +90,9 @@ export async function getProblematicPodcasts(
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    const cutoffDateString = cutoffDate.toISOString();
 
-    console.log('[DB] Fetching problematic podcasts since:', cutoffDate.toISOString());
+    console.log('[DB] Fetching problematic podcasts since:', cutoffDateString);
     console.log('[DB] Parameters:', { daysBack, minAttempts, failureThreshold });
 
     // This is a complex query - we'll use raw SQL for clarity and performance
@@ -103,7 +104,7 @@ export async function getProblematicPodcasts(
           SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END) as failed_attempts,
           SUM(CASE WHEN status != 'success' THEN 1 ELSE 0 END)::float / COUNT(*) as failure_rate
         FROM episode_generation_attempts
-        WHERE attempted_at >= ${cutoffDate}
+        WHERE attempted_at >= ${cutoffDateString}
         GROUP BY podcast_id
         HAVING COUNT(*) >= ${minAttempts}
       )
