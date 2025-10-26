@@ -10,5 +10,8 @@ supabase>=2.14.0
 # HTTP client for API calls
 requests>=2.31.0
 
+# Timezone handling for datetime utilities
+pytz>=2024.1
+
 # Hebrew text processing
 beautifulsoup4>=4.11.0
