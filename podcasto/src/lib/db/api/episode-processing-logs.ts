@@ -2,6 +2,7 @@ import { db } from '../index';
 import { episodeProcessingLogs, episodes } from '../schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
 import type { ProcessingStage } from '@/types/processing';
+import { EPISODE_CONSTANTS } from '@/lib/constants/episode-constants';
 
 /**
  * Database API for episode processing logs
@@ -54,7 +55,9 @@ export async function getLatestLogForStage(
 /**
  * Get all failed processing stages across episodes
  */
-export async function getFailedProcessingLogs(limit = 50) {
+export async function getFailedProcessingLogs(
+  limit: number = EPISODE_CONSTANTS.DEFAULT_PROCESSING_LOGS_LIMIT
+) {
   try {
     return await db
       .select({
@@ -104,7 +107,7 @@ export async function getProcessingStats() {
  */
 export async function getEpisodesWithProcessingStage(
   podcastId?: string,
-  limit = 50
+  limit = EPISODE_CONSTANTS.DEFAULT_PROCESSING_LOGS_LIMIT
 ) {
   try {
     const query = db
@@ -137,7 +140,9 @@ export async function getEpisodesWithProcessingStage(
 /**
  * Get stuck episodes (processing for too long)
  */
-export async function getStuckEpisodes(thresholdMinutes = 30) {
+export async function getStuckEpisodes(
+  thresholdMinutes: number = EPISODE_CONSTANTS.DEFAULT_STUCK_EPISODE_THRESHOLD_MINUTES
+) {
   try {
     const thresholdDate = new Date(Date.now() - thresholdMinutes * 60 * 1000);
 

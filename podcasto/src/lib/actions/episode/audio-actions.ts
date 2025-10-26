@@ -8,6 +8,7 @@ import { requireAdmin } from '@/lib/auth';
 import { parseS3Uri, verifyS3ObjectExists, createS3Client } from '@/lib/utils/s3-utils';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';
+import { EPISODE_CONSTANTS } from '@/lib/constants/episode-constants';
 
 /**
  * Generate a presigned URL for an episode's audio file
@@ -101,7 +102,9 @@ export async function getEpisodeAudioUrl(episodeId: string): Promise<{ url: stri
     
     // Generate a presigned URL that's valid for 1 hour (3600 seconds)
     console.log('Generating presigned URL...');
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    const presignedUrl = await getSignedUrl(s3Client, command, {
+      expiresIn: EPISODE_CONSTANTS.PRESIGNED_URL_EXPIRY_SECONDS
+    });
     console.log('Generated presigned URL:', presignedUrl);
     
     console.log('=== End getEpisodeAudioUrl - Success ===');

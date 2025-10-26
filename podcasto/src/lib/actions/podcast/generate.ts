@@ -18,7 +18,7 @@ import { checkForNewMessages } from '@/lib/services/telegram';
 import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notification';
 import { getPodcastById } from '@/lib/db/api/podcasts/queries';
 import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
-import { isUserAdmin } from '@/lib/db/api/user-roles';
+import { determineTriggerSource } from '@/lib/utils/episode-server-utils';
 
 // Re-export types for backward compatibility
 export type { DateRange, GenerationResult } from './generation/types';
@@ -161,12 +161,7 @@ export async function generatePodcastEpisode(
 
           // Log the failed attempt for tracking
           try {
-            // Determine trigger source based on user role
-            let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
-            if (user) {
-              const isAdmin = await isUserAdmin(user.id);
-              triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
-            }
+            const triggerSource = await determineTriggerSource(user);
 
             await logGenerationAttempt({
               podcastId,
@@ -243,12 +238,7 @@ export async function generatePodcastEpisode(
 
     // Log the successful generation attempt
     try {
-      // Determine trigger source
-      let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
-      if (user) {
-        const isAdmin = await isUserAdmin(user.id);
-        triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
-      }
+      const triggerSource = await determineTriggerSource(user);
 
       await logGenerationAttempt({
         podcastId,
@@ -278,11 +268,7 @@ export async function generatePodcastEpisode(
     // Log the error attempt
     try {
       const user = await getUser();
-      let triggerSource: 'cron' | 'manual_admin' | 'manual_user' = 'cron';
-      if (user) {
-        const isAdmin = await isUserAdmin(user.id);
-        triggerSource = isAdmin ? 'manual_admin' : 'manual_user';
-      }
+      const triggerSource = await determineTriggerSource(user);
 
       await logGenerationAttempt({
         podcastId,

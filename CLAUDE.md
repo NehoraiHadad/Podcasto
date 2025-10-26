@@ -71,6 +71,46 @@ Server actions are organized by domain in `src/lib/actions/`:
 - **Timeout**: 15 minutes for audio processing
 - **Error Handling**: Failed episodes marked with status 'failed'; dead letter queue for retry failures
 
+### Episode Generation Monitoring
+
+Podcasto includes a comprehensive monitoring system for tracking episode generation attempts and processing stages:
+
+**Tracking Tables**:
+- `episode_generation_attempts`: Tracks every generation attempt (success/failure), even when episode creation fails early
+  - Captures: trigger source (cron/manual), status, error details, date range
+  - Use for: reporting, identifying problematic podcasts, failure notifications
+
+- `episode_processing_logs`: Tracks detailed processing stages for existing episodes
+  - Captures: stage (telegram/script/audio/image), status, timing, errors
+  - Use for: debugging failed episodes, performance analysis, stuck episode detection
+
+**API Location**: `src/lib/db/api/episode-generation-attempts/`, `src/lib/db/api/episode-processing-logs.ts`
+
+**Trigger Sources**:
+- `cron`: Automated scheduled generation
+- `manual_admin`: Admin-triggered generation
+- `manual_user`: User-triggered generation
+
+**Usage Example**:
+```typescript
+import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
+
+// Log a failed attempt with no messages
+await logGenerationAttempt({
+  podcastId: 'podcast-123',
+  status: 'failed_no_messages',
+  triggerSource: 'cron',
+  failureReason: 'No new messages in channel',
+  errorDetails: { channel_name: 'TechNews' }
+});
+```
+
+**Monitoring Functions**:
+- `getDailySummary()`: Daily generation statistics
+- `getProblematicPodcasts()`: Identify high-failure-rate podcasts
+- `getStuckEpisodes()`: Find episodes stuck in processing
+- `getProcessingStats()`: Aggregated stage statistics
+
 ### File Upload & S3 Configuration
 - **S3 Bucket**: Configured via `S3_BUCKET_NAME` and `AWS_REGION` environment variables
 - **Image Handling**: `next.config.ts` includes multiple S3 hostname patterns for image optimization

@@ -5,6 +5,7 @@ import { CreditService } from '@/lib/services/credits/credit-service';
 import { getPodcastById } from '@/lib/db/api/podcasts/queries';
 import { isUserAdmin } from '@/lib/db/api/user-roles';
 import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
+import { determineTriggerSource } from '@/lib/utils/episode-server-utils';
 
 /**
  * Represents the result of attempting to generate an episode for a single podcast.
@@ -124,7 +125,7 @@ export async function generateEpisodesForPodcasts(
               : reason === 'insufficient_credits'
                 ? 'failed_insufficient_credits'
                 : 'failed_error',
-          triggerSource: 'cron',
+          triggerSource: await determineTriggerSource(undefined),
           contentStartDate: startDate,
           contentEndDate: now,
           failureReason: !actionResult.success ? actionResult.error : undefined,
