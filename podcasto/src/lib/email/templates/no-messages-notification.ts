@@ -2,6 +2,9 @@
  * Generates the "no new messages" email content for creators.
  * Returns both HTML and plain text variants following the Podcasto brand styling.
  */
+import { formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
+
 export function generateNoMessagesEmail({
   channelName,
   dateRange,
@@ -13,12 +16,8 @@ export function generateNoMessagesEmail({
   podcastName: string;
   manualTriggerUrl: string;
 }): { html: string; text: string } {
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (date: Date | string) =>
+    formatInTimezoneServer(date, DEFAULT_TIMEZONE, 'dd MMM yyyy');
 
   const formattedRange = `${formatDate(dateRange.start)} – ${formatDate(dateRange.end)}`;
 

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { episodesApi } from '@/lib/db/api';
 import { apiSuccess, apiError, logError } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 /**
  * API route to check podcast generation status
@@ -80,7 +81,7 @@ export async function GET(
       timestamp: timestamp,
       status,
       message,
-      lastChecked: new Date().toISOString()
+      lastChecked: toISOUTC(nowUTC())
     });
 
   } catch (error) {

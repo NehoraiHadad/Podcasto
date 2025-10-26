@@ -4,6 +4,8 @@ import { AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EpisodeDateRangePicker } from '../../episode-date-range-picker';
 import type { DateRange } from '../types';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface SelectionStepProps {
   isPaused: boolean;
@@ -42,8 +44,8 @@ export function SelectionStep({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Selected: {dateRange.startDate.toLocaleDateString()} -{' '}
-            {dateRange.endDate.toLocaleDateString()}
+            Selected: {formatUserDate(dateRange.startDate, DATE_FORMATS.DISPLAY_DATE)} -{' '}
+            {formatUserDate(dateRange.endDate, DATE_FORMATS.DISPLAY_DATE)}
           </AlertDescription>
         </Alert>
       )}

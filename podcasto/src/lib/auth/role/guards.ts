@@ -1,13 +1,11 @@
+'use server';
+
 /**
  * Role Guards
  *
  * Guard functions that throw errors on authorization failure.
  * Use these at the start of protected server actions to enforce access control.
- */
-
-'use server';
-
-import { getUser } from '../session/getters';
+ */import { getUser } from '../session/getters';
 import {
   UnauthorizedError,
   InsufficientPermissionsError,

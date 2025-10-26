@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
 import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { SES_CONFIG, sesClient } from '@/lib/aws/ses-client';
 import { generateAdminWeeklySummaryEmail } from '@/lib/email/templates/admin-weekly-summary';
@@ -98,7 +100,7 @@ export async function sendAdminWeeklySummary(): Promise<{
     logger.info(`Found ${admins.length} admin users`);
 
     // Calculate date range for the report (last 7 days)
-    const today = new Date();
+    const today = nowUTC();
     const weekStartDate = new Date(today);
     weekStartDate.setDate(weekStartDate.getDate() - 6);
 
@@ -114,11 +116,7 @@ export async function sendAdminWeeklySummary(): Promise<{
       failedAttempts: weeklyReport.data.weeklyTotals.failed,
       successRate: weeklyReport.data.weeklyTotals.successRate,
       dailyBreakdown: weeklyReport.data.dailyReports.map((day) => ({
-        date: new Date(day.date).toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-        }),
+        date: formatInTimezoneServer(day.date, DEFAULT_TIMEZONE, 'EEE, MMM dd'),
         total: day.total,
         successful: day.successful,
         failed: day.failed,

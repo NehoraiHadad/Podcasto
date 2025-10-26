@@ -16,6 +16,8 @@ import { Search, RefreshCw } from 'lucide-react';
 import { recalculateUserCostsAdmin } from '@/lib/actions/cost';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface UserCost {
   userId: string;
@@ -136,77 +138,76 @@ export function UserCostsTable({ users, grandTotalCost }: UserCostsTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredUsers.map((user) => (
-                <TableRow key={user.userId}>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="font-semibold">
-                        {user.userDisplayName || 'User'}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {user.userId.slice(0, 8)}...
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <CostBreakdownBadge
-                      label="AI"
-                      value={getTotalAICost(user)}
-                      variant="ai"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <CostBreakdownBadge
-                      label="AWS"
-                      value={getTotalAWSCost(user)}
-                      variant="aws"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <CostBreakdownBadge
-                      label="Total"
-                      value={user.totalCostUsd}
-                      variant="total"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col text-xs">
-                      <span className="font-mono">
-                        {user.totalTokens.toLocaleString()}
-                      </span>
-                      <span className="text-muted-foreground">tokens</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-xs text-muted-foreground">
-                      {user.lastUpdated
-                        ? new Date(user.lastUpdated).toLocaleDateString('he-IL', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : 'Never'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRecalculate(user.userId)}
-                      disabled={recalculatingUserId === user.userId}
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 ${
-                          recalculatingUserId === user.userId ? 'animate-spin' : ''
-                        }`}
+              filteredUsers.map((user) => {
+                const lastUpdatedDisplay = formatUserDate(
+                  user.lastUpdated,
+                  DATE_FORMATS.DISPLAY_DATETIME
+                );
+
+                return (
+                  <TableRow key={user.userId}>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold">
+                          {user.userDisplayName || 'User'}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {user.userId.slice(0, 8)}...
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <CostBreakdownBadge
+                        label="AI"
+                        value={getTotalAICost(user)}
+                        variant="ai"
                       />
-                      <span className="ml-2">Recalculate</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell>
+                      <CostBreakdownBadge
+                        label="AWS"
+                        value={getTotalAWSCost(user)}
+                        variant="aws"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <CostBreakdownBadge
+                        label="Total"
+                        value={user.totalCostUsd}
+                        variant="total"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col text-xs">
+                        <span className="font-mono">
+                          {user.totalTokens.toLocaleString()}
+                        </span>
+                        <span className="text-muted-foreground">tokens</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs text-muted-foreground">
+                        {lastUpdatedDisplay || 'Never'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRecalculate(user.userId)}
+                        disabled={recalculatingUserId === user.userId}
+                      >
+                        <RefreshCw
+                          className={`h-4 w-4 ${
+                            recalculatingUserId === user.userId ? 'animate-spin' : ''
+                          }`}
+                        />
+                        <span className="ml-2">Recalculate</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

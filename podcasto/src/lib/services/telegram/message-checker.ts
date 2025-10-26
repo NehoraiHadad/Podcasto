@@ -1,3 +1,4 @@
+import { nowUTC, parseISOUTC } from '@/lib/utils/date/server';
 /**
  * Message pre-check service for Telegram channels
  * Determines if a channel has new messages within a date range without full scraping
@@ -23,15 +24,15 @@ import type { MessageCheckResult, MessageCheckOptions } from './types';
  * @example
  * // Check for messages in a specific date range
  * const result = await checkForNewMessages('channelname', {
- *   startDate: new Date('2025-10-20'),
- *   endDate: new Date('2025-10-24')
+ *   startDate: parseISOUTC('2025-10-20'),
+ *   endDate: parseISOUTC('2025-10-24')
  * });
  */
 export async function checkForNewMessages(
   channelUsername: string,
   options: MessageCheckOptions | number
 ): Promise<MessageCheckResult> {
-  const checkedAt = new Date();
+  const checkedAt = nowUTC();
 
   try {
     // Step 1: Normalize input to date range
@@ -103,7 +104,7 @@ function normalizeDateRange(
 ): MessageCheckOptions {
   // Handle number input (days back from now)
   if (typeof options === 'number') {
-    const now = new Date();
+    const now = nowUTC();
     const daysBack = Math.abs(options); // Ensure positive
     const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
 

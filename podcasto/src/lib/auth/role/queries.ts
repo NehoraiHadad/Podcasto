@@ -1,13 +1,11 @@
+'use server';
+
 /**
  * Role Queries
  *
  * Read-only role query functions with request-level caching.
  * All queries use React's cache() for performance optimization.
- */
-
-'use server';
-
-import { cache } from 'react';
+ */import { cache } from 'react';
 import { userRolesApi } from '@/lib/db/api';
 import {
   PERMISSIONS,

@@ -19,6 +19,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { updateEpisodeDetails } from '@/lib/actions/episode/core-actions';
 import { EpisodeImageManager } from './episode-image-manager';
 import { EpisodeGenerationControls } from './episode-generation-controls';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 // Define the form validation schema
 const formSchema = z.object({
@@ -213,7 +215,7 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
                 <p className="text-sm font-medium">Created</p>
                 <p className="text-sm">
                   {episode.created_at
-                    ? new Date(episode.created_at).toLocaleDateString()
+                    ? formatUserDate(episode.created_at, DATE_FORMATS.DISPLAY_DATE)
                     : 'Unknown'}
                 </p>
               </div>
@@ -222,7 +224,7 @@ export function EpisodeEditForm({ episode }: EpisodeEditFormProps) {
                 <p className="text-sm font-medium">Published</p>
                 <p className="text-sm">
                   {episode.published_at
-                    ? new Date(episode.published_at).toLocaleDateString()
+                    ? formatUserDate(episode.published_at, DATE_FORMATS.DISPLAY_DATE)
                     : 'Not published'}
                 </p>
               </div>

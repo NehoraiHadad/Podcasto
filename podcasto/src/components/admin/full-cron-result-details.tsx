@@ -2,10 +2,12 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { 
+import {
   FullCronDetailedResult,
   FullCronIndividualJobResult
 } from './cron-runner-constants';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface FullCronResultDetailsProps {
   results: FullCronDetailedResult;
@@ -55,7 +57,7 @@ export function FullCronResultDetails({ results, timestamp }: FullCronResultDeta
         <div className="font-medium text-muted-foreground">Timestamp:</div>
         <div>
           {timestamp ? 
-            new Date(timestamp as string).toLocaleString() : 
+            formatUserDate(timestamp as string, DATE_FORMATS.DISPLAY_DATETIME) : 
             'N/A'}
         </div>
       </div>

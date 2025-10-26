@@ -5,6 +5,7 @@
 
 import { db } from '@/lib/db';
 import { costTrackingEvents } from '@/lib/db/schema';
+import { nowUTC } from '@/lib/utils/date/server';
 import type { CostEventMetadata, CostEventType, CostService, CostUnit } from '@/types/cost-tracking';
 
 interface LogCostEventParams {
@@ -35,7 +36,7 @@ export async function logCostEvent(params: LogCostEventParams): Promise<void> {
     unit_cost_usd: params.unitCostUsd.toString(),
     total_cost_usd: totalCostUsd.toString(),
     metadata: params.metadata,
-    timestamp: new Date()
+    timestamp: nowUTC()
   });
 }
 

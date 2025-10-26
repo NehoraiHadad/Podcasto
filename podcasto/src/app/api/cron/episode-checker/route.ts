@@ -5,6 +5,7 @@ import * as CheckerConstants from '@/lib/episode-checker/constants';
 import { getPostProcessingService } from '@/lib/episode-checker/service-factory';
 import { findEpisodeById, findAllEpisodesToCheck } from '@/lib/episode-checker/finder';
 import { processSingleEpisode } from '@/lib/episode-checker/processor';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 /**
  * Checks for episodes that have been pending for too long and marks them as failed.
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
       console.log(`${mainLogPrefix} Processing result for ${episodeId}:`, result);
       return apiSuccess({
-        timestamp: new Date().toISOString(),
+        timestamp: toISOUTC(nowUTC()),
         results: {
           checked: 1,
           timed_out: result.status === 'timed_out' ? 1 : 0,
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest) {
       console.log(`${mainLogPrefix} No pending or completed or summary completed episodes found for batch check.`);
       return apiSuccess({
         message: 'No episodes needed checking.',
-        timestamp: new Date().toISOString(),
+        timestamp: toISOUTC(nowUTC()),
         results: aggregatedResults
       });
     }
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`${mainLogPrefix} Completed batch check. Results:`, JSON.stringify(aggregatedResults, null, 2));
     return apiSuccess({
-      timestamp: new Date().toISOString(),
+      timestamp: toISOUTC(nowUTC()),
       results: aggregatedResults
     });
 

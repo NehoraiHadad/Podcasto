@@ -29,10 +29,7 @@ export async function fetchAndValidatePodcastConfig(
 ): Promise<
   | { success: true; config: { episode_frequency: number; [key: string]: unknown } }
   | { success: false; error: string }
-> {
-  'use server';
-
-  const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(podcastId);
+> {const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(podcastId);
 
   if (!podcastConfig) {
     return {

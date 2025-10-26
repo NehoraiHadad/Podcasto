@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
 /**
  * Episode record creation for podcast generation.
  * Creates pending episode records with metadata for tracking.
@@ -31,7 +33,7 @@ export async function createPendingEpisode(
 
     const episode = await episodesApi.createEpisode({
       podcast_id: podcastId,
-      title: `Episode ${new Date().toLocaleDateString()}`,
+      title: `Episode ${formatInTimezoneServer(nowUTC(), DEFAULT_TIMEZONE, 'dd/MM/yyyy')}`,
       description: 'Processing...',
       audio_url: '', // Empty URL initially
       status: 'pending',

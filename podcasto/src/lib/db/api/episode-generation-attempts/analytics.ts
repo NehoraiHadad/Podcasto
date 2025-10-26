@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC, parseISOUTC } from '@/lib/utils/date/server';
+
 import { db } from '@/lib/db';
 import { episodeGenerationAttempts } from '@/lib/db/schema';
 import { and, gte, lte, sql } from 'drizzle-orm';
@@ -16,7 +18,7 @@ import type { DailySummaryRecord, ProblematicPodcastRecord } from './types';
  *
  * @example
  * ```typescript
- * const result = await getDailySummary(new Date());
+ * const result = await getDailySummary(nowUTC());
  * if (result.success) {
  *   result.data.forEach(item => {
  *     console.log(`${item.status} (${item.trigger_source}): ${item.count}`);
@@ -89,7 +91,7 @@ export async function getProblematicPodcasts(
   failureThreshold: number = EPISODE_CONSTANTS.DEFAULT_FAILURE_THRESHOLD
 ): Promise<{ success: boolean; data?: ProblematicPodcastRecord[]; error?: string }> {
   try {
-    const cutoffDate = new Date();
+    const cutoffDate = nowUTC();
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
     const cutoffDateString = cutoffDate.toISOString();
 

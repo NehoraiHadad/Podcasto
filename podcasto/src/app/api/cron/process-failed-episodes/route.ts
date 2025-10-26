@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, validateCronAuth, logError } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +17,8 @@ export async function GET(request: NextRequest) {
     const { episodesApi } = await import('@/lib/db/api');
 
     // Get episodes that are still pending or failed for more than 10 minutes
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const now = nowUTC();
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
     // Find episodes that need processing
     const failedEpisodes = await episodesApi.getEpisodesByStatus(['pending', 'failed']);
@@ -98,6 +100,6 @@ export async function POST() {
   return apiSuccess({
     status: 'healthy',
     service: 'Failed Episodes Processor',
-    timestamp: new Date().toISOString()
+    timestamp: toISOUTC(nowUTC())
   });
 }

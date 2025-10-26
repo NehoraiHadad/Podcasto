@@ -2,6 +2,7 @@ import { db, episodes } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { InferSelectModel } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { nowUTC } from '@/lib/utils/date/server';
 import {
   PENDING_STATUS,
   COMPLETED_STATUS,
@@ -44,7 +45,7 @@ export async function processSingleEpisode(
   postProcessingService: PostProcessingService | null,
   postProcessingEnabled: boolean
 ): Promise<ProcessingResult> {
-  const now = new Date();
+  const now = nowUTC();
   const timeoutThreshold = new Date(now.getTime() - MAX_PENDING_TIME_MS);
   const baseLogPrefix = `[EPISODE_PROCESSOR:${episode.id}]`;
 

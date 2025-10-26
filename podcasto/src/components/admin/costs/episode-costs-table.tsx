@@ -12,6 +12,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { CostBreakdownBadge } from './cost-breakdown-badge';
 import { Search } from 'lucide-react';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface EpisodeCost {
   episodeId: string;
@@ -97,7 +99,7 @@ export function EpisodeCostsTable({ episodes }: EpisodeCostsTableProps) {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {ep.calculatedAt
-                      ? new Date(ep.calculatedAt).toLocaleDateString()
+                      ? formatUserDate(ep.calculatedAt, DATE_FORMATS.DISPLAY_DATE)
                       : 'N/A'}
                   </TableCell>
                 </TableRow>

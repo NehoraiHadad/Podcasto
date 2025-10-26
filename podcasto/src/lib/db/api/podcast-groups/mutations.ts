@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { podcastGroups, podcastLanguages, podcasts } from '../../schema';
 import { eq, and } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
@@ -33,7 +34,7 @@ export async function updatePodcastGroup(
 ): Promise<PodcastGroup | null> {
   const updateData = {
     ...data,
-    updated_at: new Date()
+    updated_at: nowUTC()
   };
 
   return await dbUtils.updateById<PodcastGroup, typeof updateData>(
@@ -90,7 +91,7 @@ export async function updateLanguageVariant(
 ): Promise<PodcastLanguage | null> {
   const updateData = {
     ...data,
-    updated_at: new Date()
+    updated_at: nowUTC()
   };
 
   return await dbUtils.updateById<PodcastLanguage, typeof updateData>(
@@ -127,13 +128,13 @@ export async function setPrimaryLanguage(
     // Unset all primary flags in the group
     await tx
       .update(podcastLanguages)
-      .set({ is_primary: false, updated_at: new Date() })
+      .set({ is_primary: false, updated_at: nowUTC() })
       .where(eq(podcastLanguages.podcast_group_id, groupId));
 
     // Set the specified language as primary
     const result = await tx
       .update(podcastLanguages)
-      .set({ is_primary: true, updated_at: new Date() })
+      .set({ is_primary: true, updated_at: nowUTC() })
       .where(
         and(
           eq(podcastLanguages.podcast_group_id, groupId),
@@ -165,7 +166,7 @@ export async function linkPodcastToGroup(
       podcast_group_id: groupId,
       language_code: languageCode,
       migration_status: 'migrated',
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(podcasts.id, podcastId))
     .returning();
@@ -186,7 +187,7 @@ export async function unlinkPodcastFromGroup(podcastId: string): Promise<boolean
       podcast_group_id: null,
       language_code: null,
       migration_status: 'legacy',
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(podcasts.id, podcastId))
     .returning();

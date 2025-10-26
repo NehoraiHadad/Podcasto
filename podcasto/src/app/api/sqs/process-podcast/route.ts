@@ -5,6 +5,7 @@ import {
   validateBearerToken,
   logError,
 } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 interface SQSMessage {
   podcast_config_id: string;
@@ -129,6 +130,6 @@ export async function GET() {
   return apiSuccess({
     status: 'healthy',
     service: 'SQS Podcast Processor',
-    timestamp: new Date().toISOString()
+    timestamp: toISOUTC(nowUTC())
   });
-} 
+}

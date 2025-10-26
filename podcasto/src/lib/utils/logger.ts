@@ -1,3 +1,5 @@
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
+
 /**
  * Structured logging utility to replace console.log across the application
  * Provides consistent logging format with context and log levels
@@ -23,7 +25,7 @@ function formatLogMessage(
   message: string,
   data?: LogContext
 ): string {
-  const timestamp = new Date().toISOString();
+  const timestamp = toISOUTC(nowUTC());
   const prefix = `[${timestamp}] [${level.toUpperCase()}] [${context}]`;
   const dataString = data ? ` ${JSON.stringify(data)}` : '';
   return `${prefix} ${message}${dataString}`;

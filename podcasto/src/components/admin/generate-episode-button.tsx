@@ -1,4 +1,6 @@
 'use client';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -123,7 +125,7 @@ export function GenerateEpisodeButton({
             <div className="rounded-md bg-muted p-3 text-sm">
               <p className="font-medium">Selected Range:</p>
               <p className="text-muted-foreground">
-                {dateRange.startDate.toLocaleDateString()} - {dateRange.endDate.toLocaleDateString()}
+                {formatUserDate(dateRange.startDate, DATE_FORMATS.DISPLAY_DATE)} - {formatUserDate(dateRange.endDate, DATE_FORMATS.DISPLAY_DATE)}
               </p>
             </div>
           )}

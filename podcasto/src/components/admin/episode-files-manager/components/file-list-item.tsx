@@ -1,6 +1,10 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Trash2 } from 'lucide-react';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 import type { S3FileInfo } from '@/lib/services/s3-service-types';
 import { getFileIcon, getTypeBadgeColor, formatBytes } from '../utils/file-helpers';
 
@@ -26,7 +30,7 @@ export function FileListItem({ file, onView, onDelete }: FileListItemProps) {
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {formatBytes(file.size)} •{' '}
-            {new Date(file.lastModified).toLocaleDateString()}
+            {formatUserDate(file.lastModified, DATE_FORMATS.DISPLAY_DATE)}
           </p>
         </div>
       </div>

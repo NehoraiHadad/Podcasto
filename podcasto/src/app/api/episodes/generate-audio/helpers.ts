@@ -1,6 +1,7 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { episodesApi } from '@/lib/db/api';
 import { logError } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 import type { EpisodeForSQS, SQSSendResult, BatchSQSResult } from './types';
 import { trackCostEvent } from '@/lib/services/cost-tracker';
 
@@ -110,7 +111,7 @@ export async function sendEpisodeToSQS(
       podcast_config_id: episode.podcast_id,
       podcast_id: episode.podcast_id,
       episode_id: episode.id,
-      timestamp: new Date().toISOString(),
+      timestamp: toISOUTC(nowUTC()),
       s3_path: s3Path || '', // Optional S3 path for Telegram data
       content_url: s3Path || '', // Same as s3_path for compatibility
       trigger_source: 'audio_generation_manual' // Identifier for audio generation requests
@@ -186,7 +187,7 @@ export async function updateEpisodeStatus(
     const episode = await episodesApi.getEpisodeById(episodeId);
     const metadata = episode?.metadata ? JSON.parse(episode.metadata) : {};
     metadata.error = errorMessage;
-    metadata.failed_at = new Date().toISOString();
+    metadata.failed_at = toISOUTC(nowUTC());
     updateData.metadata = JSON.stringify(metadata);
   }
 

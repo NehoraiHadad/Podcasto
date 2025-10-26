@@ -74,7 +74,7 @@ export function TopPodcastsTable({ podcasts }: TopPodcastsTableProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Badge variant="secondary">
-                    {podcast.subscribersCount.toLocaleString()}
+                    {podcast.subscribersCount}
                   </Badge>
                 </TableCell>
               </TableRow>

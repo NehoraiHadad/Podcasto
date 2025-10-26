@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, validateCronAuth, logError } from '@/lib/api';
 import { sendAdminWeeklySummary } from '@/lib/actions/admin/send-weekly-summary';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 /**
  * CRON endpoint for sending weekly generation summary emails to admin users.
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     );
 
     return apiSuccess({
-      timestamp: new Date().toISOString(),
+      timestamp: toISOUTC(nowUTC()),
       message: 'Admin weekly summary emails sent successfully',
       results: {
         sent: result.data?.sentCount || 0,

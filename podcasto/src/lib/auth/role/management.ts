@@ -1,13 +1,11 @@
+'use server';
+
 /**
  * Role Management
  *
  * Functions for adding and removing user roles.
  * These operations require admin privileges.
- */
-
-'use server';
-
-import { userRolesApi } from '@/lib/db/api';
+ */import { userRolesApi } from '@/lib/db/api';
 import { AUTH_ERROR_CODES, AuthenticationError } from '../errors/classes';
 import type { AuthResult } from '../types';
 import type { UserRole } from '@/lib/db/api/user-roles';

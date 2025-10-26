@@ -11,6 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AlertTriangle, MessageSquareWarning } from 'lucide-react';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface ProblematicPodcast {
   podcast_id: string;
@@ -64,8 +66,10 @@ export function ProblematicPodcastsTable({
 
       if (channelName && reason?.includes('No new messages')) {
         if (latestMessageDate) {
-          const date = new Date(latestMessageDate);
-          return `No new messages in ${channelName} (last: ${date.toLocaleDateString()})`;
+          const lastMessage = formatUserDate(latestMessageDate, DATE_FORMATS.DISPLAY_DATE);
+          if (lastMessage) {
+            return `No new messages in ${channelName} (last: ${lastMessage})`;
+          }
         }
         return `No new messages in ${channelName}`;
       }
@@ -116,48 +120,55 @@ export function ProblematicPodcastsTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {podcasts.map((podcast) => (
-                  <TableRow key={podcast.podcast_id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/admin/podcasts?id=${podcast.podcast_id}`}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
-                      >
-                        {podcast.podcast_title}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {podcast.total_attempts}
-                    </TableCell>
-                    <TableCell className="text-right text-red-600 dark:text-red-400">
-                      {podcast.failed_attempts}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={getFailureRateColor(podcast.failure_rate)}>
-                        {(podcast.failure_rate * 100).toFixed(1)}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-md">
-                      <div className="flex items-start gap-2">
-                        <MessageSquareWarning className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">
-                          {formatFailureReason(
-                            podcast.recent_failure_reason,
-                            podcast.recent_error_details
-                          )}
+                {podcasts.map((podcast) => {
+                  const lastFailureAt = formatUserDate(
+                    podcast.last_failure_at,
+                    DATE_FORMATS.DISPLAY_DATETIME
+                  );
+
+                  return (
+                    <TableRow key={podcast.podcast_id}>
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/admin/podcasts?id=${podcast.podcast_id}`}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                        >
+                          {podcast.podcast_title}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {podcast.total_attempts}
+                      </TableCell>
+                      <TableCell className="text-right text-red-600 dark:text-red-400">
+                        {podcast.failed_attempts}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={getFailureRateColor(podcast.failure_rate)}>
+                          {(podcast.failure_rate * 100).toFixed(1)}%
                         </span>
-                      </div>
-                      {podcast.last_failure_at && (
-                        <div className="text-xs text-muted-foreground mt-1 ml-6">
-                          {new Date(podcast.last_failure_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="max-w-md">
+                        <div className="flex items-start gap-2">
+                          <MessageSquareWarning className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground">
+                            {formatFailureReason(
+                              podcast.recent_failure_reason,
+                              podcast.recent_error_details
+                            )}
+                          </span>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {podcast.created_by}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        {lastFailureAt && (
+                          <div className="text-xs text-muted-foreground mt-1 ml-6">
+                            {lastFailureAt}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {podcast.created_by}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

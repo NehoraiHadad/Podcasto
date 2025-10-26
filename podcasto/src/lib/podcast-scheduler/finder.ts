@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
@@ -10,7 +11,7 @@ import { PodcastScheduleData, PodcastSqlRow } from './types';
 export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData[]> {
   try {
     // Always use the current date
-    const now = new Date();
+    const now = nowUTC();
     
     console.log(`[PODCAST_FINDER] Using current date for scheduling: ${now.toISOString()}`);
     

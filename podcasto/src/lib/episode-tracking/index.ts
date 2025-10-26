@@ -1,5 +1,6 @@
 'use server';
 
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '../db';
 import { episodeProcessingLogs, episodes } from '../db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -30,7 +31,7 @@ export async function logStageStart(
   metadata?: LogMetadata
 ): Promise<boolean> {
   try {
-    const now = new Date();
+    const now = nowUTC();
 
     // Insert processing log
     await db.insert(episodeProcessingLogs).values({
@@ -84,7 +85,7 @@ export async function logStageComplete(
   metadata?: LogMetadata
 ): Promise<boolean> {
   try {
-    const now = new Date();
+    const now = nowUTC();
 
     // Find the most recent started log for this episode and stage
     const existingLogs = await db
@@ -155,7 +156,7 @@ export async function logStageFailure(
   errorDetails?: ErrorDetails
 ): Promise<boolean> {
   try {
-    const now = new Date();
+    const now = nowUTC();
     const errorMessage = error.message;
 
     // Build error details

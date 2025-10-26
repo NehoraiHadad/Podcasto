@@ -1,3 +1,4 @@
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 import { generatePodcastEpisode } from '@/lib/actions/podcast/generate';
 import { PodcastScheduleData } from './types';
 import { EpisodeCheckerDetailedResult } from '@/components/admin/cron-runner-constants';
@@ -102,7 +103,7 @@ export async function generateEpisodesForPodcasts(
       }
 
       // Calculate date range based on telegram_hours
-      const now = new Date();
+      const now = nowUTC();
       const startDate = new Date(now.getTime() - (podcast.telegramHours * 60 * 60 * 1000));
       const dateRange = {
         startDate,
@@ -172,7 +173,7 @@ export async function generateEpisodesForPodcasts(
             error_message: actionResult.error,
             channel_name: podcastRecord.title,
             ...(reason === 'no_messages' && {
-              latest_message_date: new Date().toISOString(), // Best effort estimate
+              latest_message_date: toISOUTC(nowUTC()), // Best effort estimate
             }),
             ...(reason === 'insufficient_credits' && {
               credits_required: 1, // Standard episode cost

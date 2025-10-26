@@ -35,6 +35,8 @@ import {
 } from '@/lib/actions/user-podcast-actions';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
 import type { PodcastConfig } from '@/lib/db/api/podcast-configs';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 const settingsSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -285,7 +287,7 @@ export function PodcastSettingsForm({ podcast, config }: PodcastSettingsFormProp
                 <div className="bg-muted rounded-lg p-4">
                   <p className="text-sm text-muted-foreground">Next scheduled generation</p>
                   <p className="text-lg font-medium">
-                    {new Date(podcast.next_scheduled_generation).toLocaleString()}
+                    {formatUserDate(podcast.next_scheduled_generation, DATE_FORMATS.DISPLAY_DATETIME)}
                   </p>
                 </div>
               )}

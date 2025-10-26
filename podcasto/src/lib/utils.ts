@@ -1,7 +1,9 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export * from './utils/date-utils';
+// Date utilities - use specific imports for client/server separation
+// export * from './utils/date';  // Don't export all - forces explicit client/server usage
+
 export * from './utils/format-utils';
 
 /**

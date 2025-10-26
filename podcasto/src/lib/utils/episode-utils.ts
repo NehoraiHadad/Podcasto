@@ -1,5 +1,6 @@
 import { formatDistanceToNow, format, isWithinInterval, subDays } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { nowUTC } from '@/lib/utils/date/server';
 
 /**
  * Check if an episode is considered "new" (published within the last 7 days)
@@ -8,11 +9,11 @@ export function isNewEpisode(publishedAt: Date | string | null): boolean {
   if (!publishedAt) return false;
   
   const publishDate = typeof publishedAt === 'string' ? new Date(publishedAt) : publishedAt;
-  const sevenDaysAgo = subDays(new Date(), 7);
+  const sevenDaysAgo = subDays(nowUTC(), 7);
   
   return isWithinInterval(publishDate, {
     start: sevenDaysAgo,
-    end: new Date()
+    end: nowUTC()
   });
 }
 
@@ -64,7 +65,7 @@ export function getEpisodeAgeInDays(publishedAt: Date | string | null): number {
   if (!publishedAt) return Infinity;
   
   const publishDate = typeof publishedAt === 'string' ? new Date(publishedAt) : publishedAt;
-  const now = new Date();
+  const now = nowUTC();
   const diffTime = Math.abs(now.getTime() - publishDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   

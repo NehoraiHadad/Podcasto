@@ -6,6 +6,7 @@ import {
   validateCronAuth,
   logError
 } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 import { sendEpisodesToSQS, sendEpisodeToSQS, updateEpisodeStatus } from './helpers';
 import type { GenerateAudioRequest } from './types';
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (!pendingEpisodes || pendingEpisodes.length === 0) {
       return apiSuccess({
         message: 'No episodes with content_collected status found',
-        timestamp: new Date().toISOString(),
+        timestamp: toISOUTC(nowUTC()),
         processed: 0,
         errors: 0,
         results: []
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     return apiSuccess({
       message: `Sent ${results.successful} episodes to processing queue`,
-      timestamp: new Date().toISOString(),
+      timestamp: toISOUTC(nowUTC()),
       processed: results.successful,
       errors: results.failed,
       results: results.details

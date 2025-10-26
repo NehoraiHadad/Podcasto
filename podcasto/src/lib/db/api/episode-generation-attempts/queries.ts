@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC } from '@/lib/utils/date/server';
+
 import { db } from '@/lib/db';
 import { episodeGenerationAttempts } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -50,7 +52,7 @@ export async function logGenerationAttempt(
         content_end_date: data.contentEndDate || null,
         failure_reason: data.failureReason || null,
         error_details: data.errorDetails || null,
-        attempted_at: new Date(),
+        attempted_at: nowUTC(),
       })
       .returning();
 
@@ -102,4 +104,3 @@ export async function getAttemptsByPodcast(
     };
   }
 }
-

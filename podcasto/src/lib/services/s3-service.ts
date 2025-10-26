@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
@@ -62,7 +63,7 @@ export class S3Service implements IS3Service {
           name: obj.Key!.split('/').pop() || obj.Key!,
           type: getFileType(obj.Key!),
           size: obj.Size || 0,
-          lastModified: obj.LastModified || new Date()
+          lastModified: obj.LastModified || nowUTC()
         }));
 
       return { files: sortS3Files(files) };

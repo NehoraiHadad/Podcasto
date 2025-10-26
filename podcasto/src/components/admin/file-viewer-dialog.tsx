@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Download, ExternalLink, Loader2 } from 'lucide-react';
 import { getS3FileContent } from '@/lib/actions/episode/s3-file-actions';
 import type { S3FileInfo } from '@/lib/services/s3-service-types';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface FileViewerDialogProps {
   file: S3FileInfo | null;
@@ -186,7 +188,7 @@ export function FileViewerDialog({ file, open, onOpenChange }: FileViewerDialogP
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-base sm:text-lg truncate pr-8">{file.name}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            {formatBytes(file.size)} • {new Date(file.lastModified).toLocaleDateString()}
+            {formatBytes(file.size)} • {formatUserDate(file.lastModified, DATE_FORMATS.DISPLAY_DATE)}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 overflow-auto flex-1">

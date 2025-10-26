@@ -10,6 +10,7 @@ from enum import Enum
 
 from shared.clients.supabase_client import SupabaseClient
 from shared.utils.logging import get_logger
+from shared.utils.datetime_utils import now_utc, to_iso_utc
 
 logger = get_logger(__name__)
 
@@ -69,7 +70,7 @@ class EpisodeTracker:
             True if logged successfully, False otherwise
         """
         try:
-            now = datetime.now(timezone.utc)
+            now = now_utc()
             self._stage_start_times[f"{episode_id}:{stage}"] = now
 
             # Insert processing log
@@ -77,9 +78,9 @@ class EpisodeTracker:
                 'episode_id': episode_id,
                 'stage': stage.value,
                 'status': StageStatus.STARTED.value,
-                'started_at': now.isoformat(),
+                'started_at': to_iso_utc(now),
                 'metadata': metadata or {},
-                'created_at': now.isoformat()
+                'created_at': to_iso_utc(now)
             }
 
             result = self.supabase.client.table('episode_processing_logs').insert(log_entry).execute()
@@ -91,12 +92,12 @@ class EpisodeTracker:
             # Update episode current_stage and processing_started_at
             episode_update = {
                 'current_stage': stage.value,
-                'last_stage_update': now.isoformat()
+                'last_stage_update': to_iso_utc(now)
             }
 
             # Set processing_started_at only on first stage
             if stage == ProcessingStage.TELEGRAM_QUEUED or stage == ProcessingStage.CREATED:
-                episode_update['processing_started_at'] = now.isoformat()
+                episode_update['processing_started_at'] = to_iso_utc(now)
 
             self.supabase.client.table('episodes').update(episode_update).eq('id', episode_id).execute()
 
@@ -125,7 +126,7 @@ class EpisodeTracker:
             True if logged successfully, False otherwise
         """
         try:
-            now = datetime.now(timezone.utc)
+            now = now_utc()
 
             # Calculate duration if we have a start time
             start_key = f"{episode_id}:{stage}"
@@ -149,7 +150,7 @@ class EpisodeTracker:
                 log_id = existing_logs.data[0]['id']
                 update_data = {
                     'status': StageStatus.COMPLETED.value,
-                    'completed_at': now.isoformat(),
+                    'completed_at': to_iso_utc(now),
                     'duration_ms': duration_ms
                 }
                 if metadata:
@@ -165,10 +166,10 @@ class EpisodeTracker:
                     'episode_id': episode_id,
                     'stage': stage.value,
                     'status': StageStatus.COMPLETED.value,
-                    'completed_at': now.isoformat(),
+                    'completed_at': to_iso_utc(now),
                     'duration_ms': duration_ms,
                     'metadata': metadata or {},
-                    'created_at': now.isoformat()
+                    'created_at': to_iso_utc(now)
                 }
                 self.supabase.client.table('episode_processing_logs').insert(log_entry).execute()
 
@@ -178,7 +179,7 @@ class EpisodeTracker:
             # Update episode
             episode_update = {
                 'current_stage': stage.value,
-                'last_stage_update': now.isoformat()
+                'last_stage_update': to_iso_utc(now)
             }
             self.supabase.client.table('episodes').update(episode_update).eq('id', episode_id).execute()
 
@@ -209,7 +210,7 @@ class EpisodeTracker:
             True if logged successfully, False otherwise
         """
         try:
-            now = datetime.now(timezone.utc)
+            now = now_utc()
 
             # Calculate duration if we have a start time
             start_key = f"{episode_id}:{stage}"
@@ -242,7 +243,7 @@ class EpisodeTracker:
                         'status': StageStatus.FAILED.value,
                         'error_message': error_message,
                         'error_details': details,
-                        'completed_at': now.isoformat(),
+                        'completed_at': to_iso_utc(now),
                         'duration_ms': duration_ms
                     })\
                     .eq('id', log_id)\
@@ -255,9 +256,9 @@ class EpisodeTracker:
                     'status': StageStatus.FAILED.value,
                     'error_message': error_message,
                     'error_details': details,
-                    'completed_at': now.isoformat(),
+                    'completed_at': to_iso_utc(now),
                     'duration_ms': duration_ms,
-                    'created_at': now.isoformat()
+                    'created_at': to_iso_utc(now)
                 }
                 self.supabase.client.table('episode_processing_logs').insert(log_entry).execute()
 
@@ -306,7 +307,7 @@ class EpisodeTracker:
             history_entry = {
                 'stage': stage,
                 'status': status,
-                'timestamp': datetime.now(timezone.utc).isoformat()
+                'timestamp': to_iso_utc(now_utc())
             }
             if duration_ms is not None:
                 history_entry['duration_ms'] = duration_ms

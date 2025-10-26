@@ -2,9 +2,11 @@
  * Episode Date Calculator Utility
  *
  * Calculates episode creation dates based on podcast frequency settings
+ * All dates are handled in UTC - use createDateRangeUTC for timezone-aware queries
  */
 
 import { getMaxBatchSize, getDelayBetweenRequests } from './rate-limit-config';
+import { formatInTimezoneServer, daysBetween } from './date/server';
 
 export interface EpisodeDateRange {
   startDate: Date;
@@ -139,14 +141,13 @@ export function calculateEpisodeDates({
 
 /**
  * Format a date range for display
+ * NOTE: This uses en-GB format. For timezone-aware formatting,
+ * use formatDateRange from @/lib/utils/date/client
  */
 export function formatDateRange(range: EpisodeDateRange): string {
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    // Using formatInTimezoneServer for consistent UTC-based formatting
+    return formatInTimezoneServer(date, 'UTC', 'dd/MM/yyyy');
   };
 
   return `${formatDate(range.startDate)} - ${formatDate(range.endDate)}`;

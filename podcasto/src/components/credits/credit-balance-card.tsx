@@ -1,6 +1,10 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Coins } from 'lucide-react';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 import type { UserCreditsData } from '@/lib/actions/credit';
 
 interface CreditBalanceCardProps {
@@ -48,11 +52,7 @@ export function CreditBalanceCard({ data }: CreditBalanceCardProps) {
           <div className="pt-4 border-t">
             <p className="text-xs text-muted-foreground">Last Purchase</p>
             <p className="text-sm font-medium">
-              {new Date(data.last_purchase_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {formatUserDate(data.last_purchase_at, DATE_FORMATS.DISPLAY_DATE_LONG)}
             </p>
           </div>
         )}

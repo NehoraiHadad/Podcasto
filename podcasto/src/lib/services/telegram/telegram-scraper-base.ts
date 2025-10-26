@@ -1,3 +1,4 @@
+import { parseISOUTC } from '@/lib/utils/date/server';
 /**
  * Base utilities for scraping Telegram channel data from t.me/s/{channel}
  * These functions provide reusable primitives for Telegram scraping operations
@@ -144,14 +145,14 @@ export function parseLatestMessageDateFromHTML(html: string): Date | null {
   if (lastMatch && lastMatch[1]) {
     try {
       const dateString = lastMatch[1];
-      const date = new Date(dateString);
+      const date = parseISOUTC(dateString);
 
       if (!isNaN(date.getTime())) {
         // Log diagnostic info if multiple messages found
         if (matches.length > 1) {
           const firstDateString = matches[0][1];
           console.log(
-            `[TELEGRAM_SCRAPER_BASE] First message date: ${new Date(firstDateString).toISOString()}`
+            `[TELEGRAM_SCRAPER_BASE] First message date: ${parseISOUTC(firstDateString).toISOString()}`
           );
         }
 

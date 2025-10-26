@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ImageIcon, X } from 'lucide-react';
 import Image from 'next/image';
 import type { GalleryImage } from './types';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface GalleryBrowserProps {
   isOpen: boolean;
@@ -93,7 +95,7 @@ export function GalleryBrowser({
                     {image.type}
                   </div>
                   <div className="text-xs text-muted-foreground text-center">
-                    {new Date(image.lastModified).toLocaleDateString()}
+                    {formatUserDate(image.lastModified, DATE_FORMATS.DISPLAY_DATE)}
                   </div>
                 </div>
               </CardContent>

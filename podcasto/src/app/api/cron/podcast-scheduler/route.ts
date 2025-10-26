@@ -4,6 +4,7 @@ import { apiSuccess, apiError, validateCronAuth, logError } from '@/lib/api';
 import { PodcastScheduleData } from '@/lib/podcast-scheduler/types';
 import { findPodcastsNeedingEpisodes } from '@/lib/podcast-scheduler/finder';
 import { generateEpisodesForPodcasts } from '@/lib/podcast-scheduler/generator';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       console.log('[PODCAST_SCHEDULER] No podcasts need new episodes');
       return apiSuccess({
         message: 'No podcasts need new episodes',
-        timestamp: new Date().toISOString()
+        timestamp: toISOUTC(nowUTC())
       });
     }
 
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     return apiSuccess({
       message: `Generated episodes for ${results.filter(r => r.success).length}/${podcastsNeedingEpisodes.length} podcasts`,
       results,
-      timestamp: new Date().toISOString()
+      timestamp: toISOUTC(nowUTC())
     });
 
   } catch (error) {

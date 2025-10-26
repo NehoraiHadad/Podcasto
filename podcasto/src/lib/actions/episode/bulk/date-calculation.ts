@@ -1,3 +1,5 @@
+'use server';
+
 import {
   calculateEpisodeDates,
   estimateGenerationTime,
@@ -20,10 +22,7 @@ export async function calculateEpisodeDatesForPodcast(
   estimatedTime?: string;
   batchConfiguration?: BatchConfiguration;
   error?: string;
-}> {
-  'use server';
-
-  // Parse episode frequency to number if it's a string
+}> {// Parse episode frequency to number if it's a string
   const frequencyNumber = typeof episodeFrequency === 'string'
     ? parseInt(episodeFrequency, 10)
     : episodeFrequency;

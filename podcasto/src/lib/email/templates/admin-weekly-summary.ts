@@ -3,6 +3,9 @@
  * Provides overview of generation attempts, success rates, and problematic podcasts
  */
 
+import { formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
+
 export interface AdminWeeklySummaryData {
   weekStartDate: Date;
   weekEndDate: Date;
@@ -32,12 +35,8 @@ export interface AdminWeeklySummaryData {
 export function generateAdminWeeklySummaryEmail(
   data: AdminWeeklySummaryData
 ): { html: string; text: string } {
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (date: Date | string) =>
+    formatInTimezoneServer(date, DEFAULT_TIMEZONE, 'dd MMM yyyy');
 
   const weekRange = `${formatDate(data.weekStartDate)} – ${formatDate(data.weekEndDate)}`;
 

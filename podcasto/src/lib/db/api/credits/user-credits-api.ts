@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { userCredits, creditTransactions } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
@@ -59,7 +60,7 @@ export async function createUserCredits(
       used_credits: '0',
       available_credits: availableCredits,
       free_credits: freeCredits,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .returning();
 
@@ -84,9 +85,9 @@ export async function addCreditsToUser(
         free_credits: sql`${userCredits.free_credits} + ${amount}`
       }),
       ...(!isFreeCredits && {
-        last_purchase_at: new Date()
+        last_purchase_at: nowUTC()
       }),
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(userCredits.user_id, userId))
     .returning();
@@ -107,7 +108,7 @@ export async function deductCreditsFromUser(
     .set({
       used_credits: sql`${userCredits.used_credits} + ${amount}`,
       available_credits: sql`${userCredits.available_credits} - ${amount}`,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(userCredits.user_id, userId))
     .returning();
@@ -164,7 +165,7 @@ export async function refundCreditsToUser(
     .set({
       used_credits: sql`${userCredits.used_credits} - ${amount}`,
       available_credits: sql`${userCredits.available_credits} + ${amount}`,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(userCredits.user_id, userId))
     .returning();

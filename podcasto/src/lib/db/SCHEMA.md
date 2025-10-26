@@ -19,6 +19,23 @@ The Podcasto database schema is organized around podcast content generation, use
 - **Indexed Lookups**: Strategic indexes on frequently queried fields
 - **Supabase Auth Integration**: References to `auth.users` (managed by Supabase)
 
+### Date & Time Policy
+
+**All timestamps in the database are stored in UTC with timezone information.**
+
+- **Schema Definition**: All timestamp columns use `timestamp('field_name', { withTimezone: true })`
+- **Storage Format**: PostgreSQL stores as `timestamp with time zone`, automatically converted to UTC
+- **Application Layer**:
+  - Server-side (Next.js, Lambda): Always work with UTC dates
+  - Client-side: Convert to user's timezone for display only
+  - Database queries: Always use UTC for filtering/comparison
+
+**Date Utilities:**
+- Next.js: Use `@/lib/utils/date/server` for server-side, `@/lib/utils/date/client` for client-side
+- Lambda: Use `shared.utils.datetime_utils` (Python)
+
+**Golden Rule**: "Store UTC, Display Local, Process UTC"
+
 ---
 
 ## Entity Relationship Diagram

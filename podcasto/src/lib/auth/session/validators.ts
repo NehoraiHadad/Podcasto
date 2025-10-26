@@ -157,10 +157,7 @@ export function formatSessionExpiry(session: Session | null): string {
  * }
  * ```
  */
-export async function validateSession(): Promise<SessionValidation> {
-  'use server';
-
-  try {
+export async function validateSession(): Promise<SessionValidation> {try {
     const supabase = await createServerClient();
     const { data: { session } } = await supabase.auth.getSession();
     return validateSessionSync(session);
@@ -194,10 +191,7 @@ export async function validateSession(): Promise<SessionValidation> {
  */
 export async function refreshSession(
   options: RefreshSessionOptions = {}
-): Promise<AuthResult<Session>> {
-  'use server';
-
-  try {
+): Promise<AuthResult<Session>> {try {
     const supabase = await createServerClient();
 
     // Check if refresh is needed (unless forced)
@@ -264,10 +258,7 @@ export async function refreshSession(
  * }
  * ```
  */
-export async function clearSession(): Promise<AuthResult> {
-  'use server';
-
-  try {
+export async function clearSession(): Promise<AuthResult> {try {
     const supabase = await createServerClient();
 
     const { error } = await supabase.auth.signOut();

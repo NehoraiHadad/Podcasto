@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { profiles } from '../../schema';
 import * as dbUtils from '../../utils';
 import type { Profile, NewProfile } from './types';
@@ -39,7 +40,7 @@ export async function updateEmailNotifications(
 ): Promise<Profile | null> {
   return await updateProfile(userId, {
     email_notifications: enabled,
-    updated_at: new Date()
+    updated_at: nowUTC()
   });
 }
 
@@ -62,6 +63,6 @@ export async function updateUnsubscribeToken(
 ): Promise<Profile | null> {
   return await updateProfile(userId, {
     unsubscribe_token: token,
-    updated_at: new Date()
+    updated_at: nowUTC()
   });
 }

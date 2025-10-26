@@ -13,6 +13,7 @@ from shared.services.google_podcast_generator import GooglePodcastGenerator
 from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 from shared.utils.logging import get_logger
+from shared.utils.datetime_utils import now_utc, to_iso_utc
 
 logger = get_logger(__name__)
 
@@ -358,7 +359,7 @@ class AudioGenerationHandler:
         """Upload both original and niqqud scripts as transcript files to S3"""
         try:
             # Create timestamp for filenames
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = now_utc().strftime('%Y%m%d_%H%M%S')
             
             # Upload original script as transcript
             original_filename = f"transcript_{timestamp}.txt"
@@ -405,7 +406,7 @@ class AudioGenerationHandler:
                 'status': 'completed',
                 'audio_url': audio_url,
                 'duration': duration,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': to_iso_utc(now_utc())
             }
             
             headers = {
@@ -439,7 +440,7 @@ class AudioGenerationHandler:
             if error_message and status == 'failed':
                 update_data['metadata'] = json.dumps({
                     'error': error_message,
-                    'failed_at': datetime.now().isoformat()
+                    'failed_at': to_iso_utc(now_utc())
                 })
             
             self.supabase_client.update_episode(episode_id, update_data)

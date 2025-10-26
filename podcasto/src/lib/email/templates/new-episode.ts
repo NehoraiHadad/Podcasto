@@ -3,6 +3,9 @@
  * Supports both HTML and plain text formats
  */
 
+import { formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
+
 export interface EpisodeEmailData {
   episodeId: string;
   episodeTitle: string;
@@ -30,11 +33,9 @@ export function generateNewEpisodeHTML(data: EpisodeEmailData): string {
 
   const episodeUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app'}/podcasts/${podcastId}`;
   const durationText = duration ? `${Math.floor(duration / 60)} minutes` : '';
-  const dateText = publishedAt ? publishedAt.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }) : '';
+  const dateText = publishedAt
+    ? formatInTimezoneServer(publishedAt, DEFAULT_TIMEZONE, 'dd MMM yyyy')
+    : '';
 
   return `
 <!DOCTYPE html>
@@ -176,11 +177,9 @@ export function generateNewEpisodeText(data: EpisodeEmailData): string {
 
   const episodeUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://podcasto.app'}/podcasts/${podcastId}`;
   const durationText = duration ? `Duration: ${Math.floor(duration / 60)} minutes` : '';
-  const dateText = publishedAt ? `Published: ${publishedAt.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })}` : '';
+  const dateText = publishedAt
+    ? `Published: ${formatInTimezoneServer(publishedAt, DEFAULT_TIMEZONE, 'dd MMM yyyy')}`
+    : '';
 
   return `
 🎙️ NEW EPISODE AVAILABLE

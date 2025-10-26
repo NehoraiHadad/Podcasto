@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { generateEpisodeWithCreditsAction } from '@/lib/actions/episode/generation-with-credits';
 import { EpisodeCostIndicator } from './episode-cost-indicator';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface PodcastCardUserProps {
   podcast: Podcast;
@@ -183,7 +185,7 @@ export function PodcastCardUser({
         {podcast.next_scheduled_generation && podcast.auto_generation_enabled && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
             <Calendar className="h-3 w-3" />
-            Next: {new Date(podcast.next_scheduled_generation).toLocaleDateString()}
+            Next: {formatUserDate(podcast.next_scheduled_generation, DATE_FORMATS.DISPLAY_DATE)}
           </div>
         )}
       </CardFooter>

@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC } from '@/lib/utils/date/server';
+
 import { db } from '@/lib/db';
 import { episodeGenerationAttempts } from '@/lib/db/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
@@ -29,7 +31,7 @@ export async function markNotificationSent(
       .update(episodeGenerationAttempts)
       .set({
         notification_sent: true,
-        notification_sent_at: new Date(),
+        notification_sent_at: nowUTC(),
       })
       .where(eq(episodeGenerationAttempts.id, attemptId));
 

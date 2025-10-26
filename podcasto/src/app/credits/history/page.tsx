@@ -6,6 +6,8 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
 import {
   Table,
   TableBody,
@@ -185,13 +187,7 @@ export default async function TransactionHistoryPage() {
                             />
                           </TableCell>
                           <TableCell className="font-medium">
-                            {new Date(transaction.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatInTimezoneServer(transaction.created_at, DEFAULT_TIMEZONE, 'dd MMMM yyyy')}
                           </TableCell>
                           <TableCell>
                             <TransactionBadge type={transaction.type} />

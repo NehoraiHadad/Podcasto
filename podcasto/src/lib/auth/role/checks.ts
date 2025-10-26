@@ -1,13 +1,11 @@
+'use server';
+
 /**
  * Role Checks
  *
  * Detailed role and permission check functions that return comprehensive information.
  * Useful for UI components that need to display role/permission status.
- */
-
-'use server';
-
-import {
+ */import {
   hasRolePermission,
   getRolePermissions,
   getHighestRole,

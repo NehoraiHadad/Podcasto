@@ -1,4 +1,6 @@
 "use client"
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 import * as React from "react"
 import {
@@ -190,7 +192,7 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString()}
+      data-day={formatUserDate(day.date, DATE_FORMATS.DISPLAY_DATE)}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

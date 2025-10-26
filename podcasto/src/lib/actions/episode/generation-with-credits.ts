@@ -1,5 +1,7 @@
 'use server';
 
+import { nowUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
 import { getUser } from '@/lib/auth';
 import { creditService } from '@/lib/services/credits';
 import { podcastsApi, episodesApi, podcastConfigsApi } from '@/lib/db/api';
@@ -209,7 +211,7 @@ export async function generateEpisodeWithCreditsAction(
       try {
         const episode = await episodesApi.createEpisode({
           podcast_id: podcastId,
-          title: `Episode ${new Date().toLocaleDateString()}`,
+          title: `Episode ${formatInTimezoneServer(nowUTC(), DEFAULT_TIMEZONE, 'dd/MM/yyyy')}`,
           description: 'Processing...',
           audio_url: '',
           status: 'pending',
@@ -264,7 +266,7 @@ export async function generateEpisodeWithCreditsAction(
 
       const episode = await episodesApi.createEpisode({
         podcast_id: podcastId,
-        title: `Episode ${new Date().toLocaleDateString()}`,
+        title: `Episode ${formatInTimezoneServer(nowUTC(), DEFAULT_TIMEZONE, 'dd/MM/yyyy')}`,
         description: 'Processing...',
         audio_url: '',
         status: 'pending',

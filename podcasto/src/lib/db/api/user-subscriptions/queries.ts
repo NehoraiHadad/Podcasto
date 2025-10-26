@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { userSubscriptions } from '@/lib/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
@@ -41,7 +42,7 @@ export const DEFAULT_PREMIUM_CREDIT_THRESHOLD = 100;
  * @returns Active subscription or null
  */
 export async function getActiveUserSubscription(userId: string): Promise<UserSubscription | null> {
-  const now = new Date();
+  const now = nowUTC();
 
   const subscription = await db.query.userSubscriptions.findFirst({
     where: and(

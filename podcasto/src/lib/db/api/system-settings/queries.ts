@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { systemSettings, SYSTEM_SETTING_KEYS, DEFAULT_SYSTEM_SETTINGS } from '@/lib/db/schema/system-settings';
 import { eq } from 'drizzle-orm';
@@ -180,14 +181,14 @@ export async function updateSystemSetting(
       description: systemDefault?.description,
       category: systemDefault?.category,
       updated_by: updatedBy,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .onConflictDoUpdate({
       target: systemSettings.key,
       set: {
         value: formattedValue,
         updated_by: updatedBy,
-        updated_at: new Date()
+        updated_at: nowUTC()
       }
     });
 
@@ -208,7 +209,7 @@ export async function initializeSystemSettings(): Promise<void> {
     value_type: setting.value_type,
     description: setting.description,
     category: setting.category,
-    updated_at: new Date()
+    updated_at: nowUTC()
   }));
 
   for (const setting of settingsToInsert) {

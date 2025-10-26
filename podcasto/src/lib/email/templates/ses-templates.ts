@@ -3,6 +3,9 @@
  * Uses Handlebars syntax for personalization with inline templates
  */
 
+import { formatInTimezoneServer } from '@/lib/utils/date/server';
+import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
+
 /**
  * Template data interface for SES bulk sending
  * All values must be strings for SES (dates/numbers converted to strings)
@@ -244,11 +247,7 @@ export function convertToSESTemplateData(
     coverImage,
     durationMinutes: duration ? Math.floor(duration / 60).toString() : '',
     publishDate: publishedAt
-      ? publishedAt.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+      ? formatInTimezoneServer(publishedAt, DEFAULT_TIMEZONE, 'dd MMMM yyyy')
       : '',
     episodeUrl,
     siteUrl,

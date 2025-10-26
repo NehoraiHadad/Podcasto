@@ -1,3 +1,4 @@
+import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { creditPackages } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -96,7 +97,7 @@ export async function createCreditPackage(
       is_active: data.is_active ?? true,
       display_order: data.display_order ?? 0,
       validity_days: data.validity_days || null,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .returning();
 
@@ -114,7 +115,7 @@ export async function updateCreditPackage(
     .update(creditPackages)
     .set({
       ...data,
-      updated_at: new Date()
+      updated_at: nowUTC()
     })
     .where(eq(creditPackages.id, packageId))
     .returning();

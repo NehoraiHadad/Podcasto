@@ -1,5 +1,7 @@
 'use client';
 
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 import { useEffect, useState } from 'react';
 import { Check, Circle, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -196,7 +198,7 @@ function StageItem({ log, isLast }: StageItemProps) {
             )}
             {log.completed_at && (
               <span className="text-xs text-muted-foreground">
-                {new Date(log.completed_at).toLocaleTimeString()}
+                {formatUserDate(log.completed_at, DATE_FORMATS.DISPLAY_TIME)}
               </span>
             )}
           </div>

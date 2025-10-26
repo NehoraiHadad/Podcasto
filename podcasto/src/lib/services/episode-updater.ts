@@ -2,6 +2,7 @@ import { episodesApi } from '../db/api';
 import { creditService } from '../services/credits';
 import { isUserAdmin } from '../db/api/user-roles';
 import type { IEpisodeUpdater } from './interfaces';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 /**
  * Service for updating episode metadata and status
@@ -37,7 +38,7 @@ export class EpisodeUpdater implements IEpisodeUpdater {
   async markEpisodeAsPublished(episodeId: string): Promise<void> {
     await episodesApi.updateEpisode(episodeId, {
       status: 'published',
-      published_at: new Date()
+      published_at: nowUTC()
     });
   }
 
@@ -130,7 +131,7 @@ export class EpisodeUpdater implements IEpisodeUpdater {
       
       // Add error information to metadata
       metadata.image_generation_error = error instanceof Error ? error.message : String(error);
-      metadata.image_generation_timestamp = new Date().toISOString();
+      metadata.image_generation_timestamp = toISOUTC(nowUTC());
       
       // Update episode with metadata and status
       await episodesApi.updateEpisode(episodeId, {
@@ -176,7 +177,7 @@ export class EpisodeUpdater implements IEpisodeUpdater {
     await episodesApi.updateEpisode(episodeId, {
       cover_image: imageUrl,
       status: 'published',
-      published_at: new Date(),
+      published_at: nowUTC(),
       metadata: JSON.stringify(metadata)
     });
   }

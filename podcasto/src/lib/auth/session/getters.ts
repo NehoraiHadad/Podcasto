@@ -1,3 +1,5 @@
+'use server';
+
 /**
  * Session Getters
  *
@@ -6,11 +8,7 @@
  *
  * Following 2025 Supabase SSR best practices:
  * https://supabase.com/docs/guides/auth/server-side/nextjs
- */
-
-'use server';
-
-import { cache } from 'react';
+ */import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
 import type { Database } from '@/lib/supabase/types';

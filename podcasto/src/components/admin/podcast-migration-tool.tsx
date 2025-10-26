@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Search, Globe, ChevronRight } from 'lucide-react';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface Podcast {
   id: string;
@@ -280,7 +282,7 @@ export function PodcastMigrationTool() {
                         </TableCell>
                         <TableCell>
                           {podcast.created_at
-                            ? new Date(podcast.created_at).toLocaleDateString()
+                            ? formatUserDate(podcast.created_at, DATE_FORMATS.DISPLAY_DATE)
                             : 'N/A'}
                         </TableCell>
                       </TableRow>

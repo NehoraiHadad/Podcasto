@@ -46,6 +46,87 @@ Podcasto uses a distributed architecture across three primary services:
 - **Core Tables**: podcasts, episodes, subscriptions, sent_episodes, user_roles, podcast_configs
 - **Pattern**: Each table has its own schema file; relationships defined in `schema/relations.ts`
 - **Migration Workflow**: Update schema files → `npx drizzle-kit generate` → migrations created in `drizzle/` directory
+- **Date/Time Policy**: All timestamps stored in UTC with `withTimezone: true` (see Date & Time Handling below)
+
+### Date & Time Handling
+
+**Golden Rule: "Store UTC, Display Local, Process UTC"**
+
+All dates and times in Podcasto follow a strict UTC-first policy:
+
+**Database:**
+- All timestamp columns use `timestamp('field_name', { withTimezone: true })`
+- PostgreSQL automatically converts and stores in UTC
+- Never store dates in local timezone
+
+**Next.js Application:**
+
+Server-side (Server Components, Server Actions, API Routes):
+```typescript
+import { nowUTC, createDateRangeUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
+
+// Get current time
+const now = nowUTC();
+
+// Create date range for queries (handles user timezone)
+const { startUTC, endUTC } = createDateRangeUTC(
+  userStartDate,  // "2024-01-15"
+  userEndDate,    // "2024-01-20"
+  'Asia/Jerusalem' // User's timezone
+);
+
+// Query with UTC dates
+const episodes = await db.query.episodes.findMany({
+  where: and(
+    gte(episodes.created_at, startUTC.toISOString()),
+    lte(episodes.created_at, endUTC.toISOString())
+  )
+});
+```
+
+Client-side (Client Components with "use client"):
+```typescript
+import { formatUserDate, formatRelativeTime } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
+
+// Display in user's timezone
+<p>{formatUserDate(episode.created_at, DATE_FORMATS.DISPLAY_DATE)}</p>
+<p>{formatRelativeTime(episode.created_at)}</p>
+```
+
+**Lambda Functions (Python):**
+```python
+from shared.utils.datetime_utils import now_utc, to_iso_utc, create_date_range_utc
+
+# Always use UTC
+timestamp = now_utc()
+iso_string = to_iso_utc(timestamp)
+
+# Create date range for queries
+start_utc, end_utc = create_date_range_utc(
+    start_date,
+    end_date,
+    'Asia/Jerusalem'
+)
+```
+
+**Critical Use Case - Episode Date Ranges:**
+When users select dates for Telegram message filtering, the dates must be converted from their timezone to UTC to avoid missing messages:
+
+```typescript
+// User in Israel selects "2024-01-15" to "2024-01-20"
+const { startUTC, endUTC } = createDateRangeUTC(
+  '2024-01-15',
+  '2024-01-20',
+  'Asia/Jerusalem'
+);
+// startUTC: 2024-01-14T22:00:00.000Z (midnight Israel time)
+// endUTC: 2024-01-20T21:59:59.999Z (end of day Israel time)
+```
+
+**Documentation:**
+- Detailed guide: `src/lib/utils/date/README.md`
+- Constants: `src/lib/utils/date/constants.ts`
 
 ### Authentication & Authorization
 - **Implementation**: Supabase Auth with middleware protection

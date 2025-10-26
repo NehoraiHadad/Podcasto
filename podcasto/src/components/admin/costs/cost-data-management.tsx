@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteAllCostData, getCostDataStats } from '@/lib/actions/cost';
 import { useToast } from '@/hooks/use-toast';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface CostDataStats {
   totalEvents: number;
@@ -135,9 +137,9 @@ export function CostDataManagement() {
                 <div className="col-span-2">
                   <span className="text-muted-foreground">Time range:</span>{' '}
                   <strong>
-                    {new Date(stats.oldestEvent).toLocaleDateString('en-US')} -{' '}
+                    {formatUserDate(stats.oldestEvent, DATE_FORMATS.DISPLAY_DATE)} -{' '}
                     {stats.newestEvent
-                      ? new Date(stats.newestEvent).toLocaleDateString('en-US')
+                      ? formatUserDate(stats.newestEvent, DATE_FORMATS.DISPLAY_DATE)
                       : 'Now'}
                   </strong>
                 </div>

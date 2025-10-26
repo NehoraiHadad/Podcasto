@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatUserDate } from '@/lib/utils/date/client';
+import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface DailyReport {
   date: string;
@@ -59,14 +61,6 @@ export function WeeklySummaryChart({
         {rate.toFixed(1)}% Success
       </Badge>
     );
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   return (
@@ -126,7 +120,7 @@ export function WeeklySummaryChart({
                   return (
                     <TableRow key={day.date}>
                       <TableCell className="font-medium">
-                        {formatDate(day.date)}
+                        {formatUserDate(day.date, DATE_FORMATS.DISPLAY_DATE)}
                       </TableCell>
                       <TableCell className="text-right">{day.total}</TableCell>
                       <TableCell className="text-right text-green-600 dark:text-green-400">

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError, validateCronAuth, logError } from '@/lib/api';
+import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
 
 /**
  * Starts all cron jobs in the application
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
     console.log('[CRON] All jobs completed. Results:', JSON.stringify(jobResults, null, 2));
 
     return apiSuccess({
-      timestamp: new Date().toISOString(),
+      timestamp: toISOUTC(nowUTC()),
       results: jobResults
     });
   } catch (error) {
