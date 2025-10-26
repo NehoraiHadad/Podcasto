@@ -121,11 +121,28 @@ export async function getProblematicPodcasts(
       LIMIT 20
     `);
 
-    console.log('[DB] Query executed, result type:', typeof results, Array.isArray(results));
+    // Log the raw result for debugging
+    console.log('[DB] Raw SQL result type:', typeof results, 'isArray:', Array.isArray(results));
+    console.log('[DB] Raw SQL result:', JSON.stringify(results, null, 2));
 
-    // Handle different result formats from db.execute
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = Array.isArray(results) ? results : (results as any).rows || [];
+    // Handle the actual result format - drizzle can return different formats
+    let rows: ProblematicPodcastRecord[] = [];
+
+    interface SqlResult {
+      rows: ProblematicPodcastRecord[];
+    }
+
+    if (Array.isArray(results)) {
+      // Direct array of rows
+      rows = results as unknown as ProblematicPodcastRecord[];
+    } else if (results && typeof results === 'object' && 'rows' in results && Array.isArray((results as SqlResult).rows)) {
+      // Object with rows property
+      rows = (results as SqlResult).rows;
+    } else {
+      console.error('[DB] Unexpected SQL result format:', results);
+      return { success: true, data: [] };
+    }
+
     console.log('[DB] Found problematic podcasts:', rows.length);
 
     return { success: true, data: rows as ProblematicPodcastRecord[] };
