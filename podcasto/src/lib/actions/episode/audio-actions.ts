@@ -229,9 +229,11 @@ export async function regenerateEpisodeAudio(
       const telegramDataUrl = metadata?.telegram_data_url || metadata?.s3_key;
 
       if (!telegramDataUrl) {
+        console.error(`[REGENERATE_AUDIO] No Telegram data URL found for episode ${episodeId}`);
+        console.error(`[REGENERATE_AUDIO] episode.metadata:`, episode.metadata);
         return {
           success: false,
-          error: 'No Telegram data URL found in episode metadata. Use "Full Regeneration" instead.'
+          error: 'No Telegram data found for this episode. This episode may not have reached the Telegram fetching stage. Please use "Full Regeneration" mode to fetch fresh data from Telegram.'
         };
       }
 
@@ -279,13 +281,22 @@ export async function regenerateEpisodeAudio(
         console.log(`[REGENERATE_AUDIO] Deleted ${deletedCount} audio files from S3`);
       }
 
-      // Get script URL from episode metadata or database
-      const scriptUrl = episode.script_url;
+      // Get script URL from episode database or metadata
+      let scriptUrl = episode.script_url;
+
+      // If not in script_url field, try to find in metadata
+      if (!scriptUrl) {
+        const metadata = typeof episode.metadata === 'string' ? JSON.parse(episode.metadata) : episode.metadata;
+        scriptUrl = metadata?.script_url || metadata?.preprocessed_script_url;
+      }
 
       if (!scriptUrl) {
+        console.error(`[REGENERATE_AUDIO] No script URL found for episode ${episodeId}`);
+        console.error(`[REGENERATE_AUDIO] episode.script_url: ${episode.script_url}`);
+        console.error(`[REGENERATE_AUDIO] episode.metadata:`, episode.metadata);
         return {
           success: false,
-          error: 'No script URL found for this episode. Use "Script + Audio" or "Full Regeneration" instead.'
+          error: 'No script found for this episode. This episode may not have reached the script generation stage. Please use "Script + Audio" mode (which will use existing Telegram data) or "Full Regeneration" mode (which will fetch fresh data).'
         };
       }
 
