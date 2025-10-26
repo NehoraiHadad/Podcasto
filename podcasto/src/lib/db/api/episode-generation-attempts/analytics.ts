@@ -108,6 +108,18 @@ export async function getProblematicPodcasts(
         WHERE attempted_at >= ${cutoffDateString}
         GROUP BY podcast_id
         HAVING COUNT(*) >= ${minAttempts}
+      ),
+      latest_failures AS (
+        SELECT DISTINCT ON (podcast_id)
+          podcast_id,
+          failure_reason,
+          error_details,
+          attempted_at as last_failure_at
+        FROM episode_generation_attempts
+        WHERE
+          attempted_at >= ${cutoffDateString}
+          AND status != 'success'
+        ORDER BY podcast_id, attempted_at DESC
       )
       SELECT
         ps.podcast_id,
@@ -115,9 +127,13 @@ export async function getProblematicPodcasts(
         ps.failed_attempts,
         ps.failure_rate,
         p.title as podcast_title,
-        p.created_by
+        p.created_by,
+        lf.failure_reason as recent_failure_reason,
+        lf.error_details as recent_error_details,
+        lf.last_failure_at
       FROM podcast_stats ps
       JOIN podcasts p ON p.id = ps.podcast_id
+      LEFT JOIN latest_failures lf ON lf.podcast_id = ps.podcast_id
       WHERE ps.failure_rate >= ${failureThreshold}
       ORDER BY ps.failure_rate DESC, ps.total_attempts DESC
       LIMIT 20

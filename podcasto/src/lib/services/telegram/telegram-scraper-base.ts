@@ -118,25 +118,45 @@ export function parseChannelImageFromHTML(html: string): string | null {
 
 /**
  * Parse the latest message date from Telegram channel HTML
- * Looks for the first message's timestamp in the page
+ * Looks for the LAST message's timestamp in the page (most recent)
  * @param html - HTML content from Telegram channel page
  * @returns Date object or null if not found
  */
 export function parseLatestMessageDateFromHTML(html: string): Date | null {
   console.log('[TELEGRAM_SCRAPER_BASE] Parsing latest message date from HTML');
 
-  // Look for time elements with datetime attribute
+  // Look for ALL time elements with datetime attribute
   // Example: <time class="time" datetime="2025-10-24T12:34:56+00:00">
-  const timeMatch = html.match(/<time[^>]+datetime="([^"]+)"/);
+  // Note: Telegram pages show messages chronologically (oldest first, newest last)
+  // so we need to find the LAST match, not the first
+  const matches = Array.from(html.matchAll(/<time[^>]+datetime="([^"]+)"/g));
 
-  if (timeMatch && timeMatch[1]) {
+  console.log(`[TELEGRAM_SCRAPER_BASE] Found ${matches.length} time elements in HTML`);
+
+  if (matches.length === 0) {
+    console.warn('[TELEGRAM_SCRAPER_BASE] No message date found in HTML');
+    return null;
+  }
+
+  // Get the last match (most recent message)
+  const lastMatch = matches[matches.length - 1];
+
+  if (lastMatch && lastMatch[1]) {
     try {
-      const dateString = timeMatch[1];
+      const dateString = lastMatch[1];
       const date = new Date(dateString);
 
       if (!isNaN(date.getTime())) {
+        // Log diagnostic info if multiple messages found
+        if (matches.length > 1) {
+          const firstDateString = matches[0][1];
+          console.log(
+            `[TELEGRAM_SCRAPER_BASE] First message date: ${new Date(firstDateString).toISOString()}`
+          );
+        }
+
         console.log(
-          `[TELEGRAM_SCRAPER_BASE] Found latest message date: ${date.toISOString()}`
+          `[TELEGRAM_SCRAPER_BASE] Latest message date: ${date.toISOString()}`
         );
         return date;
       }
@@ -152,6 +172,6 @@ export function parseLatestMessageDateFromHTML(html: string): Date | null {
     }
   }
 
-  console.warn('[TELEGRAM_SCRAPER_BASE] No message date found in HTML');
+  console.warn('[TELEGRAM_SCRAPER_BASE] Could not parse date from matched time element');
   return null;
 }

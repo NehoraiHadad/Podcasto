@@ -202,6 +202,9 @@ export async function getProblematicPodcastsReport(
     failure_rate: number;
     podcast_title: string;
     created_by: string;
+    recent_failure_reason: string | null;
+    recent_error_details: Record<string, unknown> | null;
+    last_failure_at: Date | null;
   }>;
   error?: string;
 }> {

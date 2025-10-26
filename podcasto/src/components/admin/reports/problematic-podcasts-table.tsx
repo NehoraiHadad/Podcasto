@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, MessageSquareWarning } from 'lucide-react';
 
 interface ProblematicPodcast {
   podcast_id: string;
@@ -19,6 +19,9 @@ interface ProblematicPodcast {
   failure_rate: number;
   podcast_title: string;
   created_by: string;
+  recent_failure_reason: string | null;
+  recent_error_details: Record<string, unknown> | null;
+  last_failure_at: Date | null;
 }
 
 interface ProblematicPodcastsTableProps {
@@ -40,6 +43,44 @@ export function ProblematicPodcastsTable({
       return 'text-orange-600 dark:text-orange-400 font-medium';
     }
     return 'text-yellow-600 dark:text-yellow-400';
+  };
+
+  /**
+   * Format failure reason for display - extract the most important info
+   */
+  const formatFailureReason = (
+    reason: string | null,
+    errorDetails: Record<string, unknown> | null
+  ): string => {
+    if (!reason && !errorDetails) {
+      return 'Unknown error';
+    }
+
+    // If we have error_details, try to extract useful info
+    if (errorDetails) {
+      const channelName = errorDetails.channel_name as string | undefined;
+      const latestMessageDate = errorDetails.latest_message_date as string | undefined;
+      const errorMessage = errorDetails.error_message as string | undefined;
+
+      if (channelName && reason?.includes('No new messages')) {
+        if (latestMessageDate) {
+          const date = new Date(latestMessageDate);
+          return `No new messages in ${channelName} (last: ${date.toLocaleDateString()})`;
+        }
+        return `No new messages in ${channelName}`;
+      }
+
+      if (errorMessage) {
+        return errorMessage.length > 60 ? errorMessage.substring(0, 60) + '...' : errorMessage;
+      }
+    }
+
+    // Fallback to the reason string
+    if (reason) {
+      return reason.length > 60 ? reason.substring(0, 60) + '...' : reason;
+    }
+
+    return 'Unknown error';
   };
 
   return (
@@ -70,6 +111,7 @@ export function ProblematicPodcastsTable({
                   <TableHead className="text-right">Total Attempts</TableHead>
                   <TableHead className="text-right">Failed</TableHead>
                   <TableHead className="text-right">Failure Rate</TableHead>
+                  <TableHead>Recent Error</TableHead>
                   <TableHead>Creator</TableHead>
                 </TableRow>
               </TableHeader>
@@ -94,6 +136,22 @@ export function ProblematicPodcastsTable({
                       <span className={getFailureRateColor(podcast.failure_rate)}>
                         {(podcast.failure_rate * 100).toFixed(1)}%
                       </span>
+                    </TableCell>
+                    <TableCell className="max-w-md">
+                      <div className="flex items-start gap-2">
+                        <MessageSquareWarning className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-muted-foreground">
+                          {formatFailureReason(
+                            podcast.recent_failure_reason,
+                            podcast.recent_error_details
+                          )}
+                        </span>
+                      </div>
+                      {podcast.last_failure_at && (
+                        <div className="text-xs text-muted-foreground mt-1 ml-6">
+                          {new Date(podcast.last_failure_at).toLocaleString()}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {podcast.created_by}
