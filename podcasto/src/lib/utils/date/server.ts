@@ -151,3 +151,31 @@ export function daysBetween(start: Date | string, end: Date | string): number {
   const diffMs = endD.getTime() - startD.getTime();
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * Subtract days from a date
+ * ALWAYS use this instead of manual date arithmetic
+ */
+export function subtractDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() - days);
+  return result;
+}
+
+/**
+ * Subtract hours from a date
+ * ALWAYS use this instead of manual date arithmetic
+ */
+export function subtractHours(date: Date, hours: number): Date {
+  const result = new Date(date);
+  result.setHours(result.getHours() - hours);
+  return result;
+}
+
+/**
+ * Add milliseconds to a date
+ * ALWAYS use this instead of manual date arithmetic
+ */
+export function addMilliseconds(date: Date, ms: number): Date {
+  return new Date(date.getTime() + ms);
+}

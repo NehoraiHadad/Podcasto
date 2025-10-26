@@ -6,6 +6,7 @@ Centralized content extraction from Telegram data with clean, focused output
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from shared.utils.logging import get_logger
+from shared.utils.datetime_utils import now_utc, to_iso_utc
 
 logger = get_logger(__name__)
 
@@ -155,7 +156,7 @@ class TelegramContentExtractor:
                     return datetime.fromtimestamp(date_value).isoformat()
         
         # Fallback to current time
-        return datetime.now().isoformat()
+        return to_iso_utc(now_utc())
     
     def _sort_messages_by_date(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Sort messages by date, with error handling"""
@@ -168,7 +169,7 @@ class TelegramContentExtractor:
                     return datetime.fromisoformat(date_clean)
                 except:
                     # Fallback: use current time
-                    return datetime.now()
+                    return now_utc()
             
             return sorted(messages, key=parse_date_for_sorting)
         

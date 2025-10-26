@@ -273,5 +273,5 @@ class SupabaseClient:
 
     def _get_current_timestamp(self) -> str:
         """Get current timestamp in ISO format"""
-        from datetime import datetime
-        return datetime.utcnow().isoformat() + 'Z' 
+        from shared.utils.datetime_utils import now_utc, to_iso_utc
+        return to_iso_utc(now_utc()) 

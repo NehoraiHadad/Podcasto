@@ -1,4 +1,4 @@
-import { nowUTC, parseISOUTC } from '@/lib/utils/date/server';
+import { nowUTC, parseISOUTC, subtractDays } from '@/lib/utils/date/server';
 /**
  * Message pre-check service for Telegram channels
  * Determines if a channel has new messages within a date range without full scraping
@@ -106,7 +106,7 @@ function normalizeDateRange(
   if (typeof options === 'number') {
     const now = nowUTC();
     const daysBack = Math.abs(options); // Ensure positive
-    const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    const startDate = subtractDays(now, daysBack);
 
     return {
       startDate,

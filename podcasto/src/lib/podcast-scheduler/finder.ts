@@ -1,4 +1,4 @@
-import { nowUTC } from '@/lib/utils/date/server';
+import { nowUTC, parseISOUTC, startOfDayUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
@@ -50,8 +50,10 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
     
     // Convert the SQL result to a usable format
     const podcastData = rows.map((row: PodcastSqlRow) => {
-      // Convert date strings to Date objects consistently
-      const latestEpisodeDate = new Date(row.latest_episode_date);
+      // Convert date strings to Date objects consistently using parseISOUTC
+      const latestEpisodeDate = typeof row.latest_episode_date === 'string'
+        ? parseISOUTC(row.latest_episode_date)
+        : row.latest_episode_date;
 
       return {
         id: row.podcast_id,
@@ -82,11 +84,8 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
       }
       
       // Reset to start of day for accurate date comparison (ignore time)
-      const latestDate = new Date(podcast.latestEpisodeDate);
-      latestDate.setHours(0, 0, 0, 0);
-
-      const today = new Date(now);
-      today.setHours(0, 0, 0, 0);
+      const latestDate = startOfDayUTC(podcast.latestEpisodeDate);
+      const today = startOfDayUTC(now);
 
       // Calculate full days since last episode
       const daysSinceLastEpisode = Math.floor(

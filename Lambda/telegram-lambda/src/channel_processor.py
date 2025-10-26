@@ -12,6 +12,7 @@ from src.message_processor import MessageProcessor
 from src.media_handler import MediaHandler
 from src.clients.telegram_client import TelegramClientWrapper
 from shared.clients.s3_client import S3Client
+from shared.utils.datetime_utils import now_utc
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -97,7 +98,7 @@ class ChannelProcessor:
                 return self._create_empty_result()
             
             # Create timestamp for consistent folder structure
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = now_utc().strftime("%Y%m%d_%H%M%S")
             
             # Use the episode ID from config if available, otherwise generate a new one
             # This is crucial for ensuring the episode ID is consistent throughout the pipeline

@@ -1,4 +1,4 @@
-import { nowUTC, toISOUTC } from '@/lib/utils/date/server';
+import { nowUTC, toISOUTC, subtractHours } from '@/lib/utils/date/server';
 import { generatePodcastEpisode } from '@/lib/actions/podcast/generate';
 import { PodcastScheduleData } from './types';
 import { EpisodeCheckerDetailedResult } from '@/components/admin/cron-runner-constants';
@@ -104,7 +104,7 @@ export async function generateEpisodesForPodcasts(
 
       // Calculate date range based on telegram_hours
       const now = nowUTC();
-      const startDate = new Date(now.getTime() - (podcast.telegramHours * 60 * 60 * 1000));
+      const startDate = subtractHours(now, podcast.telegramHours);
       const dateRange = {
         startDate,
         endDate: now

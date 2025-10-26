@@ -21,6 +21,7 @@ from shared.clients.telegram_data_client import TelegramDataClient  # type: igno
 from shared.services.voice_config import VoiceConfigManager  # type: ignore
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage  # type: ignore
 from shared.utils.logging import get_logger  # type: ignore
+from shared.utils.datetime_utils import now_utc  # type: ignore
 
 # Lambda-specific services (unique to script-preprocessor)
 from services.telegram_content_extractor import TelegramContentExtractor  # type: ignore
@@ -199,7 +200,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
         analysis_dict: Dict[str, Any],
         script: str,
     ) -> Dict[str, str]:
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = now_utc().strftime("%Y%m%d_%H%M%S")
         artefacts: Dict[str, str] = {}
         artefacts["clean_content"] = self._upload_json(podcast_id, episode_id, clean_content, f"clean_content_{ts}.json")
         artefacts["analysis"] = self._upload_json(podcast_id, episode_id, analysis_dict, f"analysis_{ts}.json")
