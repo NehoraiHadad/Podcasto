@@ -16,8 +16,8 @@ Parameters:
 
   ExistingSQSQueueUrl:
     Type: String
-    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/podcast-processing-queue'
-    Description: 'URL of the SQS queue for incoming messages'
+    Default: 'https://sqs.us-east-1.amazonaws.com/638520701769/script-generation-queue'
+    Description: 'URL of the SQS queue for incoming messages from Telegram Lambda'
 
   AudioGenerationQueueUrl:
     Type: String
@@ -53,7 +53,7 @@ Resources:
         SQSEvent:
           Type: SQS
           Properties:
-            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
             BatchSize: 1
             MaximumBatchingWindowInSeconds: 0
       Policies:
@@ -64,7 +64,7 @@ Resources:
                 - sqs:ReceiveMessage
                 - sqs:DeleteMessage
                 - sqs:GetQueueAttributes
-              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:podcast-processing-queue'
+              Resource: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:script-generation-queue'
             - Effect: Allow
               Action:
                 - sqs:SendMessage

@@ -33,13 +33,14 @@ cd Lambda/audio-generation-lambda
 ## Architecture Overview
 
 ### Multi-Service Architecture
-Podcasto uses a distributed architecture across three primary services:
+Podcasto uses a distributed architecture across four primary services:
 
 1. **Next.js Application (Vercel)**: Main web application handling user interactions, admin dashboard, and episode triggering
 2. **Telegram Lambda (AWS)**: Fetches content from Telegram channels and stores to S3
-3. **Audio Generation Lambda (AWS)**: Processes episode content using Google Gemini 2.5 Flash TTS, generates audio files
+3. **Script Preprocessor Lambda (AWS)**: Generates clean content, analysis, and script using Google Gemini
+4. **Audio Generation Lambda (AWS)**: Processes scripts using Google Gemini 2.5 Flash TTS, generates audio files
 
-**Flow**: User triggers episode → Next.js sends to SQS → Telegram Lambda fetches content → Audio Lambda generates podcast → S3 storage → Database updated
+**Flow**: User triggers episode → Next.js invokes Telegram Lambda → Telegram Lambda fetches content → `script-generation-queue` → Script Lambda generates script → `audio-generation-queue` → Audio Lambda generates podcast → S3 storage → Database updated
 
 ### Database Layer (Drizzle + Supabase)
 - **Schema Location**: `podcasto/src/lib/db/schema/`
