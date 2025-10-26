@@ -131,14 +131,17 @@ export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) 
                   alt={podcast.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  priority={index === 0}
+                  // Preload first 3 images for smooth carousel rotation
+                  // This is a Next.js best practice for carousels
+                  priority={index < 3}
                   className="object-cover"
                   onError={() => handleImageError(podcast.id)}
+                  // quality defaults to 75 from next.config.ts
                 />
               ) : (
                 <PodcastImageFallback />
               )}
-              
+
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
                 <h3 className="text-white text-lg sm:text-xl font-bold">{podcast.title}</h3>
                 <p className="text-white/80 text-sm sm:text-base line-clamp-2">{podcast.description}</p>

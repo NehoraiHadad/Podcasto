@@ -58,11 +58,15 @@ const buildS3RemotePatterns = () => {
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: buildS3RemotePatterns(),
-    // Advanced image optimization settings
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 512, 640, 750, 828, 1080],
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
+    // Optimized image settings to reduce Vercel transformations usage
+    // Reduced from 21 total sizes to 8 essential sizes for the application
+    deviceSizes: [640, 750, 1080, 1920],  // 4 device breakpoints
+    imageSizes: [64, 96, 256, 384],       // 4 common image sizes (thumbnails, cards, etc.)
+    // Using only WebP format (instead of WebP + AVIF) reduces transformations by 50%
+    formats: ['image/webp'],
+    // Cache images for 31 days (instead of 60 seconds) to drastically reduce re-transformations
+    // This is the primary optimization - prevents creating new transformations on every request
+    minimumCacheTTL: 2678400,  // 31 days in seconds (recommended by Vercel)
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
