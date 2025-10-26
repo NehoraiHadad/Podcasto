@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { profiles, episodes, podcasts, sentEpisodes, emailBounces, creditTransactions } from '@/lib/db/schema';
 import { sql, desc, gte, and } from 'drizzle-orm';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
+import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
 
 export interface AnalyticsStats {
   userMetrics: {
@@ -79,8 +80,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.subscriptions s ON u.id = s.user_id
     `);
 
-    const userMetricsRows = Array.isArray(userMetricsQuery) ? userMetricsQuery : (userMetricsQuery as any).rows || [];
-    const userMetrics = userMetricsRows[0] as any;
+    const userMetricsRows = extractRowsFromSqlResult<any>(userMetricsQuery, 'UserMetrics');
+    const userMetrics = userMetricsRows[0];
 
     // Engagement metrics
     const engagementQuery = await db.execute(sql`
@@ -101,8 +102,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.sent_episodes se
     `);
 
-    const engagementRows = Array.isArray(engagementQuery) ? engagementQuery : (engagementQuery as any).rows || [];
-    const engagement = engagementRows[0] as any;
+    const engagementRows = extractRowsFromSqlResult<any>(engagementQuery, 'Engagement');
+    const engagement = engagementRows[0];
 
     // Email health metrics
     const emailHealthQuery = await db.execute(sql`
@@ -114,8 +115,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.email_bounces eb ON se.user_id = eb.user_id
     `);
 
-    const emailHealthRows = Array.isArray(emailHealthQuery) ? emailHealthQuery : (emailHealthQuery as any).rows || [];
-    const emailHealth = emailHealthRows[0] as any;
+    const emailHealthRows = extractRowsFromSqlResult<any>(emailHealthQuery, 'EmailHealth');
+    const emailHealth = emailHealthRows[0];
     const totalEmails = emailHealth.total_emails_sent || 1; // Avoid division by zero
     const bounceRate = ((emailHealth.bounces_count || 0) / totalEmails) * 100;
     const complaintRate = ((emailHealth.complaints_count || 0) / totalEmails) * 100;
@@ -130,8 +131,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       FROM public.user_credits
     `);
 
-    const creditMetricsRows = Array.isArray(creditMetricsQuery) ? creditMetricsQuery : (creditMetricsQuery as any).rows || [];
-    const creditMetrics = creditMetricsRows[0] as any;
+    const creditMetricsRows = extractRowsFromSqlResult<any>(creditMetricsQuery, 'CreditMetrics');
+    const creditMetrics = creditMetricsRows[0];
     const totalCreditsSold = parseFloat(creditMetrics.total_credits_sold || '0');
     const totalCreditsUsed = parseFloat(creditMetrics.total_credits_used || '0');
     const creditUsageRate = totalCreditsSold > 0 ? (totalCreditsUsed / totalCreditsSold) * 100 : 0;
@@ -147,8 +148,8 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.episodes e
     `);
 
-    const contentMetricsRows = Array.isArray(contentMetricsQuery) ? contentMetricsQuery : (contentMetricsQuery as any).rows || [];
-    const contentMetrics = contentMetricsRows[0] as any;
+    const contentMetricsRows = extractRowsFromSqlResult<any>(contentMetricsQuery, 'ContentMetrics');
+    const contentMetrics = contentMetricsRows[0];
 
     const stats: AnalyticsStats = {
       userMetrics: {
@@ -221,7 +222,7 @@ export async function getUserGrowthDataAction(): Promise<{
       ORDER BY date ASC
     `);
 
-    const growthRows = Array.isArray(growthQuery) ? growthQuery : (growthQuery as any).rows || [];
+    const growthRows = extractRowsFromSqlResult<any>(growthQuery, 'GrowthData');
     const growthData = growthRows.map((row: any) => ({
       date: row.date,
       count: row.count,
@@ -286,7 +287,7 @@ export async function getTopPodcastsAction(limit = 10): Promise<{
       LIMIT ${limit}
     `);
 
-    const topPodcastsRows = Array.isArray(topPodcastsQuery) ? topPodcastsQuery : (topPodcastsQuery as any).rows || [];
+    const topPodcastsRows = extractRowsFromSqlResult<any>(topPodcastsQuery, 'TopPodcasts');
     const topPodcasts = topPodcastsRows.map((row: any) => ({
       id: row.id,
       title: row.title,

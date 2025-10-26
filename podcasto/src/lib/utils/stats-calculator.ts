@@ -134,7 +134,7 @@ export function aggregateByStatus(
  * Converts an array of items into a Record mapping field values to their total counts.
  *
  * @param data - Array of objects with count property
- * @param field - The field to aggregate by
+ * @param field - The field name to aggregate by
  * @returns Record mapping field values to their total counts
  *
  * @example
@@ -148,12 +148,12 @@ export function aggregateByStatus(
  * // Returns: { cron: 13, manual: 5 }
  * ```
  */
-export function aggregateByField<T extends Record<string, unknown>>(
-  data: Array<T & { count: number }>,
-  field: keyof T
+export function aggregateByField<T extends { count: number }>(
+  data: Array<T>,
+  field: string
 ): Record<string, number> {
   return data.reduce((acc, item) => {
-    const key = String(item[field]);
+    const key = String((item as any)[field]);
     acc[key] = (acc[key] || 0) + item.count;
     return acc;
   }, {} as Record<string, number>);

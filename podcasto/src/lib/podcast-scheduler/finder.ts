@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
+import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
 import { PodcastScheduleData, PodcastSqlRow } from './types';
 
 /**
@@ -40,25 +41,10 @@ export async function findPodcastsNeedingEpisodes(): Promise<PodcastScheduleData
     
     // Log the raw result for debugging
     console.log(`[PODCAST_FINDER] Raw SQL result:`, JSON.stringify(result, null, 2));
-    
-    // Handle the actual result format - direct array of rows
-    let rows: PodcastSqlRow[] = [];
-    
-    interface SqlResult {
-      rows: PodcastSqlRow[];
-    }
 
-    if (Array.isArray(result)) {
-      // Direct array of rows
-      rows = result as unknown as PodcastSqlRow[];
-    } else if (result && typeof result === 'object' && 'rows' in result && Array.isArray((result as SqlResult).rows)) {
-      // Object with rows property
-      rows = (result as SqlResult).rows;
-    } else {
-      console.error('[PODCAST_FINDER] Unexpected SQL result format:', result);
-      return [];
-    }
-    
+    // Extract rows using utility function
+    const rows = extractRowsFromSqlResult<PodcastSqlRow>(result, 'PODCAST_FINDER');
+
     console.log(`[PODCAST_FINDER] SQL query returned ${rows.length} rows`);
     
     // Convert the SQL result to a usable format

@@ -6,6 +6,7 @@ import {
   getProblematicPodcasts,
 } from '@/lib/db/api/episode-generation-attempts';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
+import { aggregateStats, calculateAttemptStats, aggregateByStatus, aggregateByField } from '@/lib/utils/stats-calculator';
 
 /**
  * Get daily generation report for a specific date
@@ -56,26 +57,16 @@ export async function getGenerationDailyReport(date?: Date): Promise<{
     }
 
     // Transform data for easier consumption in UI
-    const total = summary.data?.reduce((sum, item) => sum + item.count, 0) || 0;
-    const successful = summary.data
-      ?.filter(item => item.status === 'success')
-      .reduce((sum, item) => sum + item.count, 0) || 0;
-    const failed = total - successful;
+    const stats = aggregateStats(summary.data || []);
 
     const report = {
       date: targetDate.toISOString().split('T')[0],
-      total,
-      successful,
-      failed,
-      successRate: total > 0 ? Math.round((successful / total) * 10000) / 100 : 0,
-      byStatus: (summary.data || []).reduce((acc, item) => {
-        acc[item.status] = (acc[item.status] || 0) + item.count;
-        return acc;
-      }, {} as Record<string, number>),
-      bySource: (summary.data || []).reduce((acc, item) => {
-        acc[item.trigger_source] = (acc[item.trigger_source] || 0) + item.count;
-        return acc;
-      }, {} as Record<string, number>),
+      total: stats.total,
+      successful: stats.successful,
+      failed: stats.failed,
+      successRate: stats.successRate,
+      byStatus: aggregateByStatus(summary.data || []),
+      bySource: aggregateByField(summary.data || [], 'trigger_source'),
       rawData: summary.data || [],
     };
 
@@ -154,25 +145,20 @@ export async function getPodcastGenerationHistory(
       };
     }
 
-    // Calculate some quick stats
-    const total = attempts.data?.length || 0;
-    const successful = attempts.data?.filter(a => a.status === 'success').length || 0;
-    const failed = attempts.data?.filter(a => a.status !== 'success').length || 0;
-
-    const stats = {
-      total,
-      successful,
-      failed,
-      recentFailureRate: total > 0
-        ? Math.round((failed / total) * 10000) / 100
-        : 0,
+    // Calculate statistics using utility function
+    const stats = calculateAttemptStats(attempts.data || []);
+    const formattedStats = {
+      total: stats.total,
+      successful: stats.successful,
+      failed: stats.failed,
+      recentFailureRate: 100 - stats.successRate, // Convert success rate to failure rate
     };
 
     return {
       success: true,
       data: {
         attempts: attempts.data || [],
-        stats,
+        stats: formattedStats,
       }
     };
   } catch (error) {
@@ -299,20 +285,14 @@ export async function getWeeklySummaryReport(): Promise<{
 
       const summary = await getDailySummary(date);
       if (summary.success && summary.data) {
-        const total = summary.data.reduce((sum, item) => sum + item.count, 0);
-        const successful = summary.data
-          .filter(item => item.status === 'success')
-          .reduce((sum, item) => sum + item.count, 0);
+        const dayStats = aggregateStats(summary.data);
 
         dailyReports.push({
           date: date.toISOString().split('T')[0],
-          total,
-          successful,
-          failed: total - successful,
-          byStatus: summary.data.reduce((acc, item) => {
-            acc[item.status] = (acc[item.status] || 0) + item.count;
-            return acc;
-          }, {} as Record<string, number>),
+          total: dayStats.total,
+          successful: dayStats.successful,
+          failed: dayStats.failed,
+          byStatus: aggregateByStatus(summary.data),
         });
       }
     }

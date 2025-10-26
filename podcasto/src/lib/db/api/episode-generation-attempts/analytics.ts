@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { episodeGenerationAttempts } from '@/lib/db/schema';
 import { and, gte, lte, sql } from 'drizzle-orm';
 import { EPISODE_CONSTANTS } from '@/lib/constants/episode-constants';
+import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
 import type { DailySummaryRecord, ProblematicPodcastRecord } from './types';
 
 /**
@@ -126,27 +127,15 @@ export async function getProblematicPodcasts(
     console.log('[DB] Raw SQL result type:', typeof results, 'isArray:', Array.isArray(results));
     console.log('[DB] Raw SQL result:', JSON.stringify(results, null, 2));
 
-    // Handle the actual result format - drizzle can return different formats
-    let rows: ProblematicPodcastRecord[] = [];
-
-    interface SqlResult {
-      rows: ProblematicPodcastRecord[];
-    }
-
-    if (Array.isArray(results)) {
-      // Direct array of rows
-      rows = results as unknown as ProblematicPodcastRecord[];
-    } else if (results && typeof results === 'object' && 'rows' in results && Array.isArray((results as SqlResult).rows)) {
-      // Object with rows property
-      rows = (results as SqlResult).rows;
-    } else {
-      console.error('[DB] Unexpected SQL result format:', results);
-      return { success: true, data: [] };
-    }
+    // Extract rows using utility function
+    const rows = extractRowsFromSqlResult<ProblematicPodcastRecord>(
+      results,
+      'ProblematicPodcasts'
+    );
 
     console.log('[DB] Found problematic podcasts:', rows.length);
 
-    return { success: true, data: rows as ProblematicPodcastRecord[] };
+    return { success: true, data: rows };
   } catch (error) {
     console.error('[DB] Error fetching problematic podcasts:', error);
     console.error('[DB] Error details:', error instanceof Error ? error.message : String(error));

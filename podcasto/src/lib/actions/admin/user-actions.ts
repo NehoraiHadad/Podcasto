@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { profiles, userRoles, userCredits, creditTransactions } from '@/lib/db/schema';
 import { eq, sql, desc, or } from 'drizzle-orm';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
+import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
 
 export interface UserListItem {
   id: string;
@@ -126,9 +127,9 @@ export async function getUsersListAction({
       ${roleCondition ? (searchConditions ? sql`AND ${roleCondition}` : sql`WHERE ${roleCondition}`) : sql``}
     `);
 
-    // Handle both possible result formats from Drizzle
-    const userRows = Array.isArray(usersQuery) ? usersQuery : (usersQuery as any).rows || [];
-    const users = (userRows as any[]).map((row) => {
+    // Extract user rows using utility function
+    const userRows = extractRowsFromSqlResult<any>(usersQuery, 'UserList');
+    const users = userRows.map((row) => {
       const hasBounces = row.bounces_count > 0;
       const hasComplaints = row.complaints_count > 0;
 
@@ -156,8 +157,8 @@ export async function getUsersListAction({
       ? users.filter(u => u.emailStatus === emailStatusFilter)
       : users;
 
-    const countRows = Array.isArray(countQuery) ? countQuery : (countQuery as any).rows || [];
-    const total = (countRows[0] as any)?.total || 0;
+    const countRows = extractRowsFromSqlResult<any>(countQuery, 'UserCount');
+    const total = countRows[0]?.total || 0;
 
     return {
       success: true,
@@ -203,7 +204,7 @@ export async function getUserDetailsAction(userId: string) {
       LIMIT 1
     `);
 
-    const userRows = Array.isArray(userQuery) ? userQuery : (userQuery as any).rows || [];
+    const userRows = extractRowsFromSqlResult<any>(userQuery, 'UserDetails');
     if (userRows.length === 0) {
       return {
         success: false,
@@ -242,8 +243,8 @@ export async function getUserDetailsAction(userId: string) {
       WHERE u.id = ${userId}
     `);
 
-    const activityRows = Array.isArray(activityQuery) ? activityQuery : (activityQuery as any).rows || [];
-    const activity = activityRows[0] as any;
+    const activityRows = extractRowsFromSqlResult<any>(activityQuery, 'UserActivity');
+    const activity = activityRows[0];
 
     // Get email health
     const emailHealthQuery = await db.execute(sql`
@@ -257,8 +258,8 @@ export async function getUserDetailsAction(userId: string) {
       WHERE u.id = ${userId}
     `);
 
-    const emailHealthRows = Array.isArray(emailHealthQuery) ? emailHealthQuery : (emailHealthQuery as any).rows || [];
-    const emailHealth = emailHealthRows[0] as any;
+    const emailHealthRows = extractRowsFromSqlResult<any>(emailHealthQuery, 'EmailHealth');
+    const emailHealth = emailHealthRows[0];
     const hasBounces = emailHealth.bounces_count > 0;
     const hasComplaints = emailHealth.complaints_count > 0;
 
@@ -392,8 +393,8 @@ export async function getUserActivityAction(userId: string, limit = 20) {
       LIMIT ${limit}
     `);
 
-    const episodeRows = Array.isArray(episodes) ? episodes : (episodes as any).rows || [];
-    for (const ep of episodeRows as any[]) {
+    const episodeRows = extractRowsFromSqlResult<any>(episodes, 'UserEpisodes');
+    for (const ep of episodeRows) {
       activities.push({
         id: ep.id,
         type: 'episode_received',
@@ -442,7 +443,7 @@ export async function getUserSubscriptionsAction(userId: string) {
       ORDER BY s.created_at DESC
     `);
 
-    const subscriptionRows = Array.isArray(subscriptionsData) ? subscriptionsData : (subscriptionsData as any).rows || [];
+    const subscriptionRows = extractRowsFromSqlResult<any>(subscriptionsData, 'UserSubscriptions');
     return {
       success: true,
       data: subscriptionRows,
