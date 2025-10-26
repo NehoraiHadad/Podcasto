@@ -43,7 +43,7 @@ Resources:
       CodeUri: src/
       Handler: handlers.audio_generation_handler.lambda_handler
       Layers:
-        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:12'
+        - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:podcasto-shared-layer-${Environment}:16'
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment

@@ -127,11 +127,22 @@ jobs:
           aws lambda wait function-updated-v2 --function-name ${{ matrix.function_name }}
           echo "✅ ${{ matrix.function_name }} deployed successfully"
 
+      - name: Update ${{ matrix.function_name }} to use new layer
+        run: |
+          echo "Updating ${{ matrix.function_name }} to use layer: ${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+          aws lambda update-function-configuration \
+            --function-name ${{ matrix.function_name }} \
+            --layers ${{ needs.deploy-shared-layer.outputs.layer_arn }}
+
+          echo "Waiting for layer update to complete..."
+          aws lambda wait function-updated-v2 --function-name ${{ matrix.function_name }}
+          echo "✅ Layer updated successfully"
+
   # Job 3: Verify deployment
   verify-deployment:
     name: Verify Deployment
     runs-on: ubuntu-latest
-    needs: deploy-lambdas
+    needs: [deploy-shared-layer, deploy-lambdas]
 
     steps:
       - name: Configure AWS credentials
@@ -144,6 +155,9 @@ jobs:
       - name: Verify Lambda configurations
         run: |
           echo "Verifying deployed Lambdas..."
+          EXPECTED_LAYER="${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+          echo "Expected layer ARN: $EXPECTED_LAYER"
+          echo ""
 
           # Check all 3 Lambda functions
           for lambda in \
@@ -156,17 +170,27 @@ jobs:
             STATE=$(echo $CONFIG | jq -r '.State')
             LAST_UPDATE_STATUS=$(echo $CONFIG | jq -r '.LastUpdateStatus')
             LAST_MODIFIED=$(echo $CONFIG | jq -r '.LastModified')
+            LAYER_ARN=$(echo $CONFIG | jq -r '.Layers[0].Arn')
 
             echo "  State: $STATE"
             echo "  Last Update Status: $LAST_UPDATE_STATUS"
             echo "  Last Modified: $LAST_MODIFIED"
+            echo "  Layer ARN: $LAYER_ARN"
 
             if [ "$STATE" != "Active" ] || [ "$LAST_UPDATE_STATUS" != "Successful" ]; then
               echo "❌ $lambda deployment failed!"
               exit 1
             fi
-            echo "✅ $lambda is healthy"
+
+            if [ "$LAYER_ARN" != "$EXPECTED_LAYER" ]; then
+              echo "⚠️  WARNING: $lambda is using wrong layer version!"
+              echo "  Expected: $EXPECTED_LAYER"
+              echo "  Actual:   $LAYER_ARN"
+              exit 1
+            fi
+
+            echo "✅ $lambda is healthy and using correct layer"
           done
 
           echo ""
-          echo "🎉 All Lambdas deployed successfully!"
+          echo "🎉 All Lambdas deployed successfully with correct layer version!"
