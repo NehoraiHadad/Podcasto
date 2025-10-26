@@ -1,9 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
 import type { ActionResult } from './shared/types';
+import { errorResult } from './shared/error-handler';
 
 /**
  * User Podcast Actions
@@ -26,13 +27,7 @@ export async function updateUserPodcastAction(
   data: UpdatePodcastData
 ): Promise<ActionResult<void>> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated'
-      };
-    }
+    const user = await requireAuth();
 
     // Verify podcast ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
@@ -98,10 +93,7 @@ export async function updateUserPodcastAction(
     };
   } catch (error) {
     console.error('[updateUserPodcastAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update podcast'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to update podcast');
   }
 }
 
@@ -112,13 +104,7 @@ export async function deleteUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated'
-      };
-    }
+    const user = await requireAuth();
 
     // Verify podcast ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
@@ -148,10 +134,7 @@ export async function deleteUserPodcastAction(
     };
   } catch (error) {
     console.error('[deleteUserPodcastAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete podcast'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to delete podcast');
   }
 }
 
@@ -162,13 +145,7 @@ export async function pauseUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated'
-      };
-    }
+    const user = await requireAuth();
 
     // Verify podcast ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
@@ -202,10 +179,7 @@ export async function pauseUserPodcastAction(
     };
   } catch (error) {
     console.error('[pauseUserPodcastAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to pause podcast'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to pause podcast');
   }
 }
 
@@ -216,13 +190,7 @@ export async function resumeUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated'
-      };
-    }
+    const user = await requireAuth();
 
     // Verify podcast ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
@@ -256,9 +224,6 @@ export async function resumeUserPodcastAction(
     };
   } catch (error) {
     console.error('[resumeUserPodcastAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to resume podcast'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to resume podcast');
   }
 }

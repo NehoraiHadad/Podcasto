@@ -276,7 +276,4 @@ export function createS3Service(config?: Partial<S3ServiceConfig>): IS3Service {
   return new S3Service(config);
 }
 
-/** @deprecated Use createS3Service() factory function instead of singleton */
-export const s3Service = createS3Service();
-
 export type { S3ServiceConfig, S3FileInfo, S3FileContent, DetailedDeleteResult, S3FileMetadata };

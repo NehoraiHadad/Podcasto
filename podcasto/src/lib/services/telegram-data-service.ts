@@ -287,5 +287,4 @@ export function createTelegramDataService(bucketName?: string): ITelegramDataSer
   return new TelegramDataService(bucketName);
 }
 
-/** @deprecated Use createTelegramDataService() factory function instead */
-export const telegramDataService = createTelegramDataService(); 
+ 
