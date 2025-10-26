@@ -184,6 +184,7 @@ export async function regenerateEpisodeAudio(
       const triggerResult = await triggerTelegramLambda(
         episodeId,
         episode.podcast_id,
+        podcastConfig.id,
         episode.content_start_date ? new Date(episode.content_start_date).toISOString() : undefined,
         episode.content_end_date ? new Date(episode.content_end_date).toISOString() : undefined
       );

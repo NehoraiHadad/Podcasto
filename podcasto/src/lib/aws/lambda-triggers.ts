@@ -15,6 +15,7 @@ const AUDIO_QUEUE_URL = process.env.AUDIO_GENERATION_QUEUE_URL || '';
 export async function triggerTelegramLambda(
   episodeId: string,
   podcastId: string,
+  podcastConfigId: string,
   contentStartDate?: string,
   contentEndDate?: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -24,6 +25,7 @@ export async function triggerTelegramLambda(
     const payload = {
       episode_id: episodeId,
       podcast_id: podcastId,
+      podcast_config_id: podcastConfigId,
       content_start_date: contentStartDate,
       content_end_date: contentEndDate,
       regenerate: true  // Flag to indicate this is a regeneration
