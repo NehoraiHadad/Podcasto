@@ -183,26 +183,34 @@ class MessageProcessor:
     def is_promotional(self, text: str) -> bool:
         """
         Check if the message is promotional.
-        
+
         Args:
             text: The text to check
-            
+
         Returns:
             True if the message is promotional, False otherwise
         """
         if not text:
             return False
-            
+
         # Check for promotional markers
         for marker in self.promo_markers:
             if marker in text:
+                # Log which marker was found for debugging
+                from src.utils.logging import get_logger
+                logger = get_logger(__name__)
+                logger.info(f"Found promotional marker '{marker}' in text (first 200 chars): {text[:200]}")
                 return True
-        
+
         # Check for promotional patterns
         for pattern in self.promo_patterns:
             if re.search(pattern, text):
+                # Log which pattern was found for debugging
+                from src.utils.logging import get_logger
+                logger = get_logger(__name__)
+                logger.info(f"Found promotional pattern '{pattern}' in text (first 200 chars): {text[:200]}")
                 return True
-        
+
         return False
         
     def should_include(self, text: str) -> bool:
