@@ -163,7 +163,7 @@ export async function regenerateEpisodeAudio(
     console.log(`[REGENERATE_AUDIO] Reset episode ${episodeId} status to pending`);
 
     // Import utilities
-    const { triggerTelegramLambda, triggerScriptLambda, triggerAudioLambda } = await import('@/lib/aws/lambda-triggers');
+    const { triggerScriptLambda, triggerAudioLambda } = await import('@/lib/aws/lambda-triggers');
     const { createS3Service } = await import('@/lib/services/s3-service');
 
     // Execute based on mode
@@ -180,14 +180,32 @@ export async function regenerateEpisodeAudio(
         console.log(`[REGENERATE_AUDIO] Deleted ${deleteResult.deletedCount} files from S3`);
       }
 
+      // Use existing Lambda invocation function
+      const { invokeLambdaFunction } = await import('@/lib/actions/podcast/generation/lambda-invocation');
+
+      // Build podcast config object
+      const podcastConfigObj = {
+        id: podcastConfig.id,
+        telegram_channel: podcastConfig.telegram_channel || '',
+        telegram_hours: podcastConfig.telegram_hours || 24,
+        episode_id: episodeId,
+        podcast_id: episode.podcast_id,
+      };
+
+      // Build date range if dates provided
+      const dateRange = episode.content_start_date && episode.content_end_date ? {
+        startDate: new Date(episode.content_start_date),
+        endDate: new Date(episode.content_end_date)
+      } : undefined;
+
       // Trigger Telegram Lambda to fetch fresh data
-      const triggerResult = await triggerTelegramLambda(
+      const triggerResult = await invokeLambdaFunction({
+        podcastId: episode.podcast_id,
         episodeId,
-        episode.podcast_id,
-        podcastConfig.id,
-        episode.content_start_date ? new Date(episode.content_start_date).toISOString() : undefined,
-        episode.content_end_date ? new Date(episode.content_end_date).toISOString() : undefined
-      );
+        podcastConfig: podcastConfigObj,
+        timestamp: new Date().toISOString(),
+        dateRange
+      });
 
       if (!triggerResult.success) {
         return {
