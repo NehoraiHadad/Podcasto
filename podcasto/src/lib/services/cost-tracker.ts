@@ -147,3 +147,46 @@ export function getCurrentPricing(params: { service: string }): number {
   const { service } = params;
   return getUnitCost(service);
 }
+
+/**
+ * Safely track S3 operation cost without throwing errors
+ * Wraps trackCostEvent with try-catch to prevent blocking operations
+ *
+ * @param operation - S3 operation type (GET, PUT, DELETE, etc.)
+ * @param key - S3 key/path being accessed
+ * @param episodeId - Optional episode ID
+ * @param podcastId - Optional podcast ID
+ * @param metadata - Additional metadata to track
+ *
+ * @example
+ * await trackS3OperationSafely('GET', 'podcasts/123/episode.mp3', episodeId, podcastId, {
+ *   file_size_mb: 5.2,
+ *   content_type: 'audio/mpeg'
+ * });
+ */
+export async function trackS3OperationSafely(
+  operation: 'GET' | 'PUT' | 'DELETE' | 'HEAD' | 'LIST',
+  key: string,
+  episodeId?: string,
+  podcastId?: string,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  try {
+    await trackCostEvent({
+      episodeId,
+      podcastId,
+      eventType: 's3_operation',
+      service: `s3_${operation.toLowerCase()}` as CostService,
+      quantity: 1,
+      unit: 'requests',
+      metadata: {
+        operation,
+        s3_key: key,
+        ...metadata
+      }
+    });
+  } catch (error) {
+    // Log but don't throw - cost tracking failures shouldn't block operations
+    console.error(`[COST_TRACKER] Failed to track S3 ${operation}:`, error);
+  }
+}
