@@ -311,8 +311,19 @@ export async function regenerateEpisodeAudio(
 
       if (!scriptUrl) {
         console.error(`[REGENERATE_AUDIO] No script URL found for episode ${episodeId}`);
+        console.error(`[REGENERATE_AUDIO] episode.status: ${episode.status}`);
         console.error(`[REGENERATE_AUDIO] episode.script_url: ${episode.script_url}`);
         console.error(`[REGENERATE_AUDIO] episode.metadata:`, episode.metadata);
+
+        // For episodes in script_ready status, they should have script_url in the episodes table
+        // If status is script_ready but no script_url, the episode data is inconsistent
+        if (episode.status === 'script_ready') {
+          return {
+            success: false,
+            error: 'Episode is marked as "script_ready" but script URL is missing from database. This indicates data inconsistency. Please use "Script + Audio" mode to regenerate the script first, or "Full Regeneration" to start fresh.'
+          };
+        }
+
         return {
           success: false,
           error: 'No script found for this episode. This episode may not have reached the script generation stage. Please use "Script + Audio" mode (which will use existing Telegram data) or "Full Regeneration" mode (which will fetch fresh data).'

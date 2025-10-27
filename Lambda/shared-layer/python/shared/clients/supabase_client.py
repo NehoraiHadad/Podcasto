@@ -118,11 +118,11 @@ class SupabaseClient:
     def update_episode(self, episode_id: str, update_data: Dict[str, Any]) -> bool:
         """
         Update episode with new data using RPC functions to bypass RLS
-        
+
         Args:
             episode_id: The episode ID
             update_data: Data to update
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -139,7 +139,7 @@ class SupabaseClient:
                         "duration": update_data.get('duration', 0)
                     }
                 ).execute()
-                
+
                 if result.data and result.data.get('success', False):
                     logger.info(f"[SUPABASE] Updated episode {episode_id} with audio URL: {list(update_data.keys())}")
                     return True
@@ -147,7 +147,27 @@ class SupabaseClient:
                     error = result.data.get('error') if result.data else "Unknown error"
                     logger.error(f"[SUPABASE] Failed to update episode {episode_id} with audio URL: {error}")
                     return False
-                    
+
+            elif 'script_url' in update_data and 'status' in update_data:
+                # Use update_episode_script_data RPC function for script-related updates
+                result = self.client.rpc(
+                    "update_episode_script_data",
+                    {
+                        "episode_id": episode_id,
+                        "script_url": update_data.get('script_url', ''),
+                        "new_status": update_data.get('status', 'script_ready'),
+                        "analysis_data": update_data.get('analysis')
+                    }
+                ).execute()
+
+                if result.data and result.data.get('success', False):
+                    logger.info(f"[SUPABASE] Updated episode {episode_id} with script URL: {list(update_data.keys())}")
+                    return True
+                else:
+                    error = result.data.get('error') if result.data else "Unknown error"
+                    logger.error(f"[SUPABASE] Failed to update episode {episode_id} with script URL: {error}")
+                    return False
+
             elif 'status' in update_data:
                 # Use update_episode_status RPC function for status-only updates
                 result = self.client.rpc(
@@ -157,7 +177,7 @@ class SupabaseClient:
                         "new_status": update_data['status']
                     }
                 ).execute()
-                
+
                 if result.data and result.data.get('success', False):
                     logger.info(f"[SUPABASE] Updated episode {episode_id} status: {update_data['status']}")
                     return True
@@ -166,18 +186,18 @@ class SupabaseClient:
                     logger.error(f"[SUPABASE] Failed to update episode {episode_id} status: {error}")
                     return False
             else:
-                # For other updates, we'll need to use direct table update 
+                # For other updates, we'll need to use direct table update
                 # This might fail due to RLS, but we'll log it clearly
                 logger.warning(f"[SUPABASE] Using direct table update for episode {episode_id} - may fail due to RLS")
                 result = self.client.table('episodes').update(update_data).eq('id', episode_id).execute()
-                
+
                 if result.data:
                     logger.info(f"[SUPABASE] Updated episode {episode_id}: {list(update_data.keys())}")
                     return True
                 else:
                     logger.error(f"[SUPABASE] Failed to update episode {episode_id} - likely RLS permission issue")
                     return False
-                
+
         except Exception as e:
             logger.error(f"[SUPABASE] Error updating episode {episode_id}: {e}")
             return False
