@@ -212,5 +212,4 @@ export async function getAuthState(): Promise<AuthState> {
       isAuthenticated: false,
     };
   }
-  }
 }
