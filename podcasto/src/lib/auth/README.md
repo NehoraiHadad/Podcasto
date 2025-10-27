@@ -339,6 +339,7 @@ This SessionService integrates seamlessly with existing Supabase setup:
 - **Supabase Client**: Uses `createClient()` from `@/lib/supabase/server`
 - **Middleware**: Works with existing middleware in `src/middleware.ts`
 - **Type Definitions**: Compatible with `@/lib/supabase/types`
+- **Welcome Flow**: `/welcome` performs its own `has_seen_welcome` check as a secured page-level guard rather than relying on middleware
 
 ---
 

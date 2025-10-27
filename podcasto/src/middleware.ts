@@ -7,9 +7,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient, updateSession } from '@/lib/auth/session/middleware';
-import { db } from '@/lib/db';
-import { profiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
 
 // ============================================================================
 // Configuration
@@ -201,25 +198,6 @@ export async function middleware(request: NextRequest) {
       userId: user.id,
       note: 'Role check delegated to server actions',
     });
-  }
-
-  // Handle welcome page - redirect if user has already seen it
-  if (pathname === '/welcome' && user) {
-    try {
-      const [profile] = await db
-        .select({ has_seen_welcome: profiles.has_seen_welcome })
-        .from(profiles)
-        .where(eq(profiles.id, user.id))
-        .limit(1);
-
-      if (profile?.has_seen_welcome) {
-        debugLog('Redirecting user who has already seen welcome', { userId: user.id });
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    } catch (error) {
-      // If there's an error checking welcome status, allow access
-      console.error('[Middleware] Error checking welcome status:', error);
-    }
   }
 
   // All checks passed, return the response with updated session
