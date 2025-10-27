@@ -25,7 +25,7 @@ import type { User, Session, AuthState } from './types';
  */
 export const getCachedServerClient = cache(
   async (): Promise<SupabaseClient<Database>> => {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
 
     return createSupabaseClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
