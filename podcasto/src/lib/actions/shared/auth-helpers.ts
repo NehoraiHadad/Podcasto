@@ -2,7 +2,6 @@
 
 import { createServerClient } from '@/lib/auth';
 import type { User } from '@supabase/supabase-js';
-import { errorResult } from './error-handler';
 
 /**
  * Get authenticated user or return error result
@@ -23,7 +22,7 @@ export async function requireAuthenticatedUser(): Promise<
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return errorResult('Not authenticated');
+    return { success: false, error: 'Not authenticated' };
   }
 
   return { success: true, user };
@@ -55,12 +54,18 @@ export async function requireResourceOwnership(
 
   // Validate resource exists
   if (!resource) {
-    return errorResult(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} not found`);
+    return {
+      success: false,
+      error: `${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} not found`
+    };
   }
 
   // Validate ownership
   if (resource.created_by !== authResult.user.id) {
-    return errorResult(`You can only modify your own ${resourceType}s`);
+    return {
+      success: false,
+      error: `You can only modify your own ${resourceType}s`
+    };
   }
 
   return { success: true, user: authResult.user };
