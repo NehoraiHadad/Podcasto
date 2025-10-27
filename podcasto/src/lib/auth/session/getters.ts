@@ -24,7 +24,7 @@ import type { User, Session, AuthState } from './types';
  * awareness. The cookies store is captured on first invocation.
  */
 export const getCachedServerClient = cache(async (): Promise<SupabaseClient<Database>> => {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
 
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,7 +39,13 @@ export const getCachedServerClient = cache(async (): Promise<SupabaseClient<Data
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
+          } catch (error) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(
+                '[SessionGetters] Unable to set auth cookies in server component context:',
+                error
+              );
+            }
             // Server Component - can't set cookies
             // This is expected and handled by middleware
           }
