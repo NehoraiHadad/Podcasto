@@ -157,7 +157,7 @@ function formatSettingValue(value: SettingValue, valueType: string): string {
       return JSON.stringify(value);
     case 'string':
     default:
-      return value;
+      return String(value);
   }
 }
 
