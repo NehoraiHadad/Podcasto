@@ -10,7 +10,7 @@ import { S3ServiceInitializer } from './s3-service-init';
 import { getFileType, isTextFile, sortS3Files } from './s3-service-helpers';
 import type { S3ServiceConfig, S3FileInfo, S3FileContent, DetailedDeleteResult, S3FileMetadata } from './s3-service-types';
 import type { IS3Service } from './interfaces';
-import { trackS3OperationSafely } from './cost-tracker';
+import { trackS3OperationSafely, trackCostEvent } from './cost-tracker';
 
 /**
  * Unified S3 service for all S3 operations
