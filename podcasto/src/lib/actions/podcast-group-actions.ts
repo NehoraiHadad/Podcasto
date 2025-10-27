@@ -93,7 +93,7 @@ export async function createPodcastGroupAction(
     };
   } catch (error) {
     console.error('[createPodcastGroupAction] Error:', error);
-    return errorResult('Failed to create podcast group');
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast group');
   }
 }
 
@@ -138,7 +138,7 @@ export async function updatePodcastGroupAction(
     };
   } catch (error) {
     console.error('[updatePodcastGroupAction] Error:', error);
-    return errorResult('Failed to update podcast group');
+    return errorResult(error instanceof Error ? error.message : 'Failed to update podcast group');
   }
 }
 
@@ -172,7 +172,7 @@ export async function deletePodcastGroupAction(
     };
   } catch (error) {
     console.error('[deletePodcastGroupAction] Error:', error);
-    return errorResult('Failed to delete podcast group');
+    return errorResult(error instanceof Error ? error.message : 'Failed to delete podcast group');
   }
 }
 
@@ -230,7 +230,7 @@ export async function addLanguageVariantAction(
     };
   } catch (error) {
     console.error('[addLanguageVariantAction] Error:', error);
-    return errorResult('Failed to add language variant');
+    return errorResult(error instanceof Error ? error.message : 'Failed to add language variant');
   }
 }
 
@@ -266,7 +266,7 @@ export async function removeLanguageVariantAction(
     };
   } catch (error) {
     console.error('[removeLanguageVariantAction] Error:', error);
-    return errorResult('Failed to remove language variant');
+    return errorResult(error instanceof Error ? error.message : 'Failed to remove language variant');
   }
 }
 
@@ -302,7 +302,7 @@ export async function setPrimaryLanguageAction(
     };
   } catch (error) {
     console.error('[setPrimaryLanguageAction] Error:', error);
-    return errorResult('Failed to set primary language');
+    return errorResult(error instanceof Error ? error.message : 'Failed to set primary language');
   }
 }
 
@@ -333,7 +333,7 @@ export async function getPodcastGroupAction(
     };
   } catch (error) {
     console.error('[getPodcastGroupAction] Error:', error);
-    return errorResult('Failed to retrieve podcast group');
+    return errorResult(error instanceof Error ? error.message : 'Failed to retrieve podcast group');
   }
 }
 
@@ -514,7 +514,7 @@ export async function createPodcastGroupWithNewPodcastsAction(
     }
   } catch (error) {
     console.error('[createPodcastGroupWithNewPodcastsAction] Error:', error);
-    return errorResult('Failed to create podcast group with new podcasts');
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast group with new podcasts');
   }
 }
 

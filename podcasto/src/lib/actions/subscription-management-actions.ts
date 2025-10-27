@@ -54,7 +54,7 @@ export async function getUserSubscriptions() {
     };
   } catch (error) {
     console.error('Error fetching user subscriptions:', error);
-    return errorResult('Failed to fetch subscriptions');
+    return errorResult(error instanceof Error ? error.message : 'Failed to fetch subscriptions');
   }
 }
 
@@ -91,7 +91,7 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
     return { success: true };
   } catch (error) {
     console.error('Error toggling podcast email notifications:', error);
-    return errorResult('Failed to update notification settings');
+    return errorResult(error instanceof Error ? error.message : 'Failed to update notification settings');
   }
 }
 
@@ -122,7 +122,7 @@ export async function disableAllPodcastEmailNotifications() {
     return { success: true };
   } catch (error) {
     console.error('Error disabling all email notifications:', error);
-    return errorResult('Failed to disable all notifications');
+    return errorResult(error instanceof Error ? error.message : 'Failed to disable all notifications');
   }
 }
 
@@ -153,7 +153,7 @@ export async function enableAllPodcastEmailNotifications() {
     return { success: true };
   } catch (error) {
     console.error('Error enabling all email notifications:', error);
-    return errorResult('Failed to enable all notifications');
+    return errorResult(error instanceof Error ? error.message : 'Failed to enable all notifications');
   }
 }
 
@@ -206,6 +206,6 @@ export async function unsubscribeFromPodcastByToken(token: string, podcastId: st
     };
   } catch (error) {
     console.error('Error unsubscribing from podcast:', error);
-    return errorResult('Failed to unsubscribe');
+    return errorResult(error instanceof Error ? error.message : 'Failed to unsubscribe');
   }
 }

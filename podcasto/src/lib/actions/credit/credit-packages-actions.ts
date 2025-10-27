@@ -37,7 +37,7 @@ export async function getActiveCreditPackagesAction(): Promise<
     };
   } catch (error) {
     console.error('[getActiveCreditPackagesAction] Error:', error);
-    return errorResult('Failed to get credit packages');
+    return errorResult(error instanceof Error ? error.message : 'Failed to get credit packages');
   }
 }
 
@@ -58,7 +58,7 @@ export async function getAllCreditPackagesAction(): Promise<
     };
   } catch (error) {
     console.error('[getAllCreditPackagesAction] Error:', error);
-    return errorResult('Failed to get all credit packages');
+    return errorResult(error instanceof Error ? error.message : 'Failed to get all credit packages');
   }
 }
 
@@ -82,7 +82,7 @@ export async function createCreditPackageAction(
     };
   } catch (error) {
     console.error('[createCreditPackageAction] Error:', error);
-    return errorResult('Failed to create credit package');
+    return errorResult(error instanceof Error ? error.message : 'Failed to create credit package');
   }
 }
 
@@ -114,7 +114,7 @@ export async function updateCreditPackageAction(
     };
   } catch (error) {
     console.error('[updateCreditPackageAction] Error:', error);
-    return errorResult('Failed to update credit package');
+    return errorResult(error instanceof Error ? error.message : 'Failed to update credit package');
   }
 }
 
@@ -145,7 +145,7 @@ export async function deleteCreditPackageAction(
     };
   } catch (error) {
     console.error('[deleteCreditPackageAction] Error:', error);
-    return errorResult('Failed to delete credit package');
+    return errorResult(error instanceof Error ? error.message : 'Failed to delete credit package');
   }
 }
 
@@ -176,6 +176,6 @@ export async function toggleCreditPackageStatusAction(
     };
   } catch (error) {
     console.error('[toggleCreditPackageStatusAction] Error:', error);
-    return errorResult('Failed to toggle package status');
+    return errorResult(error instanceof Error ? error.message : 'Failed to toggle package status');
   }
 }
