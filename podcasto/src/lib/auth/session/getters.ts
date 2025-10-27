@@ -8,28 +8,23 @@
  *
  * Following 2025 Supabase SSR best practices:
  * https://supabase.com/docs/guides/auth/server-side/nextjs
- */import { cache } from 'react';
+ */
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 import type { User, Session, AuthState } from './types';
 
 /**
- * Create Supabase server client (SSR-compatible)
+ * Cached Supabase server client creator (SSR-compatible)
  *
- * This is the foundation for all server-side Supabase operations.
- * Uses cookies() for proper session handling in Next.js 15 App Router.
- *
- * @returns Configured Supabase client for server use
- *
- * @example
- * ```typescript
- * const supabase = await createServerClient();
- * const { data } = await supabase.from('podcasts').select();
- * ```
+ * Uses React's cache() to ensure a single Supabase client instance is reused
+ * per request, preventing duplicate instantiations while maintaining cookie
+ * awareness. The cookies store is captured on first invocation.
  */
-export async function createServerClient() {
-  const cookieStore = await cookies();
+export const getCachedServerClient = cache((): SupabaseClient<Database> => {
+  const cookieStore = cookies();
 
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +47,18 @@ export async function createServerClient() {
       },
     }
   );
+});
+
+/**
+ * Create Supabase server client (SSR-compatible)
+ *
+ * This helper returns the cached Supabase client instance for the current
+ * request. See getCachedServerClient() for implementation details.
+ *
+ * @returns Configured Supabase client for server use
+ */
+export async function createServerClient() {
+  return getCachedServerClient();
 }
 
 /**
@@ -78,7 +85,10 @@ export const getUser = cache(async (): Promise<User | null> => {
 
     // ✅ CORRECT: Use getUser() - validates JWT token server-side
     // ❌ WRONG: getSession() only reads from storage, doesn't validate
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
     if (error) {
       // Only log unexpected errors, not "no session" errors
@@ -126,7 +136,10 @@ export async function getSession(): Promise<Session | null> {
   try {
     const supabase = await createServerClient();
 
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
     if (error) {
       console.error('[SessionGetters] Error getting session:', error.message);
@@ -168,7 +181,10 @@ export async function getAuthState(): Promise<AuthState> {
     const supabase = await createServerClient();
 
     // ✅ Use getUser() for validation
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
     if (userError || !user) {
       return {
@@ -179,7 +195,9 @@ export async function getAuthState(): Promise<AuthState> {
     }
 
     // Get session for additional metadata (safe because user is validated)
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     return {
       user,
@@ -193,5 +211,6 @@ export async function getAuthState(): Promise<AuthState> {
       session: null,
       isAuthenticated: false,
     };
+  }
   }
 }

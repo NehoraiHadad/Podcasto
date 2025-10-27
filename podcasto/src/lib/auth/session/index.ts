@@ -16,6 +16,7 @@ export type {
 
 // Getters (✅ Use getUser() for auth checks!)
 export {
+  getCachedServerClient,
   createServerClient,
   getUser,
   getSession,
