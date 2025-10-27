@@ -10,7 +10,7 @@ import { S3ServiceInitializer } from './s3-service-init';
 import { getFileType, isTextFile, sortS3Files } from './s3-service-helpers';
 import type { S3ServiceConfig, S3FileInfo, S3FileContent, DetailedDeleteResult, S3FileMetadata } from './s3-service-types';
 import type { IS3Service } from './interfaces';
-import { trackCostEvent } from './cost-tracker';
+import { trackS3OperationSafely, trackCostEvent } from './cost-tracker';
 
 /**
  * Unified S3 service for all S3 operations
@@ -89,50 +89,21 @@ export class S3Service implements IS3Service {
         const content = await response.Body?.transformToString('utf-8');
 
         // Track S3 GET cost
-        try {
-          const fileSizeMB = (response.ContentLength || 0) / (1024 * 1024);
-          await trackCostEvent({
-            episodeId,
-            podcastId,
-            eventType: 's3_operation',
-            service: 's3_get',
-            quantity: 1,
-            unit: 'requests',
-            metadata: {
-              operation: 'GET',
-              s3_key: key,
-              file_size_mb: fileSizeMB,
-              content_type: response.ContentType,
-              region: this.config.region
-            }
-          });
-        } catch (costError) {
-          console.error('[S3_SERVICE] Cost tracking failed for S3 GET:', costError);
-        }
+        await trackS3OperationSafely('GET', key, episodeId, podcastId, {
+          file_size_mb: (response.ContentLength || 0) / (1024 * 1024),
+          content_type: response.ContentType,
+          region: this.config.region
+        });
 
         return { content: { content: content || null, isText: true } };
       } else {
         const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
 
         // Track S3 GET cost (for signed URL generation)
-        try {
-          await trackCostEvent({
-            episodeId,
-            podcastId,
-            eventType: 's3_operation',
-            service: 's3_get',
-            quantity: 1,
-            unit: 'requests',
-            metadata: {
-              operation: 'GET',
-              s3_key: key,
-              content_type: 'signed_url',
-              region: this.config.region
-            }
-          });
-        } catch (costError) {
-          console.error('[S3_SERVICE] Cost tracking failed for S3 GET (signed URL):', costError);
-        }
+        await trackS3OperationSafely('GET', key, episodeId, podcastId, {
+          content_type: 'signed_url',
+          region: this.config.region
+        });
 
         return { content: { content: null, signedUrl, isText: false } };
       }
@@ -275,8 +246,5 @@ export class S3Service implements IS3Service {
 export function createS3Service(config?: Partial<S3ServiceConfig>): IS3Service {
   return new S3Service(config);
 }
-
-/** @deprecated Use createS3Service() factory function instead of singleton */
-export const s3Service = createS3Service();
 
 export type { S3ServiceConfig, S3FileInfo, S3FileContent, DetailedDeleteResult, S3FileMetadata };

@@ -205,5 +205,4 @@ export function createEpisodeUpdater(): IEpisodeUpdater {
   return new EpisodeUpdater();
 }
 
-/** @deprecated Use createEpisodeUpdater() factory function instead */
-export const episodeUpdater = createEpisodeUpdater(); 
+ 

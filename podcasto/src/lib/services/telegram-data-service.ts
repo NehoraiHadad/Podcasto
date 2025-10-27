@@ -143,9 +143,9 @@ export class TelegramDataService implements ITelegramDataService {
         return null;
       }
 
-      // Convert stream to string
-      const bodyString = await this.streamToString(response.Body);
-      
+      // Convert stream to string using AWS SDK method
+      const bodyString = await response.Body.transformToString('utf-8');
+
       // Parse JSON data
       const telegramData = JSON.parse(bodyString) as TelegramData;
       
@@ -221,11 +221,11 @@ export class TelegramDataService implements ITelegramDataService {
         });
 
         const response = await client.send(command);
-        
+
         if (response.Body) {
-          const bodyString = await this.streamToString(response.Body);
+          const bodyString = await response.Body.transformToString('utf-8');
           const telegramData = JSON.parse(bodyString) as TelegramData;
-          
+
           console.log(`[TELEGRAM_DATA] Found data at alternative path: ${path}`);
           return telegramData;
         }
@@ -237,21 +237,6 @@ export class TelegramDataService implements ITelegramDataService {
 
     console.warn(`[TELEGRAM_DATA] No data found in any alternative paths for ${episodeId}`);
     return null;
-  }
-
-  /**
-   * Converts a readable stream to string
-   * Using any because AWS SDK stream types are complex and vary between environments
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async streamToString(stream: any): Promise<string> {
-    const chunks: Buffer[] = [];
-    
-    return new Promise((resolve, reject) => {
-      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-      stream.on('error', reject);
-    });
   }
 
   /**
@@ -287,5 +272,4 @@ export function createTelegramDataService(bucketName?: string): ITelegramDataSer
   return new TelegramDataService(bucketName);
 }
 
-/** @deprecated Use createTelegramDataService() factory function instead */
-export const telegramDataService = createTelegramDataService(); 
+ 

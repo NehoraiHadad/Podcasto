@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 /**
@@ -65,10 +65,10 @@ export async function unsubscribeByToken(token: string) {
       return { success: false as const, error: 'Invalid unsubscribe token' };
     }
 
-    // Get user email from auth.users
-    const userResult = await db.execute<{ email: string }>(
-      `SELECT email FROM auth.users WHERE id = '${profile.id}'`
-    );
+    // Get user email from auth.users using parameterized query
+    const userResult = await db.execute<{ email: string }>(sql`
+      SELECT email FROM auth.users WHERE id = ${profile.id}::uuid
+    `);
 
     const userEmail = userResult[0]?.email || 'your email';
 

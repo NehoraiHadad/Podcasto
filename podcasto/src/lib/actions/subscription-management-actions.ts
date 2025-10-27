@@ -8,7 +8,8 @@
 import { db } from '@/lib/db';
 import { subscriptions, podcasts, profiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { createServerClient } from '@/lib/auth';
+import type { ActionResult } from './shared/types';
+import { requireAuthenticatedUser } from './shared/auth-helpers';
 
 export interface UserSubscription {
   id: string;
@@ -25,12 +26,9 @@ export interface UserSubscription {
  */
 export async function getUserSubscriptions() {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     const userSubs = await db
       .select({
@@ -55,7 +53,7 @@ export async function getUserSubscriptions() {
     console.error('Error fetching user subscriptions:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch subscriptions',
+      error: error instanceof Error ? error.message : 'Failed to fetch subscriptions'
     };
   }
 }
@@ -63,14 +61,14 @@ export async function getUserSubscriptions() {
 /**
  * Toggle email notifications for a specific podcast subscription
  */
-export async function togglePodcastEmailNotifications(subscriptionId: string, enabled: boolean) {
+export async function togglePodcastEmailNotifications(
+  subscriptionId: string,
+  enabled: boolean
+): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Verify subscription belongs to user
     const subscription = await db.query.subscriptions.findFirst({
@@ -90,12 +88,12 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
       .set({ email_notifications: enabled })
       .where(eq(subscriptions.id, subscriptionId));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error toggling podcast email notifications:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update notification settings',
+      error: error instanceof Error ? error.message : 'Failed to update notification settings'
     };
   }
 }
@@ -103,14 +101,11 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
 /**
  * Disable email notifications for all podcast subscriptions (global disable)
  */
-export async function disableAllPodcastEmailNotifications() {
+export async function disableAllPodcastEmailNotifications(): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Update all user's subscriptions
     await db
@@ -124,12 +119,12 @@ export async function disableAllPodcastEmailNotifications() {
       .set({ email_notifications: false })
       .where(eq(profiles.id, user.id));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error disabling all email notifications:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to disable all notifications',
+      error: error instanceof Error ? error.message : 'Failed to disable all notifications'
     };
   }
 }
@@ -137,14 +132,11 @@ export async function disableAllPodcastEmailNotifications() {
 /**
  * Enable email notifications for all podcast subscriptions (global enable)
  */
-export async function enableAllPodcastEmailNotifications() {
+export async function enableAllPodcastEmailNotifications(): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Update all user's subscriptions
     await db
@@ -158,12 +150,12 @@ export async function enableAllPodcastEmailNotifications() {
       .set({ email_notifications: true })
       .where(eq(profiles.id, user.id));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error enabling all email notifications:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to enable all notifications',
+      error: error instanceof Error ? error.message : 'Failed to enable all notifications'
     };
   }
 }
@@ -172,7 +164,13 @@ export async function enableAllPodcastEmailNotifications() {
  * Unsubscribe from a specific podcast by token and podcast ID
  * Used for one-click unsubscribe from email
  */
-export async function unsubscribeFromPodcastByToken(token: string, podcastId: string) {
+export async function unsubscribeFromPodcastByToken(
+  token: string,
+  podcastId: string
+): Promise<
+  | { success: true; podcastTitle: string }
+  | { success: false; error: string }
+> {
   try {
     // Find user by unsubscribe token
     const profile = await db.query.profiles.findFirst({
@@ -219,7 +217,7 @@ export async function unsubscribeFromPodcastByToken(token: string, podcastId: st
     console.error('Error unsubscribing from podcast:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to unsubscribe',
+      error: error instanceof Error ? error.message : 'Failed to unsubscribe'
     };
   }
 }

@@ -20,6 +20,31 @@ export interface UserListItem {
   hasBounces: boolean;
 }
 
+// SQL Query Result Types
+interface UserDetailsQueryResult {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  display_name: string | null;
+  email_notifications: boolean | null;
+  has_seen_welcome: boolean | null;
+  role: string | null;
+}
+
+interface UserActivityQueryResult {
+  subscriptions_count: number;
+  episodes_received: number;
+  podcasts_created: number;
+  episodes_generated: number;
+}
+
+interface EmailHealthQueryResult {
+  bounces_count: number;
+  complaints_count: number;
+  last_email_sent: string | null;
+}
+
 export interface UserDetailsData {
   id: string;
   email: string;
@@ -204,7 +229,7 @@ export async function getUserDetailsAction(userId: string) {
       LIMIT 1
     `);
 
-    const userRows = extractRowsFromSqlResult<any>(userQuery, 'UserDetails');
+    const userRows = extractRowsFromSqlResult<UserDetailsQueryResult>(userQuery, 'UserDetails');
     if (userRows.length === 0) {
       return {
         success: false,
@@ -212,7 +237,7 @@ export async function getUserDetailsAction(userId: string) {
       };
     }
 
-    const user = userRows[0] as any;
+    const user = userRows[0];
 
     // Get credits info
     const creditsResult = await db
@@ -243,7 +268,7 @@ export async function getUserDetailsAction(userId: string) {
       WHERE u.id = ${userId}
     `);
 
-    const activityRows = extractRowsFromSqlResult<any>(activityQuery, 'UserActivity');
+    const activityRows = extractRowsFromSqlResult<UserActivityQueryResult>(activityQuery, 'UserActivity');
     const activity = activityRows[0];
 
     // Get email health
@@ -258,7 +283,7 @@ export async function getUserDetailsAction(userId: string) {
       WHERE u.id = ${userId}
     `);
 
-    const emailHealthRows = extractRowsFromSqlResult<any>(emailHealthQuery, 'EmailHealth');
+    const emailHealthRows = extractRowsFromSqlResult<EmailHealthQueryResult>(emailHealthQuery, 'EmailHealth');
     const emailHealth = emailHealthRows[0];
     const hasBounces = emailHealth.bounces_count > 0;
     const hasComplaints = emailHealth.complaints_count > 0;

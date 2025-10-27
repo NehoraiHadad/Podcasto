@@ -1,10 +1,54 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { profiles, episodes, podcasts, sentEpisodes, emailBounces, creditTransactions } from '@/lib/db/schema';
-import { sql, desc, gte, and } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
 import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
+
+// SQL Query Result Types
+interface UserMetricsQueryResult {
+  total_users: number;
+  active_users: number;
+  new_users_this_month: number;
+  users_with_subscriptions: number;
+}
+
+interface EngagementQueryResult {
+  avg_subscriptions: string;
+  avg_episodes: string;
+  total_episodes_sent: number;
+}
+
+interface EmailHealthQueryResult {
+  total_emails_sent: number;
+  bounces_count: number;
+  complaints_count: number;
+}
+
+interface CreditMetricsQueryResult {
+  total_credits_sold: string;
+  total_credits_used: string;
+  total_credits_available: string;
+  avg_credits_per_user: string;
+}
+
+interface ContentMetricsQueryResult {
+  total_podcasts: number;
+  active_podcasts: number;
+  total_episodes: number;
+  published_episodes: number;
+}
+
+interface GrowthDataQueryResult {
+  date: string;
+  count: number;
+}
+
+interface TopPodcastQueryResult {
+  id: string;
+  title: string;
+  subscribers_count: number;
+}
 
 export interface AnalyticsStats {
   userMetrics: {
@@ -80,7 +124,7 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.subscriptions s ON u.id = s.user_id
     `);
 
-    const userMetricsRows = extractRowsFromSqlResult<any>(userMetricsQuery, 'UserMetrics');
+    const userMetricsRows = extractRowsFromSqlResult<UserMetricsQueryResult>(userMetricsQuery, 'UserMetrics');
     const userMetrics = userMetricsRows[0];
 
     // Engagement metrics
@@ -102,7 +146,7 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.sent_episodes se
     `);
 
-    const engagementRows = extractRowsFromSqlResult<any>(engagementQuery, 'Engagement');
+    const engagementRows = extractRowsFromSqlResult<EngagementQueryResult>(engagementQuery, 'Engagement');
     const engagement = engagementRows[0];
 
     // Email health metrics
@@ -115,7 +159,7 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       LEFT JOIN public.email_bounces eb ON se.user_id = eb.user_id
     `);
 
-    const emailHealthRows = extractRowsFromSqlResult<any>(emailHealthQuery, 'EmailHealth');
+    const emailHealthRows = extractRowsFromSqlResult<EmailHealthQueryResult>(emailHealthQuery, 'EmailHealth');
     const emailHealth = emailHealthRows[0];
     const totalEmails = emailHealth.total_emails_sent || 1; // Avoid division by zero
     const bounceRate = ((emailHealth.bounces_count || 0) / totalEmails) * 100;
@@ -131,7 +175,7 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       FROM public.user_credits
     `);
 
-    const creditMetricsRows = extractRowsFromSqlResult<any>(creditMetricsQuery, 'CreditMetrics');
+    const creditMetricsRows = extractRowsFromSqlResult<CreditMetricsQueryResult>(creditMetricsQuery, 'CreditMetrics');
     const creditMetrics = creditMetricsRows[0];
     const totalCreditsSold = parseFloat(creditMetrics.total_credits_sold || '0');
     const totalCreditsUsed = parseFloat(creditMetrics.total_credits_used || '0');
@@ -148,7 +192,7 @@ export async function getAnalyticsDashboardStatsAction(): Promise<{
       CROSS JOIN public.episodes e
     `);
 
-    const contentMetricsRows = extractRowsFromSqlResult<any>(contentMetricsQuery, 'ContentMetrics');
+    const contentMetricsRows = extractRowsFromSqlResult<ContentMetricsQueryResult>(contentMetricsQuery, 'ContentMetrics');
     const contentMetrics = contentMetricsRows[0];
 
     const stats: AnalyticsStats = {
@@ -222,8 +266,8 @@ export async function getUserGrowthDataAction(): Promise<{
       ORDER BY date ASC
     `);
 
-    const growthRows = extractRowsFromSqlResult<any>(growthQuery, 'GrowthData');
-    const growthData = growthRows.map((row: any) => ({
+    const growthRows = extractRowsFromSqlResult<GrowthDataQueryResult>(growthQuery, 'GrowthData');
+    const growthData = growthRows.map(row => ({
       date: row.date,
       count: row.count,
     }));
@@ -287,8 +331,8 @@ export async function getTopPodcastsAction(limit = 10): Promise<{
       LIMIT ${limit}
     `);
 
-    const topPodcastsRows = extractRowsFromSqlResult<any>(topPodcastsQuery, 'TopPodcasts');
-    const topPodcasts = topPodcastsRows.map((row: any) => ({
+    const topPodcastsRows = extractRowsFromSqlResult<TopPodcastQueryResult>(topPodcastsQuery, 'TopPodcasts');
+    const topPodcasts = topPodcastsRows.map(row => ({
       id: row.id,
       title: row.title,
       subscribersCount: row.subscribers_count || 0,

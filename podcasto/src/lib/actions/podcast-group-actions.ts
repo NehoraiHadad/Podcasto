@@ -3,18 +3,17 @@
 import { revalidatePath } from 'next/cache';
 import { checkIsAdmin } from './admin/auth-actions';
 import type { ActionResult } from './shared/types';
+import { errorResult } from './shared/error-handler';
 import type { OutputLanguage } from '@/lib/constants/languages';
 import {
   createPodcastGroup,
   updatePodcastGroup,
   deletePodcastGroup,
   addLanguageVariant,
-  updateLanguageVariant,
   removeLanguageVariant,
   setPrimaryLanguage,
   linkPodcastToGroup,
   getPodcastGroupWithLanguages,
-  getPodcastGroupById,
   languageExistsInGroup
 } from '@/lib/db/api/podcast-groups';
 import type {
@@ -92,10 +91,7 @@ export async function createPodcastGroupAction(
     };
   } catch (error) {
     console.error('[createPodcastGroupAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create podcast group'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast group');
   }
 }
 
@@ -140,10 +136,7 @@ export async function updatePodcastGroupAction(
     };
   } catch (error) {
     console.error('[updatePodcastGroupAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update podcast group'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to update podcast group');
   }
 }
 
@@ -177,10 +170,7 @@ export async function deletePodcastGroupAction(
     };
   } catch (error) {
     console.error('[deletePodcastGroupAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete podcast group'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to delete podcast group');
   }
 }
 
@@ -238,10 +228,7 @@ export async function addLanguageVariantAction(
     };
   } catch (error) {
     console.error('[addLanguageVariantAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to add language variant'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to add language variant');
   }
 }
 
@@ -277,10 +264,7 @@ export async function removeLanguageVariantAction(
     };
   } catch (error) {
     console.error('[removeLanguageVariantAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to remove language variant'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to remove language variant');
   }
 }
 
@@ -316,10 +300,7 @@ export async function setPrimaryLanguageAction(
     };
   } catch (error) {
     console.error('[setPrimaryLanguageAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to set primary language'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to set primary language');
   }
 }
 
@@ -350,10 +331,7 @@ export async function getPodcastGroupAction(
     };
   } catch (error) {
     console.error('[getPodcastGroupAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to retrieve podcast group'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to retrieve podcast group');
   }
 }
 
@@ -534,10 +512,7 @@ export async function createPodcastGroupWithNewPodcastsAction(
     }
   } catch (error) {
     console.error('[createPodcastGroupWithNewPodcastsAction] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create podcast group with new podcasts'
-    };
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast group with new podcasts');
   }
 }
 
