@@ -161,7 +161,13 @@ export async function enableAllPodcastEmailNotifications() {
  * Unsubscribe from a specific podcast by token and podcast ID
  * Used for one-click unsubscribe from email
  */
-export async function unsubscribeFromPodcastByToken(token: string, podcastId: string) {
+export async function unsubscribeFromPodcastByToken(
+  token: string,
+  podcastId: string
+): Promise<
+  | { success: true; podcastTitle: string }
+  | { success: false; error: string }
+> {
   try {
     // Find user by unsubscribe token
     const profile = await db.query.profiles.findFirst({
