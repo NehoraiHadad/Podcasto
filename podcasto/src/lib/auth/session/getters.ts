@@ -23,31 +23,33 @@ import type { User, Session, AuthState } from './types';
  * per request, preventing duplicate instantiations while maintaining cookie
  * awareness. The cookies store is captured on first invocation.
  */
-export const getCachedServerClient = cache((): SupabaseClient<Database> => {
-  const cookieStore = cookies();
+export const getCachedServerClient = cache(
+  async (): Promise<SupabaseClient<Database>> => {
+    const cookieStore = await cookies();
 
-  return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
+    return createSupabaseClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Server Component - can't set cookies
+              // This is expected and handled by middleware
+            }
+          },
         },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component - can't set cookies
-            // This is expected and handled by middleware
-          }
-        },
-      },
-    }
-  );
-});
+      }
+    );
+  }
+);
 
 /**
  * Create Supabase server client (SSR-compatible)
