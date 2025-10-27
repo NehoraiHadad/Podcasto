@@ -22,6 +22,7 @@ export type {
 
 export {
   // Core getters (✅ Use getUser() for auth!)
+  getCachedServerClient,
   createServerClient,
   getUser,
   getSession,
