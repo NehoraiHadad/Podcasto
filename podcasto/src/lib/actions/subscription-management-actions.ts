@@ -8,8 +8,9 @@
 import { db } from '@/lib/db';
 import { subscriptions, podcasts, profiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { createServerClient } from '@/lib/auth';
 import { errorResult } from './shared/error-handler';
+import type { ActionResult } from './shared/types';
+import { requireAuthenticatedUser } from './shared/auth-helpers';
 
 export interface UserSubscription {
   id: string;
@@ -26,12 +27,9 @@ export interface UserSubscription {
  */
 export async function getUserSubscriptions() {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResult('Not authenticated');
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     const userSubs = await db
       .select({
@@ -61,14 +59,14 @@ export async function getUserSubscriptions() {
 /**
  * Toggle email notifications for a specific podcast subscription
  */
-export async function togglePodcastEmailNotifications(subscriptionId: string, enabled: boolean) {
+export async function togglePodcastEmailNotifications(
+  subscriptionId: string,
+  enabled: boolean
+): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResult('Not authenticated');
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Verify subscription belongs to user
     const subscription = await db.query.subscriptions.findFirst({
@@ -88,7 +86,7 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
       .set({ email_notifications: enabled })
       .where(eq(subscriptions.id, subscriptionId));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error toggling podcast email notifications:', error);
     return errorResult(error instanceof Error ? error.message : 'Failed to update notification settings');
@@ -98,14 +96,11 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
 /**
  * Disable email notifications for all podcast subscriptions (global disable)
  */
-export async function disableAllPodcastEmailNotifications() {
+export async function disableAllPodcastEmailNotifications(): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResult('Not authenticated');
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Update all user's subscriptions
     await db
@@ -119,7 +114,7 @@ export async function disableAllPodcastEmailNotifications() {
       .set({ email_notifications: false })
       .where(eq(profiles.id, user.id));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error disabling all email notifications:', error);
     return errorResult(error instanceof Error ? error.message : 'Failed to disable all notifications');
@@ -129,14 +124,11 @@ export async function disableAllPodcastEmailNotifications() {
 /**
  * Enable email notifications for all podcast subscriptions (global enable)
  */
-export async function enableAllPodcastEmailNotifications() {
+export async function enableAllPodcastEmailNotifications(): Promise<ActionResult<void>> {
   try {
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResult('Not authenticated');
-    }
+    const authResult = await requireAuthenticatedUser();
+    if (!authResult.success) return authResult;
+    const user = authResult.user;
 
     // Update all user's subscriptions
     await db
@@ -150,7 +142,7 @@ export async function enableAllPodcastEmailNotifications() {
       .set({ email_notifications: true })
       .where(eq(profiles.id, user.id));
 
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (error) {
     console.error('Error enabling all email notifications:', error);
     return errorResult(error instanceof Error ? error.message : 'Failed to enable all notifications');

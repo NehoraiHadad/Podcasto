@@ -1,10 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth';
 import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
 import type { ActionResult } from './shared/types';
 import { errorResult } from './shared/error-handler';
+import { requireResourceOwnership } from './shared/auth-helpers';
 
 /**
  * User Podcast Actions
@@ -27,23 +27,10 @@ export async function updateUserPodcastAction(
   data: UpdatePodcastData
 ): Promise<ActionResult<void>> {
   try {
-    const user = await requireAuth();
-
-    // Verify podcast ownership
+    // Verify authentication and ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
-    if (!podcast) {
-      return {
-        success: false,
-        error: 'Podcast not found'
-      };
-    }
-
-    if (podcast.created_by !== user.id) {
-      return {
-        success: false,
-        error: 'You can only update your own podcasts'
-      };
-    }
+    const authResult = await requireResourceOwnership(podcast, 'podcast');
+    if (!authResult.success) return authResult;
 
     // Update podcast metadata
     if (data.title || data.description !== undefined || data.coverImage !== undefined) {
@@ -104,23 +91,10 @@ export async function deleteUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await requireAuth();
-
-    // Verify podcast ownership
+    // Verify authentication and ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
-    if (!podcast) {
-      return {
-        success: false,
-        error: 'Podcast not found'
-      };
-    }
-
-    if (podcast.created_by !== user.id) {
-      return {
-        success: false,
-        error: 'You can only delete your own podcasts'
-      };
-    }
+    const authResult = await requireResourceOwnership(podcast, 'podcast');
+    if (!authResult.success) return authResult;
 
     // Delete the podcast (cascade will handle episodes and config)
     await podcastsApi.deletePodcast(podcastId);
@@ -145,23 +119,10 @@ export async function pauseUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await requireAuth();
-
-    // Verify podcast ownership
+    // Verify authentication and ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
-    if (!podcast) {
-      return {
-        success: false,
-        error: 'Podcast not found'
-      };
-    }
-
-    if (podcast.created_by !== user.id) {
-      return {
-        success: false,
-        error: 'You can only pause your own podcasts'
-      };
-    }
+    const authResult = await requireResourceOwnership(podcast, 'podcast');
+    if (!authResult.success) return authResult;
 
     // Pause the podcast
     await podcastsApi.updatePodcast(podcastId, {
@@ -190,23 +151,10 @@ export async function resumeUserPodcastAction(
   podcastId: string
 ): Promise<ActionResult<void>> {
   try {
-    const user = await requireAuth();
-
-    // Verify podcast ownership
+    // Verify authentication and ownership
     const podcast = await podcastsApi.getPodcastById(podcastId);
-    if (!podcast) {
-      return {
-        success: false,
-        error: 'Podcast not found'
-      };
-    }
-
-    if (podcast.created_by !== user.id) {
-      return {
-        success: false,
-        error: 'You can only resume your own podcasts'
-      };
-    }
+    const authResult = await requireResourceOwnership(podcast, 'podcast');
+    if (!authResult.success) return authResult;
 
     // Resume the podcast
     await podcastsApi.updatePodcast(podcastId, {
