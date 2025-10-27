@@ -30,39 +30,6 @@ export async function requireAuthenticatedUser(): Promise<
 }
 
 /**
- * Validate that a resource belongs to the current user
- * Common pattern for podcast/episode ownership checks
- *
- * @param resource - Resource with created_by field
- * @param userId - User ID to check ownership against
- * @param resourceType - Type of resource for error message
- * @returns Success boolean or error result
- *
- * @example
- * const ownershipResult = validateResourceOwnership(
- *   podcast,
- *   user.id,
- *   'podcast'
- * );
- * if (!ownershipResult.success) return ownershipResult;
- */
-export function validateResourceOwnership(
-  resource: { created_by?: string | null } | null | undefined,
-  userId: string,
-  resourceType: string
-): { success: true } | { success: false; error: string } {
-  if (!resource) {
-    return errorResult(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} not found`);
-  }
-
-  if (resource.created_by !== userId) {
-    return errorResult(`You can only modify your own ${resourceType}s`);
-  }
-
-  return { success: true };
-}
-
-/**
  * Combined auth check and ownership validation
  * One-liner for the most common action pattern
  *
@@ -82,15 +49,19 @@ export async function requireResourceOwnership(
   | { success: true; user: User }
   | { success: false; error: string }
 > {
+  // Check authentication
   const authResult = await requireAuthenticatedUser();
   if (!authResult.success) return authResult;
 
-  const ownershipResult = validateResourceOwnership(
-    resource,
-    authResult.user.id,
-    resourceType
-  );
-  if (!ownershipResult.success) return ownershipResult;
+  // Validate resource exists
+  if (!resource) {
+    return errorResult(`${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)} not found`);
+  }
+
+  // Validate ownership
+  if (resource.created_by !== authResult.user.id) {
+    return errorResult(`You can only modify your own ${resourceType}s`);
+  }
 
   return { success: true, user: authResult.user };
 }
