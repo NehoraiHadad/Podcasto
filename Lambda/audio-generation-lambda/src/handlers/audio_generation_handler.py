@@ -120,8 +120,9 @@ class AudioGenerationHandler:
             episode_status = episode.get('status')
             has_audio = episode.get('audio_url')
 
-            if episode_status == 'script_ready' and not has_audio:
-                logger.info(f"[AUDIO_GEN] Episode {episode_id} is ready for audio generation")
+            # Allow audio generation for episodes in script_ready or pending status without audio
+            if episode_status in ('script_ready', 'pending') and not has_audio:
+                logger.info(f"[AUDIO_GEN] Episode {episode_id} is ready for audio generation (status: {episode_status})")
                 return True
             else:
                 logger.debug(f"[AUDIO_GEN] Episode {episode_id} status: {episode_status}, has_audio: {bool(has_audio)}")
