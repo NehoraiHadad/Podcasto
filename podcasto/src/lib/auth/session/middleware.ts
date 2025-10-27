@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 
 /**
@@ -84,22 +85,24 @@ export function createMiddlewareClient(
  * IMPORTANT: This calls getUser() to validate and refresh the session.
  *
  * @param request - The Next.js request object
- * @returns A response with updated cookies
+ * @returns An object with the Supabase client and response containing updated cookies
  *
  * @example
  * ```typescript
  * export async function middleware(request: NextRequest) {
- *   const response = await updateSession(request);
+ *   const { response } = await updateSession(request);
  *   return response;
  * }
  * ```
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(
+  request: NextRequest
+): Promise<{ client: SupabaseClient<Database>; response: NextResponse }> {
   const { client, response } = createMiddlewareClient(request);
 
   // IMPORTANT: DO NOT REMOVE auth.getUser() - This refreshes the session if needed
   // This is the 2025 Supabase SSR best practice for middleware
   await client.auth.getUser();
 
-  return response as NextResponse;
+  return { client, response: response as NextResponse };
 }
