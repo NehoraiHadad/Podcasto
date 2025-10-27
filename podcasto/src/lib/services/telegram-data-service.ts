@@ -1,6 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { createS3Client } from '@/lib/utils/s3-utils';
 import type { ITelegramDataService } from './interfaces';
+import { Readable } from 'stream';
 
 interface TelegramMessage {
   text?: string;
@@ -241,10 +242,9 @@ export class TelegramDataService implements ITelegramDataService {
 
   /**
    * Converts a readable stream to string
-   * Using any because AWS SDK stream types are complex and vary between environments
+   * AWS SDK returns streams that are compatible with Node.js Readable
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async streamToString(stream: any): Promise<string> {
+  private async streamToString(stream: Readable): Promise<string> {
     const chunks: Buffer[] = [];
     
     return new Promise((resolve, reject) => {

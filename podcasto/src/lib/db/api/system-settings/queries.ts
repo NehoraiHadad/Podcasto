@@ -4,6 +4,12 @@ import { systemSettings, SYSTEM_SETTING_KEYS, DEFAULT_SYSTEM_SETTINGS } from '@/
 import { eq } from 'drizzle-orm';
 
 /**
+ * Type for system setting values
+ * Can be primitive types or JSON objects
+ */
+type SettingValue = string | number | boolean | Record<string, unknown>;
+
+/**
  * Get a system setting by key
  * Returns default value if setting doesn't exist
  */
@@ -125,7 +131,7 @@ export async function getPremiumCreditThreshold(): Promise<number> {
 /**
  * Parse setting value based on type
  */
-function parseSettingValue(value: string, valueType: string): any {
+function parseSettingValue(value: string, valueType: string): SettingValue {
   switch (valueType) {
     case 'number':
       return Number(value);
@@ -142,7 +148,7 @@ function parseSettingValue(value: string, valueType: string): any {
 /**
  * Format value for storage
  */
-function formatSettingValue(value: any, valueType: string): string {
+function formatSettingValue(value: SettingValue, valueType: string): string {
   switch (valueType) {
     case 'number':
     case 'boolean':
@@ -160,7 +166,7 @@ function formatSettingValue(value: any, valueType: string): string {
  */
 export async function updateSystemSetting(
   key: string,
-  value: any,
+  value: SettingValue,
   updatedBy?: string
 ): Promise<void> {
   // Get value type from defaults or existing setting

@@ -30,7 +30,7 @@ export async function getUserSubscriptions() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return { success: false, error: 'Not authenticated' };
+      return errorResult('Not authenticated');
     }
 
     const userSubs = await db
@@ -67,7 +67,7 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return { success: false, error: 'Not authenticated' };
+      return errorResult('Not authenticated');
     }
 
     // Verify subscription belongs to user
@@ -79,7 +79,7 @@ export async function togglePodcastEmailNotifications(subscriptionId: string, en
     });
 
     if (!subscription) {
-      return { success: false, error: 'Subscription not found' };
+      return errorResult('Subscription not found');
     }
 
     // Update email_notifications
@@ -104,7 +104,7 @@ export async function disableAllPodcastEmailNotifications() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return { success: false, error: 'Not authenticated' };
+      return errorResult('Not authenticated');
     }
 
     // Update all user's subscriptions
@@ -135,7 +135,7 @@ export async function enableAllPodcastEmailNotifications() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return { success: false, error: 'Not authenticated' };
+      return errorResult('Not authenticated');
     }
 
     // Update all user's subscriptions
@@ -178,7 +178,7 @@ export async function unsubscribeFromPodcastByToken(
     });
 
     if (!profile) {
-      return { success: false, error: 'Invalid unsubscribe token' };
+      return errorResult('Invalid unsubscribe token');
     }
 
     // Find subscription
@@ -197,7 +197,7 @@ export async function unsubscribeFromPodcastByToken(
     });
 
     if (!subscription) {
-      return { success: false, error: 'Subscription not found' };
+      return errorResult('Subscription not found');
     }
 
     // Disable email notifications for this podcast
