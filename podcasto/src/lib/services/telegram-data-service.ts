@@ -1,7 +1,6 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { createS3Client } from '@/lib/utils/s3-utils';
 import type { ITelegramDataService } from './interfaces';
-import { Readable } from 'stream';
 
 interface TelegramMessage {
   text?: string;
@@ -144,9 +143,9 @@ export class TelegramDataService implements ITelegramDataService {
         return null;
       }
 
-      // Convert stream to string
-      const bodyString = await this.streamToString(response.Body);
-      
+      // Convert stream to string using AWS SDK method
+      const bodyString = await response.Body.transformToString('utf-8');
+
       // Parse JSON data
       const telegramData = JSON.parse(bodyString) as TelegramData;
       
@@ -222,11 +221,11 @@ export class TelegramDataService implements ITelegramDataService {
         });
 
         const response = await client.send(command);
-        
+
         if (response.Body) {
-          const bodyString = await this.streamToString(response.Body);
+          const bodyString = await response.Body.transformToString('utf-8');
           const telegramData = JSON.parse(bodyString) as TelegramData;
-          
+
           console.log(`[TELEGRAM_DATA] Found data at alternative path: ${path}`);
           return telegramData;
         }
@@ -238,20 +237,6 @@ export class TelegramDataService implements ITelegramDataService {
 
     console.warn(`[TELEGRAM_DATA] No data found in any alternative paths for ${episodeId}`);
     return null;
-  }
-
-  /**
-   * Converts a readable stream to string
-   * AWS SDK returns streams that are compatible with Node.js Readable
-   */
-  private async streamToString(stream: Readable): Promise<string> {
-    const chunks: Buffer[] = [];
-    
-    return new Promise((resolve, reject) => {
-      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-      stream.on('error', reject);
-    });
   }
 
   /**
