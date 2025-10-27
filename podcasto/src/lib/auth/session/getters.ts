@@ -12,6 +12,7 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 import type { User, Session, AuthState } from './types';
 
@@ -22,8 +23,8 @@ import type { User, Session, AuthState } from './types';
  * per request, preventing duplicate instantiations while maintaining cookie
  * awareness. The cookies store is captured on first invocation.
  */
-export const getCachedServerClient = cache(async () => {
-  const cookieStore = await cookies();
+export const getCachedServerClient = cache((): SupabaseClient<Database> => {
+  const cookieStore = cookies();
 
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
