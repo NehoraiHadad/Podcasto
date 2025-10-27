@@ -1,8 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { profiles, episodes, podcasts, sentEpisodes, emailBounces, creditTransactions } from '@/lib/db/schema';
-import { sql, desc, gte, and } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { verifyAdminAccess } from '@/lib/utils/admin-utils';
 import { extractRowsFromSqlResult } from '@/lib/db/utils/sql-result-handler';
 

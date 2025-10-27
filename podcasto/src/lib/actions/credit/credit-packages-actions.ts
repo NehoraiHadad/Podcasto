@@ -7,7 +7,6 @@ import { errorResult } from '../shared/error-handler';
 import {
   getActiveCreditPackages,
   getAllCreditPackages,
-  getCreditPackageById,
   createCreditPackage,
   updateCreditPackage,
   deleteCreditPackage,

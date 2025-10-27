@@ -10,12 +10,10 @@ import {
   updatePodcastGroup,
   deletePodcastGroup,
   addLanguageVariant,
-  updateLanguageVariant,
   removeLanguageVariant,
   setPrimaryLanguage,
   linkPodcastToGroup,
   getPodcastGroupWithLanguages,
-  getPodcastGroupById,
   languageExistsInGroup
 } from '@/lib/db/api/podcast-groups';
 import type {
