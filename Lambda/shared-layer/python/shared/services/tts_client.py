@@ -2,8 +2,10 @@
 TTS Client Module
 Handles core Google Gemini TTS API interactions for audio generation
 Updated: 2025-10-24 - Using Gemini AI API only (not Vertex AI)
+Updated: 2025-10-27 - Added timeout protection and smart retry logic
 """
 import os
+import concurrent.futures
 from typing import Tuple
 from google import genai
 from google.genai import types
@@ -16,11 +18,25 @@ import time
 
 logger = get_logger(__name__)
 
+class DeferrableError(Exception):
+    """
+    Exception indicating that the operation should be deferred (episode returned to script_ready)
+    instead of being marked as failed. Used for transient errors that may resolve on retry.
+    """
+    pass
+
 # Global rate-limiter shared across all Lambda invokes (execution context is reused)
 _RATE_LIMITER = TokenBucketRateLimiter(
     max_tokens=int(os.getenv("TTS_REQUESTS_PER_MINUTE", "9")),  # stay below Google limit (10)
     refill_period=60,
 )
+
+# Timeout for individual TTS API calls
+# Normal processing: 60-86 seconds
+# With delays: up to 5-7 minutes observed
+# Setting to 480s (8 minutes) to allow for legitimate slow responses
+# Lambda has 15 minutes (900s) total, so this leaves room for retries
+TTS_CALL_TIMEOUT_SECONDS = 480
 
 class GeminiTTSClient:
     """Client for Google Gemini TTS API interactions"""
@@ -57,7 +73,45 @@ class GeminiTTSClient:
 
         # Optimized generation settings to prevent silent audio
         self.temperature = 0.8  # CRITICAL: Higher temperature prevents silent generation
-    
+
+    def _call_gemini_with_timeout(self, contents, config) -> any:
+        """
+        Call Gemini API with timeout protection to prevent Lambda hanging
+
+        Args:
+            contents: Content to send to Gemini
+            config: Generation configuration
+
+        Returns:
+            Gemini API response
+
+        Raises:
+            DeferrableError: If timeout occurs (episode should be deferred)
+            Exception: Other Gemini API errors
+        """
+        def _make_api_call():
+            return self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+
+        # Use ThreadPoolExecutor with timeout to prevent indefinite hanging
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_make_api_call)
+            try:
+                response = future.result(timeout=TTS_CALL_TIMEOUT_SECONDS)
+                return response
+            except concurrent.futures.TimeoutError:
+                # Cancel the future (doesn't stop the thread, but marks it as cancelled)
+                future.cancel()
+                logger.error(f"[TTS_CLIENT] Gemini API call timed out after {TTS_CALL_TIMEOUT_SECONDS}s")
+                logger.warning(f"[TTS_CLIENT] Background thread may still be running (Python limitation)")
+                raise DeferrableError(
+                    f"Gemini TTS API hung for >{TTS_CALL_TIMEOUT_SECONDS}s. "
+                    "Episode deferred to script_ready for retry."
+                )
+
     def generate_single_audio(
         self,
         script_content: str,
@@ -215,47 +269,61 @@ class GeminiTTSClient:
         
         # Generate content using Gemini TTS
         logger.info(f"[TTS_CLIENT] Calling Gemini 2.5 pro TTS API...")
-        
+
         # Respect rate limits – block until a token is available.
         _RATE_LIMITER.acquire()
 
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=generate_content_config,
-            )
-            
+            # Call Gemini API with timeout protection
+            response = self._call_gemini_with_timeout(contents, generate_content_config)
+
             # Extract audio data from response
-            if (response.candidates and 
-                response.candidates[0].content and 
+            if (response.candidates and
+                response.candidates[0].content and
                 response.candidates[0].content.parts and
                 response.candidates[0].content.parts[0].inline_data):
-                
+
                 inline_data = response.candidates[0].content.parts[0].inline_data
                 audio_data = inline_data.data
                 mime_type = inline_data.mime_type
-                
+
                 logger.info(f"[TTS_CLIENT] Received audio data: {len(audio_data)} bytes, MIME type: {mime_type}")
-                
+
                 # Convert to WAV format using utility function
                 wav_data = convert_to_wav(audio_data, mime_type)
                 duration = calculate_wav_duration(wav_data)
-                
+
                 logger.info(f"[TTS_CLIENT] Generated {len(wav_data)} bytes of audio, duration: {duration}s")
-                
+
                 return wav_data, duration
             else:
                 raise ValueError("No audio data in response")
-                
+
+        except DeferrableError:
+            # Timeout occurred - re-raise to defer episode
+            raise
         except Exception as e:
-            # Enhanced handling for quota errors
+            # Smart error handling based on error type
             error_str = str(e)
+
+            # 429 Rate Limit - Use Google's retry-after delay (no immediate retry)
             if "RESOURCE_EXHAUSTED" in error_str or "429" in error_str:
                 delay = parse_retry_delay(error_str)
-                logger.warning(f"[TTS_CLIENT] Rate limit hit – backing off for {delay}s")
-                time.sleep(delay)
-            raise
+                logger.warning(f"[TTS_CLIENT] Rate limit (429) - Google suggests {delay}s delay")
+                # Convert 429 to DeferrableError so episode gets deferred instead of immediate retry
+                raise DeferrableError(
+                    f"Rate limit exceeded (429). Defer episode for {delay}s before retry."
+                )
+
+            # 500 Internal Server Error - Transient Google error, allow one immediate retry
+            elif "500" in error_str or "Internal error" in error_str:
+                logger.warning(f"[TTS_CLIENT] Google internal error (500) - transient error")
+                # Let the retry logic in generate_chunk_with_retry handle this
+                raise
+
+            # Other errors - propagate
+            else:
+                raise
     
     def generate_chunk_with_retry(
         self,
@@ -268,7 +336,7 @@ class GeminiTTSClient:
         speaker2_gender: str,
         episode_id: str = None,
         is_pre_processed: bool = False,
-        max_retries: int = 2,
+        max_retries: int = 1,
         speaker1_voice: str = None,
         speaker2_voice: str = None,
         content_type: str = 'general',
@@ -320,18 +388,36 @@ class GeminiTTSClient:
                     logger.info(f"[TTS_CLIENT] Chunk {chunk_num} used voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
                     return audio_data, duration
                 else:
-                    logger.warning(f"[TTS_CLIENT] ⚠️ Chunk {chunk_num} validation failed, retry {retry+1}/{max_retries}")
+                    logger.warning(f"[TTS_CLIENT] ⚠️ Chunk {chunk_num} validation failed, retry {retry+1}/{max_retries+1}")
                     logger.warning(f"[TTS_CLIENT] Validation failed for voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
-                    
+
+            except DeferrableError as de:
+                # Timeout or rate limit - defer episode, don't retry
+                logger.error(f"[TTS_CLIENT] Chunk {chunk_num} needs deferral: {str(de)}")
+                raise  # Propagate to handler so episode can be deferred
+
             except Exception as e:
-                logger.error(f"[TTS_CLIENT] Error processing chunk {chunk_num}, attempt {retry+1}: {str(e)}")
+                error_str = str(e)
+                logger.error(f"[TTS_CLIENT] Error processing chunk {chunk_num}, attempt {retry+1}/{max_retries+1}: {error_str}")
+
+                # Check if this is the last retry
                 if retry == max_retries:
-                    logger.error(f"[TTS_CLIENT] Chunk {chunk_num} failed after {max_retries} retries")
+                    logger.error(f"[TTS_CLIENT] Chunk {chunk_num} failed after {max_retries+1} attempts")
+                    # For 500 errors after retry exhausted, defer instead of fail
+                    if "500" in error_str or "Internal error" in error_str:
+                        logger.warning(f"[TTS_CLIENT] 500 error persists after retries - converting to DeferrableError")
+                        raise DeferrableError(
+                            f"Google internal error (500) persisted after {max_retries+1} attempts. "
+                            "Defer episode for retry."
+                        )
                 else:
-                    # If rate-limit was the cause, wait before next retry.
-                    if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
-                        sleep_for = parse_retry_delay(str(e))
-                        logger.info(f"[TTS_CLIENT] Sleeping {sleep_for}s before retrying chunk {chunk_num}")
-                        time.sleep(sleep_for)
-        
+                    # Only retry for 500 errors (transient Google errors)
+                    if "500" in error_str or "Internal error" in error_str:
+                        logger.info(f"[TTS_CLIENT] 500 error - will retry chunk {chunk_num} (attempt {retry+2}/{max_retries+1})")
+                        time.sleep(2)  # Brief delay before retry
+                    else:
+                        # Other errors - no point retrying
+                        logger.error(f"[TTS_CLIENT] Non-retryable error for chunk {chunk_num}")
+                        raise
+
         return None 

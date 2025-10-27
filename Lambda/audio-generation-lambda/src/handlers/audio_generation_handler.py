@@ -1,6 +1,7 @@
 """
 Audio Generation Lambda Handler
 Processes SQS messages to generate podcast audio using Google TTS
+Updated: 2025-10-27 - Added DeferrableError handling for smart retry
 """
 import json
 import os
@@ -12,6 +13,7 @@ from shared.clients.s3_client import S3Client
 from shared.services.google_podcast_generator import GooglePodcastGenerator
 from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
+from shared.services.tts_client import DeferrableError
 from shared.utils.logging import get_logger
 from shared.utils.datetime_utils import now_utc, to_iso_utc
 
@@ -43,48 +45,61 @@ class AudioGenerationHandler:
             raise ValueError("GEMINI_API_KEY environment variable is required")
         
     def process_event(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-        """Process SQS event containing episode generation requests"""
+        """
+        Process SQS event containing episode generation requests
+
+        Uses ReportBatchItemFailures pattern for partial batch success.
+        Deferred episodes return to SQS for retry, successful ones are deleted.
+        """
         logger.info(f"[AUDIO_GEN] Lambda invoked with event: {json.dumps(event, default=str)}")
 
         results = []
+        batch_item_failures = []
         records = event.get('Records', [])
 
         for record in records:
+            message_id = record.get('messageId', 'unknown')
+
             try:
                 message_body = record.get('body', '{}')
                 message = json.loads(message_body)
-                request_id = record.get('messageId', 'unknown')
 
-                logger.info(f"[AUDIO_GEN] Processing message {request_id}: {message}")
+                logger.info(f"[AUDIO_GEN] Processing message {message_id}: {message}")
 
                 if not self.should_process_for_audio(message):
-                    logger.info(f"[AUDIO_GEN] Message {request_id} not relevant for audio generation, skipping")
+                    logger.info(f"[AUDIO_GEN] Message {message_id} not relevant for audio generation, skipping")
                     results.append({
                         'status': 'skipped',
-                        'message_id': request_id,
+                        'message_id': message_id,
                         'reason': 'Not an audio generation request'
                     })
                     continue
 
-                result = self.process_audio_generation_request(message, request_id, context)
-                result['message_id'] = request_id
+                result = self.process_audio_generation_request(message, message_id, context)
+                result['message_id'] = message_id
                 results.append(result)
-                
+
+                # If deferred, add to batch failures so SQS retries the message
+                if result.get('status') == 'deferred':
+                    batch_item_failures.append({'itemIdentifier': message_id})
+                    logger.info(f"[AUDIO_GEN] Message {message_id} deferred - will return to SQS for retry")
+
             except Exception as e:
                 logger.error(f"[AUDIO_GEN] Error processing record: {str(e)}")
                 results.append({
                     'status': 'error',
-                    'message_id': record.get('messageId', 'unknown'),
+                    'message_id': message_id,
                     'error': str(e)
                 })
-        
+                # Add to batch failures for retry
+                batch_item_failures.append({'itemIdentifier': message_id})
+
         logger.info(f"[AUDIO_GEN] Processed {len(records)} messages, results: {results}")
+        logger.info(f"[AUDIO_GEN] Batch item failures (for retry): {len(batch_item_failures)} messages")
+
+        # Return response with ReportBatchItemFailures pattern
         return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'processed': len(records),
-                'results': results
-            })
+            'batchItemFailures': batch_item_failures
         }
     
     def should_process_for_audio(self, message: Dict[str, Any]) -> bool:
@@ -127,14 +142,19 @@ class AudioGenerationHandler:
 
             # TIMEOUT DETECTION: Check remaining time at start
             remaining_time_ms = context.get_remaining_time_in_millis()
-            MIN_TIME_REQUIRED_MS = 120000  # 2 minutes minimum to start processing
+            # TTS timeout per chunk: 480s (8 minutes)
+            # Need time for: setup + at least 1 chunk + safety buffer
+            # Minimum: 480s + 60s setup + 60s buffer = 600s = 600000ms
+            MIN_TIME_REQUIRED_MS = 600000  # 10 minutes minimum to start processing
 
-            logger.info(f"[AUDIO_GEN] [{request_id}] Remaining time: {remaining_time_ms}ms (required: {MIN_TIME_REQUIRED_MS}ms)")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Remaining time: {remaining_time_ms}ms ({remaining_time_ms/1000:.0f}s)")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Required minimum: {MIN_TIME_REQUIRED_MS}ms ({MIN_TIME_REQUIRED_MS/1000:.0f}s)")
 
             if remaining_time_ms < MIN_TIME_REQUIRED_MS:
-                error_msg = f"Insufficient time remaining to process episode ({remaining_time_ms}ms < {MIN_TIME_REQUIRED_MS}ms required). Marking as failed to prevent timeout."
+                error_msg = f"Insufficient time remaining to process episode ({remaining_time_ms/1000:.0f}s < {MIN_TIME_REQUIRED_MS/1000:.0f}s required). Deferring to prevent timeout."
                 logger.error(f"[AUDIO_GEN] [{request_id}] {error_msg}")
-                raise TimeoutError(error_msg)
+                # Use DeferrableError instead of TimeoutError so episode returns to script_ready
+                raise DeferrableError(error_msg)
 
             logger.info(f"[AUDIO_GEN] [{request_id}] Processing audio generation for episode {episode_id}")
 
@@ -179,14 +199,16 @@ class AudioGenerationHandler:
 
             # TIMEOUT DETECTION: Check remaining time before expensive audio generation
             remaining_time_ms = context.get_remaining_time_in_millis()
-            MIN_TIME_FOR_AUDIO_MS = 60000  # 1 minute minimum for audio generation
+            # Need at least one full chunk timeout (480s) + safety buffer (60s)
+            MIN_TIME_FOR_AUDIO_MS = 540000  # 9 minutes minimum for audio generation
 
-            logger.info(f"[AUDIO_GEN] [{request_id}] Before audio generation - remaining time: {remaining_time_ms}ms (required: {MIN_TIME_FOR_AUDIO_MS}ms)")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Before audio generation - remaining time: {remaining_time_ms/1000:.0f}s (required: {MIN_TIME_FOR_AUDIO_MS/1000:.0f}s)")
 
             if remaining_time_ms < MIN_TIME_FOR_AUDIO_MS:
-                error_msg = f"Insufficient time for audio generation ({remaining_time_ms}ms < {MIN_TIME_FOR_AUDIO_MS}ms required). Marking as failed to prevent timeout."
+                error_msg = f"Insufficient time for audio generation ({remaining_time_ms/1000:.0f}s < {MIN_TIME_FOR_AUDIO_MS/1000:.0f}s required). Deferring to prevent timeout."
                 logger.error(f"[AUDIO_GEN] [{request_id}] {error_msg}")
-                raise TimeoutError(error_msg)
+                # Use DeferrableError instead of TimeoutError so episode returns to script_ready
+                raise DeferrableError(error_msg)
 
             # Generate audio using processed script
             # If we got a niqqud script, it means the text was pre-processed
@@ -235,6 +257,33 @@ class AudioGenerationHandler:
                 'role_description': content_info.get('role_description', ''),
                 'confidence': content_info.get('confidence', 0.0),
                 'has_niqqud': niqqud_script is not None
+            }
+
+        except DeferrableError as de:
+            # Timeout or rate limit - defer episode to script_ready for retry
+            logger.warning(f"[AUDIO_GEN] [{request_id}] DeferrableError: {str(de)}")
+            logger.info(f"[AUDIO_GEN] [{request_id}] Returning episode {episode_id} to script_ready for retry")
+
+            if episode_id:
+                # Log deferral in processing logs
+                self.tracker.log_stage_failure(
+                    episode_id,
+                    ProcessingStage.AUDIO_PROCESSING,
+                    de,
+                    {
+                        'request_id': request_id,
+                        'context': 'Episode deferred for retry',
+                        'deferred': True
+                    }
+                )
+                # Return episode to script_ready status (not failed)
+                self.update_episode_status(episode_id, 'script_ready', f"Deferred: {str(de)}")
+
+            return {
+                'status': 'deferred',
+                'episode_id': episode_id,
+                'reason': str(de),
+                'next_action': 'Episode returned to script_ready for retry'
             }
 
         except Exception as e:
