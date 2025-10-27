@@ -48,7 +48,8 @@ export function EpisodeActionsMenu({ episode }: EpisodeActionsMenuProps) {
     episode.status?.toLowerCase() === 'failed' ||
     episode.status?.toLowerCase() === 'published' ||
     episode.status?.toLowerCase() === 'pending' ||
-    episode.status?.toLowerCase() === 'processing';
+    episode.status?.toLowerCase() === 'processing' ||
+    episode.status?.toLowerCase() === 'script_ready';
   const canSendEmails = episode.status?.toLowerCase() === 'published';
 
   const handleDeleteWithValidation = async () => {
