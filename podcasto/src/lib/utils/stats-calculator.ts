@@ -149,7 +149,7 @@ export function aggregateByStatus(
  * ```
  */
 export function aggregateByField<
-  T extends Record<string, unknown> & { count: number },
+  T extends { count: number },
   K extends Extract<keyof T, string>
 >(data: T[], field: K): Record<string, number> {
   return data.reduce<Record<string, number>>((acc, item) => {

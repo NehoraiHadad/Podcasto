@@ -84,8 +84,8 @@ export async function createPodcastGroupAction(
     // Revalidate relevant pages
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
-    revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
-    revalidatePath(`/podcasts/${groupId}`);
+    revalidatePath(`/admin/podcasts/groups/${group.id}/edit`);
+    revalidatePath(`/podcasts/${group.id}`);
 
     return {
       success: true,
