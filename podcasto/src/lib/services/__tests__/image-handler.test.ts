@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ImageHandler, createImageHandler } from '../image-handler';
 import { episodesApi } from '../../db/api';
 import type {
@@ -6,6 +6,7 @@ import type {
   IEpisodeUpdater,
   IImageGenerationService,
 } from '../interfaces';
+import type { ImagePreviewResult } from '../interfaces/post-processing-types.interface';
 
 vi.mock('../../db/api', () => ({
   episodesApi: {
@@ -18,45 +19,135 @@ describe('ImageHandler', () => {
   let mockS3Service: IS3Service;
   let mockEpisodeUpdater: IEpisodeUpdater;
   let mockImageService: IImageGenerationService;
+  let uploadImageToS3Mock: ReturnType<
+    typeof vi.fn<
+      Parameters<IS3Service['uploadImageToS3']>,
+      ReturnType<IS3Service['uploadImageToS3']>
+    >
+  >;
+  let generateImagePromptMock: ReturnType<
+    typeof vi.fn<
+      Parameters<IImageGenerationService['generateImagePrompt']>,
+      ReturnType<IImageGenerationService['generateImagePrompt']>
+    >
+  >;
+  let generateImagePreviewMock: ReturnType<
+    typeof vi.fn<
+      Parameters<IImageGenerationService['generateImagePreview']>,
+      ReturnType<IImageGenerationService['generateImagePreview']>
+    >
+  >;
+  let updateEpisodeWithImageMock: ReturnType<
+    typeof vi.fn<
+      Parameters<IEpisodeUpdater['updateEpisodeWithImage']>,
+      ReturnType<IEpisodeUpdater['updateEpisodeWithImage']>
+    >
+  >;
+  let markEpisodeAsPublishedMock: ReturnType<
+    typeof vi.fn<
+      Parameters<IEpisodeUpdater['markEpisodeAsPublished']>,
+      ReturnType<IEpisodeUpdater['markEpisodeAsPublished']>
+    >
+  >;
+  let trackImageGenerationErrorMock: ReturnType<
+    typeof vi.fn<
+      Parameters<IEpisodeUpdater['trackImageGenerationError']>,
+      ReturnType<IEpisodeUpdater['trackImageGenerationError']>
+    >
+  >;
+  let getEpisodeByIdMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
+    uploadImageToS3Mock = vi.fn<
+      Parameters<IS3Service['uploadImageToS3']>,
+      ReturnType<IS3Service['uploadImageToS3']>
+    >();
+
     mockS3Service = {
-      uploadImageToS3: vi.fn(),
-    } as any;
+      listEpisodeFiles: vi.fn(async () => ({ files: [], error: undefined })),
+      getFileContent: vi.fn(async () => ({ content: null, error: undefined })),
+      getFileMetadata: vi.fn(async () => ({ metadata: null, error: undefined })),
+      uploadImageToS3: uploadImageToS3Mock,
+      deleteFile: vi.fn(async () => ({ success: true })),
+      deleteAllEpisodeFiles: vi.fn(async () => ({ success: true, deletedCount: 0 })),
+      deleteEpisodeFromS3: vi.fn(async () => ({ success: true, deletedCount: 0 })),
+      deletePodcastFromS3: vi.fn(async () => ({ success: true, deletedCount: 0 })),
+      getTranscriptFromS3: vi.fn(async () => null),
+    };
+
+    updateEpisodeWithImageMock = vi.fn<
+      Parameters<IEpisodeUpdater['updateEpisodeWithImage']>,
+      ReturnType<IEpisodeUpdater['updateEpisodeWithImage']>
+    >(async () => undefined);
+    markEpisodeAsPublishedMock = vi.fn<
+      Parameters<IEpisodeUpdater['markEpisodeAsPublished']>,
+      ReturnType<IEpisodeUpdater['markEpisodeAsPublished']>
+    >(async () => undefined);
+    trackImageGenerationErrorMock = vi.fn<
+      Parameters<IEpisodeUpdater['trackImageGenerationError']>,
+      ReturnType<IEpisodeUpdater['trackImageGenerationError']>
+    >(async () => undefined);
 
     mockEpisodeUpdater = {
-      updateEpisodeWithImage: vi.fn(),
-      markEpisodeAsPublished: vi.fn(),
-      trackImageGenerationError: vi.fn(),
-    } as any;
+      updateEpisodeWithSummary: vi.fn(async () => undefined),
+      markEpisodeAsProcessed: vi.fn(async () => undefined),
+      markEpisodeAsPublished: markEpisodeAsPublishedMock,
+      markEpisodeAsFailed: vi.fn(async () => undefined),
+      trackImageGenerationError: trackImageGenerationErrorMock,
+      updateEpisodeWithImage: updateEpisodeWithImageMock,
+      parseEpisodeMetadata: vi.fn(() => ({})),
+    };
+
+    generateImagePromptMock = vi.fn<
+      Parameters<IImageGenerationService['generateImagePrompt']>,
+      ReturnType<IImageGenerationService['generateImagePrompt']>
+    >(async () => '');
+    generateImagePreviewMock = vi.fn<
+      Parameters<IImageGenerationService['generateImagePreview']>,
+      ReturnType<IImageGenerationService['generateImagePreview']>
+    >();
 
     mockImageService = {
-      generateImagePrompt: vi.fn(),
-      generateImagePreview: vi.fn(),
-    } as any;
+      generateImagePrompt: generateImagePromptMock,
+      generateImagePreview: generateImagePreviewMock,
+    };
+
+    getEpisodeByIdMock = vi.mocked(episodesApi.getEpisodeById);
 
     handler = new ImageHandler(mockS3Service, mockEpisodeUpdater, mockImageService);
   });
 
   describe('constructor', () => {
     it('should throw error if S3Service is not provided', () => {
-      expect(() => new ImageHandler(null as any, mockEpisodeUpdater, mockImageService)).toThrow(
-        'S3Service is required for ImageHandler'
-      );
+      expect(() =>
+        new ImageHandler(
+          null as unknown as IS3Service,
+          mockEpisodeUpdater,
+          mockImageService
+        )
+      ).toThrow('S3Service is required for ImageHandler');
     });
 
     it('should throw error if EpisodeUpdater is not provided', () => {
-      expect(() => new ImageHandler(mockS3Service, null as any, mockImageService)).toThrow(
-        'EpisodeUpdater is required for ImageHandler'
-      );
+      expect(() =>
+        new ImageHandler(
+          mockS3Service,
+          null as unknown as IEpisodeUpdater,
+          mockImageService
+        )
+      ).toThrow('EpisodeUpdater is required for ImageHandler');
     });
 
     it('should throw error if ImageGenerationService is not provided', () => {
-      expect(() => new ImageHandler(mockS3Service, mockEpisodeUpdater, null as any)).toThrow(
-        'ImageGenerationService is required for ImageHandler'
-      );
+      expect(() =>
+        new ImageHandler(
+          mockS3Service,
+          mockEpisodeUpdater,
+          null as unknown as IImageGenerationService
+        )
+      ).toThrow('ImageGenerationService is required for ImageHandler');
     });
 
     it('should create handler with all dependencies', () => {
@@ -70,30 +161,30 @@ describe('ImageHandler', () => {
       const title = 'Test title';
       const expectedPrompt = 'Generated prompt';
 
-      (mockImageService.generateImagePrompt as Mock).mockResolvedValue(expectedPrompt);
+      generateImagePromptMock.mockResolvedValue(expectedPrompt);
 
       const result = await handler.generateImagePrompt(summary, title);
 
       expect(result).toBe(expectedPrompt);
-      expect(mockImageService.generateImagePrompt).toHaveBeenCalledWith(summary, title);
+      expect(generateImagePromptMock).toHaveBeenCalledWith(summary, title);
     });
   });
 
   describe('generateImagePreview', () => {
     it('should delegate to image service', async () => {
       const summary = 'Test summary';
-      const expectedResult = {
+      const expectedResult: ImagePreviewResult = {
         success: true,
         imageData: Buffer.from('test'),
         mimeType: 'image/jpeg',
       };
 
-      (mockImageService.generateImagePreview as Mock).mockResolvedValue(expectedResult);
+      generateImagePreviewMock.mockResolvedValue(expectedResult);
 
       const result = await handler.generateImagePreview(summary);
 
       expect(result).toEqual(expectedResult);
-      expect(mockImageService.generateImagePreview).toHaveBeenCalledWith(summary, undefined);
+      expect(generateImagePreviewMock).toHaveBeenCalledWith(summary, undefined);
     });
   });
 
@@ -110,8 +201,8 @@ describe('ImageHandler', () => {
       };
       const imageUrl = 'https://s3.example.com/image.png';
 
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockS3Service.uploadImageToS3 as Mock).mockResolvedValue({
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      uploadImageToS3Mock.mockResolvedValue({
         url: imageUrl,
         error: undefined,
       });
@@ -125,13 +216,13 @@ describe('ImageHandler', () => {
 
       expect(result.success).toBe(true);
       expect(result.imageUrl).toBe(imageUrl);
-      expect(mockS3Service.uploadImageToS3).toHaveBeenCalledWith(
+      expect(uploadImageToS3Mock).toHaveBeenCalledWith(
         podcastId,
         episodeId,
         imageData,
         mimeType
       );
-      expect(mockEpisodeUpdater.updateEpisodeWithImage).toHaveBeenCalledWith(
+      expect(updateEpisodeWithImageMock).toHaveBeenCalledWith(
         episodeId,
         imageUrl,
         'Episode description'
@@ -139,7 +230,7 @@ describe('ImageHandler', () => {
     });
 
     it('should handle episode not found', async () => {
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(null);
+      getEpisodeByIdMock.mockResolvedValue(null);
 
       const result = await handler.saveGeneratedImage(
         episodeId,
@@ -154,8 +245,8 @@ describe('ImageHandler', () => {
 
     it('should handle S3 upload error', async () => {
       const mockEpisode = { id: episodeId, description: 'Test' };
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockS3Service.uploadImageToS3 as Mock).mockResolvedValue({
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      uploadImageToS3Mock.mockResolvedValue({
         url: undefined,
         error: 'Upload failed',
       });
@@ -173,8 +264,8 @@ describe('ImageHandler', () => {
 
     it('should handle missing URL from upload', async () => {
       const mockEpisode = { id: episodeId, description: 'Test' };
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockS3Service.uploadImageToS3 as Mock).mockResolvedValue({
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      uploadImageToS3Mock.mockResolvedValue({
         url: null,
         error: undefined,
       });
@@ -204,30 +295,27 @@ describe('ImageHandler', () => {
       };
       const imageData = Buffer.from('image');
 
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockImageService.generateImagePreview as Mock).mockResolvedValue({
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      generateImagePreviewMock.mockResolvedValue({
         success: true,
         imageData,
         mimeType: 'image/jpeg',
       });
-      (mockS3Service.uploadImageToS3 as Mock).mockResolvedValue({
+      uploadImageToS3Mock.mockResolvedValue({
         url: 'https://s3.example.com/image.jpg',
       });
 
       const result = await handler.generateEpisodeImage(episodeId, podcastId, summary);
 
       expect(result).toBe(true);
-      expect(mockImageService.generateImagePreview).toHaveBeenCalledWith(
-        summary,
-        'Episode Title'
-      );
+      expect(generateImagePreviewMock).toHaveBeenCalledWith(summary, 'Episode Title');
     });
 
     it('should handle image generation failure gracefully', async () => {
       const mockEpisode = { id: episodeId, title: 'Title' };
 
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockImageService.generateImagePreview as Mock).mockResolvedValue({
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      generateImagePreviewMock.mockResolvedValue({
         success: false,
         imageData: null,
         mimeType: 'image/jpeg',
@@ -237,22 +325,22 @@ describe('ImageHandler', () => {
       const result = await handler.generateEpisodeImage(episodeId, podcastId, summary);
 
       expect(result).toBe(false);
-      expect(mockEpisodeUpdater.markEpisodeAsPublished).toHaveBeenCalledWith(episodeId);
+      expect(markEpisodeAsPublishedMock).toHaveBeenCalledWith(episodeId);
     });
 
     it('should handle save failure gracefully', async () => {
       const mockEpisode = { id: episodeId, title: 'Title' };
       const imageData = Buffer.from('image');
 
-      (episodesApi.getEpisodeById as Mock)
+      getEpisodeByIdMock
         .mockResolvedValueOnce(mockEpisode)
         .mockResolvedValueOnce(mockEpisode);
-      (mockImageService.generateImagePreview as Mock).mockResolvedValue({
+      generateImagePreviewMock.mockResolvedValue({
         success: true,
         imageData,
         mimeType: 'image/jpeg',
       });
-      (mockS3Service.uploadImageToS3 as Mock).mockResolvedValue({
+      uploadImageToS3Mock.mockResolvedValue({
         url: undefined,
         error: 'Upload failed',
       });
@@ -266,32 +354,33 @@ describe('ImageHandler', () => {
       const mockEpisode = { id: episodeId, title: 'Title' };
       const error = new Error('Unexpected error');
 
-      (episodesApi.getEpisodeById as Mock).mockResolvedValue(mockEpisode);
-      (mockImageService.generateImagePreview as Mock).mockRejectedValue(error);
+      getEpisodeByIdMock.mockResolvedValue(mockEpisode);
+      generateImagePreviewMock.mockRejectedValue(error);
 
       const result = await handler.generateEpisodeImage(episodeId, podcastId, summary);
 
       expect(result).toBe(false);
-      expect(mockEpisodeUpdater.trackImageGenerationError).toHaveBeenCalledWith(
-        episodeId,
-        error
-      );
+      expect(trackImageGenerationErrorMock).toHaveBeenCalledWith(episodeId, error);
     });
   });
 
   describe('createImageHandler', () => {
     it('should create handler with all dependencies', () => {
-      const handler = createImageHandler(
+      const instance = createImageHandler(
         mockS3Service,
         mockEpisodeUpdater,
         mockImageService
       );
-      expect(handler).toBeInstanceOf(ImageHandler);
+      expect(instance).toBeInstanceOf(ImageHandler);
     });
 
     it('should throw error if any dependency is missing', () => {
       expect(() =>
-        createImageHandler(null as any, mockEpisodeUpdater, mockImageService)
+        createImageHandler(
+          null as unknown as IS3Service,
+          mockEpisodeUpdater,
+          mockImageService
+        )
       ).toThrow('All dependencies are required for ImageHandler');
     });
   });

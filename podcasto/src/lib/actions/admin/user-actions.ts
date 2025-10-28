@@ -20,6 +20,29 @@ export interface UserListItem {
   hasBounces: boolean;
 }
 
+interface UserListQueryRow {
+  id: string;
+  email: string;
+  user_created_at: string;
+  last_sign_in_at: string | null;
+  display_name: string | null;
+  email_notifications: boolean | null;
+  has_seen_welcome: boolean | null;
+  role: string | null;
+  available_credits: string | null;
+  total_credits: string | null;
+  used_credits: string | null;
+  free_credits: string | null;
+  subscriptions_count: number;
+  episodes_received: number;
+  bounces_count: number;
+  complaints_count: number;
+}
+
+interface UserCountQueryRow {
+  total: number;
+}
+
 // SQL Query Result Types
 interface UserDetailsQueryResult {
   id: string;
@@ -43,6 +66,24 @@ interface EmailHealthQueryResult {
   bounces_count: number;
   complaints_count: number;
   last_email_sent: string | null;
+}
+
+interface UserEpisodeRow {
+  id: string;
+  sent_at: string;
+  episode_title: string | null;
+  podcast_title: string | null;
+}
+
+interface UserSubscriptionRow {
+  id: string;
+  created_at: string;
+  language_preference: string | null;
+  email_notifications: boolean;
+  podcast_id: string;
+  podcast_title: string;
+  podcast_description: string | null;
+  cover_image: string | null;
 }
 
 export interface UserDetailsData {
@@ -153,7 +194,7 @@ export async function getUsersListAction({
     `);
 
     // Extract user rows using utility function
-    const userRows = extractRowsFromSqlResult<any>(usersQuery, 'UserList');
+    const userRows = extractRowsFromSqlResult<UserListQueryRow>(usersQuery, 'UserList');
     const users = userRows.map((row) => {
       const hasBounces = row.bounces_count > 0;
       const hasComplaints = row.complaints_count > 0;
@@ -182,7 +223,7 @@ export async function getUsersListAction({
       ? users.filter(u => u.emailStatus === emailStatusFilter)
       : users;
 
-    const countRows = extractRowsFromSqlResult<any>(countQuery, 'UserCount');
+    const countRows = extractRowsFromSqlResult<UserCountQueryRow>(countQuery, 'UserCount');
     const total = countRows[0]?.total || 0;
 
     return {
@@ -418,7 +459,7 @@ export async function getUserActivityAction(userId: string, limit = 20) {
       LIMIT ${limit}
     `);
 
-    const episodeRows = extractRowsFromSqlResult<any>(episodes, 'UserEpisodes');
+    const episodeRows = extractRowsFromSqlResult<UserEpisodeRow>(episodes, 'UserEpisodes');
     for (const ep of episodeRows) {
       activities.push({
         id: ep.id,
@@ -468,7 +509,10 @@ export async function getUserSubscriptionsAction(userId: string) {
       ORDER BY s.created_at DESC
     `);
 
-    const subscriptionRows = extractRowsFromSqlResult<any>(subscriptionsData, 'UserSubscriptions');
+    const subscriptionRows = extractRowsFromSqlResult<UserSubscriptionRow>(
+      subscriptionsData,
+      'UserSubscriptions'
+    );
     return {
       success: true,
       data: subscriptionRows,

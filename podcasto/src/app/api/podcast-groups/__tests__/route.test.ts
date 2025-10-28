@@ -1,45 +1,48 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { DatabaseClient, GroupRecord, LanguageRecord } from '../fetch-groups';
 vi.mock('@/lib/db', () => ({
-  db: { select: vi.fn() }
+  db: { select: vi.fn() },
 }));
 
 import { fetchPodcastGroupsWithLanguages } from '../fetch-groups';
 
+type LanguageRow = LanguageRecord & { podcast_group_id: string };
+
 type GroupBuilder = {
-  from: ReturnType<typeof vi.fn>;
-  orderBy: ReturnType<typeof vi.fn>;
+  from: ReturnType<typeof vi.fn<[], GroupBuilder>>;
+  orderBy: ReturnType<typeof vi.fn<[unknown?], Promise<GroupRecord[]>>>;
 };
 
 type LanguageBuilder = {
-  from: ReturnType<typeof vi.fn>;
-  where: ReturnType<typeof vi.fn>;
-  orderBy: ReturnType<typeof vi.fn>;
+  from: ReturnType<typeof vi.fn<[], LanguageBuilder>>;
+  where: ReturnType<typeof vi.fn<[unknown?], LanguageBuilder>>;
+  orderBy: ReturnType<typeof vi.fn<[unknown?], Promise<LanguageRow[]>>>;
 };
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function createGroupBuilder(groups: any[]): GroupBuilder {
+function createGroupBuilder(groups: GroupRecord[]): GroupBuilder {
   const builder: GroupBuilder = {
-    from: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockResolvedValue(groups),
+    from: vi.fn(() => builder),
+    orderBy: vi.fn(async () => groups),
   };
   return builder;
 }
 
-function createLanguageBuilder(languages: any[]): LanguageBuilder {
+function createLanguageBuilder(languages: LanguageRow[]): LanguageBuilder {
   const builder: LanguageBuilder = {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockResolvedValue(languages),
+    from: vi.fn(() => builder),
+    where: vi.fn(() => builder),
+    orderBy: vi.fn(async () => languages),
   };
   return builder;
 }
 
 describe('fetchPodcastGroupsWithLanguages', () => {
   it('fetches groups and languages in batch', async () => {
-    const groups = [
+    const groups: GroupRecord[] = [
       {
         id: 'group-1',
         base_title: 'Group 1',
@@ -58,7 +61,7 @@ describe('fetchPodcastGroupsWithLanguages', () => {
       },
     ];
 
-    const languages = [
+    const languages: LanguageRow[] = [
       {
         id: 'lang-1',
         language_code: 'en',
@@ -80,14 +83,15 @@ describe('fetchPodcastGroupsWithLanguages', () => {
     const groupBuilder = createGroupBuilder(groups);
     const languageBuilder = createLanguageBuilder(languages);
 
-    const select = vi
-      .fn()
-      .mockReturnValueOnce(groupBuilder as unknown)
-      .mockReturnValueOnce(languageBuilder as unknown);
+    const select = vi.fn<[], GroupBuilder | LanguageBuilder>();
+    select.mockReturnValueOnce(groupBuilder);
+    select.mockReturnValueOnce(languageBuilder);
 
-    const mockDb = { select };
+    const mockDb: DatabaseClient = {
+      select: select as unknown as DatabaseClient['select'],
+    };
 
-    const result = await fetchPodcastGroupsWithLanguages(mockDb as any);
+    const result = await fetchPodcastGroupsWithLanguages(mockDb);
 
     expect(select).toHaveBeenCalledTimes(2);
     expect(groupBuilder.orderBy).toHaveBeenCalledTimes(1);
@@ -127,16 +131,17 @@ describe('fetchPodcastGroupsWithLanguages', () => {
   it('skips language lookup when no groups exist', async () => {
     const groupBuilder = createGroupBuilder([]);
 
-    const select = vi
-      .fn()
-      .mockReturnValueOnce(groupBuilder as unknown)
-      .mockImplementation(() => {
-        throw new Error('Languages should not be fetched when no groups exist');
-      });
+    const select = vi.fn<[], GroupBuilder | LanguageBuilder>();
+    select.mockReturnValueOnce(groupBuilder);
+    select.mockImplementation(() => {
+      throw new Error('Languages should not be fetched when no groups exist');
+    });
 
-    const mockDb = { select };
+    const mockDb: DatabaseClient = {
+      select: select as unknown as DatabaseClient['select'],
+    };
 
-    const result = await fetchPodcastGroupsWithLanguages(mockDb as any);
+    const result = await fetchPodcastGroupsWithLanguages(mockDb);
 
     expect(result).toEqual([]);
     expect(select).toHaveBeenCalledTimes(1);

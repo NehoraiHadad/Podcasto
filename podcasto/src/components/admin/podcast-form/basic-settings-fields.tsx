@@ -3,7 +3,7 @@
 import { Path, UseFormReturn } from 'react-hook-form';
 import { useState, useEffect } from 'react';
 import { Slider } from '@/components/ui/slider';
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormDescription, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { FormTextField, FormSelectField } from '@/components/ui/form-fields';
 import { TooltipLabel } from '@/components/ui/tooltip-label';
 import { Button } from '@/components/ui/button';

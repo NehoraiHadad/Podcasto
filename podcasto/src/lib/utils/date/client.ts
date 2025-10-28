@@ -6,7 +6,7 @@
 
 'use client';
 
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import { enUS, he } from 'date-fns/locale';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { DATE_FORMATS, DEFAULT_TIMEZONE, SUPPORTED_LOCALES } from './constants';
@@ -46,6 +46,11 @@ function getDateFnsLocale(locale?: string) {
   }
 
   return enUS;
+}
+
+function toTimezoneDateValue(date: Date, timezone: string): Date {
+  const isoString = formatInTimeZone(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  return parseISO(isoString);
 }
 
 /**
@@ -141,10 +146,7 @@ export function toUTCDate(dateString: string, timezone?: string): Date {
  */
 export function nowInUserTimezone(timezone?: string): Date {
   const tz = timezone || getUserTimezone();
-  const now = new Date();
-
-  // This returns current time but will be displayed correctly in the user's TZ
-  return now;
+  return toTimezoneDateValue(new Date(), tz);
 }
 
 /**
@@ -173,10 +175,12 @@ export function isPast(date: Date | string, timezone?: string): boolean {
   if (!date) return false;
 
   try {
-    const d = typeof date === 'string' ? parseISO(date) : date;
-    const now = new Date();
+    const tz = timezone || getUserTimezone();
+    const target = typeof date === 'string' ? parseISO(date) : date;
+    const targetInTz = toTimezoneDateValue(target, tz);
+    const nowInTz = nowInUserTimezone(tz);
 
-    return d < now;
+    return targetInTz < nowInTz;
   } catch {
     return false;
   }
@@ -189,10 +193,12 @@ export function isFuture(date: Date | string, timezone?: string): boolean {
   if (!date) return false;
 
   try {
-    const d = typeof date === 'string' ? parseISO(date) : date;
-    const now = new Date();
+    const tz = timezone || getUserTimezone();
+    const target = typeof date === 'string' ? parseISO(date) : date;
+    const targetInTz = toTimezoneDateValue(target, tz);
+    const nowInTz = nowInUserTimezone(tz);
 
-    return d > now;
+    return targetInTz > nowInTz;
   } catch {
     return false;
   }
@@ -203,7 +209,7 @@ export function isFuture(date: Date | string, timezone?: string): boolean {
  *
  * Example: 125000 → "2 minutes 5 seconds"
  */
-export function formatDuration(durationMs: number, locale?: string): string {
+export function formatDuration(durationMs: number, _locale?: string): string {
   if (durationMs < 1000) {
     return `${durationMs}ms`;
   }

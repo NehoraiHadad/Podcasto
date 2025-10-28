@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { togglePodcastEmailNotifications, type UserSubscription } from '@/lib/actions/subscription-management-actions';

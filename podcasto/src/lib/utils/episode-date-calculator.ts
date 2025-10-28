@@ -6,7 +6,7 @@
  */
 
 import { getMaxBatchSize, getDelayBetweenRequests } from './rate-limit-config';
-import { formatInTimezoneServer, daysBetween } from './date/server';
+import { formatInTimezoneServer } from './date/server';
 
 export interface EpisodeDateRange {
   startDate: Date;

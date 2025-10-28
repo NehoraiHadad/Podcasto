@@ -1,4 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { createAdminUser, createSupabaseUser } from '@/test/factories/user';
+import type { GroupWithLanguages } from '../fetch-groups';
 
 vi.mock('@/lib/auth', () => ({
   getUser: vi.fn(),
@@ -31,7 +33,7 @@ describe('GET /api/podcast-groups admin guard', () => {
   });
 
   it('returns 403 when user is not an admin', async () => {
-    getUser.mockResolvedValueOnce({ id: 'user-1' } as any);
+    getUser.mockResolvedValueOnce(createSupabaseUser({ id: 'user-1' }));
     isAdmin.mockResolvedValueOnce(false);
 
     const response = await GET();
@@ -41,17 +43,20 @@ describe('GET /api/podcast-groups admin guard', () => {
   });
 
   it('returns podcast groups for admins', async () => {
-    getUser.mockResolvedValueOnce({ id: 'admin-1' } as any);
+    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-1' }));
     isAdmin.mockResolvedValueOnce(true);
     fetchPodcastGroupsWithLanguages.mockResolvedValueOnce([
       {
         id: 'group-1',
+        base_title: 'Group 1',
+        base_description: null,
+        base_cover_image: null,
         created_at: new Date(),
         updated_at: new Date(),
         languages: [],
         language_count: 0,
       },
-    ] as any);
+    ] satisfies GroupWithLanguages[]);
 
     const response = await GET();
 

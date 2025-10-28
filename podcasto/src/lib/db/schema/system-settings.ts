@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
  * System settings table

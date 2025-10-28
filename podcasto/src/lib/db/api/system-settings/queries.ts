@@ -11,6 +11,14 @@ import { eq } from 'drizzle-orm';
  */
 type SettingValue = string | number | boolean | Record<string, unknown>;
 
+interface SystemSettingWithMeta {
+  value: SettingValue;
+  description: string | null;
+  category: string | null;
+  updated_at: Date | null;
+  updated_by: string | null;
+}
+
 /**
  * Get a system setting by key
  * Returns default value if setting doesn't exist
@@ -44,12 +52,12 @@ export async function getSystemSetting<T = string>(
 /**
  * Get multiple system settings by keys
  */
-export async function getSystemSettings(keys: string[]): Promise<Record<string, any>> {
+export async function getSystemSettings(keys: string[]): Promise<Record<string, SettingValue>> {
   const settings = await db.query.systemSettings.findMany({
     where: (systemSettings, { inArray }) => inArray(systemSettings.key, keys)
   });
 
-  const result: Record<string, any> = {};
+  const result: Record<string, SettingValue> = {};
 
   for (const key of keys) {
     const setting = settings.find(s => s.key === key);
@@ -70,10 +78,10 @@ export async function getSystemSettings(keys: string[]): Promise<Record<string, 
 /**
  * Get all system settings grouped by category
  */
-export async function getAllSystemSettings(): Promise<Record<string, any>> {
+export async function getAllSystemSettings(): Promise<Record<string, SystemSettingWithMeta>> {
   const settings = await db.select().from(systemSettings);
 
-  const result: Record<string, any> = {};
+  const result: Record<string, SystemSettingWithMeta> = {};
 
   // Add all existing settings
   for (const setting of settings) {

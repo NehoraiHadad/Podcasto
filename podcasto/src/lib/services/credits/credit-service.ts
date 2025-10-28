@@ -1,6 +1,5 @@
 import {
   getUserCredits,
-  createUserCredits,
   addCreditsToUser,
   deductCreditsFromUser,
   refundCreditsToUser,

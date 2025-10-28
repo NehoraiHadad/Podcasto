@@ -3,7 +3,7 @@
  * Contains common logic used across multiple image actions.
  */
 
-import { createPodcastImageEnhancer, type ImageAnalysis, type EnhancementOptions } from '@/lib/services/podcast-image-enhancer';
+import { createPodcastImageEnhancer, type ImageAnalysis } from '@/lib/services/podcast-image-enhancer';
 import { createPodcastImageAnalyzer } from '@/lib/services/podcast-image-analyzer';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 

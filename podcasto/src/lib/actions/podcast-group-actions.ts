@@ -84,6 +84,8 @@ export async function createPodcastGroupAction(
     // Revalidate relevant pages
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
+    revalidatePath(`/podcasts/${groupId}`);
 
     return {
       success: true,
@@ -163,6 +165,8 @@ export async function deletePodcastGroupAction(
 
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
+    revalidatePath(`/podcasts/${groupId}`);
 
     return {
       success: true,
@@ -257,6 +261,8 @@ export async function removeLanguageVariantAction(
 
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
+    revalidatePath(`/podcasts/${groupId}`);
 
     return {
       success: true,
