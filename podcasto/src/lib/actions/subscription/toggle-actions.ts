@@ -48,7 +48,10 @@ export async function toggleSubscription(
     }
 
     const supabase = await createServerClient();
-    const isCurrentlySubscribed = await isUserSubscribed({ podcastId });
+    const isCurrentlySubscribed = await isUserSubscribed(
+      { podcastId },
+      { supabase, user }
+    );
 
     if (isCurrentlySubscribed) {
       // Unsubscribe

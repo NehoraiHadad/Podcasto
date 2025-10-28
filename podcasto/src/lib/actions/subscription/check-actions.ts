@@ -1,8 +1,16 @@
 'use server';
 
-import { createServerClient } from '@/lib/auth';
-import { getUser } from '@/lib/auth';
+import { createServerClient, getUser } from '@/lib/auth';
+import type { SupabaseClient, User } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 import type { SubscriptionParams } from './shared';
+
+type SupabaseServerClient = SupabaseClient<Database>;
+
+interface SubscriptionCheckOptions {
+  supabase?: SupabaseServerClient;
+  user?: User | null;
+}
 
 /**
  * Check if the current user is subscribed to a podcast
@@ -16,15 +24,18 @@ import type { SubscriptionParams } from './shared';
  *   // Show unsubscribe button
  * }
  */
-export async function isUserSubscribed({ podcastId }: SubscriptionParams): Promise<boolean> {
+export async function isUserSubscribed(
+  { podcastId }: SubscriptionParams,
+  { supabase: providedClient, user: providedUser }: SubscriptionCheckOptions = {}
+): Promise<boolean> {
   try {
-    const user = await getUser();
+    const user = providedUser ?? await getUser();
 
     if (!user) {
       return false;
     }
 
-    const supabase = await createServerClient();
+    const supabase = providedClient ?? await createServerClient();
     const { data, error } = await supabase
       .from('subscriptions')
       .select('id')

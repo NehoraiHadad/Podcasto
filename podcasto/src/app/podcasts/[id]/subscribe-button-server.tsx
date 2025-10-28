@@ -1,6 +1,6 @@
 import { isUserSubscribed } from '@/lib/actions/subscription';
 import { SubscribeForm } from './subscribe-form';
-import { createServerClient } from '@/lib/auth';
+import { getUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,12 +10,13 @@ interface SubscribeButtonServerProps {
 }
 
 export async function SubscribeButtonServer({ podcastId }: SubscribeButtonServerProps) {
-  // Check subscription status server-side
-  const isSubscribed = await isUserSubscribed({ podcastId });
+  const user = await getUser();
 
-  // Get user's email notification preference
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Check subscription status server-side
+  const isSubscribed = await isUserSubscribed(
+    { podcastId },
+    { user }
+  );
 
   let emailNotificationsEnabled = true; // Default for non-authenticated users
 
@@ -37,4 +38,4 @@ export async function SubscribeButtonServer({ podcastId }: SubscribeButtonServer
       emailNotificationsEnabled={emailNotificationsEnabled}
     />
   );
-} 
+}
