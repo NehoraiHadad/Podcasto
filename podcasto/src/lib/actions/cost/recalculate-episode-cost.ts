@@ -2,7 +2,7 @@
 
 import { calculateEpisodeCost } from '@/lib/services/cost-calculator';
 import type { CostBreakdown, UsageMetrics } from '@/lib/services/cost-calculator-types';
-import { getUser, isAdmin } from '@/lib/auth';
+import { createServerClient } from '@/lib/auth';
 
 export interface RecalculateEpisodeCostResult {
   success: boolean;
@@ -26,7 +26,10 @@ export async function recalculateEpisodeCost({
 }): Promise<RecalculateEpisodeCostResult> {
   try {
     // Check admin role
-    const user = await getUser();
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return {
@@ -35,9 +38,13 @@ export async function recalculateEpisodeCost({
       };
     }
 
-    const hasAdminAccess = await isAdmin(user.id);
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
 
-    if (!hasAdminAccess) {
+    if (!roleData || roleData.role !== 'admin') {
       return {
         success: false,
         error: 'Admin access required',
