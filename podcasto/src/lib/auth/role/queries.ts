@@ -5,8 +5,10 @@
  *
  * Read-only role query functions with request-level caching.
  * All queries use React's cache() for performance optimization.
- */import { cache } from 'react';
+ */
+import { cache } from 'react';
 import { userRolesApi } from '@/lib/db/api';
+import { getUser } from '../session';
 import {
   PERMISSIONS,
   ROLES,
@@ -15,6 +17,15 @@ import {
   type Permission,
 } from '../permissions';
 import type { UserRole } from '@/lib/db/api/user-roles';
+
+const getUserRolesImpl = async (userId: string): Promise<UserRole[]> => {
+  try {
+    return await userRolesApi.getUserRoles(userId);
+  } catch (error) {
+    console.error('[RoleQueries] Error fetching user roles:', error);
+    return [];
+  }
+};
 
 /**
  * Get all roles for a user (cached per request)
@@ -31,16 +42,12 @@ import type { UserRole } from '@/lib/db/api/user-roles';
  * console.log(`User has ${roles.length} roles`);
  * ```
  */
-export const getUserRoles = cache(
-  async (userId: string): Promise<UserRole[]> => {
-    try {
-      return await userRolesApi.getUserRoles(userId);
-    } catch (error) {
-      console.error('[RoleQueries] Error fetching user roles:', error);
-      return [];
-    }
-  }
-);
+export const getUserRoles = cache(getUserRolesImpl);
+
+const hasRoleImpl = async (userId: string, role: string): Promise<boolean> => {
+  const roles = await getUserRoles(userId);
+  return roles.some((r) => r.role === role);
+};
 
 /**
  * Check if user has a specific role (cached per request)
@@ -57,12 +64,11 @@ export const getUserRoles = cache(
  * }
  * ```
  */
-export const hasRole = cache(
-  async (userId: string, role: string): Promise<boolean> => {
-    const roles = await getUserRoles(userId);
-    return roles.some((r) => r.role === role);
-  }
-);
+export const hasRole = cache(hasRoleImpl);
+
+const isAdminImpl = async (userId: string): Promise<boolean> => {
+  return await hasRole(userId, ROLES.ADMIN);
+};
 
 /**
  * Check if user is an admin (cached per request)
@@ -80,9 +86,51 @@ export const hasRole = cache(
  * }
  * ```
  */
-export const isAdmin = cache(async (userId: string): Promise<boolean> => {
-  return await hasRole(userId, ROLES.ADMIN);
-});
+export const isAdmin = cache(isAdminImpl);
+
+/**
+ * Get the current user's admin status using cached role queries.
+ *
+ * Combines the authenticated user lookup with the cached admin role check,
+ * ensuring both operations benefit from the shared request cache.
+ */
+type AdminStatus = {
+  isAdmin: boolean;
+  user: Awaited<ReturnType<typeof getUser>> | null;
+};
+
+const getAdminStatusImpl = async (): Promise<AdminStatus> => {
+  const user = await getUser();
+
+  if (!user) {
+    return { isAdmin: false, user: null };
+  }
+
+  const admin = await isAdmin(user.id);
+
+  return {
+    isAdmin: admin,
+    user,
+  };
+};
+
+export const getAdminStatus = cache(getAdminStatusImpl);
+
+const hasPermissionImpl = async (
+  userId: string,
+  permission: Permission
+): Promise<boolean> => {
+  const roles = await getUserRoles(userId);
+
+  if (roles.length === 0) {
+    return false;
+  }
+
+  // Check if any role grants this permission
+  return roles.some((userRole) =>
+    hasRolePermission(userRole.role, permission)
+  );
+};
 
 /**
  * Check if user has a specific permission (cached per request)
@@ -101,20 +149,30 @@ export const isAdmin = cache(async (userId: string): Promise<boolean> => {
  * }
  * ```
  */
-export const hasPermission = cache(
-  async (userId: string, permission: Permission): Promise<boolean> => {
-    const roles = await getUserRoles(userId);
+export const hasPermission = cache(hasPermissionImpl);
 
-    if (roles.length === 0) {
-      return false;
-    }
+const getUserPermissionsImpl = async (
+  userId: string
+): Promise<Permission[]> => {
+  const roles = await getUserRoles(userId);
 
-    // Check if any role grants this permission
-    return roles.some((userRole) =>
-      hasRolePermission(userRole.role, permission)
-    );
+  if (roles.length === 0) {
+    return [];
   }
-);
+
+  // Collect all permissions from all roles
+  const allPermissions = roles.flatMap((userRole) =>
+    getRolePermissions(userRole.role)
+  );
+
+  // If any role has wildcard, return all permissions
+  if (allPermissions.includes(PERMISSIONS.ALL)) {
+    return [PERMISSIONS.ALL];
+  }
+
+  // Return unique permissions
+  return Array.from(new Set(allPermissions));
+};
 
 /**
  * Get all permissions for a user (cached per request)
@@ -130,25 +188,5 @@ export const hasPermission = cache(
  * console.log(`User has ${perms.length} permissions`);
  * ```
  */
-export const getUserPermissions = cache(
-  async (userId: string): Promise<Permission[]> => {
-    const roles = await getUserRoles(userId);
-
-    if (roles.length === 0) {
-      return [];
-    }
-
-    // Collect all permissions from all roles
-    const allPermissions = roles.flatMap((userRole) =>
-      getRolePermissions(userRole.role)
-    );
-
-    // If any role has wildcard, return all permissions
-    if (allPermissions.includes(PERMISSIONS.ALL)) {
-      return [PERMISSIONS.ALL];
-    }
-
-    // Return unique permissions
-    return Array.from(new Set(allPermissions));
-  }
+export const getUserPermissions = cache(getUserPermissionsImpl);
 );

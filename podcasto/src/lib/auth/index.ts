@@ -58,6 +58,7 @@ export {
   getUserRoles,
   hasRole,
   isAdmin,
+  getAdminStatus,
   hasPermission,
   getUserPermissions,
 

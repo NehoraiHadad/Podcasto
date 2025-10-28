@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/auth';
+import { getAdminStatus } from '@/lib/auth';
 import { ClientHeader } from './client-header';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -11,24 +11,8 @@ export async function ServerHeader() {
   // Opt out of caching for this component
   noStore();
 
-  const supabase = await createServerClient();
-  
-  // Get the current user
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  let isAdmin = false;
-  
-  if (user && !error) {
-    // Check if user has admin role
-    const { data: userRoles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single<{ role: string }>();
+  const { isAdmin, user } = await getAdminStatus();
 
-    isAdmin = !rolesError && userRoles?.role === 'admin';
-  }
-  
   // Pass the admin status and user to the client component
   return <ClientHeader initialIsAdmin={isAdmin} initialUser={user} />;
-} 
+}
