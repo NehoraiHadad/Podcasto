@@ -14,3 +14,4 @@ export { FormatSection } from './format-section';
 export { ScheduleSection } from './schedule-section';
 export { StyleSection } from './style-section';
 export { ImageUploadSection } from './image-upload-section';
+export { AdminSettingsSection } from './admin-settings-section';

@@ -95,7 +95,7 @@ const adminFields = z.object({
 const telegramContentSource = z.object({
   contentSource: z.literal('telegram'),
   telegramChannelName: z.string().min(1, 'Telegram channel is required'),
-  telegramHours: z.number().int().min(1).max(72).default(24),
+  telegramHours: z.number().int().min(1).max(168).default(24), // Up to 1 week (168 hours)
   rssUrl: z.string().optional().nullable(), // Not used for telegram
 });
 

@@ -18,6 +18,7 @@ import {
   ScheduleSection,
   StyleSection,
   ImageUploadSection,
+  AdminSettingsSection,
 } from '../core';
 
 import {
@@ -160,12 +161,8 @@ export function AdminPodcastForm({
           <CardHeader>
             <CardTitle>Advanced Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Creator and Technical Name fields would go here */}
-            {/* These require FormField components from the form core */}
-            <p className="text-sm text-muted-foreground">
-              Admin-specific fields for creator, technical name, slogan, creativity level, and mixing techniques.
-            </p>
+          <CardContent>
+            <AdminSettingsSection control={form.control} />
           </CardContent>
         </Card>
 

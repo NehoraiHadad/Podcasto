@@ -1,9 +1,10 @@
 'use client';
 
 import { Control, useWatch } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { FormTextField } from '@/components/ui/form-fields';
 
 interface ContentSourceSectionProps {
@@ -68,7 +69,7 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
       />
 
       {contentSource === 'telegram' && (
-        <div className="bg-gray-50 p-4 rounded-md border">
+        <div className="bg-gray-50 p-4 rounded-md border space-y-4">
           <FormTextField
             control={control}
             name="telegramChannelName"
@@ -77,6 +78,31 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
             description="Channel username without the @ symbol (e.g., 'technews')"
             required
             disabled={disabled}
+          />
+
+          <FormField
+            control={control}
+            name="telegramHours"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Look Back Hours</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={168}
+                    placeholder="24"
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 24)}
+                    disabled={disabled}
+                  />
+                </FormControl>
+                <FormDescription>
+                  How many hours to look back for messages (1-168 hours, default: 24)
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
       )}

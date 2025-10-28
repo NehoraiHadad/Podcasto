@@ -28,7 +28,7 @@ import type {
   PremiumPodcastFormValues,
 } from '../shared/types';
 
-import { createPodcastGroupWithNewPodcastsAction } from '@/lib/actions/podcast-group-actions';
+import { createPremiumPodcastAction } from '@/lib/actions/podcast-group-actions';
 
 /**
  * Premium Podcast Form
@@ -58,48 +58,35 @@ export function PremiumPodcastForm({
     setIsSubmitting(true);
 
     try {
-      // Generate technical name from title (sanitized)
-      const sanitizedPodcastName = values.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
-      // Transform form values with premium defaults
+      // Transform form values for premium action
       const payload = {
         base_title: values.title,
         base_description: values.description || '',
         base_cover_image: values.cover_image || '',
-        languages: [
-          {
-            language_code: values.language === 'english' ? 'en' : 'he',
-            is_primary: true,
-            title: values.title,
-            description: values.description || '',
-            cover_image: values.cover_image || '',
-            image_style: values.image_style || '',
-            contentSource: (values.contentSource === 'rss' ? 'urls' : values.contentSource) as 'telegram' | 'urls',
-            telegramChannel: values.contentSource === 'telegram' ? values.telegramChannelName : undefined,
-            telegramHours: values.contentSource === 'telegram' ? values.telegramHours : undefined,
-            urls: values.contentSource === 'rss' && values.rssUrl ? [values.rssUrl] : undefined,
-            // Premium defaults (auto-filled)
-            creator: 'User',
-            podcastName: sanitizedPodcastName,
-            outputLanguage: values.language,
-            slogan: undefined,
-            creativityLevel: 0.5,
-            episodeFrequency: values.episodeFrequency,
-            podcastFormat: values.podcastFormat,
-            conversationStyle: values.conversationStyle || 'casual',
-            speaker1Role: values.speaker1Role,
-            speaker2Role: values.speaker2Role || undefined,
-            mixingTechniques: ['casual_banter'],
-            additionalInstructions: undefined,
-          },
-        ],
+        language: {
+          title: values.title,
+          description: values.description || '',
+          cover_image: values.cover_image || undefined,
+          image_style: values.image_style || undefined,
+          contentSource: (values.contentSource === 'rss' ? 'urls' : values.contentSource) as 'telegram' | 'urls',
+          telegramChannel: values.contentSource === 'telegram' ? values.telegramChannelName : undefined,
+          telegramHours: values.contentSource === 'telegram' ? values.telegramHours : undefined,
+          urls: values.contentSource === 'rss' && values.rssUrl ? [values.rssUrl] : undefined,
+          podcastFormat: values.podcastFormat,
+          speaker1Role: values.speaker1Role,
+          speaker2Role: values.speaker2Role || undefined,
+          conversationStyle: values.conversationStyle || 'casual',
+          introPrompt: values.introPrompt,
+          outroPrompt: values.outroPrompt,
+          episodeFrequency: values.episodeFrequency,
+          autoGeneration: values.autoGeneration || false,
+          language: values.language === 'english' ? 'en' : 'he',
+          outputLanguage: values.language,
+        },
       };
 
-      // Call server action
-      const result = await createPodcastGroupWithNewPodcastsAction(payload);
+      // Call premium-specific server action
+      const result = await createPremiumPodcastAction(payload);
 
       if (result.success) {
         toast({

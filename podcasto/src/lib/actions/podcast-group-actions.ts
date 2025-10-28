@@ -539,3 +539,407 @@ export async function createPodcastAction(
 ): Promise<ActionResult<PodcastGroupWithLanguages>> {
   return createPodcastGroupWithNewPodcastsAction(data);
 }
+
+/**
+ * Create a podcast for premium users
+ *
+ * Premium users can select podcast format (single-speaker vs multi-speaker)
+ * but don't have access to all advanced admin settings.
+ *
+ * This action:
+ * - Validates premium access (subscription or credits)
+ * - Sets sensible defaults for non-exposed admin fields
+ * - Allows format selection
+ * - Creates single-language podcast group
+ *
+ * @param data - Premium podcast creation data
+ * @returns The created podcast group with language
+ */
+export async function createPremiumPodcastAction(
+  data: Omit<CreatePodcastGroupWithNewPodcastsData, 'languages'> & {
+    language: {
+      // Basic info (user provides)
+      title: string;
+      description: string;
+      cover_image?: string;
+      image_style?: string;
+
+      // Content source (user provides)
+      contentSource: 'telegram' | 'urls';
+      telegramChannel?: string;
+      telegramHours?: number;
+      urls?: string[];
+
+      // Format selection (user provides)
+      podcastFormat?: 'single-speaker' | 'multi-speaker';
+      speaker1Role: string;
+      speaker2Role?: string;
+
+      // Style (user provides)
+      conversationStyle: string;
+      introPrompt?: string;
+      outroPrompt?: string;
+
+      // Schedule (user provides)
+      episodeFrequency: number;
+      autoGeneration: boolean;
+
+      // Language (user provides)
+      language: string;
+      outputLanguage: OutputLanguage;
+    };
+  }
+): Promise<ActionResult<PodcastGroupWithLanguages>> {
+  try {
+    const { getUser } = await import('@/lib/auth');
+    const { checkAdvancedPodcastAccessAction } = await import('./subscription-actions');
+
+    // Verify user is authenticated
+    const user = await getUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'Authentication required'
+      };
+    }
+
+    // Check premium access
+    const accessCheck = await checkAdvancedPodcastAccessAction();
+    if (!accessCheck.hasAccess) {
+      return {
+        success: false,
+        error: 'Premium subscription or sufficient credits required'
+      };
+    }
+
+    // Generate podcast name from title (kebab-case)
+    const podcastName = data.language.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // Set sensible defaults for admin-only fields
+    const fullLanguageData = {
+      language_code: data.language.language,
+      is_primary: true,
+      title: data.language.title,
+      description: data.language.description,
+      cover_image: data.language.cover_image,
+      image_style: data.language.image_style,
+      contentSource: data.language.contentSource,
+      telegramChannel: data.language.telegramChannel,
+      telegramHours: data.language.telegramHours,
+      urls: data.language.urls,
+
+      // Admin fields with defaults
+      creator: user.email || 'Anonymous',
+      podcastName: podcastName,
+      slogan: undefined,
+      creativityLevel: 0.7, // Medium creativity
+      mixingTechniques: ['rhetorical-questions', 'personal-anecdotes'],
+      additionalInstructions: undefined,
+
+      // User-provided fields
+      podcastFormat: data.language.podcastFormat,
+      conversationStyle: data.language.conversationStyle,
+      speaker1Role: data.language.speaker1Role,
+      speaker2Role: data.language.speaker2Role,
+      outputLanguage: data.language.outputLanguage,
+      episodeFrequency: data.language.episodeFrequency,
+    };
+
+    // Construct full creation data
+    const fullData: CreatePodcastGroupWithNewPodcastsData = {
+      base_title: data.language.title,
+      base_description: data.language.description,
+      base_cover_image: data.language.cover_image,
+      languages: [fullLanguageData]
+    };
+
+    // Import podcast creation utilities
+    const { podcastsApi, podcastConfigsApi } = await import('@/lib/db/api');
+
+    try {
+      // Create podcast metadata
+      const podcast = await podcastsApi.createPodcast({
+        title: fullLanguageData.title,
+        description: fullLanguageData.description,
+        cover_image: fullLanguageData.cover_image || null,
+        image_style: fullLanguageData.image_style || null,
+        created_by: user.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      if (!podcast) {
+        throw new Error('Failed to create podcast');
+      }
+
+      // Filter and prepare URLs
+      const filteredUrls = fullLanguageData.urls
+        ? fullLanguageData.urls.filter(url => url && url.trim() !== '')
+        : [];
+
+      // Create podcast config
+      await podcastConfigsApi.createPodcastConfig({
+        podcast_id: podcast.id,
+        content_source: fullLanguageData.contentSource,
+        telegram_channel: fullLanguageData.telegramChannel || null,
+        telegram_hours: fullLanguageData.telegramHours || null,
+        urls: filteredUrls.length > 0 ? filteredUrls : null,
+        creator: fullLanguageData.creator,
+        podcast_name: fullLanguageData.podcastName,
+        slogan: fullLanguageData.slogan || null,
+        language: fullLanguageData.outputLanguage,
+        creativity_level: Math.round(fullLanguageData.creativityLevel * 100),
+        podcast_format: fullLanguageData.podcastFormat || 'multi-speaker',
+        conversation_style: fullLanguageData.conversationStyle,
+        speaker1_role: fullLanguageData.speaker1Role,
+        speaker2_role: fullLanguageData.speaker2Role || null,
+        mixing_techniques: fullLanguageData.mixingTechniques,
+        additional_instructions: fullLanguageData.additionalInstructions || null,
+        episode_frequency: fullLanguageData.episodeFrequency,
+      });
+
+      // Create the podcast group
+      const group = await createPodcastGroup({
+        base_title: fullData.base_title,
+        base_description: fullData.base_description,
+        base_cover_image: fullData.base_cover_image
+      });
+
+      // Add language variant
+      await addLanguageVariant({
+        podcast_group_id: group.id,
+        language_code: fullLanguageData.language_code,
+        title: fullLanguageData.title,
+        description: fullLanguageData.description,
+        cover_image: fullLanguageData.cover_image,
+        is_primary: true,
+        podcast_id: podcast.id
+      });
+
+      // Link podcast to group
+      await linkPodcastToGroup(
+        podcast.id,
+        group.id,
+        fullLanguageData.language_code
+      );
+
+      // Fetch the complete group with languages
+      const completeGroup = await getPodcastGroupWithLanguages(group.id);
+
+      if (!completeGroup) {
+        throw new Error('Failed to retrieve created podcast group');
+      }
+
+      // Revalidate relevant pages
+      revalidatePath('/podcasts');
+      revalidatePath('/podcasts/my');
+
+      return {
+        success: true,
+        data: completeGroup
+      };
+    } catch (innerError) {
+      console.error('[createPremiumPodcastAction] Error:', innerError);
+      throw innerError;
+    }
+  } catch (error) {
+    console.error('[createPremiumPodcastAction] Error:', error);
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast');
+  }
+}
+
+/**
+ * Create a podcast for regular (free) users
+ *
+ * Regular users get:
+ * - Hardcoded multi-speaker format (cannot change)
+ * - Sensible defaults for all advanced settings
+ * - Basic configuration only
+ *
+ * This action:
+ * - Verifies user authentication (any authenticated user can create)
+ * - Sets all admin fields to defaults
+ * - Forces multi-speaker format
+ * - Creates single-language podcast group
+ *
+ * @param data - Regular user podcast creation data
+ * @returns The created podcast group with language
+ */
+export async function createUserPodcastAction(
+  data: Omit<CreatePodcastGroupWithNewPodcastsData, 'languages'> & {
+    language: {
+      // Basic info (user provides)
+      title: string;
+      description: string;
+      cover_image?: string;
+      image_style?: string;
+
+      // Content source (user provides)
+      contentSource: 'telegram' | 'urls';
+      telegramChannel?: string;
+      telegramHours?: number;
+      urls?: string[];
+
+      // Schedule (user provides)
+      episodeFrequency: number;
+      autoGeneration: boolean;
+
+      // Language (user provides)
+      language: string;
+      outputLanguage: OutputLanguage;
+    };
+  }
+): Promise<ActionResult<PodcastGroupWithLanguages>> {
+  try {
+    const { getUser } = await import('@/lib/auth');
+
+    // Verify user is authenticated
+    const user = await getUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'Authentication required'
+      };
+    }
+
+    // Generate podcast name from title (kebab-case)
+    const podcastName = data.language.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // Set defaults for all advanced fields
+    const fullLanguageData = {
+      language_code: data.language.language,
+      is_primary: true,
+      title: data.language.title,
+      description: data.language.description,
+      cover_image: data.language.cover_image,
+      image_style: data.language.image_style,
+      contentSource: data.language.contentSource,
+      telegramChannel: data.language.telegramChannel,
+      telegramHours: data.language.telegramHours,
+      urls: data.language.urls,
+
+      // Admin fields with defaults
+      creator: user.email || 'Anonymous',
+      podcastName: podcastName,
+      slogan: undefined,
+      creativityLevel: 0.7, // Medium creativity
+      mixingTechniques: ['rhetorical-questions', 'personal-anecdotes'],
+      additionalInstructions: undefined,
+
+      // Hardcoded format and style for regular users
+      podcastFormat: 'multi-speaker' as const,
+      conversationStyle: 'casual',
+      speaker1Role: 'Host',
+      speaker2Role: 'Co-host',
+      outputLanguage: data.language.outputLanguage,
+      episodeFrequency: data.language.episodeFrequency,
+    };
+
+    // Construct full creation data
+    const fullData: CreatePodcastGroupWithNewPodcastsData = {
+      base_title: data.language.title,
+      base_description: data.language.description,
+      base_cover_image: data.language.cover_image,
+      languages: [fullLanguageData]
+    };
+
+    // Import podcast creation utilities
+    const { podcastsApi, podcastConfigsApi } = await import('@/lib/db/api');
+
+    try {
+      // Create podcast metadata
+      const podcast = await podcastsApi.createPodcast({
+        title: fullLanguageData.title,
+        description: fullLanguageData.description,
+        cover_image: fullLanguageData.cover_image || null,
+        image_style: fullLanguageData.image_style || null,
+        created_by: user.id,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      if (!podcast) {
+        throw new Error('Failed to create podcast');
+      }
+
+      // Filter and prepare URLs
+      const filteredUrls = fullLanguageData.urls
+        ? fullLanguageData.urls.filter(url => url && url.trim() !== '')
+        : [];
+
+      // Create podcast config
+      await podcastConfigsApi.createPodcastConfig({
+        podcast_id: podcast.id,
+        content_source: fullLanguageData.contentSource,
+        telegram_channel: fullLanguageData.telegramChannel || null,
+        telegram_hours: fullLanguageData.telegramHours || null,
+        urls: filteredUrls.length > 0 ? filteredUrls : null,
+        creator: fullLanguageData.creator,
+        podcast_name: fullLanguageData.podcastName,
+        slogan: fullLanguageData.slogan || null,
+        language: fullLanguageData.outputLanguage,
+        creativity_level: Math.round(fullLanguageData.creativityLevel * 100),
+        podcast_format: fullLanguageData.podcastFormat,
+        conversation_style: fullLanguageData.conversationStyle,
+        speaker1_role: fullLanguageData.speaker1Role,
+        speaker2_role: fullLanguageData.speaker2Role,
+        mixing_techniques: fullLanguageData.mixingTechniques,
+        additional_instructions: fullLanguageData.additionalInstructions || null,
+        episode_frequency: fullLanguageData.episodeFrequency,
+      });
+
+      // Create the podcast group
+      const group = await createPodcastGroup({
+        base_title: fullData.base_title,
+        base_description: fullData.base_description,
+        base_cover_image: fullData.base_cover_image
+      });
+
+      // Add language variant
+      await addLanguageVariant({
+        podcast_group_id: group.id,
+        language_code: fullLanguageData.language_code,
+        title: fullLanguageData.title,
+        description: fullLanguageData.description,
+        cover_image: fullLanguageData.cover_image,
+        is_primary: true,
+        podcast_id: podcast.id
+      });
+
+      // Link podcast to group
+      await linkPodcastToGroup(
+        podcast.id,
+        group.id,
+        fullLanguageData.language_code
+      );
+
+      // Fetch the complete group with languages
+      const completeGroup = await getPodcastGroupWithLanguages(group.id);
+
+      if (!completeGroup) {
+        throw new Error('Failed to retrieve created podcast group');
+      }
+
+      // Revalidate relevant pages
+      revalidatePath('/podcasts');
+      revalidatePath('/podcasts/my');
+
+      return {
+        success: true,
+        data: completeGroup
+      };
+    } catch (innerError) {
+      console.error('[createUserPodcastAction] Error:', innerError);
+      throw innerError;
+    }
+  } catch (error) {
+    console.error('[createUserPodcastAction] Error:', error);
+    return errorResult(error instanceof Error ? error.message : 'Failed to create podcast');
+  }
+}
