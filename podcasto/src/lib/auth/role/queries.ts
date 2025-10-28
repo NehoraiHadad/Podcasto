@@ -189,4 +189,3 @@ const getUserPermissionsImpl = async (
  * ```
  */
 export const getUserPermissions = cache(getUserPermissionsImpl);
-);

@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { Inter } from "next/font/google";
-
-const inter = Inter({
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-  variable: "--font-inter",
-});
+const inter = {
+  /**
+   * Use Tailwind's default sans-serif stack as a resilient fallback when the
+   * Inter font cannot be fetched during the build step (e.g. restricted
+   * network environments).
+   */
+  variable: "font-sans",
+} as const;
 
 export const metadata: Metadata = {
   title: "Podcasto - Daily News Podcasts",
