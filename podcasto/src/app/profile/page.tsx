@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { requireAuth } from '@/lib/actions/user-actions';
 import { createServerClient } from '@/lib/auth';
-import type { Database } from '@/lib/supabase/types';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { ProfilePagePresenter } from '@/components/pages/profile-page-presenter';
 
@@ -23,7 +22,7 @@ export default async function ProfilePage() {
 
   const { data: userProfile, error } = await supabase
     .from('profiles')
-    .select<Pick<Database['public']['Tables']['profiles']['Row'], 'email_notifications'>>('email_notifications')
+    .select('email_notifications')
     .eq('id', user.id)
     .maybeSingle();
 
