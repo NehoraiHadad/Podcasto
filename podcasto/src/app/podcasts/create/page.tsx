@@ -1,10 +1,9 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/auth';
-import { CreatePodcastForm } from '@/components/podcasts/create-podcast-form';
+import { PremiumPodcastForm, UserPodcastForm } from '@/components/podcasts/forms/compositions';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';
-import { UnifiedPodcastCreationForm } from '@/components/admin/unified-podcast-creation-form';
 import { Crown, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,7 @@ export default async function CreatePodcastPage() {
             </h1>
             <p className="text-muted-foreground mt-1">
               {hasAdvancedAccess
-                ? 'Create advanced podcasts with multi-language support and full customization'
+                ? 'Create advanced podcasts with format selection and full customization'
                 : 'Transform Telegram news into engaging audio podcasts'}
             </p>
           </div>
@@ -67,10 +66,10 @@ export default async function CreatePodcastPage() {
                   {accessCheck.accessReason === 'credits' && ` (${accessCheck.totalCredits} Credits)`}
                 </p>
                 <ul className="text-sm text-purple-700 dark:text-purple-300 mt-2 space-y-1">
-                  <li>• Multi-language podcast support</li>
+                  <li>• Single-speaker or multi-speaker format selection</li>
+                  <li>• Custom speaker roles and conversation styles</li>
+                  <li>• RSS feed support (in addition to Telegram)</li>
                   <li>• Advanced audio configuration</li>
-                  <li>• Custom speaker roles and styles</li>
-                  <li>• Podcast groups creation</li>
                 </ul>
               </div>
             </div>
@@ -88,12 +87,12 @@ export default async function CreatePodcastPage() {
         </div>
       )}
 
-      {/* Show advanced form for premium users, basic form for free users */}
+      {/* Show premium form for advanced users, basic form for free users */}
       {hasAdvancedAccess ? (
-        <UnifiedPodcastCreationForm />
+        <PremiumPodcastForm />
       ) : (
         <>
-          <CreatePodcastForm userCredits={userCredits} />
+          <UserPodcastForm />
 
           {/* Upgrade CTA */}
           <div className="mt-8 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 border-2 border-purple-200 dark:border-purple-800 rounded-xl p-6">
@@ -105,10 +104,10 @@ export default async function CreatePodcastPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  Unlock Advanced Podcast Creation
+                  Unlock Format Selection & More
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Get access to multi-language support, advanced audio configuration, and more with a Premium plan or by purchasing 100+ credits.
+                  Choose between single-speaker and multi-speaker podcasts, customize speaker roles, select conversation styles, and access RSS feed support with a Premium plan or by purchasing 100+ credits.
                 </p>
                 <div className="flex gap-3">
                   <Link href="/credits">

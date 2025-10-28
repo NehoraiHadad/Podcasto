@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { PodcastFormBase } from './podcast-form/podcast-form-base';
+import { PodcastFormBase } from '../../podcast-form/podcast-form-base';
 
 /**
  * New podcast creation form using the unified form architecture

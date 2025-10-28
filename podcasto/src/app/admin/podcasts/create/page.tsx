@@ -1,23 +1,24 @@
 import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
-import { UnifiedPodcastCreationForm } from '@/components/admin/unified-podcast-creation-form';
+import { AdminPodcastForm } from '@/components/podcasts/forms/compositions';
 
 export const metadata = {
   title: 'Create Podcast | Admin Dashboard | Podcasto',
-  description: 'Create a new podcast with optional multilingual support',
+  description: 'Create a new podcast with full admin customization',
 };
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Unified Podcast Creation Page
+ * Admin Podcast Creation Page
  *
- * This page allows admins to create podcasts that are ALWAYS part of a podcast group.
- * The form defaults to a single language variant, but users can add more languages.
+ * This page allows admins to create podcasts with full customization options.
+ * Uses the new modular form architecture for better maintainability.
  *
  * Features:
- * - Single language by default (auto-fills group data)
- * - Add multiple languages as needed
- * - All podcasts are grouped from creation
+ * - Full podcast configuration (format, style, advanced settings)
+ * - Content source selection (Telegram or RSS)
+ * - Episode scheduling and automation
+ * - Image upload and management
  */
 export default async function CreatePodcastPage() {
   // Ensure user is an admin
@@ -29,12 +30,12 @@ export default async function CreatePodcastPage() {
         <div>
           <h1 className="text-3xl font-bold">Create New Podcast</h1>
           <p className="text-muted-foreground mt-2">
-            Create a podcast with one or more language variants
+            Configure your podcast with full admin controls
           </p>
         </div>
       </div>
 
-      <UnifiedPodcastCreationForm />
+      <AdminPodcastForm mode="create" />
     </div>
   );
 }

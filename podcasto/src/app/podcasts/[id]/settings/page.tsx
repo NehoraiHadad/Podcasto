@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getUser } from '@/lib/auth';
-import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
-import { PodcastSettingsForm } from '@/components/podcasts/podcast-settings-form';
+import { podcastsApi, podcastConfigsApi, episodesApi } from '@/lib/db/api';
+import { PodcastEditForm } from '@/components/podcasts/forms/compositions';
+import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';
 
 // Force dynamic rendering because this page uses authentication (cookies)
 export const dynamic = 'force-dynamic';
@@ -43,8 +44,17 @@ export default async function PodcastSettingsPage({ params }: PodcastSettingsPag
     redirect('/unauthorized');
   }
 
-  // Fetch podcast config
-  const config = await podcastConfigsApi.getPodcastConfigByPodcastId(resolvedParams.id);
+  // Check if user has advanced access (determines available features)
+  const accessCheck = await checkAdvancedPodcastAccessAction();
+  const userType = accessCheck.hasAccess ? 'premium' : 'regular';
+
+  // Get episode stats for format change warning
+  const episodes = await episodesApi.getEpisodesByPodcastId(resolvedParams.id);
+  const episodeStats = {
+    total: episodes.length,
+    published: episodes.filter(e => e.status === 'completed').length,
+    pending: episodes.filter(e => e.status === 'pending' || e.status === 'processing').length,
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -55,9 +65,10 @@ export default async function PodcastSettingsPage({ params }: PodcastSettingsPag
         </p>
       </div>
 
-      <PodcastSettingsForm
-        podcast={podcast}
-        config={config}
+      <PodcastEditForm
+        podcast={podcast as any}
+        userType={userType}
+        episodeStats={episodeStats}
       />
     </div>
   );

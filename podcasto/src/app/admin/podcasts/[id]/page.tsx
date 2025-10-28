@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { podcastsApi } from '@/lib/db/api';
 import { checkIsAdmin } from '@/lib/actions/admin/auth-actions';
-import { PodcastEditForm } from '@/components/admin/podcast-edit-form';
+import { PodcastEditForm } from '@/components/podcasts/forms/compositions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,7 +131,15 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
                 <CardDescription>Edit the podcast information below</CardDescription>
               </CardHeader>
               <CardContent>
-                <PodcastEditForm podcast={podcast} />
+                <PodcastEditForm
+                  podcast={podcast as any}
+                  userType="admin"
+                  episodeStats={{
+                    total: podcast.episodes_count || 0,
+                    published: podcast.episodes_count || 0,
+                    pending: 0
+                  }}
+                />
               </CardContent>
             </Card>
           </div>
