@@ -80,3 +80,14 @@ export function formValuesToPodcastUpdate(values: Partial<EditPodcastFormValues>
     },
   };
 }
+
+/**
+ * Normalize content source for server actions
+ * Converts 'rss' to 'urls' for backend compatibility
+ *
+ * @param source - Content source from form ('telegram' | 'rss')
+ * @returns Normalized content source for server ('telegram' | 'urls')
+ */
+export function normalizeContentSource(source: 'telegram' | 'rss'): 'telegram' | 'urls' {
+  return source === 'rss' ? 'urls' : source;
+}

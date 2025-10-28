@@ -104,6 +104,11 @@ export const podcastUpdateSchema = z.object({
   // Mixing techniques (optional)
   mixingTechniques: z.array(z.string().optional()).optional(),
   additionalInstructions: z.string().optional(),
+  // Intro/Outro prompts (optional)
+  introPrompt: z.string().optional(),
+  outroPrompt: z.string().optional(),
+  // Auto-generation setting (optional)
+  autoGeneration: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   // Only validate speaker2Role if podcastFormat is explicitly set to multi-speaker
   if (data.podcastFormat === 'multi-speaker' && data.speaker2Role === undefined) {

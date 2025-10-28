@@ -28,6 +28,8 @@ import type {
   PodcastGroupCreationFormValues,
 } from '../shared/types';
 
+import { normalizeContentSource } from '../shared/transformers';
+
 import { createPodcastGroupWithNewPodcastsAction } from '@/lib/actions/podcast-group-actions';
 
 /**
@@ -139,7 +141,7 @@ export function AdminPodcastForm({
           description: lang.description || '',
           cover_image: lang.cover_image || '',
           image_style: lang.image_style || '',
-          contentSource: (lang.contentSource === 'rss' ? 'urls' : lang.contentSource) as 'telegram' | 'urls',
+          contentSource: normalizeContentSource(lang.contentSource),
           telegramChannel: lang.contentSource === 'telegram' ? lang.telegramChannelName : undefined,
           telegramHours: lang.contentSource === 'telegram' ? lang.telegramHours : undefined,
           urls: lang.contentSource === 'rss' && lang.rssUrl ? [lang.rssUrl] : undefined,

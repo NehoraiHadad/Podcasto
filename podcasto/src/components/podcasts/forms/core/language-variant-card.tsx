@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormSelectField } from '@/components/ui/form-fields';
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { type OutputLanguage } from '@/lib/constants/languages';
+import { languageCodeToFull, type LanguageCode } from '@/lib/utils/language-mapper';
 
 import {
   BasicInfoSection,
@@ -20,47 +20,6 @@ import {
   ImageUploadSection,
   AdminSettingsSection,
 } from './index';
-
-/**
- * Language code mapping for auto-syncing with output language
- */
-const LANGUAGE_CODE_MAP: Record<string, OutputLanguage> = {
-  // GA Languages (23)
-  'en': 'english',
-  'ar': 'arabic',
-  'bn': 'bengali',
-  'zh': 'chinese',
-  'cmn': 'chinese',
-  'cs': 'czech',
-  'da': 'danish',
-  'nl': 'dutch',
-  'fi': 'finnish',
-  'fr': 'french',
-  'de': 'german',
-  'el': 'greek',
-  'hi': 'hindi',
-  'hu': 'hungarian',
-  'id': 'indonesian',
-  'it': 'italian',
-  'ja': 'japanese',
-  'ko': 'korean',
-  'pl': 'polish',
-  'pt': 'portuguese',
-  'ru': 'russian',
-  'sk': 'slovak',
-  'es': 'spanish',
-  'sv': 'swedish',
-  'tr': 'turkish',
-  // Preview Languages (8)
-  'he': 'hebrew',
-  'th': 'thai',
-  'uk': 'ukrainian',
-  'vi': 'vietnamese',
-  'ro': 'romanian',
-  'ta': 'tamil',
-  'te': 'telugu',
-  'mr': 'marathi',
-};
 
 /**
  * Language code options (ISO 639-1)
@@ -146,15 +105,10 @@ export function LanguageVariantCard({
   // Watch language_code for auto-sync
   const languageCode = form.watch(`languages.${index}.language_code`);
 
-  // Map language code to output language
-  const mapLanguageCodeToOutputLanguage = (code: string): OutputLanguage => {
-    return LANGUAGE_CODE_MAP[code.toLowerCase()] || 'english';
-  };
-
   // Auto-sync language field when language_code changes
   useEffect(() => {
     if (languageCode) {
-      const outputLang = mapLanguageCodeToOutputLanguage(languageCode);
+      const outputLang = languageCodeToFull(languageCode as LanguageCode);
       form.setValue(`languages.${index}.language`, outputLang);
     }
   }, [languageCode, index, form]);

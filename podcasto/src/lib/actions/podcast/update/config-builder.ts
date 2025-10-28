@@ -39,6 +39,8 @@ export function buildConfigUpdateObject(
     speaker1Role: { dataKey: 'speaker1Role', configKey: 'speaker1_role' },
     speaker2Role: { dataKey: 'speaker2Role', configKey: 'speaker2_role' },
     additionalInstructions: { dataKey: 'additionalInstructions', configKey: 'additional_instructions' },
+    introPrompt: { dataKey: 'introPrompt', configKey: 'intro_prompt' },
+    outroPrompt: { dataKey: 'outroPrompt', configKey: 'outro_prompt' },
     episodeFrequency: { dataKey: 'episodeFrequency', configKey: 'episode_frequency' },
   };
 

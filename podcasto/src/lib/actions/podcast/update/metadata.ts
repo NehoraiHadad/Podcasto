@@ -10,7 +10,7 @@ import type { PodcastUpdateData } from '../schemas';
 
 /**
  * Updates the basic podcast metadata fields.
- * Updates title, description, cover image, image style, and language code.
+ * Updates title, description, cover image, image style, language code, and auto-generation setting.
  *
  * @param data - Podcast update data containing metadata fields
  * @returns Updated podcast record or null if update fails
@@ -21,7 +21,8 @@ export async function updatePodcastMetadata({
   description,
   cover_image,
   image_style,
-  languageCode
+  languageCode,
+  autoGeneration
 }: PodcastUpdateData) {
   return await podcastsApi.updatePodcast(id, {
     title,
@@ -29,6 +30,7 @@ export async function updatePodcastMetadata({
     cover_image,
     image_style,
     language_code: languageCode,
+    auto_generation_enabled: autoGeneration,
     updated_at: new Date()
   });
 }

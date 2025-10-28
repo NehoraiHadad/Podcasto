@@ -23,7 +23,7 @@ import {
 } from '../core';
 
 import { editPodcastSchemaValidated } from '../shared/schemas';
-import { podcastToFormValues } from '../shared/transformers';
+import { podcastToFormValues, normalizeContentSource } from '../shared/transformers';
 
 import type {
   PodcastEditFormProps,
@@ -100,7 +100,7 @@ export function PodcastEditForm({
         introPrompt: values.introPrompt || null,
         outroPrompt: values.outroPrompt || null,
         // Content source
-        contentSource: values.contentSource === 'rss' ? 'urls' : values.contentSource,
+        contentSource: normalizeContentSource(values.contentSource),
         telegramChannel: values.contentSource === 'telegram' ? values.telegramChannelName : undefined,
         telegramHours: values.contentSource === 'telegram' ? values.telegramHours : undefined,
         urls: values.contentSource === 'rss' && values.rssUrl ? [values.rssUrl] : undefined,
