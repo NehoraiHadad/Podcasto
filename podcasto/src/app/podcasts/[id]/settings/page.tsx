@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { getUser } from '@/lib/auth';
-import { podcastsApi, podcastConfigsApi, episodesApi } from '@/lib/db/api';
+import { podcastsApi, episodesApi } from '@/lib/db/api';
 import { PodcastEditForm } from '@/components/podcasts/forms/compositions';
 import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';
 

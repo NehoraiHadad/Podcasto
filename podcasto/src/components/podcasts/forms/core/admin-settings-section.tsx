@@ -1,6 +1,6 @@
 'use client';
 
-import { Control, useWatch } from 'react-hook-form';
+import { Control } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Wand2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 interface AdminSettingsSectionProps {
   control: Control<any>;
@@ -50,10 +49,6 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
     { id: 'data-visualization', label: 'Data Visualization' },
   ];
 
-  // Watch the title field from the parent form to enable auto-slug
-  // Note: This assumes the title field is available in the same form context
-  const [autoSlugEnabled, setAutoSlugEnabled] = useState(true);
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -92,10 +87,6 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
                     placeholder="tech-news-daily"
                     {...podcastNameField}
                     disabled={disabled}
-                    onChange={(e) => {
-                      podcastNameField.onChange(e);
-                      setAutoSlugEnabled(false); // Disable auto-slug if user manually edits
-                    }}
                   />
                 </FormControl>
                 <FormField
@@ -110,7 +101,6 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
                         const slug = generateSlug(titleField.value || '');
                         if (slug) {
                           podcastNameField.onChange(slug);
-                          setAutoSlugEnabled(true);
                         }
                       }}
                       disabled={disabled || !titleField.value}
