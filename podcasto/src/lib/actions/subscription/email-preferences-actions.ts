@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { getUser, createServerClient } from '@/lib/auth';
-import type { Database } from '@/lib/supabase/types';
 import type { EmailNotificationResult } from './shared';
 
 /**
@@ -34,7 +33,7 @@ export async function updateEmailNotificationPreference(): Promise<EmailNotifica
 
     const { data: currentProfile, error: profileError } = await supabase
       .from('profiles')
-      .select<Pick<Database['public']['Tables']['profiles']['Row'], 'email_notifications'>>('email_notifications')
+      .select('email_notifications')
       .eq('id', user.id)
       .maybeSingle();
 
