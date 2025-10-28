@@ -1,5 +1,5 @@
 import { podcasts } from '../../schema';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import type { Podcast } from './types';
 
@@ -34,6 +34,21 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
  */
 export async function getAllPodcastsBasic(): Promise<Podcast[]> {
   return await dbUtils.getAll<Podcast>(podcasts);
+}
+
+/**
+ * Get podcasts that are not associated with any podcast group
+ *
+ * @returns Array of podcasts eligible for migration
+ *
+ * @example
+ * ```typescript
+ * const eligiblePodcasts = await getPodcastsEligibleForMigration();
+ * console.log(`Eligible podcasts: ${eligiblePodcasts.length}`);
+ * ```
+ */
+export async function getPodcastsEligibleForMigration(): Promise<Podcast[]> {
+  return await dbUtils.findBy<Podcast>(podcasts, isNull(podcasts.podcast_group_id));
 }
 
 /**

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllPodcastsBasic } from '@/lib/db/api/podcasts/queries';
+import { getAllPodcastsBasic, getPodcastsEligibleForMigration } from '@/lib/db/api/podcasts/queries';
 import { createServerClient } from '@/lib/auth';
 
 /**
@@ -35,12 +35,9 @@ export async function GET(request: NextRequest) {
     const eligibleForMigration = searchParams.get('eligible_for_migration') === 'true';
 
     // Fetch podcasts
-    let podcasts = await getAllPodcastsBasic();
-
-    // Filter for migration eligibility if requested
-    if (eligibleForMigration) {
-      podcasts = podcasts.filter(p => !p.podcast_group_id);
-    }
+    const podcasts = eligibleForMigration
+      ? await getPodcastsEligibleForMigration()
+      : await getAllPodcastsBasic();
 
     // Return serialized data (convert dates to strings)
     const serializedPodcasts = podcasts.map(podcast => ({
