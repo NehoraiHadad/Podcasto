@@ -291,3 +291,28 @@ export const defaultAdminValues = {
   mixingTechniques: ['casual_banter'],
   additionalInstructions: null,
 };
+
+/**
+ * Default values for language variant in multi-language mode
+ */
+export const defaultLanguageVariantValues = {
+  language_code: '',
+  is_primary: false,
+  ...defaultPodcastValues,
+  ...defaultAdminValues,
+};
+
+/**
+ * Default values for podcast group creation
+ */
+export const defaultPodcastGroupValues = {
+  base_title: '',
+  base_description: '',
+  base_cover_image: '',
+  languages: [
+    {
+      ...defaultLanguageVariantValues,
+      is_primary: true, // First language is always primary
+    },
+  ],
+};

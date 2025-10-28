@@ -15,3 +15,7 @@ export { ScheduleSection } from './schedule-section';
 export { StyleSection } from './style-section';
 export { ImageUploadSection } from './image-upload-section';
 export { AdminSettingsSection } from './admin-settings-section';
+
+// Multi-language components
+export { LanguageVariantCard } from './language-variant-card';
+export { BaseGroupSection } from './base-group-section';

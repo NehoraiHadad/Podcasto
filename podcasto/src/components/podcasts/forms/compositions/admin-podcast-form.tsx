@@ -1,35 +1,31 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 
 import {
-  BasicInfoSection,
-  ContentSourceSection,
-  FormatSection,
-  ScheduleSection,
-  StyleSection,
-  ImageUploadSection,
-  AdminSettingsSection,
+  LanguageVariantCard,
+  BaseGroupSection,
 } from '../core';
 
 import {
-  adminPodcastSchemaValidated,
-  defaultPodcastValues,
-  defaultAdminValues,
+  podcastGroupCreationSchema,
+  defaultPodcastGroupValues,
+  defaultLanguageVariantValues,
 } from '../shared/schemas';
 
 import type {
   AdminPodcastFormProps,
-  AdminPodcastFormValues,
+  PodcastGroupCreationFormValues,
 } from '../shared/types';
 
 import { createPodcastGroupWithNewPodcastsAction } from '@/lib/actions/podcast-group-actions';
@@ -38,76 +34,141 @@ import { createPodcastGroupWithNewPodcastsAction } from '@/lib/actions/podcast-g
  * Admin Podcast Form
  *
  * Full-featured admin form for creating podcasts with complete customization.
- * Includes all sections and admin-only advanced settings.
+ * Supports both single-language and multi-language podcast creation.
  *
  * Features:
+ * - Single-language mode: Creates one podcast with auto-filled group fields
+ * - Multi-language mode: Creates a podcast group with multiple language variants
  * - All form sections (basic info, content, format, schedule, style, image)
  * - Admin-only fields (creator, technical name, slogan, creativity, mixing)
- * - Single-language creation (multi-language support coming later)
+ * - Language variant management (add/remove languages, set primary)
+ * - Auto-sync base fields from first language in single-language mode
  */
 export function AdminPodcastForm({
   mode,
-  podcast,
   onSuccess,
   onCancel,
 }: AdminPodcastFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form with default values
-  const form = useForm<AdminPodcastFormValues>({
-    resolver: zodResolver(adminPodcastSchemaValidated),
-    defaultValues: {
-      ...defaultPodcastValues,
-      ...defaultAdminValues,
-      ...podcast,
-    },
+  // Initialize form with podcast group schema
+  const form = useForm<PodcastGroupCreationFormValues>({
+    resolver: zodResolver(podcastGroupCreationSchema),
+    defaultValues: defaultPodcastGroupValues,
   });
 
-  const onSubmit = async (values: AdminPodcastFormValues) => {
+  // Field array for language variants
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'languages',
+  });
+
+  // Watch for changes
+  const languages = form.watch('languages');
+  const languageCount = languages?.length || 1;
+  const firstLangTitle = form.watch('languages.0.title');
+  const firstLangDescription = form.watch('languages.0.description');
+  const firstLangCoverImage = form.watch('languages.0.cover_image');
+
+  // Determine if we're in single-language or multi-language mode
+  const isSingleLanguageMode = languageCount === 1;
+
+  // Auto-sync base fields from first language in single-language mode
+  useEffect(() => {
+    if (isSingleLanguageMode) {
+      form.setValue('base_title', firstLangTitle || '', { shouldValidate: true });
+      form.setValue('base_description', firstLangDescription || '', { shouldValidate: true });
+      form.setValue('base_cover_image', firstLangCoverImage || '', { shouldValidate: true });
+    }
+  }, [isSingleLanguageMode, firstLangTitle, firstLangDescription, firstLangCoverImage, form]);
+
+  // Add a new language variant
+  const addLanguageVariant = () => {
+    append({
+      ...defaultLanguageVariantValues,
+      is_primary: false,
+    });
+  };
+
+  // Remove a language variant
+  const removeLanguageVariant = (index: number) => {
+    if (languageCount === 1) {
+      toast({
+        title: 'Cannot remove',
+        description: 'Cannot remove the last language variant',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const removedLang = languages[index];
+
+    // If removing the primary language, make the first remaining one primary
+    if (removedLang.is_primary && languageCount > 1) {
+      const newPrimaryIndex = index === 0 ? 1 : 0;
+      form.setValue(`languages.${newPrimaryIndex}.is_primary`, true);
+    }
+
+    remove(index);
+  };
+
+  // Set a language variant as primary
+  const setPrimaryLanguage = (index: number) => {
+    // Unset all other primary flags
+    languages.forEach((_, i) => {
+      form.setValue(`languages.${i}.is_primary`, i === index);
+    });
+  };
+
+  const onSubmit = async (values: PodcastGroupCreationFormValues) => {
     setIsSubmitting(true);
 
     try {
-      // Transform form values to podcast group creation format
+      console.log('[AdminPodcastForm] Submitting data:', values);
+
+      // Transform form values to server action format
       const payload = {
-        base_title: values.title,
-        base_description: values.description || '',
-        base_cover_image: values.cover_image || '',
-        languages: [
-          {
-            language_code: values.language === 'english' ? 'en' : 'he',
-            is_primary: true,
-            title: values.title,
-            description: values.description || '',
-            cover_image: values.cover_image || '',
-            image_style: values.image_style || '',
-            contentSource: (values.contentSource === 'rss' ? 'urls' : values.contentSource) as 'telegram' | 'urls',
-            telegramChannel: values.contentSource === 'telegram' ? values.telegramChannelName : undefined,
-            telegramHours: values.contentSource === 'telegram' ? values.telegramHours : undefined,
-            urls: values.contentSource === 'rss' && values.rssUrl ? [values.rssUrl] : undefined,
-            creator: values.creator,
-            podcastName: values.podcastName,
-            outputLanguage: values.language,
-            slogan: values.slogan || undefined,
-            creativityLevel: values.creativityLevel,
-            episodeFrequency: values.episodeFrequency,
-            podcastFormat: values.podcastFormat,
-            conversationStyle: values.conversationStyle,
-            speaker1Role: values.speaker1Role,
-            speaker2Role: values.speaker2Role || undefined,
-            mixingTechniques: values.mixingTechniques,
-            additionalInstructions: values.additionalInstructions || undefined,
-          },
-        ],
+        base_title: values.base_title,
+        base_description: values.base_description || '',
+        base_cover_image: values.base_cover_image || '',
+        languages: values.languages.map((lang) => ({
+          language_code: lang.language_code,
+          is_primary: lang.is_primary,
+          title: lang.title,
+          description: lang.description || '',
+          cover_image: lang.cover_image || '',
+          image_style: lang.image_style || '',
+          contentSource: (lang.contentSource === 'rss' ? 'urls' : lang.contentSource) as 'telegram' | 'urls',
+          telegramChannel: lang.contentSource === 'telegram' ? lang.telegramChannelName : undefined,
+          telegramHours: lang.contentSource === 'telegram' ? lang.telegramHours : undefined,
+          urls: lang.contentSource === 'rss' && lang.rssUrl ? [lang.rssUrl] : undefined,
+          creator: lang.creator,
+          podcastName: lang.podcastName,
+          outputLanguage: lang.language,
+          slogan: lang.slogan || undefined,
+          creativityLevel: lang.creativityLevel,
+          episodeFrequency: lang.episodeFrequency,
+          podcastFormat: lang.podcastFormat,
+          conversationStyle: lang.conversationStyle,
+          speaker1Role: lang.speaker1Role,
+          speaker2Role: lang.speaker2Role || undefined,
+          mixingTechniques: lang.mixingTechniques,
+          additionalInstructions: lang.additionalInstructions || undefined,
+        })),
       };
 
       // Call server action
       const result = await createPodcastGroupWithNewPodcastsAction(payload);
 
       if (result.success) {
+        const variantCount = values.languages.length;
         toast({
           title: 'Success',
-          description: 'Podcast created successfully',
+          description:
+            variantCount === 1
+              ? 'Podcast created successfully'
+              : `Podcast group created successfully with ${variantCount} language variants`,
         });
 
         if (onSuccess && result.data?.languages?.[0]?.podcast_id) {
@@ -138,33 +199,71 @@ export function AdminPodcastForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic Information */}
-        <BasicInfoSection control={form.control} />
+        {/* Base Group Section */}
+        <BaseGroupSection
+          control={form.control}
+          autoFilled={isSingleLanguageMode}
+          languageCount={languageCount}
+        />
 
-        {/* Content Source */}
-        <ContentSourceSection control={form.control} />
-
-        {/* Podcast Format */}
-        <FormatSection control={form.control} setValue={form.setValue} />
-
-        {/* Schedule & Automation */}
-        <ScheduleSection control={form.control} />
-
-        {/* Style & Customization */}
-        <StyleSection control={form.control} />
-
-        {/* Image Upload */}
-        <ImageUploadSection control={form.control} />
-
-        {/* Admin-Only Advanced Settings */}
+        {/* Language Variants Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Advanced Settings</CardTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>
+                  {isSingleLanguageMode ? 'Podcast Configuration' : `Language Variants (${languageCount})`}
+                </CardTitle>
+                {!isSingleLanguageMode && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Each variant represents a complete podcast in a different language
+                  </p>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addLanguageVariant}
+                aria-label="Add language variant"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Language
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            <AdminSettingsSection control={form.control} />
+          <CardContent className="space-y-4">
+            {fields.map((field, index) => (
+              <LanguageVariantCard
+                key={field.id}
+                index={index}
+                control={form.control}
+                form={form}
+                onRemove={() => removeLanguageVariant(index)}
+                onSetPrimary={() => setPrimaryLanguage(index)}
+                canRemove={languageCount > 1}
+                isPrimary={languages[index]?.is_primary || false}
+                showLanguageControls={!isSingleLanguageMode}
+              />
+            ))}
           </CardContent>
         </Card>
+
+        {/* Form Validation Errors */}
+        {Object.keys(form.formState.errors).length > 0 && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              <p className="font-semibold mb-2">Please fix the following errors:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {Object.entries(form.formState.errors).map(([key, error]) => (
+                  <li key={key} className="text-sm">
+                    {key}: {error?.message?.toString() || 'Invalid value'}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Form Actions */}
         <div className="flex justify-end gap-2">
@@ -180,7 +279,10 @@ export function AdminPodcastForm({
                 Creating...
               </>
             ) : (
-              `${mode === 'create' ? 'Create' : 'Update'} Podcast`
+              <>
+                {mode === 'create' ? 'Create' : 'Update'}{' '}
+                {isSingleLanguageMode ? 'Podcast' : `Podcast Group (${languageCount} variants)`}
+              </>
             )}
           </Button>
         </div>
