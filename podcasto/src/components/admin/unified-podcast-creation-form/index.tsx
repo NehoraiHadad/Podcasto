@@ -57,6 +57,7 @@ export function UnifiedPodcastCreationForm() {
           slogan: '',
           creativityLevel: 0.7,
           episodeFrequency: 7,
+          podcastFormat: 'multi-speaker' as const,
           conversationStyle: 'engaging' as const,
           speaker1Role: 'host' as const,
           speaker2Role: 'expert' as const,

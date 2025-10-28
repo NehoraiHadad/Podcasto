@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { CoverImageField } from '@/components/shared';
 import { SUPPORTED_OUTPUT_LANGUAGES, LANGUAGE_NAMES, type OutputLanguage } from '@/lib/constants/languages';
+import { FormatSelector } from '@/components/admin/podcast-form/format-selector';
 
 /**
  * Props for LanguageVariantCreationCard component
@@ -40,6 +41,9 @@ export function LanguageVariantCreationCard({
   canRemove = true,
   showLanguageLabel = true,
 }: LanguageVariantCreationCardProps) {
+  // Watch the podcast format to conditionally show/hide speaker2 field
+  const podcastFormat = form.watch(`languages.${index}.podcastFormat`);
+
   // Mixing techniques options
   const mixingTechniques = [
     { id: 'rhetorical-questions', label: 'Rhetorical Questions' },
@@ -415,6 +419,21 @@ export function LanguageVariantCreationCard({
 
           {/* Style Tab */}
           <TabsContent value="style" className="space-y-4">
+            {/* Podcast Format Selector */}
+            <FormField
+              control={control}
+              name={`languages.${index}.podcastFormat`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormatSelector
+                    value={field.value || 'multi-speaker'}
+                    onChange={field.onChange}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={control}
               name={`languages.${index}.conversationStyle`}
@@ -448,7 +467,7 @@ export function LanguageVariantCreationCard({
               name={`languages.${index}.speaker1Role`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Speaker 1 Role</FormLabel>
+                  <FormLabel>{podcastFormat === 'single-speaker' ? 'Speaker Role' : 'Speaker 1 Role'}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -467,29 +486,32 @@ export function LanguageVariantCreationCard({
               )}
             />
 
-            <FormField
-              control={control}
-              name={`languages.${index}.speaker2Role`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Speaker 2 Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="domain-expert">Domain Expert</SelectItem>
-                      <SelectItem value="guest">Guest</SelectItem>
-                      <SelectItem value="expert">Expert</SelectItem>
-                      <SelectItem value="analyst">Analyst</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Conditionally render Speaker 2 Role only for multi-speaker format */}
+            {podcastFormat === 'multi-speaker' && (
+              <FormField
+                control={control}
+                name={`languages.${index}.speaker2Role`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Speaker 2 Role</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="domain-expert">Domain Expert</SelectItem>
+                        <SelectItem value="guest">Guest</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                        <SelectItem value="analyst">Analyst</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={control}

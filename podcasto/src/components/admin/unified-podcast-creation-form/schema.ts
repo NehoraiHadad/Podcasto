@@ -33,13 +33,16 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     // Episode settings
     episodeFrequency: z.number().min(1).max(30).default(7),
 
+    // Podcast format
+    podcastFormat: z.enum(['single-speaker', 'multi-speaker']).default('multi-speaker'),
+
     // Style and roles
     conversationStyle: z.enum([
       'engaging', 'dynamic', 'enthusiastic', 'educational',
       'casual', 'professional', 'friendly', 'formal'
     ]),
     speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
-    speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
+    speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']).optional(),
 
     // Mixing techniques
     mixingTechniques: z.array(z.string()),
@@ -78,13 +81,16 @@ export const languageVariantCreationSchema = z.discriminatedUnion('contentSource
     // Episode settings
     episodeFrequency: z.number().min(1).max(30).default(7),
 
+    // Podcast format
+    podcastFormat: z.enum(['single-speaker', 'multi-speaker']).default('multi-speaker'),
+
     // Style and roles
     conversationStyle: z.enum([
       'engaging', 'dynamic', 'enthusiastic', 'educational',
       'casual', 'professional', 'friendly', 'formal'
     ]),
     speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
-    speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
+    speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']).optional(),
 
     // Mixing techniques
     mixingTechniques: z.array(z.string()),
