@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { podcasts } from '../../schema';
 import { eq, isNull } from 'drizzle-orm';
 import * as dbUtils from '../../utils';

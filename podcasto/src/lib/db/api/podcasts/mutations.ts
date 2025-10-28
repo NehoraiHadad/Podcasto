@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { podcasts } from '../../schema';
 import * as dbUtils from '../../utils';
 import type { Podcast, NewPodcast } from './types';

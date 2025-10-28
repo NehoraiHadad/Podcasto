@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { userRoles } from '../schema';
 import { eq, sql } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';

@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Episode Generation Attempts API
  * Provides functions for logging and querying episode generation attempts

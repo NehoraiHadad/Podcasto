@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { sentEpisodes } from '../../schema';
 import * as dbUtils from '../../utils';
 import type { SentEpisode, NewSentEpisode } from './types';

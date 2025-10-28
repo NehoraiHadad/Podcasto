@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Sent Episodes API Module
  *

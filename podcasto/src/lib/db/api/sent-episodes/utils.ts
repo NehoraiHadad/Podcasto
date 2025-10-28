@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { sentEpisodes } from '../../schema';
 import { eq, and, SQL } from 'drizzle-orm';
 import * as dbUtils from '../../utils';

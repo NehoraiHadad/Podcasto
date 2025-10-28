@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { nowUTC } from '@/lib/utils/date/server';
 import { profiles } from '../../schema';
 import * as dbUtils from '../../utils';

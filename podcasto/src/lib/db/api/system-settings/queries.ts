@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { systemSettings, SYSTEM_SETTING_KEYS, DEFAULT_SYSTEM_SETTINGS } from '@/lib/db/schema/system-settings';

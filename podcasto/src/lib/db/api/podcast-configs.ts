@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { podcastConfigs } from '../schema';
 import { eq } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
