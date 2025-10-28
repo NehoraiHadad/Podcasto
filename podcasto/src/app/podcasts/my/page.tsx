@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PodcastCardUser } from '@/components/podcasts';
 import type { Database } from '@/lib/supabase/types';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
+import { MainLayout } from '@/components/layout/main-layout';
 
 export const metadata: Metadata = {
   title: 'My Podcasts | Podcasto',
@@ -120,98 +121,100 @@ export default async function MyPodcastsPage({ searchParams }: MyPodcastsPagePro
   const hasNoPodcasts = filteredPodcasts.length === 0;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Podcasts</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your podcasts and generate new episodes
-          </p>
-        </div>
-
-        <Button asChild>
-          <Link href="/podcasts/create">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Podcast
-          </Link>
-        </Button>
-      </div>
-
-      {/* Credit Balance */}
-      <div className="bg-muted/50 rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between">
+    <MainLayout>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <p className="text-sm text-muted-foreground">Available Credits</p>
-            <p className="text-2xl font-bold">{userCredits}</p>
+            <h1 className="text-3xl font-bold tracking-tight">My Podcasts</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your podcasts and generate new episodes
+            </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/profile">Manage Credits</Link>
+
+          <Button asChild>
+            <Link href="/podcasts/create">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Podcast
+            </Link>
           </Button>
         </div>
-      </div>
 
-      {/* Filter Tabs */}
-      {!hasNoPodcasts && (
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={!statusFilter ? 'default' : 'outline'}
-            size="sm"
-            asChild
-          >
-            <Link href="/podcasts/my">All</Link>
-          </Button>
-          <Button
-            variant={statusFilter === 'active' ? 'default' : 'outline'}
-            size="sm"
-            asChild
-          >
-            <Link href="/podcasts/my?status=active">Active</Link>
-          </Button>
-          <Button
-            variant={statusFilter === 'paused' ? 'default' : 'outline'}
-            size="sm"
-            asChild
-          >
-            <Link href="/podcasts/my?status=paused">Paused</Link>
-          </Button>
-        </div>
-      )}
-
-      {/* Podcast Grid or Empty State */}
-      {hasNoPodcasts ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="rounded-full bg-muted p-6 mb-4">
-            <PodcastIcon className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h2 className="text-2xl font-semibold mb-2">No podcasts yet</h2>
-          <p className="text-muted-foreground text-center mb-6 max-w-md">
-            {statusFilter
-              ? `You don't have any ${statusFilter} podcasts. Try changing the filter.`
-              : "Get started by creating your first podcast. Transform news into engaging audio content."}
-          </p>
-          {!statusFilter && (
-            <Button asChild size="lg">
-              <Link href="/podcasts/create">
-                <Plus className="mr-2 h-5 w-5" />
-                Create Your First Podcast
-              </Link>
+        {/* Credit Balance */}
+        <div className="bg-muted/50 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Available Credits</p>
+              <p className="text-2xl font-bold">{userCredits}</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/profile">Manage Credits</Link>
             </Button>
-          )}
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPodcasts.map(({ podcast, episodeCount }) => (
-            <PodcastCardUser
-              key={podcast.id}
-              podcast={podcast}
-              episodeCount={episodeCount}
-              userCredits={userCredits}
-              episodeCost={episodeCost}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {/* Filter Tabs */}
+        {!hasNoPodcasts && (
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={!statusFilter ? 'default' : 'outline'}
+              size="sm"
+              asChild
+            >
+              <Link href="/podcasts/my">All</Link>
+            </Button>
+            <Button
+              variant={statusFilter === 'active' ? 'default' : 'outline'}
+              size="sm"
+              asChild
+            >
+              <Link href="/podcasts/my?status=active">Active</Link>
+            </Button>
+            <Button
+              variant={statusFilter === 'paused' ? 'default' : 'outline'}
+              size="sm"
+              asChild
+            >
+              <Link href="/podcasts/my?status=paused">Paused</Link>
+            </Button>
+          </div>
+        )}
+
+        {/* Podcast Grid or Empty State */}
+        {hasNoPodcasts ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="rounded-full bg-muted p-6 mb-4">
+              <PodcastIcon className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-semibold mb-2">No podcasts yet</h2>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              {statusFilter
+                ? `You don't have any ${statusFilter} podcasts. Try changing the filter.`
+                : "Get started by creating your first podcast. Transform news into engaging audio content."}
+            </p>
+            {!statusFilter && (
+              <Button asChild size="lg">
+                <Link href="/podcasts/create">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Create Your First Podcast
+                </Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPodcasts.map(({ podcast, episodeCount }) => (
+              <PodcastCardUser
+                key={podcast.id}
+                podcast={podcast}
+                episodeCount={episodeCount}
+                userCredits={userCredits}
+                episodeCost={episodeCost}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </MainLayout>
   );
 }

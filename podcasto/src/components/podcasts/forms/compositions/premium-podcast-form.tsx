@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 import {
   BasicInfoSection,
@@ -89,10 +89,7 @@ export function PremiumPodcastForm({
       const result = await createPremiumPodcastAction(payload);
 
       if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'Podcast created successfully',
-        });
+        toast.success('Podcast created successfully');
 
         if (onSuccess && result.data?.languages?.[0]?.podcast_id) {
           onSuccess(result.data.languages[0].podcast_id);
@@ -101,19 +98,11 @@ export function PremiumPodcastForm({
         // Redirect to user's podcasts page
         router.push('/podcasts/my');
       } else {
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create podcast',
-          variant: 'destructive',
-        });
+        toast.error(result.error || 'Failed to create podcast');
       }
     } catch (error) {
       console.error('[PremiumPodcastForm] Submission error:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
