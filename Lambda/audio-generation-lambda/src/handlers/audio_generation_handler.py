@@ -188,6 +188,9 @@ class AudioGenerationHandler:
             if not dynamic_config:
                 raise ValueError("dynamic_config is required - must be preprocessed by script-preprocessor Lambda")
 
+            # Ensure voices are present in config (handles manual retries and SQS re-queuing)
+            dynamic_config = self._ensure_voices_in_config(dynamic_config, episode_id, request_id)
+
             logger.info(f"[AUDIO_GEN] [{request_id}] Reading pre-generated script from S3: {script_url}")
             script = self.s3_client.read_from_url(script_url)
             logger.info(f"[AUDIO_GEN] [{request_id}] Script loaded from S3: {len(script)} characters")
@@ -312,19 +315,87 @@ class AudioGenerationHandler:
     def _get_podcast_config(self, podcast_config_id: str, podcast_id: str, request_id: str) -> Dict[str, Any]:
         """Get podcast configuration with fallback logic"""
         podcast_config = None
-        
+
         if podcast_config_id:
             podcast_config = self.supabase_client.get_podcast_config_by_id(podcast_config_id)
             if not podcast_config:
                 logger.warning(f"[AUDIO_GEN] [{request_id}] Podcast config not found by ID {podcast_config_id}, trying podcast_id")
-        
+
         if not podcast_config and podcast_id:
             podcast_config = self.supabase_client.get_podcast_config(podcast_id)
-        
+
         if not podcast_config:
             raise ValueError(f"Podcast configuration not found for config_id={podcast_config_id} or podcast_id={podcast_id}")
-        
+
         return podcast_config
+
+    def _ensure_voices_in_config(self, dynamic_config: Dict[str, Any], episode_id: str, request_id: str) -> Dict[str, Any]:
+        """
+        Ensure speaker voices are present in config.
+        If missing, fetch from episode metadata in database or regenerate deterministically.
+
+        This handles cases where manual retries or SQS re-queuing loses the voice information
+        that was originally selected by script-preprocessor.
+
+        Args:
+            dynamic_config: Configuration from SQS message
+            episode_id: Episode ID
+            request_id: Request ID for logging
+
+        Returns:
+            Updated config with guaranteed voice selections
+        """
+        # Check if voices already exist
+        if dynamic_config.get('speaker1_voice') and dynamic_config.get('speaker2_voice'):
+            logger.info(f"[AUDIO_GEN] [{request_id}] ✅ Voices already in config: speaker1={dynamic_config['speaker1_voice']}, speaker2={dynamic_config['speaker2_voice']}")
+            return dynamic_config
+
+        logger.warning(f"[AUDIO_GEN] [{request_id}] ⚠️ Voices missing from dynamic_config! Attempting recovery for episode {episode_id}")
+
+        # Try to get from episode metadata in database
+        episode = self.supabase_client.get_episode(episode_id)
+        if episode and episode.get('metadata'):
+            try:
+                metadata = episode['metadata']
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
+
+                if metadata.get('speaker1_voice') and metadata.get('speaker2_voice'):
+                    dynamic_config['speaker1_voice'] = metadata['speaker1_voice']
+                    dynamic_config['speaker2_voice'] = metadata['speaker2_voice']
+                    logger.info(f"[AUDIO_GEN] [{request_id}] ✅ Recovered voices from episode metadata: speaker1={metadata['speaker1_voice']}, speaker2={metadata['speaker2_voice']}")
+                    return dynamic_config
+            except Exception as e:
+                logger.warning(f"[AUDIO_GEN] [{request_id}] Failed to parse episode metadata: {str(e)}")
+
+        # If still missing, regenerate voices deterministically based on episode_id
+        # This ensures the same episode always gets the same voices
+        logger.warning(f"[AUDIO_GEN] [{request_id}] Could not recover voices from metadata - regenerating deterministically")
+
+        from shared.services.voice_config import VoiceConfigManager
+
+        language = dynamic_config.get('language', 'he')
+        speaker1_role = dynamic_config.get('speaker1_role', 'Speaker 1')
+        speaker2_role = dynamic_config.get('speaker2_role', 'Speaker 2')
+        speaker1_gender = dynamic_config.get('speaker1_gender', 'male')
+        speaker2_gender = dynamic_config.get('speaker2_gender', 'female')
+
+        voice_manager = VoiceConfigManager()
+        speaker1_voice, speaker2_voice = voice_manager.get_distinct_voices_for_speakers(
+            language=language,
+            speaker1_gender=speaker1_gender,
+            speaker2_gender=speaker2_gender,
+            speaker1_role=speaker1_role,
+            speaker2_role=speaker2_role,
+            episode_id=episode_id,
+            randomize_speaker2=True
+        )
+
+        dynamic_config['speaker1_voice'] = speaker1_voice
+        dynamic_config['speaker2_voice'] = speaker2_voice
+        logger.info(f"[AUDIO_GEN] [{request_id}] ✅ Regenerated voices deterministically: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
+
+        return dynamic_config
 
     def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False) -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with pre-selected voices from script-preprocessor"""

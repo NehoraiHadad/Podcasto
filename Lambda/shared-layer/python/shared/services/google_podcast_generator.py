@@ -65,25 +65,14 @@ class GooglePodcastGenerator:
             error_msg = (
                 f"[GOOGLE_TTS] CRITICAL ERROR: Voices not provided! "
                 f"speaker1_voice={speaker1_voice}, speaker2_voice={speaker2_voice}. "
-                f"This is a pipeline bug - voices should be pre-selected in script-preprocessor. "
-                f"Selecting voices here will cause inconsistency across chunks!"
+                f"This indicates a bug in the pipeline - voices should be pre-selected. "
+                f"REFUSING to generate audio with inconsistent voices. "
+                f"Check audio_generation_handler._ensure_voices_in_config() for recovery logic."
             )
             logger.error(error_msg)
+            raise ValueError(error_msg)
 
-            # Select voices as last resort, but log warning
-            logger.warning(f"[GOOGLE_TTS] Falling back to voice selection (NOT RECOMMENDED)")
-            speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
-                language=language,
-                speaker1_gender=speaker1_gender,
-                speaker2_gender=speaker2_gender,
-                speaker1_role=speaker1_role,
-                speaker2_role=speaker2_role,
-                episode_id=episode_id,
-                randomize_speaker2=bool(episode_id)
-            )
-            logger.warning(f"[GOOGLE_TTS] Emergency fallback voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
-        else:
-            logger.info(f"[GOOGLE_TTS] ✅ Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+        logger.info(f"[GOOGLE_TTS] ✅ Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         
         # Check if content needs to be chunked
         if len(script_content) > self.chunk_manager.max_chars_per_chunk:

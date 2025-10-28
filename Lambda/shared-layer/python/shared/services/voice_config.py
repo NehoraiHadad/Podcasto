@@ -542,8 +542,9 @@ class VoiceConfigManager:
             seed_string = f"{episode_id}_{speaker_role}_{gender}_alt"
             seed_hash = hashlib.md5(seed_string.encode()).hexdigest()
             seed = int(seed_hash[:8], 16)
-            random.seed(seed)
-            selected_voice = random.choice(voice_list)
+            # FIXED: Use Random instance for thread-safety
+            rng = random.Random(seed)
+            selected_voice = rng.choice(voice_list)
         else:
             # Use first available alternative
             selected_voice = voice_list[0]
@@ -721,11 +722,12 @@ class VoiceConfigManager:
         seed_string = f"{episode_id}_{speaker_role}_{gender}"
         seed_hash = hashlib.md5(seed_string.encode()).hexdigest()
         seed = int(seed_hash[:8], 16)  # Use first 8 hex chars as integer seed
-        
-        # Use seeded random to ensure deterministic selection
-        random.seed(seed)
-        selected_voice = random.choice(voice_list)
-        
+
+        # FIXED: Use Random instance instead of global random.seed() for thread-safety
+        # This prevents race conditions when multiple threads call this function in parallel
+        rng = random.Random(seed)
+        selected_voice = rng.choice(voice_list)
+
         logger.debug(f"[VOICE_CONFIG] Random voice selection: seed='{seed_string}' → {selected_voice}")
         return selected_voice
 

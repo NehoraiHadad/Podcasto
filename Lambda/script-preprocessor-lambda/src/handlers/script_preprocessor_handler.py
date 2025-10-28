@@ -154,6 +154,17 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
         artefacts = self._upload_artefacts(podcast_id, episode_id, clean_content, analysis_dict, script)
 
+        # Prepare metadata with voice information for recovery in audio-generation
+        episode_metadata = {
+            "speaker1_voice": dynamic_config['speaker1_voice'],
+            "speaker2_voice": dynamic_config['speaker2_voice'],
+            "speaker1_role": dynamic_config['speaker1_role'],
+            "speaker2_role": dynamic_config['speaker2_role'],
+            "speaker1_gender": dynamic_config.get('speaker1_gender', 'male'),
+            "speaker2_gender": dynamic_config['speaker2_gender'],
+            "language": dynamic_config.get('language', 'he')
+        }
+
         # Update DB state
         self.supabase_client.update_episode(
             episode_id,
@@ -161,6 +172,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
                 "status": "script_ready",
                 "script_url": artefacts["script"],
                 "analysis": json.dumps(analysis_dict),
+                "metadata": json.dumps(episode_metadata),
             },
         )
 
