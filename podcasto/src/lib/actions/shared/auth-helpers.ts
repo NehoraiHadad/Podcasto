@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerClient } from '@/lib/auth';
+import { getUser } from '@/lib/auth';
 import type { User } from '@supabase/supabase-js';
 
 /**
@@ -18,10 +18,9 @@ export async function requireAuthenticatedUser(): Promise<
   | { success: true; user: User }
   | { success: false; error: string }
 > {
-  const supabase = await createServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const user = await getUser();
 
-  if (error || !user) {
+  if (!user) {
     return { success: false, error: 'Not authenticated' };
   }
 
