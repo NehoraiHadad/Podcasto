@@ -34,7 +34,7 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
           />
           <Label
             htmlFor="single-speaker"
-            className="flex flex-col cursor-pointer rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-colors"
+            className="flex flex-col cursor-pointer rounded-lg border-2 border-muted bg-popover p-3 sm:p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-colors"
           >
             <div className="flex items-start gap-3">
               <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">
@@ -61,7 +61,7 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
           />
           <Label
             htmlFor="multi-speaker"
-            className="flex flex-col cursor-pointer rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-colors"
+            className="flex flex-col cursor-pointer rounded-lg border-2 border-muted bg-popover p-3 sm:p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-colors"
           >
             <div className="flex items-start gap-3">
               <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground">

@@ -39,7 +39,7 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
                 className="flex flex-col space-y-3"
                 disabled={disabled}
               >
-                <div className="flex items-center space-x-3 border rounded-md p-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center space-x-3 border rounded-md p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="telegram" id="telegram" className="h-5 w-5" />
                   <div className="flex-1">
                     <Label htmlFor="telegram" className="font-medium cursor-pointer block">
@@ -50,7 +50,7 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3 border rounded-md p-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center space-x-3 border rounded-md p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                   <RadioGroupItem value="rss" id="rss" className="h-5 w-5" />
                   <div className="flex-1">
                     <Label htmlFor="rss" className="font-medium cursor-pointer block">
@@ -69,7 +69,7 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
       />
 
       {contentSource === 'telegram' && (
-        <div className="bg-gray-50 p-4 rounded-md border space-y-4">
+        <div className="bg-gray-50 p-3 sm:p-4 rounded-md border space-y-4">
           <FormTextField
             control={control}
             name="telegramChannelName"
@@ -108,7 +108,7 @@ export function ContentSourceSection({ control, disabled = false }: ContentSourc
       )}
 
       {contentSource === 'rss' && (
-        <div className="bg-gray-50 p-4 rounded-md border">
+        <div className="bg-gray-50 p-3 sm:p-4 rounded-md border">
           <FormTextField
             control={control}
             name="rssUrl"

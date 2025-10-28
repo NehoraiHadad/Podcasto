@@ -56,7 +56,7 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Creator Name */}
         <FormField
           control={control}
@@ -105,7 +105,7 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
+                      className="shrink-0"
                       onClick={() => {
                         const slug = generateSlug(titleField.value || '');
                         if (slug) {
@@ -117,6 +117,7 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
                       title="Generate from title"
                     >
                       <Wand2 className="h-4 w-4" />
+                      <span className="sr-only sm:not-sr-only sm:ml-2">Generate</span>
                     </Button>
                   )}
                 />

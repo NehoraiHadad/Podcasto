@@ -35,7 +35,7 @@ export function ScheduleSection({ control, disabled = false }: ScheduleSectionPr
                 max={30}
                 value={field.value || 7}
                 onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 7)}
-                className="w-20 text-center"
+                className="min-w-[60px] w-16 sm:w-20 text-center"
                 disabled={disabled}
               />
             </div>
