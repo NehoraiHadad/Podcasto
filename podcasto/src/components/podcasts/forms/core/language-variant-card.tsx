@@ -282,7 +282,12 @@ export function LanguageVariantCard({
 
           {/* Image Tab */}
           <TabsContent value="image" className="space-y-4 mt-4">
-            <ImageUploadSection control={control} />
+            <ImageUploadSection
+              control={control}
+              showAIGeneration={true}
+              telegramChannel={form.watch(`languages.${index}.telegramChannelName`)}
+              podcastTitle={form.watch(`languages.${index}.title`) || 'My Podcast'}
+            />
           </TabsContent>
 
           {/* Advanced Settings Tab */}
