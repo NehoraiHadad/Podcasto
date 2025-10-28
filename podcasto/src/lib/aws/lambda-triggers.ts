@@ -69,7 +69,7 @@ export async function triggerAudioLambda(
   podcastId: string,
   podcastConfigId: string,
   scriptUrl: string,
-  dynamicConfig: Record<string, any>
+  dynamicConfig: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!AUDIO_QUEUE_URL) {

@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { S3Service } from '../s3-service';
 import {
   S3Client,
   PutObjectCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
-  GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { S3ServiceConfig } from '../s3-service-types';
 
@@ -14,7 +13,7 @@ vi.mock('@aws-sdk/s3-request-presigner');
 
 describe('S3Service', () => {
   let s3Service: S3Service;
-  let mockS3Client: { send: Mock };
+  let sendMock: ReturnType<typeof vi.fn<[unknown], Promise<unknown>>>;
   const testConfig: S3ServiceConfig = {
     region: 'us-east-1',
     bucket: 'test-bucket',
@@ -25,11 +24,11 @@ describe('S3Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockS3Client = {
-      send: vi.fn(),
-    };
+    sendMock = vi.fn<[unknown], Promise<unknown>>();
 
-    vi.mocked(S3Client).mockImplementation(() => mockS3Client as any);
+    vi.mocked(S3Client).mockImplementation(
+      () => ({ send: sendMock } as unknown as S3Client)
+    );
 
     s3Service = new S3Service(testConfig);
   });
@@ -41,7 +40,7 @@ describe('S3Service', () => {
     const mimeType = 'image/png';
 
     it('should successfully upload an image', async () => {
-      mockS3Client.send.mockResolvedValue({});
+      sendMock.mockResolvedValue({});
 
       const result = await s3Service.uploadImageToS3(
         podcastId,
@@ -54,14 +53,12 @@ describe('S3Service', () => {
       expect(result.url).toContain(podcastId);
       expect(result.url).toContain(episodeId);
       expect(result.error).toBeUndefined();
-      expect(mockS3Client.send).toHaveBeenCalledWith(
-        expect.any(PutObjectCommand)
-      );
+      expect(sendMock).toHaveBeenCalledWith(expect.any(PutObjectCommand));
     });
 
     it('should return error when upload fails', async () => {
       const errorMessage = 'S3 upload failed';
-      mockS3Client.send.mockRejectedValue(new Error(errorMessage));
+      sendMock.mockRejectedValue(new Error(errorMessage));
 
       const result = await s3Service.uploadImageToS3(
         podcastId,
@@ -95,7 +92,7 @@ describe('S3Service', () => {
     const imageData = Buffer.from('test-image-data');
 
     it('should handle jpeg mime type', async () => {
-      mockS3Client.send.mockResolvedValue({});
+      sendMock.mockResolvedValue({});
 
       const result = await s3Service.uploadImageToS3(
         podcastId,
@@ -109,7 +106,7 @@ describe('S3Service', () => {
     });
 
     it('should handle png mime type', async () => {
-      mockS3Client.send.mockResolvedValue({});
+      sendMock.mockResolvedValue({});
 
       const result = await s3Service.uploadImageToS3(
         podcastId,
@@ -125,7 +122,7 @@ describe('S3Service', () => {
 
   describe('listEpisodeFiles', () => {
     it('should list files successfully', async () => {
-      mockS3Client.send.mockResolvedValue({
+      sendMock.mockResolvedValue({
         Contents: [
           { Key: 'podcast-1/episode-1/audio.mp3', Size: 1000 },
           { Key: 'podcast-1/episode-1/image.png', Size: 500 },
@@ -136,13 +133,11 @@ describe('S3Service', () => {
 
       expect(result.files).toHaveLength(2);
       expect(result.error).toBeUndefined();
-      expect(mockS3Client.send).toHaveBeenCalledWith(
-        expect.any(ListObjectsV2Command)
-      );
+      expect(sendMock).toHaveBeenCalledWith(expect.any(ListObjectsV2Command));
     });
 
     it('should handle empty folder', async () => {
-      mockS3Client.send.mockResolvedValue({
+      sendMock.mockResolvedValue({
         Contents: [],
       });
 
@@ -153,7 +148,7 @@ describe('S3Service', () => {
     });
 
     it('should handle list errors', async () => {
-      mockS3Client.send.mockRejectedValue(new Error('List failed'));
+      sendMock.mockRejectedValue(new Error('List failed'));
 
       const result = await s3Service.listEpisodeFiles('podcast-1', 'episode-1');
 
@@ -164,7 +159,7 @@ describe('S3Service', () => {
 
   describe('deleteEpisodeFromS3', () => {
     it('should successfully delete episode folder', async () => {
-      mockS3Client.send
+      sendMock
         .mockResolvedValueOnce({
           Contents: [
             { Key: 'podcast-1/episode-1/file1.mp3' },
@@ -177,13 +172,11 @@ describe('S3Service', () => {
 
       expect(result.success).toBe(true);
       expect(result.deletedCount).toBeGreaterThan(0);
-      expect(mockS3Client.send).toHaveBeenCalledWith(
-        expect.any(DeleteObjectsCommand)
-      );
+      expect(sendMock).toHaveBeenCalledWith(expect.any(DeleteObjectsCommand));
     });
 
     it('should handle empty folder deletion', async () => {
-      mockS3Client.send.mockResolvedValue({ Contents: [] });
+      sendMock.mockResolvedValue({ Contents: [] });
 
       const result = await s3Service.deleteEpisodeFromS3('podcast-1', 'episode-1');
 

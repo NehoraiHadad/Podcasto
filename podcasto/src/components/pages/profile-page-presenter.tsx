@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { User } from '@supabase/supabase-js';
-import { Coins, ShoppingCart, History, Zap, TrendingUp } from 'lucide-react';
+import { Coins, ShoppingCart, History, Zap } from 'lucide-react';
 import type { UserCreditsData } from '@/lib/actions/credit';
 
 interface ProfilePagePresenterProps {

@@ -19,7 +19,7 @@ import {
 /**
  * Supported types for system setting values
  */
-type SystemSettingValue = string | number | boolean;
+type SystemSettingValue = string | number | boolean | Record<string, unknown>;
 
 type SettingValue = {
   value: SystemSettingValue;

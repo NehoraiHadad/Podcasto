@@ -148,13 +148,17 @@ export function aggregateByStatus(
  * // Returns: { cron: 13, manual: 5 }
  * ```
  */
-export function aggregateByField<T extends { count: number }>(
-  data: Array<T>,
-  field: string
-): Record<string, number> {
-  return data.reduce((acc, item) => {
-    const key = String((item as any)[field]);
+export function aggregateByField<
+  T extends { count: number },
+  K extends Extract<keyof T, string>
+>(data: T[], field: K): Record<string, number> {
+  return data.reduce<Record<string, number>>((acc, item) => {
+    const value = item[field];
+    if (value === undefined || value === null) {
+      return acc;
+    }
+    const key = String(value);
     acc[key] = (acc[key] || 0) + item.count;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 }

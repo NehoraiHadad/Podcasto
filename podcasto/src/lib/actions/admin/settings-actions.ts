@@ -16,7 +16,11 @@ import {
 /**
  * Supported types for system setting values
  */
-export type SystemSettingValue = string | number | boolean;
+export type SystemSettingValue =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>;
 
 /**
  * Get all system settings (admin only)

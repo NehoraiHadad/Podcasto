@@ -10,7 +10,6 @@ import { VariationGallery } from './variation-gallery';
 import { GalleryBrowser } from './gallery-browser';
 import { DebugInfoPanel } from './debug-info-panel';
 import { ActionButtons } from './action-buttons';
-import { EmptyState } from './empty-state';
 import { useImageGeneration } from './use-image-generation';
 import { useGalleryOperations } from './use-gallery-operations';
 import type { ImageGenerationFieldProps, ImageSource } from './types';

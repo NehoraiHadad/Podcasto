@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   ImageGenerationService,
   createImageGenerationService,
 } from '../image-generation';
-import { AIService } from '../../ai';
+import type { AIService } from '../../ai';
+import type { PromptGenerator } from '../prompt-generator';
 import * as promptGeneratorModule from '../prompt-generator';
 
 vi.mock('../../ai');
@@ -14,37 +15,50 @@ vi.mock('../prompt-generator', () => ({
 
 describe('ImageGenerationService', () => {
   let service: ImageGenerationService;
-  let mockAIService: {
-    getApiKey: Mock;
-    generateImage: Mock;
-  };
-  let mockPromptGenerator: {
-    generateImagePrompt: Mock;
-  };
+  let mockAIService: Pick<AIService, 'getApiKey' | 'generateImage'>;
+  let mockPromptGenerator: Pick<PromptGenerator, 'generateImagePrompt'>;
+  let getApiKeyMock: ReturnType<typeof vi.fn<[], string>>;
+  let generateImageMock: ReturnType<
+    typeof vi.fn<
+      Parameters<AIService['generateImage']>,
+      ReturnType<AIService['generateImage']>
+    >
+  >;
+  let generateImagePromptMock: ReturnType<
+    typeof vi.fn<
+      Parameters<PromptGenerator['generateImagePrompt']>,
+      ReturnType<PromptGenerator['generateImagePrompt']>
+    >
+  >;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
+    getApiKeyMock = vi.fn(() => 'test-api-key');
+    generateImageMock = vi.fn();
     mockAIService = {
-      getApiKey: vi.fn().mockReturnValue('test-api-key'),
-      generateImage: vi.fn(),
+      getApiKey: getApiKeyMock,
+      generateImage: generateImageMock,
     };
 
+    generateImagePromptMock = vi.fn();
     mockPromptGenerator = {
-      generateImagePrompt: vi.fn(),
+      generateImagePrompt: generateImagePromptMock,
     };
 
     // Mock the prompt generator creation
     vi.mocked(promptGeneratorModule.createPromptGenerator).mockReturnValue(
-      mockPromptGenerator as any
+      mockPromptGenerator as unknown as PromptGenerator
     );
 
-    service = new ImageGenerationService(mockAIService as any);
+    service = new ImageGenerationService(mockAIService as unknown as AIService);
   });
 
   describe('constructor', () => {
     it('should throw error if AIService is not provided', () => {
-      expect(() => new ImageGenerationService(null as any)).toThrow(
+      expect(
+        () => new ImageGenerationService(null as unknown as AIService)
+      ).toThrow(
         'AIService is required for ImageGenerationService'
       );
     });
@@ -60,12 +74,12 @@ describe('ImageGenerationService', () => {
       const title = 'Future of AI';
       const expectedPrompt = 'Enhanced image prompt';
 
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue(expectedPrompt);
+      generateImagePromptMock.mockResolvedValue(expectedPrompt);
 
       const result = await service.generateImagePrompt(summary, title);
 
       expect(result).toBe(expectedPrompt);
-      expect(mockPromptGenerator.generateImagePrompt).toHaveBeenCalledWith(
+      expect(generateImagePromptMock).toHaveBeenCalledWith(
         summary,
         title
       );
@@ -73,11 +87,11 @@ describe('ImageGenerationService', () => {
 
     it('should generate prompt with only summary', async () => {
       const summary = 'Technology trends discussion';
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue('prompt');
+      generateImagePromptMock.mockResolvedValue('prompt');
 
       await service.generateImagePrompt(summary);
 
-      expect(mockPromptGenerator.generateImagePrompt).toHaveBeenCalledWith(
+      expect(generateImagePromptMock).toHaveBeenCalledWith(
         summary,
         undefined
       );
@@ -92,8 +106,8 @@ describe('ImageGenerationService', () => {
       const mockImageData = Buffer.from('image-data');
       const enhancedPrompt = 'Enhanced prompt for image';
 
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue(enhancedPrompt);
-      mockAIService.generateImage.mockResolvedValue({
+      generateImagePromptMock.mockResolvedValue(enhancedPrompt);
+      generateImageMock.mockResolvedValue({
         imageData: mockImageData,
         mimeType: 'image/jpeg',
       });
@@ -110,8 +124,8 @@ describe('ImageGenerationService', () => {
     it('should handle case when no image data is generated', async () => {
       const enhancedPrompt = 'Enhanced prompt';
 
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue(enhancedPrompt);
-      mockAIService.generateImage.mockResolvedValue({
+      generateImagePromptMock.mockResolvedValue(enhancedPrompt);
+      generateImageMock.mockResolvedValue({
         imageData: null,
         mimeType: 'image/jpeg',
       });
@@ -127,8 +141,8 @@ describe('ImageGenerationService', () => {
     it('should handle AI service errors', async () => {
       const errorMessage = 'Image generation API failed';
 
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue('prompt');
-      mockAIService.generateImage.mockRejectedValue(new Error(errorMessage));
+      generateImagePromptMock.mockResolvedValue('prompt');
+      generateImageMock.mockRejectedValue(new Error(errorMessage));
 
       const result = await service.generateImagePreview(summary, title);
 
@@ -141,7 +155,7 @@ describe('ImageGenerationService', () => {
     it('should handle prompt generation errors', async () => {
       const errorMessage = 'Prompt generation failed';
 
-      mockPromptGenerator.generateImagePrompt.mockRejectedValue(
+      generateImagePromptMock.mockRejectedValue(
         new Error(errorMessage)
       );
 
@@ -152,8 +166,8 @@ describe('ImageGenerationService', () => {
     });
 
     it('should handle non-Error exceptions', async () => {
-      mockPromptGenerator.generateImagePrompt.mockResolvedValue('prompt');
-      mockAIService.generateImage.mockRejectedValue('String error');
+      generateImagePromptMock.mockResolvedValue('prompt');
+      generateImageMock.mockRejectedValue('String error');
 
       const result = await service.generateImagePreview(summary);
 
@@ -164,12 +178,16 @@ describe('ImageGenerationService', () => {
 
   describe('createImageGenerationService', () => {
     it('should create service with valid AIService', () => {
-      const service = createImageGenerationService(mockAIService as any);
+      const service = createImageGenerationService(
+        mockAIService as unknown as AIService
+      );
       expect(service).toBeInstanceOf(ImageGenerationService);
     });
 
     it('should throw error if AIService is not provided', () => {
-      expect(() => createImageGenerationService(null as any)).toThrow(
+      expect(() =>
+        createImageGenerationService(null as unknown as AIService)
+      ).toThrow(
         'aiService is required'
       );
     });

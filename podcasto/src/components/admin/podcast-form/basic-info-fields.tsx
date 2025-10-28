@@ -1,7 +1,6 @@
 'use client';
 
 import { Path, UseFormReturn } from 'react-hook-form';
-import { FormLabel } from '@/components/ui/form';
 import { FormTextField, FormTextareaField } from '@/components/ui/form-fields';
 import { ImageGenerationField } from './image-generation';
 import { TooltipLabel } from '@/components/ui/tooltip-label';

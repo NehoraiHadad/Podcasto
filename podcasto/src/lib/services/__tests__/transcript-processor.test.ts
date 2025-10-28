@@ -1,26 +1,31 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TranscriptProcessor, createTranscriptProcessor } from '../transcript-processor';
 import type { IS3Service } from '../interfaces';
 
 describe('TranscriptProcessor', () => {
   let processor: TranscriptProcessor;
-  let mockS3Service: {
-    getTranscriptFromS3: Mock;
-  };
+  let mockS3Service: Pick<IS3Service, 'getTranscriptFromS3'>;
+  let getTranscriptFromS3Mock: ReturnType<
+    typeof vi.fn<
+      Parameters<IS3Service['getTranscriptFromS3']>,
+      ReturnType<IS3Service['getTranscriptFromS3']>
+    >
+  >;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
+    getTranscriptFromS3Mock = vi.fn();
     mockS3Service = {
-      getTranscriptFromS3: vi.fn(),
+      getTranscriptFromS3: getTranscriptFromS3Mock,
     };
 
-    processor = new TranscriptProcessor(mockS3Service as any);
+    processor = new TranscriptProcessor(mockS3Service as unknown as IS3Service);
   });
 
   describe('constructor', () => {
     it('should throw error if S3Service is not provided', () => {
-      expect(() => new TranscriptProcessor(null as any)).toThrow(
+      expect(() => new TranscriptProcessor(null as unknown as IS3Service)).toThrow(
         'S3Service is required for TranscriptProcessor'
       );
     });
@@ -36,31 +41,31 @@ describe('TranscriptProcessor', () => {
     const validTranscript = 'This is a test transcript content.';
 
     it('should retrieve transcript on first attempt', async () => {
-      mockS3Service.getTranscriptFromS3.mockResolvedValue(validTranscript);
+      getTranscriptFromS3Mock.mockResolvedValue(validTranscript);
 
       const result = await processor.getTranscriptWithRetry(podcastId, episodeId);
 
       expect(result).toBe(validTranscript);
-      expect(mockS3Service.getTranscriptFromS3).toHaveBeenCalledTimes(1);
-      expect(mockS3Service.getTranscriptFromS3).toHaveBeenCalledWith(
+      expect(getTranscriptFromS3Mock).toHaveBeenCalledTimes(1);
+      expect(getTranscriptFromS3Mock).toHaveBeenCalledWith(
         podcastId,
         episodeId
       );
     });
 
     it('should retry on failure and succeed on second attempt', async () => {
-      mockS3Service.getTranscriptFromS3
+      getTranscriptFromS3Mock
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(validTranscript);
 
       const result = await processor.getTranscriptWithRetry(podcastId, episodeId);
 
       expect(result).toBe(validTranscript);
-      expect(mockS3Service.getTranscriptFromS3).toHaveBeenCalledTimes(2);
+      expect(getTranscriptFromS3Mock).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error after max retries with failures', async () => {
-      mockS3Service.getTranscriptFromS3.mockRejectedValue(
+      getTranscriptFromS3Mock.mockRejectedValue(
         new Error('S3 retrieval failed')
       );
 
@@ -68,11 +73,11 @@ describe('TranscriptProcessor', () => {
         processor.getTranscriptWithRetry(podcastId, episodeId, 3)
       ).rejects.toThrow('Failed to retrieve transcript after 3 attempts');
 
-      expect(mockS3Service.getTranscriptFromS3).toHaveBeenCalledTimes(3);
+      expect(getTranscriptFromS3Mock).toHaveBeenCalledTimes(3);
     });
 
     it('should throw error if transcript is null after all retries', async () => {
-      mockS3Service.getTranscriptFromS3.mockResolvedValue(null);
+      getTranscriptFromS3Mock.mockResolvedValue(null);
 
       await expect(
         processor.getTranscriptWithRetry(podcastId, episodeId, 2)
@@ -82,18 +87,18 @@ describe('TranscriptProcessor', () => {
     });
 
     it('should use custom maxRetries parameter', async () => {
-      mockS3Service.getTranscriptFromS3.mockRejectedValue(new Error('Failed'));
+      getTranscriptFromS3Mock.mockRejectedValue(new Error('Failed'));
 
       await expect(
         processor.getTranscriptWithRetry(podcastId, episodeId, 1)
       ).rejects.toThrow('Failed to retrieve transcript after 1 attempts');
 
-      expect(mockS3Service.getTranscriptFromS3).toHaveBeenCalledTimes(1);
+      expect(getTranscriptFromS3Mock).toHaveBeenCalledTimes(1);
     });
 
     it('should preprocess transcript before returning', async () => {
       const messyTranscript = 'This   has    extra   spaces\n and  \n   newlines';
-      mockS3Service.getTranscriptFromS3.mockResolvedValue(messyTranscript);
+      getTranscriptFromS3Mock.mockResolvedValue(messyTranscript);
 
       const result = await processor.getTranscriptWithRetry(podcastId, episodeId);
 
@@ -155,12 +160,14 @@ describe('TranscriptProcessor', () => {
 
   describe('createTranscriptProcessor', () => {
     it('should create processor with valid S3Service', () => {
-      const processor = createTranscriptProcessor(mockS3Service as any);
+      const processor = createTranscriptProcessor(
+        mockS3Service as unknown as IS3Service
+      );
       expect(processor).toBeInstanceOf(TranscriptProcessor);
     });
 
     it('should throw error if S3Service is not provided', () => {
-      expect(() => createTranscriptProcessor(null as any)).toThrow(
+      expect(() => createTranscriptProcessor(null as unknown as IS3Service)).toThrow(
         's3Service is required'
       );
     });

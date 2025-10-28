@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { createAdminUser, createSupabaseUser } from '@/test/factories/user';
+import type { Podcast } from '@/lib/db/api/podcasts/types';
 
 vi.mock('@/lib/auth', () => ({
   getUser: vi.fn(),
@@ -36,7 +38,7 @@ describe('GET /api/podcasts', () => {
   });
 
   it('returns 403 when user is not an admin', async () => {
-    getUser.mockResolvedValueOnce({ id: 'user-1' } as any);
+    getUser.mockResolvedValueOnce(createSupabaseUser({ id: 'user-1' }));
     isAdmin.mockResolvedValueOnce(false);
 
     const request = new NextRequest('http://localhost/api/podcasts');
@@ -48,12 +50,10 @@ describe('GET /api/podcasts', () => {
   });
 
   it('fetches all podcasts for admin users by default', async () => {
-    getUser.mockResolvedValueOnce({ id: 'admin-1' } as any);
+    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-1' }));
     isAdmin.mockResolvedValueOnce(true);
-    const podcasts = [
-      { id: 'pod-1', created_at: new Date(), updated_at: new Date() },
-    ];
-    getAllPodcastsBasic.mockResolvedValueOnce(podcasts as any);
+    const podcasts: Podcast[] = [createPodcast({ id: 'pod-1' })];
+    getAllPodcastsBasic.mockResolvedValueOnce(podcasts);
 
     const request = new NextRequest('http://localhost/api/podcasts');
     const response = await GET(request);
@@ -66,12 +66,10 @@ describe('GET /api/podcasts', () => {
   });
 
   it('fetches eligible podcasts when requested', async () => {
-    getUser.mockResolvedValueOnce({ id: 'admin-2' } as any);
+    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-2' }));
     isAdmin.mockResolvedValueOnce(true);
-    const podcasts = [
-      { id: 'pod-2', created_at: new Date(), updated_at: new Date() },
-    ];
-    getPodcastsEligibleForMigration.mockResolvedValueOnce(podcasts as any);
+    const podcasts: Podcast[] = [createPodcast({ id: 'pod-2' })];
+    getPodcastsEligibleForMigration.mockResolvedValueOnce(podcasts);
 
     const request = new NextRequest('http://localhost/api/podcasts?eligible_for_migration=true');
     const response = await GET(request);
@@ -83,3 +81,24 @@ describe('GET /api/podcasts', () => {
     expect(body).toHaveLength(1);
   });
 });
+
+function createPodcast(overrides: Partial<Podcast> = {}): Podcast {
+  const now = new Date();
+  return {
+    id: overrides.id ?? 'podcast-id',
+    title: overrides.title ?? 'Podcast Title',
+    description: overrides.description ?? null,
+    cover_image: overrides.cover_image ?? null,
+    image_style: overrides.image_style ?? null,
+    is_paused: overrides.is_paused ?? false,
+    created_by: overrides.created_by ?? null,
+    podcast_group_id: overrides.podcast_group_id ?? null,
+    language_code: overrides.language_code ?? null,
+    migration_status: overrides.migration_status ?? 'legacy',
+    auto_generation_enabled: overrides.auto_generation_enabled ?? null,
+    last_auto_generated_at: overrides.last_auto_generated_at ?? null,
+    next_scheduled_generation: overrides.next_scheduled_generation ?? null,
+    created_at: overrides.created_at ?? now,
+    updated_at: overrides.updated_at ?? now,
+  };
+}
