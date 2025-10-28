@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { db } from './index';
 import { SQL, eq, sql, Table, Column } from 'drizzle-orm';
 

@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { profiles } from '../../schema';
 import { eq } from 'drizzle-orm';
 import * as dbUtils from '../../utils';

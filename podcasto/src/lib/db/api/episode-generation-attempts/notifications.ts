@@ -1,3 +1,5 @@
+import 'server-only';
+
 'use server';
 
 import { nowUTC } from '@/lib/utils/date/server';

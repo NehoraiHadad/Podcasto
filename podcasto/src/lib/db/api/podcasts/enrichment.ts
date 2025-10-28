@@ -1,3 +1,5 @@
+import 'server-only';
+
 import * as dbUtils from '../../utils';
 import { podcasts } from '../../schema';
 import { getPublishedPodcastEpisodes } from './episodes';

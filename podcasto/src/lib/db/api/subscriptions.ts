@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { subscriptions } from '../schema';
 import { eq, and, SQL } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';

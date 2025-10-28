@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core/dialect';

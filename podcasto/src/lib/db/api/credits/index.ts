@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Credits API exports
  * Central export point for all credit-related database operations

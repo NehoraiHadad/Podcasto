@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { nowUTC } from '@/lib/utils/date/server';
 import { podcastGroups, podcastLanguages, podcasts } from '../../schema';
 import { eq, and } from 'drizzle-orm';

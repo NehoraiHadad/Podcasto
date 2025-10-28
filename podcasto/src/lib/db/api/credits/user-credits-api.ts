@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { nowUTC } from '@/lib/utils/date/server';
 import { db } from '@/lib/db';
 import { userCredits, creditTransactions } from '@/lib/db/schema';

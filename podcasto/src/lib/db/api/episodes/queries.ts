@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { db } from '../../index';
 import { episodes } from '../../schema';
 import { eq, desc, inArray } from 'drizzle-orm';

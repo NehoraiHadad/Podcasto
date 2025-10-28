@@ -1,3 +1,5 @@
+import 'server-only';
+
 // Export all APIs
 export * as podcastsApi from './podcasts';
 export * as episodesApi from './episodes';

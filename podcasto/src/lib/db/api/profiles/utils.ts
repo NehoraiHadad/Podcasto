@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { profiles } from '../../schema';
 import * as dbUtils from '../../utils';
 import type { Profile, NewProfile, UpdateProfile } from './types';

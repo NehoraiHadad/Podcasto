@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { episodes } from '../../schema';
 import * as dbUtils from '../../utils';
 import type { Episode, NewEpisode } from './types';

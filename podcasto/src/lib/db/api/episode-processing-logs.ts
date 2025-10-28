@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { db } from '../index';
 import { episodeProcessingLogs, episodes } from '../schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
