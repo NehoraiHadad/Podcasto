@@ -179,30 +179,72 @@ export type Database = {
       }
       podcasts: {
         Row: {
+          auto_generation_enabled: boolean | null
           cover_image: string | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: string
+          image_style: string | null
+          is_paused: boolean
+          language_code: string | null
+          migration_status: string | null
+          next_scheduled_generation: string | null
+          podcast_group_id: string | null
           title: string
           updated_at: string | null
+          last_auto_generated_at: string | null
         }
         Insert: {
+          auto_generation_enabled?: boolean | null
           cover_image?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
+          image_style?: string | null
+          is_paused?: boolean
+          language_code?: string | null
+          migration_status?: string | null
+          next_scheduled_generation?: string | null
+          podcast_group_id?: string | null
           title: string
           updated_at?: string | null
+          last_auto_generated_at?: string | null
         }
         Update: {
+          auto_generation_enabled?: boolean | null
           cover_image?: string | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           id?: string
+          image_style?: string | null
+          is_paused?: boolean
+          language_code?: string | null
+          migration_status?: string | null
+          next_scheduled_generation?: string | null
+          podcast_group_id?: string | null
           title?: string
           updated_at?: string | null
+          last_auto_generated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "podcasts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "podcasts_podcast_group_id_fkey"
+            columns: ["podcast_group_id"]
+            isOneToOne: false
+            referencedRelation: "podcast_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -260,19 +302,25 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string | null
+          email_notifications: boolean
           id: string
+          language_preference: string | null
           podcast_id: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          email_notifications?: boolean
           id?: string
+          language_preference?: string | null
           podcast_id?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          email_notifications?: boolean
           id?: string
+          language_preference?: string | null
           podcast_id?: string | null
           user_id?: string | null
         }
