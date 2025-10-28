@@ -204,7 +204,7 @@ export function LanguageVariantCard({
 
       <CardContent>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="format">Format</TabsTrigger>

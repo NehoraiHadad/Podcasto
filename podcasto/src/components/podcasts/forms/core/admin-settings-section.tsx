@@ -186,7 +186,7 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
         render={({ field }) => (
           <FormItem>
             <FormLabel>Mixing Techniques</FormLabel>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {mixingTechniquesOptions.map((technique) => (
                 <div key={technique.id} className="flex items-center space-x-2">
                   <Checkbox

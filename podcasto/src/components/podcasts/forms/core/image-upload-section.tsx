@@ -518,7 +518,7 @@ export function ImageUploadSection({
                   <p className="text-sm text-muted-foreground mt-1">Generate some images first!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto">
                   {galleryImages.map((image) => (
                     <Card
                       key={image.key}
