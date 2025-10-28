@@ -41,15 +41,25 @@ function PodcastDetailsSkeleton() {
 export default async function PodcastDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Ensure user is an admin
   await checkIsAdmin({ redirectOnFailure: true });
-  
+
   // Wait for params to be resolved
   const { id } = await params;
 
+  // Fetch podcast with configuration and episode counts
   const podcast = await podcastsApi.getPodcastByIdWithCounts(id);
 
   if (!podcast) {
     notFound();
   }
+
+  // Fetch full config for edit form (includes podcastConfigs relation)
+  const podcastWithConfig = await podcastsApi.getPodcastByIdWithConfig(id);
+
+  if (!podcastWithConfig) {
+    notFound();
+  }
+
+  const episodes_count = podcast.episodes_count || 0;
   
   return (
     <div className="space-y-6">
@@ -103,7 +113,7 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Episodes:</span>
-                  <span className="font-medium">{podcast.episodes_count || 0}</span>
+                  <span className="font-medium">{episodes_count}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Created:</span>
@@ -132,12 +142,12 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
               </CardHeader>
               <CardContent>
                 <PodcastEditForm
-                  podcast={podcast}
+                  podcast={podcastWithConfig}
                   userType="admin"
                   episodeStats={{
-                    total: podcast.episodes_count || 0,
-                    published: podcast.episodes_count || 0,
-                    pending: 0
+                    total: episodes_count,
+                    published: episodes_count,
+                    pending: 0,
                   }}
                 />
               </CardContent>

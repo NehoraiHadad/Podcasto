@@ -32,8 +32,8 @@ export default async function PodcastSettingsPage({ params }: PodcastSettingsPag
     redirect('/auth/login?redirect=/podcasts/' + resolvedParams.id + '/settings');
   }
 
-  // Fetch podcast
-  const podcast = await podcastsApi.getPodcastById(resolvedParams.id);
+  // Fetch podcast with full configuration for edit form
+  const podcast = await podcastsApi.getPodcastByIdWithConfig(resolvedParams.id);
 
   if (!podcast) {
     notFound();

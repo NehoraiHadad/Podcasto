@@ -11,8 +11,8 @@ import type { EditPodcastFormValues } from './types';
  * Handles the mismatch between DB structure and form structure
  */
 export function podcastToFormValues(podcast: any): EditPodcastFormValues {
-  // Get podcast config if it exists
-  const config = podcast.podcast_configs?.[0];
+  // Get podcast config if it exists (support both naming conventions)
+  const config = podcast.podcastConfigs?.[0] || podcast.podcast_configs?.[0];
 
   return {
     id: podcast.id,

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { db } from '../../index';
 import { podcasts } from '../../schema';
 import { eq, isNull } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
@@ -104,4 +105,29 @@ export async function getPodcastCount(): Promise<number> {
  */
 export async function podcastExistsByTitle(title: string): Promise<boolean> {
   return await dbUtils.exists(podcasts, eq(podcasts.title, title));
+}
+
+/**
+ * Get podcast by ID with podcastConfigs relation
+ * This is the standard query to use for edit forms and pages that need full podcast configuration
+ *
+ * @param id - Podcast ID (UUID)
+ * @returns The podcast with podcastConfigs relation, or null if not found
+ *
+ * @example
+ * ```typescript
+ * const podcast = await getPodcastByIdWithConfig('123-456');
+ * if (podcast) {
+ *   const config = podcast.podcastConfigs?.[0];
+ *   console.log(config?.podcast_format); // 'single-speaker' | 'multi-speaker'
+ * }
+ * ```
+ */
+export async function getPodcastByIdWithConfig(id: string) {
+  return await db.query.podcasts.findFirst({
+    where: eq(podcasts.id, id),
+    with: {
+      podcastConfigs: true,
+    },
+  });
 }

@@ -30,6 +30,7 @@ export type {
 // ============================================================================
 export {
   getPodcastById,
+  getPodcastByIdWithConfig,
   getAllPodcastsBasic,
   getPodcastsPaginatedBasic,
   getPodcastCount,
