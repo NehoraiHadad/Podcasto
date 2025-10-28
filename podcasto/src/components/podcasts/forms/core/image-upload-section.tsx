@@ -330,7 +330,7 @@ export function ImageUploadSection({
               Remove
             </Button>
           </div>
-          <div className="relative w-full aspect-square max-w-xs rounded-lg overflow-hidden border">
+          <div className="relative w-full aspect-square max-w-[250px] sm:max-w-xs rounded-lg overflow-hidden border">
             <Image
               src={coverImage.startsWith('data:') ? coverImage : coverImage}
               alt="Current cover"
@@ -494,7 +494,7 @@ export function ImageUploadSection({
 
           {/* Gallery Browser */}
           {podcastId && showGallery && (
-            <div className="space-y-4 p-6 bg-muted/50 rounded-lg border-2 border-primary/30">
+            <div className="space-y-4 p-4 sm:p-6 bg-muted/50 rounded-lg border-2 border-primary/30">
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-lg font-semibold">Image Gallery</Label>

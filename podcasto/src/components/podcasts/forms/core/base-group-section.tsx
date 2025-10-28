@@ -57,7 +57,7 @@ export function BaseGroupSection({
             : 'This information applies to the entire podcast group across all language variants.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6">
         {/* Info Alert */}
         <Alert>
           <Info className="h-4 w-4" />

@@ -62,7 +62,7 @@ export function ScheduleSection({ control, disabled = false }: ScheduleSectionPr
         control={control}
         name="autoGeneration"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 rounded-lg border p-3 sm:p-4">
             <div className="space-y-0.5">
               <FormLabel className="text-base">Auto-Generation</FormLabel>
               <FormDescription>

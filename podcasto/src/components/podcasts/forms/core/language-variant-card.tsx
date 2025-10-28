@@ -216,7 +216,7 @@ export function LanguageVariantCard({
 
           {/* Language Controls - Only shown in multi-language mode */}
           {showLanguageControls && (
-            <div className="mt-4 space-y-4 rounded-lg border p-4 bg-muted/50">
+            <div className="mt-4 space-y-4 rounded-lg border p-3 sm:p-4 bg-muted/50">
               <h4 className="text-sm font-medium">Language Settings</h4>
 
               <FormSelectField
