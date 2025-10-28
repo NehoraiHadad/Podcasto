@@ -1,16 +1,32 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, useWatch } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Wand2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface AdminSettingsSectionProps {
   control: Control<any>;
   disabled?: boolean;
+}
+
+/**
+ * Generate URL-friendly slug from title
+ */
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 }
 
 /**
@@ -33,6 +49,10 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
     { id: 'storytelling', label: 'Storytelling' },
     { id: 'data-visualization', label: 'Data Visualization' },
   ];
+
+  // Watch the title field from the parent form to enable auto-slug
+  // Note: This assumes the title field is available in the same form context
+  const [autoSlugEnabled, setAutoSlugEnabled] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -59,20 +79,48 @@ export function AdminSettingsSection({ control, disabled = false }: AdminSetting
           )}
         />
 
-        {/* Technical Podcast Name */}
+        {/* Technical Podcast Name with Auto-Slug */}
         <FormField
           control={control}
           name="podcastName"
-          render={({ field }) => (
+          render={({ field: podcastNameField }) => (
             <FormItem>
               <FormLabel>Technical Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="tech-news-daily"
-                  {...field}
-                  disabled={disabled}
+              <div className="flex gap-2">
+                <FormControl>
+                  <Input
+                    placeholder="tech-news-daily"
+                    {...podcastNameField}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      podcastNameField.onChange(e);
+                      setAutoSlugEnabled(false); // Disable auto-slug if user manually edits
+                    }}
+                  />
+                </FormControl>
+                <FormField
+                  control={control}
+                  name="title"
+                  render={({ field: titleField }) => (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const slug = generateSlug(titleField.value || '');
+                        if (slug) {
+                          podcastNameField.onChange(slug);
+                          setAutoSlugEnabled(true);
+                        }
+                      }}
+                      disabled={disabled || !titleField.value}
+                      title="Generate from title"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 />
-              </FormControl>
+              </div>
               <FormDescription>
                 URL-friendly identifier (lowercase, hyphens only)
               </FormDescription>

@@ -2,41 +2,60 @@
 
 import { Control } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
-import { FormSelectField } from '@/components/ui/form-fields';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 
 interface ScheduleSectionProps {
   control: Control<any>;
   disabled?: boolean;
 }
 
-const FREQUENCY_OPTIONS = [
-  { value: 'daily', label: 'Daily - New episode every day' },
-  { value: 'weekly', label: 'Weekly - New episode every week' },
-  { value: 'bi-weekly', label: 'Bi-weekly - New episode every two weeks' },
-  { value: 'monthly', label: 'Monthly - New episode every month' },
-];
-
 /**
  * Podcast scheduling section for episode frequency and auto-generation settings.
  * Controls how often episodes are automatically created.
  *
  * Fields:
- * - episodeFrequency: Select dropdown for generation frequency
+ * - episodeFrequency: Numeric slider/input for days between episodes (1-30)
  * - autoGeneration: Toggle switch to enable/disable automatic episode creation
  */
 export function ScheduleSection({ control, disabled = false }: ScheduleSectionProps) {
   return (
     <div className="space-y-4">
-      <FormSelectField
+      <FormField
         control={control}
         name="episodeFrequency"
-        label="Episode Frequency"
-        placeholder="Select frequency"
-        description="How often new episodes will be automatically generated"
-        options={FREQUENCY_OPTIONS}
-        required
-        disabled={disabled}
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex items-center justify-between">
+              <FormLabel>Episode Frequency (Days)</FormLabel>
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={field.value || 7}
+                onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 7)}
+                className="w-20 text-center"
+                disabled={disabled}
+              />
+            </div>
+            <FormControl>
+              <Slider
+                min={1}
+                max={30}
+                step={1}
+                value={[field.value || 7]}
+                onValueChange={(vals) => field.onChange(vals[0])}
+                disabled={disabled}
+                className="w-full"
+              />
+            </FormControl>
+            <FormDescription>
+              Generate new episodes every {field.value || 7} day{(field.value || 7) !== 1 ? 's' : ''} (1-30 days range)
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
       />
 
       <FormField
