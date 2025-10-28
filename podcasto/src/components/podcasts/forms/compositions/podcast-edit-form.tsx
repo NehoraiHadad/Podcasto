@@ -13,10 +13,12 @@ import { toast } from '@/hooks/use-toast';
 
 import {
   BasicInfoSection,
+  ContentSourceSection,
   FormatSection,
   ScheduleSection,
   StyleSection,
   ImageUploadSection,
+  AdminSettingsSection,
 } from '../core';
 
 import { editPodcastSchemaValidated } from '../shared/schemas';
@@ -81,15 +83,29 @@ export function PodcastEditForm({
         title: values.title,
         description: values.description || '',
         cover_image: values.cover_image || null,
-        // Include other fields that may have changed
+        // Episode settings
         episodeFrequency: values.episodeFrequency,
         autoGeneration: values.autoGeneration,
+        // Format and speakers
         podcastFormat: values.podcastFormat as PodcastFormat,
         speaker1Role: values.speaker1Role,
         speaker2Role: values.speaker2Role || null,
         conversationStyle: values.conversationStyle,
         introPrompt: values.introPrompt || null,
         outroPrompt: values.outroPrompt || null,
+        // Content source
+        contentSource: values.contentSource === 'rss' ? 'urls' : values.contentSource,
+        telegramChannel: values.contentSource === 'telegram' ? values.telegramChannelName : undefined,
+        telegramHours: values.contentSource === 'telegram' ? values.telegramHours : undefined,
+        urls: values.contentSource === 'rss' && values.rssUrl ? [values.rssUrl] : undefined,
+        // Admin settings
+        creator: values.creator,
+        podcastName: values.podcastName,
+        outputLanguage: values.language,
+        slogan: values.slogan || null,
+        creativityLevel: values.creativityLevel,
+        mixingTechniques: values.mixingTechniques,
+        additionalInstructions: values.additionalInstructions || null,
       };
 
       // Call update action
@@ -146,6 +162,9 @@ export function PodcastEditForm({
         {/* Basic Information */}
         <BasicInfoSection control={form.control} />
 
+        {/* Content Source (Telegram/RSS) */}
+        <ContentSourceSection control={form.control} />
+
         {/* Podcast Format (EDITABLE) */}
         <FormatSection control={form.control} setValue={form.setValue} />
 
@@ -159,6 +178,11 @@ export function PodcastEditForm({
 
         {/* Image Upload */}
         <ImageUploadSection control={form.control} />
+
+        {/* Admin Settings (admin only) */}
+        {userType === 'admin' && (
+          <AdminSettingsSection control={form.control} />
+        )}
 
         {/* Form Actions */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
