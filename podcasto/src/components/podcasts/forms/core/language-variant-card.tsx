@@ -161,10 +161,10 @@ export function LanguageVariantCard({
 
   return (
     <Card className={`relative ${isPrimary ? 'border-primary border-2' : ''}`}>
-      <CardHeader>
+      <CardHeader className="space-y-4 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CardTitle>
+            <CardTitle className="text-lg sm:text-xl">
               {showLanguageControls ? `Language Variant ${index + 1}` : 'Podcast Configuration'}
             </CardTitle>
             {isPrimary && showLanguageControls && (
@@ -200,11 +200,17 @@ export function LanguageVariantCard({
             )}
           </div>
         </div>
+
+        {showLanguageControls && (
+          <div className="text-sm text-muted-foreground">
+            Configure all settings for this language variant
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7">
+          <TabsList className="w-full inline-flex h-auto flex-wrap sm:flex-nowrap overflow-x-auto">
             <TabsTrigger value="basic">Basic</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="format">Format</TabsTrigger>
@@ -217,7 +223,9 @@ export function LanguageVariantCard({
           {/* Language Controls - Only shown in multi-language mode */}
           {showLanguageControls && (
             <div className="mt-4 space-y-4 rounded-lg border p-3 sm:p-4 bg-muted/50">
-              <h4 className="text-sm font-medium">Language Settings</h4>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-foreground">Language Settings</span>
+              </div>
 
               <FormSelectField
                 control={control}
