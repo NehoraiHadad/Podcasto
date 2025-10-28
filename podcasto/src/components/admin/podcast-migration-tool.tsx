@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createPodcastGroupAction } from '@/lib/actions/podcast-group-actions';
 import { getLanguageFlag, getLanguageName, getSupportedLanguageCodes } from '@/lib/utils/language-utils';
 import {
@@ -41,17 +42,14 @@ import { Loader2, Search, Globe, ChevronRight } from 'lucide-react';
 import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
-interface Podcast {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image: string | null;
-  created_at?: Date | null;
-  podcast_group_id?: string | null;
+import type { MigrationPodcast } from './podcast-migration-types';
+
+interface PodcastWithLanguage extends MigrationPodcast {
+  detected_language?: string;
 }
 
-interface PodcastWithLanguage extends Podcast {
-  detected_language?: string;
+interface PodcastMigrationToolProps {
+  podcasts: MigrationPodcast[];
 }
 
 /**
@@ -65,9 +63,9 @@ interface PodcastWithLanguage extends Podcast {
  * 5. Set primary language
  * 6. Create podcast group
  */
-export function PodcastMigrationTool() {
-  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
-  const [loading, setLoading] = useState(true);
+export function PodcastMigrationTool({ podcasts: initialPodcasts }: PodcastMigrationToolProps) {
+  const router = useRouter();
+  const [podcasts, setPodcasts] = useState<MigrationPodcast[]>(initialPodcasts);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPodcasts, setSelectedPodcasts] = useState<PodcastWithLanguage[]>([]);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
@@ -75,34 +73,19 @@ export function PodcastMigrationTool() {
   const [baseTitle, setBaseTitle] = useState('');
   const [baseDescription, setBaseDescription] = useState('');
 
-  // Load podcasts on mount
   useEffect(() => {
-    loadPodcasts();
-  }, []);
+    setPodcasts(initialPodcasts);
+  }, [initialPodcasts]);
 
-  const loadPodcasts = async () => {
-    try {
-      setLoading(true);
-      // Fetch podcasts via API route
-      const response = await fetch('/api/podcasts?eligible_for_migration=true');
-      if (!response.ok) {
-        throw new Error('Failed to fetch podcasts');
-      }
-      const data = await response.json();
-      setPodcasts(data);
-    } catch (error) {
-      console.error('Failed to load podcasts:', error);
-      toast.error('Failed to load podcasts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredPodcasts = podcasts.filter(podcast =>
-    podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPodcasts = useMemo(
+    () =>
+      podcasts.filter(podcast =>
+        podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [podcasts, searchQuery]
   );
 
-  const handleSelectPodcast = (podcast: Podcast) => {
+  const handleSelectPodcast = (podcast: MigrationPodcast) => {
     if (selectedPodcasts.some(p => p.id === podcast.id)) {
       setSelectedPodcasts(selectedPodcasts.filter(p => p.id !== podcast.id));
     } else {
@@ -181,7 +164,10 @@ export function PodcastMigrationTool() {
         setSelectedPodcasts([]);
         setBaseTitle('');
         setBaseDescription('');
-        loadPodcasts(); // Reload to remove merged podcasts from list
+        setPodcasts(current =>
+          current.filter(podcast => !selectedPodcasts.some(selected => selected.id === podcast.id))
+        );
+        router.refresh();
       } else {
         toast.error(result.error || 'Failed to create podcast group');
       }
@@ -192,16 +178,6 @@ export function PodcastMigrationTool() {
       setMerging(false);
     }
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { addLanguageVariantAction } from '@/lib/actions/podcast-group-actions';
 import { getLanguageFlag, getLanguageName, getSupportedLanguageCodes } from '@/lib/utils/language-utils';
 import {
@@ -32,24 +33,11 @@ import { toast } from 'sonner';
 import { Loader2, Search, Plus } from 'lucide-react';
 import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
+import type { MigrationPodcast, MigrationPodcastGroup } from './podcast-migration-types';
 
-interface Podcast {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image: string | null;
-  created_at?: Date | null;
-}
-
-interface PodcastGroup {
-  id: string;
-  base_title: string;
-  languages: Array<{
-    language_code: string;
-    title: string;
-    is_primary: boolean;
-  }>;
-  language_count: number;
+interface AddToExistingGroupToolProps {
+  podcasts: MigrationPodcast[];
+  groups: MigrationPodcastGroup[];
 }
 
 /**
@@ -57,48 +45,33 @@ interface PodcastGroup {
  *
  * Allows admins to add legacy podcasts to existing podcast groups
  */
-export function AddToExistingGroupTool() {
-  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
-  const [groups, setGroups] = useState<PodcastGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+export function AddToExistingGroupTool({ podcasts: initialPodcasts, groups: initialGroups }: AddToExistingGroupToolProps) {
+  const router = useRouter();
+  const [podcasts, setPodcasts] = useState<MigrationPodcast[]>(initialPodcasts);
+  const [groups, setGroups] = useState<MigrationPodcastGroup[]>(initialGroups);
   const [adding, setAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Selected state
-  const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(null);
+  const [selectedPodcast, setSelectedPodcast] = useState<MigrationPodcast | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [isPrimary, setIsPrimary] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    setPodcasts(initialPodcasts);
+  }, [initialPodcasts]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    setGroups(initialGroups);
+  }, [initialGroups]);
 
-      // Load podcasts eligible for migration
-      const podcastsResponse = await fetch('/api/podcasts?eligible_for_migration=true');
-      if (!podcastsResponse.ok) throw new Error('Failed to fetch podcasts');
-      const podcastsData = await podcastsResponse.json();
-      setPodcasts(podcastsData);
-
-      // Load podcast groups
-      const groupsResponse = await fetch('/api/podcast-groups');
-      if (!groupsResponse.ok) throw new Error('Failed to fetch podcast groups');
-      const groupsData = await groupsResponse.json();
-      setGroups(groupsData);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredPodcasts = podcasts.filter(podcast =>
-    podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPodcasts = useMemo(
+    () =>
+      podcasts.filter(podcast =>
+        podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [podcasts, searchQuery]
   );
 
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
@@ -135,8 +108,8 @@ export function AddToExistingGroupTool() {
         setSelectedLanguage('');
         setIsPrimary(false);
 
-        // Reload data
-        await loadData();
+        setPodcasts(current => current.filter(podcast => podcast.id !== selectedPodcast.id));
+        router.refresh();
       } else {
         toast.error(result.error || 'Failed to add podcast to group');
       }
@@ -147,16 +120,6 @@ export function AddToExistingGroupTool() {
       setAdding(false);
     }
   };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
