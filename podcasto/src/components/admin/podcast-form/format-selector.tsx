@@ -80,11 +80,11 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
         </div>
       </RadioGroup>
 
-      {/* Important Notice */}
+      {/* Format Info */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Choose carefully - the podcast format cannot be changed after creating episodes.
+          You can change the format later, but it may affect voice consistency in future episodes if episodes already exist.
         </AlertDescription>
       </Alert>
     </div>

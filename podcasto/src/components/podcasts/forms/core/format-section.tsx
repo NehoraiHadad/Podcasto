@@ -34,13 +34,16 @@ const SPEAKER_ROLE_OPTIONS = [
  * Automatically clears speaker2Role when switching to single-speaker format.
  */
 export function FormatSection({ control, disabled = false, setValue }: FormatSectionProps) {
-  const podcastFormat = useWatch({ control, name: 'podcastFormat' });
+  const podcastFormat = useWatch({ control, name: 'podcastFormat', defaultValue: 'multi-speaker' });
 
   useEffect(() => {
     if (podcastFormat === 'single-speaker' && setValue) {
       setValue('speaker2Role', '');
     }
   }, [podcastFormat, setValue]);
+
+  // Determine if multi-speaker (handles both undefined and actual value)
+  const isMultiSpeaker = !podcastFormat || podcastFormat === 'multi-speaker';
 
   return (
     <div className="space-y-4">
@@ -70,7 +73,7 @@ export function FormatSection({ control, disabled = false, setValue }: FormatSec
         disabled={disabled}
       />
 
-      {podcastFormat === 'multi-speaker' && (
+      {isMultiSpeaker && (
         <FormSelectField
           control={control}
           name="speaker2Role"
