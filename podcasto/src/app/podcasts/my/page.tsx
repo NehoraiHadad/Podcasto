@@ -41,7 +41,7 @@ export default async function MyPodcastsPage({ searchParams }: MyPodcastsPagePro
 
   const { data: podcastRows, error: podcastsError } = await supabase
     .from('podcasts')
-    .select<PodcastWithEpisodeCount>(
+    .select(
       `
         id,
         title,
@@ -68,7 +68,9 @@ export default async function MyPodcastsPage({ searchParams }: MyPodcastsPagePro
     console.error('Failed to load podcasts', podcastsError);
   }
 
-  const userPodcastsWithCounts = (podcastRows ?? []).map((podcastRow) => {
+  const typedPodcastRows = (podcastRows ?? []) as PodcastWithEpisodeCount[];
+
+  const userPodcastsWithCounts = typedPodcastRows.map((podcastRow) => {
     const podcast: Podcast = {
       id: podcastRow.id,
       title: podcastRow.title,
