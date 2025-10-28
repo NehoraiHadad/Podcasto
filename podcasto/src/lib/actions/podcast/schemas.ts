@@ -15,36 +15,48 @@ export const podcastCreationSchema = z.object({
   telegramChannel: z.string().optional(),
   telegramHours: z.number().min(1).max(72).optional(),
   urls: z.array(z.string().url().optional()).optional(),
-  
+
   // Metadata
   title: z.string().min(3),
   creator: z.string().min(2),
   description: z.string().min(10),
   coverImage: z.string().optional(),
   imageStyle: z.string().optional(),
-  
+
   // Basic Settings
   podcastName: z.string().min(3),
   outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
   slogan: z.string().optional(),
   creativityLevel: z.number().min(0).max(1),
-  
+
   // Episode Settings
   episodeFrequency: z.number().min(1).max(30).default(7),
-  
+
+  // Podcast Format
+  podcastFormat: z.enum(['single-speaker', 'multi-speaker']).default('multi-speaker'),
+
   // Style and Roles
   conversationStyle: z.enum([
-    'engaging', 'dynamic', 'enthusiastic', 'educational', 
+    'engaging', 'dynamic', 'enthusiastic', 'educational',
     'casual', 'professional', 'friendly', 'formal'
   ]),
-  speaker1Role: z.enum(['interviewer', 'host', 'moderator', 'guide']),
-  speaker2Role: z.enum(['domain-expert', 'guest', 'expert', 'analyst']),
-  
+  speaker1Role: z.string().min(1, "Speaker 1 role is required"),
+  speaker2Role: z.string().optional(),
+
   // Mixing Techniques
   mixingTechniques: z.array(z.string()),
-  
+
   // Additional Instructions
   additionalInstructions: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Validate speaker2Role is required for multi-speaker podcasts
+  if (data.podcastFormat === 'multi-speaker' && !data.speaker2Role) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Speaker 2 role is required for multi-speaker podcasts",
+      path: ["speaker2Role"]
+    });
+  }
 });
 
 export type PodcastCreationData = z.infer<typeof podcastCreationSchema>;
@@ -79,6 +91,8 @@ export const podcastUpdateSchema = z.object({
   creativityLevel: z.number().optional(),
   // Episode settings fields (optional)
   episodeFrequency: z.number().optional(),
+  // Podcast Format
+  podcastFormat: z.enum(['single-speaker', 'multi-speaker']).optional(),
   // Style and roles fields (optional)
   conversationStyle: z.string().optional(),
   speaker1Role: z.string().optional(),
@@ -86,6 +100,15 @@ export const podcastUpdateSchema = z.object({
   // Mixing techniques (optional)
   mixingTechniques: z.array(z.string().optional()).optional(),
   additionalInstructions: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // Only validate speaker2Role if podcastFormat is explicitly set to multi-speaker
+  if (data.podcastFormat === 'multi-speaker' && data.speaker2Role === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Speaker 2 role is required for multi-speaker podcasts",
+      path: ["speaker2Role"]
+    });
+  }
 });
 
 export type PodcastUpdateData = z.infer<typeof podcastUpdateSchema>; 

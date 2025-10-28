@@ -6,6 +6,7 @@ Podcasto transforms news content from Telegram channels into professional podcas
 
 - **Daily News Updates**: Receive the latest news from leading Telegram channels, processed into a convenient podcast format for easy listening.
 - **Multi-language Support**: Listen to podcasts in your preferred language, including Hebrew, English, and additional languages.
+- **Flexible Podcast Formats**: Choose between single-speaker (monologue) or multi-speaker (dialogue) formats to match your content style.
 - **Direct Email Delivery**: Get podcasts delivered straight to your inbox, eliminating the need for manual searching or downloading.
 - **User Authentication**: Sign in using your Google account or email and password.
 - **Personalized Content**: Customize your podcast feed based on your interests and preferred news sources.
@@ -78,6 +79,30 @@ npm run dev
 │   └── utils/            # Utility functions
 └── public/               # Static files
 ```
+
+## Podcast Formats
+
+Podcasto supports two podcast formats to match your content style:
+
+### Single-Speaker (Monologue)
+- One host narrates the entire episode
+- Best for: news summaries, commentary, educational content
+- Example: "Tech News Weekly" - daily tech news summary
+
+### Multi-Speaker (Dialogue)
+- Two speakers engage in conversation
+- Best for: interviews, discussions, co-hosted shows
+- Example: "Tech Talk" - two hosts discuss tech topics
+
+For more details, see the [Podcast Format Guide](docs/PODCAST_FORMATS.md).
+
+## Documentation
+
+- **User Guide**: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) - Complete guide for creating and managing podcasts
+- **Podcast Formats**: [docs/PODCAST_FORMATS.md](docs/PODCAST_FORMATS.md) - Detailed format comparison and use cases
+- **API Documentation**: [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) - API reference for developers
+- **Troubleshooting**: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- **Developer Guide**: [CLAUDE.md](CLAUDE.md) - Architecture and development patterns
 
 ## Development
 

@@ -191,6 +191,16 @@ class AudioGenerationHandler:
             # Ensure voices are present in config (handles manual retries and SQS re-queuing)
             dynamic_config = self._ensure_voices_in_config(dynamic_config, episode_id, request_id)
 
+            # Extract podcast_format from dynamic_config (defaults to multi-speaker for backward compatibility)
+            podcast_format = dynamic_config.get('podcast_format', 'multi-speaker')
+
+            # Validate and log podcast format
+            if podcast_format not in ['single-speaker', 'multi-speaker']:
+                logger.warning(f"[AUDIO_GEN] [{request_id}] Invalid format '{podcast_format}', defaulting to 'multi-speaker'")
+                podcast_format = 'multi-speaker'
+
+            logger.info(f"[AUDIO_GEN] [{request_id}] Episode {episode_id} podcast_format: {podcast_format}")
+
             logger.info(f"[AUDIO_GEN] [{request_id}] Reading pre-generated script from S3: {script_url}")
             script = self.s3_client.read_from_url(script_url)
             logger.info(f"[AUDIO_GEN] [{request_id}] Script loaded from S3: {len(script)} characters")
@@ -218,7 +228,7 @@ class AudioGenerationHandler:
             # If we got a niqqud script, it means the text was pre-processed
             is_pre_processed = niqqud_script is not None
             audio_data, duration = self._generate_audio(
-                processed_script, dynamic_config, request_id, episode_id, is_pre_processed
+                processed_script, dynamic_config, request_id, episode_id, is_pre_processed, podcast_format
             )
             
             # Upload both original and niqqud scripts as transcripts to S3
@@ -397,7 +407,7 @@ class AudioGenerationHandler:
 
         return dynamic_config
 
-    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False) -> Tuple[bytes, float]:
+    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False, podcast_format: str = 'multi-speaker') -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with pre-selected voices from script-preprocessor"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
 
@@ -414,6 +424,7 @@ class AudioGenerationHandler:
         speaker2_voice = podcast_config.get('speaker2_voice')
 
         logger.info(f"[AUDIO_GEN] Language: {language}")
+        logger.info(f"[AUDIO_GEN] Format: {podcast_format}")
         logger.info(f"[AUDIO_GEN] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
         logger.info(f"[AUDIO_GEN] Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
         logger.info(f"[AUDIO_GEN] Using pre-processed script: {is_pre_processed}")
@@ -427,14 +438,15 @@ class AudioGenerationHandler:
                 script_content=script,
                 language=language,
                 speaker1_role=speaker1_role,
-                speaker2_role=speaker2_role,
+                speaker2_role=speaker2_role if podcast_format == 'multi-speaker' else None,
                 speaker1_gender=speaker1_gender,
-                speaker2_gender=speaker2_gender,
+                speaker2_gender=speaker2_gender if podcast_format == 'multi-speaker' else None,
                 episode_id=episode_id,
                 is_pre_processed=is_pre_processed,
                 content_type=content_type,
                 speaker1_voice=speaker1_voice,
-                speaker2_voice=speaker2_voice
+                speaker2_voice=speaker2_voice if podcast_format == 'multi-speaker' else None,
+                podcast_format=podcast_format
             )
         except Exception as e:
             logger.error(f"[AUDIO_GEN] Audio generation failed: {str(e)}")

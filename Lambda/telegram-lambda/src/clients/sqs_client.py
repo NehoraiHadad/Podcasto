@@ -32,15 +32,16 @@ class SQSClient:
             self.sqs_client = None
             logger.info("Running in local environment, SQS operations will be simulated")
     
-    def send_message(self, podcast_config_id: str, result_data: Dict[str, Any], timestamp: str) -> bool:
+    def send_message(self, podcast_config_id: str, result_data: Dict[str, Any], timestamp: str, podcast_format: str = 'multi-speaker') -> bool:
         """
         Send a message to the SQS queue.
-        
+
         Args:
             podcast_config_id: The ID of the podcast configuration
             result_data: The result data from the channel processor
             timestamp: The timestamp for consistent folder structure
-        
+            podcast_format: Podcast format (single-speaker or multi-speaker)
+
         Returns:
             True if the message was sent successfully, False otherwise
         """
@@ -54,7 +55,7 @@ class SQSClient:
         
         # Extract the podcast_id from result_data if available (separate from config_id)
         podcast_id = result_data.get('podcast_id', podcast_config_id)
-            
+
         # Create message with necessary data for podcast generation
         message = {
             'podcast_config_id': podcast_config_id,
@@ -62,9 +63,11 @@ class SQSClient:
             'timestamp': timestamp,
             'episode_id': episode_id,
             's3_path': s3_path,
-            'content_url': s3_path  # Use the full S3 path for content URL
+            'content_url': s3_path,  # Use the full S3 path for content URL
+            'podcast_format': podcast_format  # Add podcast format to message
         }
-        
+
+        logger.info(f"[TELEGRAM_LAMBDA] Preparing SQS message with podcast_format: {podcast_format}")
         message_body = json.dumps(message)
         
         if self.is_local or not self.sqs_client:

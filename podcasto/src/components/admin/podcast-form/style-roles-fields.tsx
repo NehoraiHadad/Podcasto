@@ -1,12 +1,15 @@
 'use client';
 
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, Controller } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSelectField, FormTextareaField } from '@/components/ui/form-fields';
 import { TooltipLabel } from '@/components/ui/tooltip-label';
+import { FormatSelector } from './format-selector';
+import { useEffect } from 'react';
 
 export interface FormValues {
+  podcastFormat?: 'single-speaker' | 'multi-speaker';
   conversationStyle?: string;
   speaker1Role?: string;
   speaker2Role?: string;
@@ -19,8 +22,30 @@ interface StyleRolesFieldsProps {
 }
 
 export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
+  // Watch the podcast format to conditionally show/hide speaker2 field
+  const podcastFormat = form.watch('podcastFormat');
+
+  // Clear speaker2Role when switching to single-speaker format
+  useEffect(() => {
+    if (podcastFormat === 'single-speaker') {
+      form.setValue('speaker2Role', '');
+    }
+  }, [podcastFormat, form]);
+
   return (
     <>
+      {/* Podcast Format Selector */}
+      <Controller
+        name="podcastFormat"
+        control={form.control}
+        render={({ field }) => (
+          <FormatSelector
+            value={field.value || 'multi-speaker'}
+            onChange={field.onChange}
+          />
+        )}
+      />
+
       <div className="space-y-2">
         <TooltipLabel
           label="Conversation Style"
@@ -47,15 +72,19 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
 
       <div className="space-y-2">
         <TooltipLabel
-          label="Speaker 1 Role"
-          tooltip="The role of the first speaker in the conversation. This person typically leads the discussion and asks questions."
+          label={podcastFormat === 'single-speaker' ? 'Speaker Role' : 'Speaker 1 Role'}
+          tooltip={
+            podcastFormat === 'single-speaker'
+              ? 'The role of the speaker in the podcast. This person guides the entire episode.'
+              : 'The role of the first speaker in the conversation. This person typically leads the discussion and asks questions.'
+          }
           required
         />
         <FormSelectField
           control={form.control}
           name="speaker1Role"
           label=""
-          placeholder="Select Speaker 1's role"
+          placeholder={podcastFormat === 'single-speaker' ? "Select speaker's role" : "Select Speaker 1's role"}
           options={[
             { value: 'host', label: 'Host - Leads and facilitates the conversation' },
             { value: 'interviewer', label: 'Interviewer - Asks probing questions' },
@@ -65,25 +94,28 @@ export function StyleRolesFields({ form }: StyleRolesFieldsProps) {
         />
       </div>
 
-      <div className="space-y-2">
-        <TooltipLabel
-          label="Speaker 2 Role"
-          tooltip="The role of the second speaker. This person typically provides expertise and detailed information."
-          required
-        />
-        <FormSelectField
-          control={form.control}
-          name="speaker2Role"
-          label=""
-          placeholder="Select Speaker 2's role"
-          options={[
-            { value: 'expert', label: 'Expert - Provides specialized knowledge' },
-            { value: 'domain-expert', label: 'Domain Expert - Deep expertise in specific field' },
-            { value: 'guest', label: 'Guest - Shares experiences and insights' },
-            { value: 'analyst', label: 'Analyst - Analyzes and interprets information' },
-          ]}
-        />
-      </div>
+      {/* Conditionally render Speaker 2 Role only for multi-speaker format */}
+      {podcastFormat === 'multi-speaker' && (
+        <div className="space-y-2">
+          <TooltipLabel
+            label="Speaker 2 Role"
+            tooltip="The role of the second speaker. This person typically provides expertise and detailed information."
+            required
+          />
+          <FormSelectField
+            control={form.control}
+            name="speaker2Role"
+            label=""
+            placeholder="Select Speaker 2's role"
+            options={[
+              { value: 'expert', label: 'Expert - Provides specialized knowledge' },
+              { value: 'domain-expert', label: 'Domain Expert - Deep expertise in specific field' },
+              { value: 'guest', label: 'Guest - Shares experiences and insights' },
+              { value: 'analyst', label: 'Analyst - Analyzes and interprets information' },
+            ]}
+          />
+        </div>
+      )}
       
       <FormField
         control={form.control}

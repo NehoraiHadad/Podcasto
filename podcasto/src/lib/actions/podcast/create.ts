@@ -59,7 +59,7 @@ export async function createPodcast(data: PodcastCreationData): Promise<ActionRe
 async function createPodcastConfig(podcastId: string, data: PodcastCreationData) {
   try {
     const filteredUrls = await filterUrls(data.urls as string[]);
-      
+
     await podcastConfigsApi.createPodcastConfig({
       podcast_id: podcastId,
       content_source: data.contentSource,
@@ -72,13 +72,14 @@ async function createPodcastConfig(podcastId: string, data: PodcastCreationData)
       language: data.outputLanguage,
       creativity_level: Math.round(data.creativityLevel * 100),
       conversation_style: data.conversationStyle,
+      podcast_format: data.podcastFormat,
       speaker1_role: data.speaker1Role,
-      speaker2_role: data.speaker2Role,
+      speaker2_role: data.podcastFormat === 'single-speaker' ? null : data.speaker2Role,
       mixing_techniques: data.mixingTechniques,
       additional_instructions: data.additionalInstructions,
       episode_frequency: data.episodeFrequency,
     });
-    
+
     return true;
   } catch {
     // Clean up the podcast if config creation fails

@@ -81,16 +81,22 @@ export async function triggerAudioLambda(
 
     const sqsClient = new SQSClient({ region: AWS_REGION });
 
+    // Include podcast_format in the message body for Lambda processing
     const messageBody = {
       episode_id: episodeId,
       podcast_id: podcastId,
       podcast_config_id: podcastConfigId,
       script_url: scriptUrl,
-      dynamic_config: dynamicConfig,
+      dynamic_config: {
+        ...dynamicConfig,
+        // Ensure podcast_format is included from dynamic_config
+        podcast_format: dynamicConfig.podcast_format || 'multi-speaker'
+      },
       regenerate: true
     };
 
     console.log(`[LAMBDA_TRIGGER] Sending message to Audio Generation Queue for episode ${episodeId}`);
+    console.log(`[LAMBDA_TRIGGER] Podcast format: ${messageBody.dynamic_config.podcast_format}`);
 
     const command = new SendMessageCommand({
       QueueUrl: AUDIO_QUEUE_URL,

@@ -81,7 +81,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     timestamp = result.get('timestamp', '')
                     episode_id = result.get('episode_id', timestamp)
                     podcast_id = result.get('podcast_id', config.id)
-                    
+                    podcast_format = config.podcast_format
+
+                    # Log podcast format for tracking
+                    logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} podcast_format: {podcast_format}")
+
                     # Update episode status to content_collected after successful S3 upload
                     if episode_id and s3_path:
                         logger.info(f"Updating episode {episode_id} status after successful S3 upload to {s3_path}")
@@ -98,13 +102,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             logger.warning(f"Continuing with SQS message despite status update failure")
                     else:
                         logger.warning(f"Missing episode_id ({episode_id}) or s3_path ({s3_path}) - skipping status update")
-                    
+
                     # Send to SQS for asynchronous processing by audio generation lambda
                     # This ensures the content is fully uploaded to S3 before audio generation begins
                     sqs_sent = sqs_client.send_message(
                         podcast_config_id=config.id,
                         result_data=result,
-                        timestamp=timestamp
+                        timestamp=timestamp,
+                        podcast_format=podcast_format
                     )
                     
                     # Log the result

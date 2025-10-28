@@ -309,6 +309,102 @@ Admin routes are protected by middleware, but also verify user role from `user_r
 - Use `npx drizzle-kit generate` for DDL changes
 - Review migration SQL before applying to production
 
+### Podcast Format Handling
+
+Podcasts can be single-speaker (monologue) or multi-speaker (dialogue). The `podcast_format` field is critical throughout the system and determines:
+
+**What It Controls:**
+- **Script Generation Prompt**: Narration style vs dialogue structure
+- **TTS Configuration**: `VoiceConfig` (single) vs `MultiSpeakerVoiceConfig` (multi)
+- **Speaker Roles**: `speaker2_role` is NULL for single-speaker, required for multi-speaker
+- **Voice Selection**: One voice vs two distinct voices
+
+**Database Schema:**
+```typescript
+// podcast_configs table
+{
+  podcast_format: TEXT DEFAULT 'multi-speaker',  // 'single-speaker' | 'multi-speaker'
+  speaker1_role: TEXT NOT NULL,                   // Always required
+  speaker2_role: TEXT,                            // NULL for single-speaker
+}
+```
+
+**Validation Rules:**
+- Format must be 'single-speaker' or 'multi-speaker'
+- `speaker1_role` always required
+- `speaker2_role` required if format is 'multi-speaker'
+- `speaker2_role` automatically set to NULL if format is 'single-speaker'
+
+**Pipeline Flow:**
+```
+1. User selects format in UI (podcast creation form)
+2. Server action validates and stores in podcast_configs.podcast_format
+3. Episode generation triggered
+4. Telegram Lambda includes format in SQS message
+5. Script Preprocessor generates appropriate script style (narration vs dialogue)
+6. Script Preprocessor selects voices and includes format in dynamic_config
+7. Audio Lambda reads format and routes to correct TTS method:
+   - Single-speaker → VoiceConfig with one voice
+   - Multi-speaker → MultiSpeakerVoiceConfig with two voices
+8. Generated audio matches selected format
+```
+
+**Lambda Integration:**
+
+*Telegram Lambda:*
+```python
+# Extracts format from podcast config
+podcast_format = config.get('podcast_format', 'multi-speaker')
+# Includes in SQS message to Script Preprocessor
+```
+
+*Script Preprocessor Lambda:*
+```python
+# Receives format from Telegram Lambda
+podcast_format = message.get('podcast_format', 'multi-speaker')
+# Generates script appropriate for format (narration vs dialogue)
+# Selects voices (one for single-speaker, two for multi-speaker)
+# Includes format in dynamic_config for Audio Lambda
+```
+
+*Audio Generation Lambda:*
+```python
+# Receives format in dynamic_config
+podcast_format = dynamic_config.get('podcast_format', 'multi-speaker')
+
+# Routes to appropriate generation method
+if podcast_format == 'single-speaker':
+    # Use VoiceConfig with speaker1_voice only
+    voice_config = VoiceConfig(prebuilt_voice_config=PrebuiltVoiceConfig(
+        voice_name=speaker1_voice
+    ))
+else:  # multi-speaker
+    # Use MultiSpeakerVoiceConfig with both voices
+    multi_speaker_config = MultiSpeakerVoiceConfig([
+        Speaker(speaker_id="1", voice_config=VoiceConfig(...)),
+        Speaker(speaker_id="2", voice_config=VoiceConfig(...))
+    ])
+```
+
+**Important Considerations:**
+1. **Format Immutability**: Cannot change format after episodes are created (voice consistency)
+2. **Default Value**: Always defaults to 'multi-speaker' for backward compatibility
+3. **Voice Consistency**: Pre-selected voices ensure consistency across retries and chunks
+4. **Validation**: Format validated at multiple stages (UI, server action, Lambda)
+
+**When Working with Podcast Code:**
+- Always check `podcast_format` to handle both cases correctly
+- Never assume multi-speaker; check the format field explicitly
+- Ensure `speaker2_role` is NULL for single-speaker in database operations
+- Include format in all SQS messages between Lambda functions
+- Log format at each processing stage for debugging
+
+**Documentation:**
+- User Guide: `docs/USER_GUIDE.md`
+- Format Comparison: `docs/PODCAST_FORMATS.md`
+- API Reference: `docs/API_DOCUMENTATION.md`
+- Lambda Architecture: `Lambda/ARCHITECTURE_SINGLE_SPEAKER.md`
+
 ### Email Notification System
 - **Service**: AWS SES for transactional emails
 - **Trigger Point**: Episode processor sends emails when status changes to `PUBLISHED`

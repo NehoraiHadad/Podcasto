@@ -42,6 +42,7 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
         console.log("Updated existing podcast config, language field =", updateConfig.language);
       } else {
         // For new configs, ensure required fields are present
+        const podcastFormat = data.podcastFormat || 'multi-speaker';
         const requiredFields = {
           content_source: data.contentSource || 'telegram',
           creator: data.creator || 'Unknown',
@@ -49,8 +50,9 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
           language: data.outputLanguage || 'english',
           creativity_level: data.creativityLevel !== undefined ? Math.round(data.creativityLevel * 100) : 70,
           conversation_style: data.conversationStyle || 'engaging',
+          podcast_format: podcastFormat,
           speaker1_role: data.speaker1Role || 'host',
-          speaker2_role: data.speaker2Role || 'expert',
+          speaker2_role: podcastFormat === 'multi-speaker' ? (data.speaker2Role || 'expert') : null,
           mixing_techniques: (data.mixingTechniques?.filter(Boolean) as string[]) || ['rhetorical-questions', 'personal-anecdotes'],
         };
 

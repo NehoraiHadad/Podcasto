@@ -49,6 +49,7 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       outputLanguage: 'english',
       creativityLevel: 0.7,
       conversationStyle: 'engaging',
+      podcastFormat: 'multi-speaker',
       speaker1Role: 'host',
       speaker2Role: 'expert',
       mixingTechniques: ['rhetorical-questions', 'personal-anecdotes'],
@@ -64,13 +65,13 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
       title: podcast?.title || '',
       description: podcast?.description || '',
       cover_image: podcast?.cover_image || '',
-      
+
       // Content source settings
       contentSource: podcast?.content_source?.type || 'telegram',
       telegramChannel: podcast?.content_source?.config?.telegramChannel || '',
       telegramHours: podcast?.content_source?.config?.telegramHours || 24,
       urls: podcast?.content_source?.config?.urls || ['', '', '', '', ''],
-      
+
       // Basic settings
       creator: podcast?.creator || '',
       podcastName: podcast?.podcast_name || '',
@@ -81,9 +82,10 @@ export function PodcastFormBase({ mode, podcast, onSuccess }: PodcastFormBasePro
 
       // Style and roles
       conversationStyle: (podcast?.conversation_style as "engaging" | "dynamic" | "enthusiastic" | "educational" | "casual" | "professional" | "friendly" | "formal") || 'engaging',
+      podcastFormat: (podcast?.podcast_format as 'single-speaker' | 'multi-speaker') || 'multi-speaker',
       speaker1Role: (podcast?.speaker1_role as "interviewer" | "host" | "moderator" | "guide") || 'host',
       speaker2Role: (podcast?.speaker2_role as "domain-expert" | "guest" | "expert" | "analyst") || 'expert',
-      
+
       // Mixing techniques
       mixingTechniques: podcast?.mixing_techniques || ['rhetorical-questions', 'personal-anecdotes'],
       additionalInstructions: podcast?.additional_instructions || '',

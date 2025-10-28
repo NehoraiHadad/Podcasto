@@ -45,6 +45,7 @@ export type PodcastWithConfig = Podcast & {
 
   // Style and roles
   conversation_style?: string;
+  podcast_format?: 'single-speaker' | 'multi-speaker';
   speaker1_role?: string;
   speaker2_role?: string;
 

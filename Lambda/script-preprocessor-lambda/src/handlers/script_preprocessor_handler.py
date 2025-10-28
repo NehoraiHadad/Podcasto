@@ -135,12 +135,28 @@ class ScriptPreprocessorHandler:  # noqa: D101
         }
 
         podcast_config = self._get_podcast_config(msg.get("podcast_config_id"), podcast_id)
-        dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id)
+
+        # Extract podcast_format from message dynamic_config or message itself
+        dynamic_config_in_message = msg.get("dynamic_config", {})
+        podcast_format = dynamic_config_in_message.get('podcast_format') or msg.get('podcast_format', 'multi-speaker')
+
+        # Validate and log podcast format
+        if podcast_format not in ['single-speaker', 'multi-speaker']:
+            logger.warning(f"[SCRIPT_PREP] Invalid format '{podcast_format}', defaulting to 'multi-speaker'")
+            podcast_format = 'multi-speaker'
+
+        logger.info(f"[SCRIPT_PREP] Episode {episode_id} podcast_format: {podcast_format}")
+
+        dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id, podcast_format)
 
         # Add topic analysis to dynamic config
         dynamic_config['topic_analysis'] = topic_analysis
+        # Add podcast_format to dynamic config
+        dynamic_config['podcast_format'] = podcast_format
 
-        script, content_metrics = self.script_generator.generate_script(clean_content, dynamic_config, episode_id)
+        script, content_metrics = self.script_generator.generate_script(
+            clean_content, dynamic_config, episode_id, podcast_format
+        )
 
         # Validate script quality
         validation_report = ScriptValidator.validate_script(
@@ -157,12 +173,13 @@ class ScriptPreprocessorHandler:  # noqa: D101
         # Prepare metadata with voice information for recovery in audio-generation
         episode_metadata = {
             "speaker1_voice": dynamic_config['speaker1_voice'],
-            "speaker2_voice": dynamic_config['speaker2_voice'],
+            "speaker2_voice": dynamic_config.get('speaker2_voice'),
             "speaker1_role": dynamic_config['speaker1_role'],
-            "speaker2_role": dynamic_config['speaker2_role'],
+            "speaker2_role": dynamic_config.get('speaker2_role'),
             "speaker1_gender": dynamic_config.get('speaker1_gender', 'male'),
-            "speaker2_gender": dynamic_config['speaker2_gender'],
-            "language": dynamic_config.get('language', 'he')
+            "speaker2_gender": dynamic_config.get('speaker2_gender'),
+            "language": dynamic_config.get('language', 'he'),
+            "podcast_format": podcast_format
         }
 
         # Update DB state
@@ -235,37 +252,71 @@ class ScriptPreprocessorHandler:  # noqa: D101
             raise ValueError("Podcast configuration not found")
         return cfg
 
-    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult, episode_id: str) -> Dict[str, Any]:
+    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult, episode_id: str, podcast_format: str = 'multi-speaker') -> Dict[str, Any]:
         new_cfg = cfg.copy()
-        new_cfg["speaker2_role"] = analysis.specific_role
-        new_cfg["speaker2_gender"] = self.content_analyzer.get_gender_for_category(analysis.content_type)
-        new_cfg["content_analysis"] = {
-            "content_type": analysis.content_type.value,
-            "specific_role": analysis.specific_role,
-            "role_description": analysis.role_description,
-            "confidence": analysis.confidence,
-            "reasoning": analysis.reasoning,
-        }
 
-        # Select voices once for the entire episode (ensures consistency across chunks)
-        language = cfg.get("language", "he")
-        speaker1_role = cfg.get("speaker1_role", "Speaker 1")
-        speaker2_role = new_cfg["speaker2_role"]
-        speaker1_gender = cfg.get("speaker1_gender", "male")
-        speaker2_gender = new_cfg["speaker2_gender"]
+        # For single-speaker, skip speaker2 configuration
+        if podcast_format == 'single-speaker':
+            new_cfg["speaker2_role"] = None
+            new_cfg["speaker2_gender"] = None
+            new_cfg["content_analysis"] = {
+                "content_type": analysis.content_type.value,
+                "specific_role": analysis.specific_role,
+                "role_description": analysis.role_description,
+                "confidence": analysis.confidence,
+                "reasoning": analysis.reasoning,
+            }
 
-        speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
-            language=language,
-            speaker1_gender=speaker1_gender,
-            speaker2_gender=speaker2_gender,
-            speaker1_role=speaker1_role,
-            speaker2_role=speaker2_role,
-            episode_id=episode_id,
-            randomize_speaker2=True
-        )
+            # Select only speaker1 voice
+            language = cfg.get("language", "he")
+            speaker1_role = cfg.get("speaker1_role", "Speaker 1")
+            speaker1_gender = cfg.get("speaker1_gender", "male")
 
-        new_cfg["speaker1_voice"] = speaker1_voice
-        new_cfg["speaker2_voice"] = speaker2_voice
-        logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+            # Use dummy values for speaker2 to satisfy voice manager API
+            speaker1_voice, _ = self.voice_manager.get_distinct_voices_for_speakers(
+                language=language,
+                speaker1_gender=speaker1_gender,
+                speaker2_gender='male',  # dummy
+                speaker1_role=speaker1_role,
+                speaker2_role='Unused',  # dummy
+                episode_id=episode_id,
+                randomize_speaker2=False
+            )
+
+            new_cfg["speaker1_voice"] = speaker1_voice
+            new_cfg["speaker2_voice"] = None
+            logger.info(f"[PREPROC] Selected single voice for episode {episode_id}: {speaker1_role}={speaker1_voice}")
+        else:
+            # Multi-speaker: use dynamic role assignment
+            new_cfg["speaker2_role"] = analysis.specific_role
+            new_cfg["speaker2_gender"] = self.content_analyzer.get_gender_for_category(analysis.content_type)
+            new_cfg["content_analysis"] = {
+                "content_type": analysis.content_type.value,
+                "specific_role": analysis.specific_role,
+                "role_description": analysis.role_description,
+                "confidence": analysis.confidence,
+                "reasoning": analysis.reasoning,
+            }
+
+            # Select voices once for the entire episode (ensures consistency across chunks)
+            language = cfg.get("language", "he")
+            speaker1_role = cfg.get("speaker1_role", "Speaker 1")
+            speaker2_role = new_cfg["speaker2_role"]
+            speaker1_gender = cfg.get("speaker1_gender", "male")
+            speaker2_gender = new_cfg["speaker2_gender"]
+
+            speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
+                language=language,
+                speaker1_gender=speaker1_gender,
+                speaker2_gender=speaker2_gender,
+                speaker1_role=speaker1_role,
+                speaker2_role=speaker2_role,
+                episode_id=episode_id,
+                randomize_speaker2=True
+            )
+
+            new_cfg["speaker1_voice"] = speaker1_voice
+            new_cfg["speaker2_voice"] = speaker2_voice
+            logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
 
         return new_cfg 

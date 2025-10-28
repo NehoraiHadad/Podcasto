@@ -27,7 +27,7 @@ class GeminiScriptGenerator:
         self.model = "gemini-2.0-flash-001"
 
     def generate_script(
-        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any] = None, episode_id: str = None, podcast_format: str = 'multi-speaker'
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a natural conversation script from clean content
@@ -36,11 +36,12 @@ class GeminiScriptGenerator:
             clean_content: Clean content with messages and summary
             podcast_config: Podcast configuration including language and speaker info
             episode_id: Episode ID for voice-aware script generation
+            podcast_format: 'single-speaker' or 'multi-speaker' (default)
 
         Returns:
             Tuple of (generated conversation script as string, content metrics dict)
         """
-        logger.info("[GEMINI_SCRIPT] Starting conversation script generation")
+        logger.info(f"[GEMINI_SCRIPT] Starting {podcast_format} script generation")
 
         # Get configuration
         config = podcast_config or {}
@@ -53,7 +54,11 @@ class GeminiScriptGenerator:
         summary = clean_content.get('summary', {})
 
         logger.info(f"[GEMINI_SCRIPT] Generating script in language: {language}")
-        logger.info(f"[GEMINI_SCRIPT] Speaker genders: Speaker1={speaker1_gender}, Speaker2={speaker2_gender}")
+        logger.info(f"[GEMINI_SCRIPT] Format: {podcast_format}")
+        if podcast_format == 'multi-speaker':
+            logger.info(f"[GEMINI_SCRIPT] Speaker genders: Speaker1={speaker1_gender}, Speaker2={speaker2_gender}")
+        else:
+            logger.info(f"[GEMINI_SCRIPT] Speaker gender: {speaker1_gender}")
         logger.info(f"[GEMINI_SCRIPT] Clean content: {message_count} messages, date range: {summary.get('date_range', 'unknown')}")
         if episode_id:
             logger.info(f"[GEMINI_SCRIPT] Episode ID for voice-aware generation: {episode_id}")
@@ -72,8 +77,11 @@ class GeminiScriptGenerator:
             clean_content_prioritized['messages'] = prioritized_messages
             logger.info(f"[GEMINI_SCRIPT] Using top {len(prioritized_messages)}/{len(clean_content['messages'])} priority messages")
 
-        # Generate script using AI with clean content (including TTS markup)
-        script = self._generate_ai_script(clean_content_prioritized, config, episode_id, content_metrics)
+        # Generate script based on podcast format
+        if podcast_format == 'single-speaker':
+            script = self._generate_single_speaker_script(clean_content_prioritized, config, episode_id, content_metrics)
+        else:
+            script = self._generate_multi_speaker_script(clean_content_prioritized, config, episode_id, content_metrics)
 
         logger.info(f"[GEMINI_SCRIPT] Generated script: {len(script)} characters")
         if content_metrics['total_chars'] > 0:
@@ -83,10 +91,70 @@ class GeminiScriptGenerator:
 
         return script, content_metrics
 
-    def _generate_ai_script(
+    def _generate_single_speaker_script(
         self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None, content_metrics: Dict[str, Any] = None
     ) -> str:
-        """Generate natural conversation script using Gemini AI with clean content"""
+        """Generate natural single-speaker monologue script using Gemini AI with clean content"""
+
+        # Get configuration
+        speaker1_role = podcast_config.get("speaker1_role", "Host")
+        speaker1_gender = podcast_config.get("speaker1_gender", "male")
+        podcast_name = podcast_config.get("podcast_name", "Daily Podcast")
+        target_duration = podcast_config.get("target_duration_minutes", 10)
+        language = podcast_config.get("language", "en")
+        additional_instructions = podcast_config.get("additional_instructions", "")
+
+        # Get content type for TTS markup instructions
+        content_type = 'general'
+        if podcast_config.get('content_analysis'):
+            content_analysis = podcast_config['content_analysis']
+            if hasattr(content_analysis, 'content_type'):
+                content_type = content_analysis.content_type.value
+
+        # Build the prompt for single-speaker script
+        prompt = self._build_single_speaker_prompt(
+            clean_content=clean_content,
+            language=language,
+            speaker1_role=speaker1_role,
+            speaker1_gender=speaker1_gender,
+            podcast_name=podcast_name,
+            target_duration=target_duration,
+            additional_instructions=additional_instructions,
+            episode_id=episode_id,
+            content_analysis=podcast_config.get('content_analysis'),
+            content_type=content_type,
+            content_metrics=content_metrics,
+            podcast_config=podcast_config
+        )
+
+        try:
+            # Generate script using Gemini
+            # Temperature 0.7: Balanced between creativity and coherence
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    max_output_tokens=32768,
+                )
+            )
+
+            if response.text:
+                cleaned_script = response.text.strip()
+                # Validate script doesn't contain placeholders
+                self._validate_script_content(cleaned_script)
+                return cleaned_script
+
+            raise Exception("No script generated by Gemini")
+
+        except Exception as e:
+            logger.error(f"[GEMINI_SCRIPT] Error generating single-speaker script: {str(e)}")
+            raise Exception(f"Failed to generate single-speaker script: {str(e)}")
+
+    def _generate_multi_speaker_script(
+        self, clean_content: Dict[str, Any], podcast_config: Dict[str, Any], episode_id: str = None, content_metrics: Dict[str, Any] = None
+    ) -> str:
+        """Generate natural multi-speaker conversation script using Gemini AI with clean content"""
 
         # Get configuration
         speaker1_role = podcast_config.get("speaker1_role", "Host")
@@ -569,6 +637,401 @@ Now, create the conversation script following ALL the guidelines above:
 """
 
         return conversation_prompt
+
+    def _build_single_speaker_prompt(
+        self,
+        clean_content: Dict[str, Any],
+        language: str,
+        speaker1_role: str,
+        speaker1_gender: str,
+        podcast_name: str,
+        target_duration: int,
+        additional_instructions: str,
+        episode_id: str = None,
+        content_analysis: str = None,
+        content_type: str = 'general',
+        content_metrics: Dict[str, Any] = None,
+        podcast_config: Dict[str, Any] = None
+    ) -> str:
+        """Build the single-speaker monologue script generation prompt with adaptive instructions"""
+
+        # Get voice information for this episode
+        voice_info = ""
+        if episode_id:
+            from shared.services.voice_config import VoiceConfigManager
+            voice_manager = VoiceConfigManager()
+
+            # Get voice for speaker1 only
+            speaker1_voice, _ = voice_manager.get_distinct_voices_for_speakers(
+                language=language,
+                speaker1_gender=speaker1_gender,
+                speaker2_gender='male',  # dummy, won't be used
+                speaker1_role=speaker1_role,
+                speaker2_role='Unused',  # dummy
+                episode_id=episode_id,
+                randomize_speaker2=False
+            )
+
+            voice_info = f"""
+VOICE SELECTION FOR THIS EPISODE:
+- {speaker1_role} will use voice: {speaker1_voice} (consistent voice)
+
+This voice information should influence the delivery style and personality traits."""
+
+        # Content analysis information
+        content_info = ""
+        if content_analysis:
+            content_info = f"""
+CONTENT ANALYSIS:
+- Content Type: {content_analysis.get('content_type', 'general')}
+- Role Description: {content_analysis.get('role_description', 'Expert in the field')}
+- Analysis Confidence: {content_analysis.get('confidence', 0.5):.2f}
+- Selection Reasoning: {content_analysis.get('reasoning', 'Dynamic role selection based on content')}
+
+The {speaker1_role} should demonstrate expertise as: {content_analysis.get('role_description', 'an expert in the field')}.
+Focus on insights and analysis that match this specific expertise area within {content_analysis.get('content_type', 'general')} topics."""
+
+        # Topic analysis and conversation structure
+        topic_structure_info = ""
+        topic_analysis = podcast_config.get('topic_analysis', {}) if podcast_config else {}
+        if topic_analysis and topic_analysis.get('topics'):
+            topics = topic_analysis.get('topics', [])
+            structure = topic_analysis.get('conversation_structure', 'linear')
+            transition_style = topic_analysis.get('transition_style', 'natural')
+
+            topic_list = "\n".join([
+                f"   {i+1}. {t['topic_name']} (importance: {t['importance']}, duration: {t['suggested_duration']})"
+                for i, t in enumerate(topics)
+            ])
+
+            structure_descriptions = {
+                'single_topic': 'Focus deeply on one main subject throughout',
+                'linear': 'Cover topics in chronological or logical order',
+                'thematic_clusters': 'Group related topics together for thematic flow',
+                'narrative_arc': 'Build a story from introduction to climax to conclusion'
+            }
+
+            transition_guidance = {
+                'seamless': 'Make topics flow naturally into each other',
+                'explicit': 'Use clear transitions like "Moving on to...", "Another interesting point..."',
+                'narrative': 'Connect topics with a story thread, showing cause-effect relationships',
+                'contrast': 'Highlight differences between topics for added interest'
+            }
+
+            topic_structure_info = f"""
+MONOLOGUE STRUCTURE & TOPICS:
+
+Identified Topics ({len(topics)} topics):
+{topic_list}
+
+Recommended Structure: {structure}
+- {structure_descriptions.get(structure, 'Cover topics naturally')}
+
+Transition Style: {transition_style}
+- {transition_guidance.get(transition_style, 'Use natural transitions')}
+
+TOPIC COVERAGE GUIDELINES FOR MONOLOGUE:
+1. **High Importance Topics**: Spend 40-50% of time, deep dive with thorough exploration
+2. **Medium Importance Topics**: Spend 25-35% of time, adequate coverage
+3. **Low Importance Topics**: Spend 10-20% of time, brief mentions or weave into other topics
+
+MONOLOGUE TRANSITION TECHNIQUES:
+- **Between High Topics**: Use [pause], build anticipation: "Now, here's something really interesting..."
+- **To Medium Topics**: Natural segues: "This reminds me of...", "Let me explain..."
+- **Brief Topics**: Quick mentions: "By the way...", "Oh, and another thing..."
+- **Thematic Links**: Find connections: "What's interesting is how this relates to..."
+
+PACING FOR SOLO DELIVERY:
+- Start with high-energy opening to grab attention
+- Vary energy levels throughout - don't stay at one intensity
+- Use rhetorical questions to engage the audience
+- Build to exciting moments when appropriate
+- End with strong takeaway or call-to-action
+
+Remember: Keep the monologue engaging and conversational, as if speaking directly to a friend!
+"""
+
+        # Extract channel information
+        channels = clean_content.get('summary', {}).get('channels', [])
+        channel_context = f" (discussing content from {', '.join(channels)})" if channels else ""
+
+        # Add adaptive instructions based on content metrics (CRITICAL - same logic as multi-speaker)
+        adaptive_instructions = ""
+        if content_metrics:
+            strategy = content_metrics['strategy']
+            target_ratio = content_metrics['target_ratio']
+            message_count = content_metrics['message_count']
+            total_chars = content_metrics['total_chars']
+            target_chars = content_metrics['target_script_chars']
+
+            if strategy == 'compression':
+                adaptive_instructions = f"""
+⚠️ CONTENT VOLUME ALERT: HIGH ({message_count} messages, {total_chars} characters)
+
+**🎯 COMPRESSION STRATEGY REQUIRED:**
+1. Coverage Mode: SELECTIVE
+   - Focus ONLY on main topics (5-7 key topics maximum)
+   - Prioritize: Breaking news, important statements, key facts
+   - SKIP: Minor details, redundant information, less significant events
+
+2. Detail Level: SUMMARY
+   - Each topic: Brief but clear explanation
+   - Use concise summaries, avoid lengthy explanations
+   - Stay focused and direct
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (compression required - script should be SHORTER than source)
+   - This means: Be MORE CONCISE than the source material
+
+4. Quality Guidelines:
+   ✅ DO: Cover 5-7 main topics thoroughly but briefly
+   ✅ DO: Maintain natural monologue flow
+   ❌ DON'T: Try to mention all {message_count} messages
+   ❌ DON'T: Add filler or unnecessary elaboration
+   ❌ DON'T: Invent details not present in the source
+"""
+            elif strategy == 'expansion':
+                adaptive_instructions = f"""
+📝 CONTENT VOLUME: LOW ({message_count} messages, {total_chars} characters)
+
+**🎯 EXPANSION STRATEGY - STAY GROUNDED:**
+1. Coverage Mode: COMPREHENSIVE
+   - Cover ALL topics from the source material
+   - Don't leave out any of the {message_count} messages
+
+2. Detail Level: DETAILED
+   - Each topic: Thorough explanation with context
+   - Add relevant context from general knowledge
+   - Discuss implications and significance
+   - Include examples when appropriate
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (moderate expansion allowed)
+   - This means: You can elaborate somewhat on the source material
+
+4. CRITICAL - Avoid "Filler" Content:
+   ✅ DO: Add relevant context that enhances understanding
+   ✅ DO: Discuss implications of the facts presented
+   ✅ DO: Maintain engaging delivery
+   ❌ DON'T: Invent facts not in source material
+   ❌ DON'T: Add unrelated tangents
+   ❌ DON'T: Use generic filler phrases just to reach length
+   ❌ DON'T: Fabricate quotes or statistics
+
+**REMEMBER: All facts and core information MUST come from the source material. Only context and implications can be added from general knowledge.**
+"""
+            else:  # balanced
+                adaptive_instructions = f"""
+⚖️ CONTENT VOLUME: BALANCED ({message_count} messages, {total_chars} characters)
+
+**🎯 BALANCED STRATEGY:**
+1. Coverage Mode: NATURAL
+   - Cover all main topics naturally
+   - Include important details
+
+2. Detail Level: MODERATE
+   - Each topic: Natural level of explanation
+   - Natural level of detail
+
+3. Target Script Length: ~{target_chars} characters
+   - Source content: {total_chars} characters
+   - Target ratio: {target_ratio:.0%} (aim for natural 1:1 ratio)
+
+4. Guidelines:
+   ✅ DO: Maintain natural monologue flow
+   ✅ DO: Stay faithful to source material
+   ❌ DON'T: Over-compress or over-expand
+"""
+
+        # Build comprehensive single-speaker prompt
+        monologue_prompt = f"""
+You are an expert podcast script writer specializing in NATURAL, ENGAGING MONOLOGUE content for solo podcasts.
+
+{content_info}
+
+{topic_structure_info}
+
+{voice_info}
+
+{adaptive_instructions}
+
+CREATE AN AUTHENTIC, CONVERSATIONAL MONOLOGUE SCRIPT with the following specifications:
+
+**PODCAST DETAILS:**
+- Podcast Name: {podcast_name}
+- Language: {language}
+- Target Duration: {target_duration} minutes
+- Episode Context: {channel_context}
+
+**SPEAKER PERSONALITY:**
+- **{speaker1_role}** ({speaker1_gender} voice):
+  * Engaging, knowledgeable, conversational tone
+  * Talks directly to the audience using "you"
+  * Natural and authentic delivery
+  * Personality: Friendly, authoritative yet approachable, enthusiastic
+
+**MONOLOGUE STRUCTURE:**
+1. **Hook (30-60 sec)**: Grab attention with compelling opening, set the stage
+2. **Introduction**: Preview today's content clearly, explain what the audience will learn
+3. **Main Content**: Deep dive organized into clear sections/topics
+4. **Transitions**: Use natural connectors: "Let me explain...", "Here's what's interesting...", "Now, you might be wondering..."
+5. **Closing**: Summary with key takeaways, strong ending
+
+**NARRATIVE TECHNIQUES FOR SOLO DELIVERY:**
+- **Direct Address**: "You know what I find fascinating?", "If you're like me..."
+- **Rhetorical Questions**: "So what does this mean for us?", "Why is this important?"
+- **Personal Insights**: "In my experience...", "What struck me about this..."
+- **Storytelling**: Present information as a journey, build suspense
+- **Audience Engagement**: "Think about this...", "Imagine if..."
+
+⚠️ **CRITICAL: NO SPEAKER NAMES IN CONTENT**
+- The speaker role "{speaker1_role}" is ONLY for identifying who speaks in the script format
+- DO NOT invent names for the speaker (no "יובל", "רונית", "Michael", "Sarah", etc.)
+- DO NOT include greetings with names (no "שלום יובל", "Hi Michael")
+- DO NOT use placeholder names like "[שם]", "[name]", "___"
+- Keep the delivery natural and direct without personal names
+
+**TTS MARKUP FOR EXPRESSIVE MONOLOGUE DELIVERY:**
+Use markup strategically to enhance natural delivery:
+
+1. **Timing and Rhythm** (use sparingly):
+   - [pause] - For significant topic transitions or dramatic moments
+   - [extremely fast] - For excited lists or rapid-fire facts
+
+   Examples:
+   - "That's incredible! [pause] Let me explain why."
+   - "אז מה שקורה פה זה..." (natural flow, no pause needed)
+
+2. **Emotional Delivery & Tone**:
+   - [excited] - High energy, enthusiastic delivery
+   - [curious] - Inquisitive, exploratory tone
+   - [thoughtful] - Reflective, contemplative pace
+   - [amused] - Light, humorous tone
+
+   Examples:
+   - "{speaker1_role}: [excited] You won't believe what happened next!"
+   - "{speaker1_role}: [thoughtful] Well, when you think about it..."
+   - "[amused] I know, it sounds crazy, right?"
+
+3. **Emphasis and Stress**:
+   - [emphasis]text[/emphasis] - Stress important words
+   - Use for: numbers, key terms, surprising facts
+
+   Examples:
+   - "This affected [emphasis]millions[/emphasis] of users"
+   - "The [emphasis]most important[/emphasis] thing to understand"
+   - "זה השפיע על [emphasis]מיליוני[/emphasis] משתמשים"
+
+4. **Natural Speech Patterns** (use very sparingly):
+   - Occasional filler words: "you know", "I mean" (1-2 per topic maximum)
+   - Conversational connectors: "by the way", "speaking of which"
+
+   Examples:
+   - "So, what I found interesting was..." (direct)
+   - "Yeah, I mean, that's exactly what happened" (minimal filler)
+   - "אז מה שמעניין זה..." (clean)
+
+5. **Content-Specific Markup**:
+   {f"- **News Content**: [emphasis] for breaking news, [pause] before major announcements" if content_type == 'news' else ""}
+   {f"- **Technology Content**: [thoughtful] for complex explanations, [excited] for innovations" if content_type == 'technology' else ""}
+   {f"- **Entertainment Content**: [amused] for funny moments, [excited] for dramatic reveals" if content_type == 'entertainment' else ""}
+   {f"- **Finance Content**: [emphasis] on numbers, [pause] before key statistics" if content_type == 'finance' else ""}
+
+**SCRIPT REQUIREMENTS FOR AUTHENTIC MONOLOGUE:**
+
+1. **Language & Style**: Write entirely in {language} with conversational, unscripted-sounding tone
+
+2. **Natural Imperfections** (use strategically, not excessively):
+   - Occasional self-corrections: "This happened in 2023... no wait, 2024"
+   - Minimal fillers: "you know", "I mean" (1-2 per major section)
+   - Hebrew equivalents: "אז", "בעצם" (use naturally)
+
+3. **Engagement Dynamics**:
+   - Speak TO the audience, not AT them
+   - Use "you" to create connection
+   - Ask rhetorical questions: "What do you think happened?", "How would you react?"
+   - Share personal reactions: "I was surprised...", "This really struck me..."
+
+4. **Pacing and Energy** (maintain dynamic, engaging tempo):
+   - Start with high energy in opening
+   - Keep pace brisk and engaging
+   - Use [extremely fast] sparingly for excited moments
+   - Use [thoughtful] for complex topics
+   - Build to exciting moments with energy
+
+5. **Content Integration**:
+   - Weave facts naturally, don't list them
+   - Use analogies and examples
+   - Connect topics with natural transitions
+   - Reference earlier points: "As I mentioned earlier..."
+
+6. **TTS Markup Integration** (strategic use):
+   - Apply markup naturally - quality over quantity
+   - Use 1-2 emotion tags per major thought
+   - Prioritize [excited], [thoughtful], [emphasis]
+   - Use [pause] rarely - only for major transitions
+
+**CONTENT TO DISCUSS:**
+{self._format_clean_content_for_prompt(clean_content)}
+
+{additional_instructions}
+
+**OUTPUT FORMAT:**
+Provide ONLY the monologue script with embedded TTS markup. No explanations or metadata.
+Use this format (the role is an IDENTIFIER ONLY, not a name to be spoken):
+
+{speaker1_role}: [excited] Opening statement that grabs attention...
+{speaker1_role}: [pause] Now, let me explain why this matters...
+{speaker1_role}: [emphasis]Key point[/emphasis] that you need to understand...
+{speaker1_role}: [thoughtful] When you think about it, what's really happening here is...
+
+REMEMBER: The script content should NEVER include the speaker's name or invented names. The role ({speaker1_role}) is only a format marker.
+
+---
+
+**EXAMPLES OF NATURAL MONOLOGUE PATTERNS:**
+
+Example 1 - Engaging Opening (English):
+{speaker1_role}: [excited] Okay, so you won't believe what happened today in the tech world!
+{speaker1_role}: [pause] I'm talking about something that's going to change how we think about artificial intelligence.
+{speaker1_role}: [curious] Now, you might be wondering, what makes this so special?
+
+Example 2 - Thoughtful Explanation (English):
+{speaker1_role}: [thoughtful] Let me break this down for you, because it's actually more interesting than it sounds.
+{speaker1_role}: Think of it this way... imagine you're trying to solve a really complex puzzle.
+{speaker1_role}: [emphasis]The key insight[/emphasis] here is that the traditional approach just doesn't work anymore.
+
+Example 3 - Natural Hebrew Monologue:
+{speaker1_role}: [excited] אוקיי, אז לא תאמינו מה קרה היום בעולם הטכנולוגיה!
+{speaker1_role}: [pause] אני מדבר על משהו שעומד לשנות את הדרך שבה אנחנו חושבים על בינה מלאכותית.
+{speaker1_role}: [curious] עכשיו, אתם בטח שואלים את עצמכם, מה כל כך מיוחד בזה?
+
+Example 4 - Building Narrative:
+{speaker1_role}: So here's where things get really interesting...
+{speaker1_role}: [pause] Remember what I said earlier about the pattern we were seeing?
+{speaker1_role}: [excited] Well, it turns out that [emphasis]everything[/emphasis] connects back to that!
+
+Example 5 - Rhetorical Engagement:
+{speaker1_role}: [curious] Now, you might be thinking, "Why should I care about this?"
+{speaker1_role}: Great question! Let me tell you exactly why this matters to you.
+{speaker1_role}: [emphasis]The reality[/emphasis] is that this affects every single one of us.
+
+KEY PATTERNS TO EMULATE:
+- Open with energy and intrigue
+- Speak directly to the audience using "you"
+- Use rhetorical questions for engagement
+- Layer in emotional markers authentically
+- Use [pause] only for major transitions (1-2 per topic)
+- Keep delivery tight and focused - avoid excessive filler
+- Vary sentence length and structure
+- Build momentum through the narrative
+
+Now, create the monologue script following ALL the guidelines above:
+"""
+
+        return monologue_prompt
 
     def _validate_script_content(self, script: str) -> None:
         """

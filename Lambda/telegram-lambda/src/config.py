@@ -26,6 +26,7 @@ class PodcastConfig:
     podcast_id: Optional[str] = None  # Actual podcast ID, separate from config ID
     start_date: Optional[str] = None  # ISO format datetime string
     end_date: Optional[str] = None    # ISO format datetime string
+    podcast_format: str = 'multi-speaker'  # Podcast format: single-speaker or multi-speaker
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PodcastConfig':
@@ -61,6 +62,9 @@ class PodcastConfig:
             end_date = data['date_range'].get('end_date')
             logger.info(f"Using custom date range: {start_date} to {end_date}")
 
+        # Extract podcast_format (defaults to multi-speaker for backward compatibility)
+        podcast_format = data.get('podcast_format', 'multi-speaker')
+
         # Create and return the config object
         return cls(
             id=podcast_config_id,
@@ -71,7 +75,8 @@ class PodcastConfig:
             episode_id=episode_id,
             podcast_id=podcast_id,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            podcast_format=podcast_format
         )
 
 

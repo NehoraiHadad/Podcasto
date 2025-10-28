@@ -35,6 +35,7 @@ export function buildConfigUpdateObject(
     slogan: { dataKey: 'slogan', configKey: 'slogan' },
     outputLanguage: { dataKey: 'outputLanguage', configKey: 'language' },
     conversationStyle: { dataKey: 'conversationStyle', configKey: 'conversation_style' },
+    podcastFormat: { dataKey: 'podcastFormat', configKey: 'podcast_format' },
     speaker1Role: { dataKey: 'speaker1Role', configKey: 'speaker1_role' },
     speaker2Role: { dataKey: 'speaker2Role', configKey: 'speaker2_role' },
     additionalInstructions: { dataKey: 'additionalInstructions', configKey: 'additional_instructions' },
@@ -89,6 +90,11 @@ export function buildConfigUpdateObject(
     updateConfig.mixing_techniques = existingConfig.mixing_techniques;
   } else {
     updateConfig.mixing_techniques = ['rhetorical-questions', 'personal-anecdotes']; // Default values
+  }
+
+  // Handle podcast format logic: clear speaker2_role for single-speaker podcasts
+  if (updateConfig.podcast_format === 'single-speaker') {
+    updateConfig.speaker2_role = null;
   }
 
   return updateConfig;

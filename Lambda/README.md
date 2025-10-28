@@ -46,15 +46,22 @@ sam build && sam deploy --parameter-overrides Environment=dev
 - ✅ **Unified S3 client** with multiple URL formats
 - ✅ **Easy maintenance** - update once, deploy everywhere
 
+### Podcast Format Support (NEW)
+- ✅ **Single-speaker** format - consistent narrator voice throughout
+- ✅ **Multi-speaker** format - conversational format with two speakers
+- ✅ **Format tracking** - logged at each pipeline stage
+- ✅ **Backward compatible** - defaults to multi-speaker
+
 ### Script Preprocessor
 - Analyzes Telegram content
 - Generates podcast scripts with Gemini
 - **Selects voices once** (Speaker1 fixed, Speaker2 per episode)
+- **Handles both formats** - single or multi-speaker
 - Passes configuration to audio generation via SQS
 
 ### Audio Generation
 - Receives pre-selected voices from preprocessor
-- Generates multi-speaker audio with Google TTS
+- Generates single-speaker or multi-speaker audio with Google TTS
 - Parallel chunk processing for long scripts
 - Silence detection and validation
 - Hebrew niqqud support via Dicta API
@@ -162,6 +169,11 @@ aws lambda get-function-configuration \
 ## Documentation
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Detailed deployment instructions
+- [docs/SQS_MESSAGE_SCHEMAS.md](./docs/SQS_MESSAGE_SCHEMAS.md) - SQS message schemas for pipeline
+- [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md) - Single-speaker feature deployment checklist
+- [docs/PIPELINE_INTEGRATION_SUMMARY.md](./docs/PIPELINE_INTEGRATION_SUMMARY.md) - Pipeline integration summary
+- [scripts/test_single_speaker_pipeline.py](./scripts/test_single_speaker_pipeline.py) - End-to-end test script
+- [scripts/validate_database.sql](./scripts/validate_database.sql) - Database validation queries
 - [../CLAUDE.md](../CLAUDE.md) - Project overview and conventions
 
 ## Recent Refactoring (2025-10-10)
