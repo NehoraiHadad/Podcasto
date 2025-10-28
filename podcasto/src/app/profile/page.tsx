@@ -20,11 +20,17 @@ export default async function ProfilePage() {
 
   const supabase = await createServerClient();
 
-  const { data: userProfile, error } = await supabase
-    .from('profiles')
-    .select('email_notifications')
-    .eq('id', user.id)
-    .maybeSingle();
+  const [
+    { data: userProfile, error },
+    creditsResult,
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('email_notifications')
+      .eq('id', user.id)
+      .maybeSingle(),
+    getUserCreditsAction(),
+  ]);
 
   if (error) {
     console.error('Failed to load profile email preferences', error);
@@ -32,8 +38,6 @@ export default async function ProfilePage() {
 
   const emailNotificationsEnabled = userProfile?.email_notifications ?? true;
 
-  // Fetch user credits
-  const creditsResult = await getUserCreditsAction();
   const credits = creditsResult.success ? creditsResult.data : null;
 
   return (
