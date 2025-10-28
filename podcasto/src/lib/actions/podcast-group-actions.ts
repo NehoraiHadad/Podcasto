@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { checkIsAdmin } from './admin/auth-actions';
 import type { ActionResult } from './shared/types';
 import { errorResult } from './shared/error-handler';
@@ -14,7 +14,8 @@ import {
   setPrimaryLanguage,
   linkPodcastToGroup,
   getPodcastGroupWithLanguages,
-  languageExistsInGroup
+  languageExistsInGroup,
+  PODCASTS_FOR_DISPLAY_TAG
 } from '@/lib/db/api/podcast-groups';
 import type {
   PodcastGroupWithLanguages,
@@ -84,6 +85,7 @@ export async function createPodcastGroupAction(
     // Revalidate relevant pages
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
     revalidatePath(`/admin/podcasts/groups/${group.id}/edit`);
     revalidatePath(`/podcasts/${group.id}`);
 
@@ -131,6 +133,7 @@ export async function updatePodcastGroupAction(
 
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
     return {
       success: true,
@@ -167,6 +170,7 @@ export async function deletePodcastGroupAction(
     revalidatePath('/podcasts');
     revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
     revalidatePath(`/podcasts/${groupId}`);
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
     return {
       success: true,
@@ -225,6 +229,7 @@ export async function addLanguageVariantAction(
 
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
     return {
       success: true,
@@ -263,6 +268,7 @@ export async function removeLanguageVariantAction(
     revalidatePath('/podcasts');
     revalidatePath(`/admin/podcasts/groups/${groupId}/edit`);
     revalidatePath(`/podcasts/${groupId}`);
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
     return {
       success: true,
@@ -299,6 +305,7 @@ export async function setPrimaryLanguageAction(
 
     revalidatePath('/admin/podcasts');
     revalidatePath('/podcasts');
+    revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
     return {
       success: true,
@@ -502,6 +509,7 @@ export async function createPodcastGroupWithNewPodcastsAction(
       // Revalidate relevant pages
       revalidatePath('/admin/podcasts');
       revalidatePath('/podcasts');
+      revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
       return {
         success: true,
@@ -735,14 +743,15 @@ export async function createPremiumPodcastAction(
         throw new Error('Failed to retrieve created podcast group');
       }
 
-      // Revalidate relevant pages
-      revalidatePath('/podcasts');
-      revalidatePath('/podcasts/my');
+        // Revalidate relevant pages
+        revalidatePath('/podcasts');
+        revalidatePath('/podcasts/my');
+        revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
-      return {
-        success: true,
-        data: completeGroup
-      };
+        return {
+          success: true,
+          data: completeGroup
+        };
     } catch (innerError) {
       console.error('[createPremiumPodcastAction] Error:', innerError);
       throw innerError;
@@ -932,6 +941,7 @@ export async function createUserPodcastAction(
       // Revalidate relevant pages
       revalidatePath('/podcasts');
       revalidatePath('/podcasts/my');
+      revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
 
       return {
         success: true,
