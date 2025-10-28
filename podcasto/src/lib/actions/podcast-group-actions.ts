@@ -368,9 +368,10 @@ export interface CreatePodcastGroupWithNewPodcastsData {
     slogan?: string;
     creativityLevel: number;
     episodeFrequency: number;
+    podcastFormat?: 'single-speaker' | 'multi-speaker';
     conversationStyle: string;
     speaker1Role: string;
-    speaker2Role: string;
+    speaker2Role?: string;
     mixingTechniques: string[];
     additionalInstructions?: string;
   }>;
@@ -449,9 +450,10 @@ export async function createPodcastGroupWithNewPodcastsAction(
           slogan: langData.slogan || null,
           language: langData.outputLanguage,
           creativity_level: Math.round(langData.creativityLevel * 100),
+          podcast_format: langData.podcastFormat || 'multi-speaker',
           conversation_style: langData.conversationStyle,
           speaker1_role: langData.speaker1Role,
-          speaker2_role: langData.speaker2Role,
+          speaker2_role: langData.speaker2Role || null,
           mixing_techniques: langData.mixingTechniques,
           additional_instructions: langData.additionalInstructions || null,
           episode_frequency: langData.episodeFrequency,
