@@ -10,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 import {
   LanguageVariantCard,
@@ -96,11 +96,7 @@ export function AdminPodcastForm({
   // Remove a language variant
   const removeLanguageVariant = (index: number) => {
     if (languageCount === 1) {
-      toast({
-        title: 'Cannot remove',
-        description: 'Cannot remove the last language variant',
-        variant: 'destructive',
-      });
+      toast.error('Cannot remove the last language variant');
       return;
     }
 
@@ -165,13 +161,11 @@ export function AdminPodcastForm({
 
       if (result.success) {
         const variantCount = values.languages.length;
-        toast({
-          title: 'Success',
-          description:
-            variantCount === 1
-              ? 'Podcast created successfully'
-              : `Podcast group created successfully with ${variantCount} language variants`,
-        });
+        toast.success(
+          variantCount === 1
+            ? 'Podcast created successfully'
+            : `Podcast group created successfully with ${variantCount} language variants`
+        );
 
         if (onSuccess && result.data?.languages?.[0]?.podcast_id) {
           onSuccess(result.data.languages[0].podcast_id);
@@ -180,19 +174,11 @@ export function AdminPodcastForm({
         // Redirect to admin podcasts page
         router.push('/admin/podcasts');
       } else {
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create podcast',
-          variant: 'destructive',
-        });
+        toast.error(result.error || 'Failed to create podcast');
       }
     } catch (error) {
       console.error('[AdminPodcastForm] Submission error:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }

@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { languageFullToCode } from '@/lib/utils/language-mapper';
 
 import {
@@ -117,10 +117,7 @@ export function PodcastEditForm({
       const result = await updatePodcast(payload);
 
       if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'Podcast updated successfully',
-        });
+        toast.success('Podcast updated successfully');
 
         if (onSuccess) {
           onSuccess();
@@ -130,19 +127,11 @@ export function PodcastEditForm({
           router.push(redirectPath);
         }
       } else {
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to update podcast',
-          variant: 'destructive',
-        });
+        toast.error(result.error || 'Failed to update podcast');
       }
     } catch (error) {
       console.error('[PodcastEditForm] Submission error:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }

@@ -97,10 +97,7 @@ export function UserPodcastForm({
       const result = await createUserPodcastAction(payload);
 
       if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'Podcast created successfully',
-        });
+        toast.success('Podcast created successfully');
 
         if (onSuccess && result.data?.languages?.[0]?.podcast_id) {
           onSuccess(result.data.languages[0].podcast_id);
@@ -109,19 +106,11 @@ export function UserPodcastForm({
         // Redirect to user's podcasts page
         router.push('/podcasts/my');
       } else {
-        toast({
-          title: 'Error',
-          description: result.error || 'Failed to create podcast',
-          variant: 'destructive',
-        });
+        toast.error(result.error || 'Failed to create podcast');
       }
     } catch (error) {
       console.error('[UserPodcastForm] Submission error:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
