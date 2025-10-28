@@ -260,9 +260,10 @@ export interface UserPodcastFormProps {
 
 /**
  * Props for podcast edit form composition
+ * Note: podcast is any to accept DB types - will be transformed internally
  */
 export interface PodcastEditFormProps {
-  podcast: PodcastData;
+  podcast: any; // Accepts DB podcast type, transformed via podcastToFormValues
   episodeStats?: EpisodeStats;
   userType: UserType;
   onSuccess?: () => void;

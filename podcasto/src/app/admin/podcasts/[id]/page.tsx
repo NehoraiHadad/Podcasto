@@ -132,7 +132,7 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
               </CardHeader>
               <CardContent>
                 <PodcastEditForm
-                  podcast={podcast as any}
+                  podcast={podcast}
                   userType="admin"
                   episodeStats={{
                     total: podcast.episodes_count || 0,

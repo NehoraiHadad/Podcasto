@@ -20,6 +20,7 @@ import {
 } from '../core';
 
 import { editPodcastSchemaValidated } from '../shared/schemas';
+import { podcastToFormValues } from '../shared/transformers';
 
 import type {
   PodcastEditFormProps,
@@ -53,21 +54,10 @@ export function PodcastEditForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFormatWarning, setShowFormatWarning] = useState(false);
 
-  // Initialize form with existing podcast data
+  // Initialize form with existing podcast data using transformer
   const form = useForm<EditPodcastFormValues>({
     resolver: zodResolver(editPodcastSchemaValidated),
-    defaultValues: {
-      title: podcast.title,
-      description: podcast.description || '',
-      language: (podcast.language === 'en' ? 'english' : 'hebrew') as 'english' | 'hebrew',
-      cover_image: podcast.cover_image || '',
-      episodeFrequency: podcast.episodeFrequency,
-      autoGeneration: podcast.autoGeneration,
-      podcastFormat: podcast.podcastFormat,
-      speaker1Role: podcast.speaker1Role,
-      speaker2Role: podcast.speaker2Role || '',
-      contentSource: podcast.contentSource,
-    },
+    defaultValues: podcastToFormValues(podcast),
   });
 
   // Track format changes

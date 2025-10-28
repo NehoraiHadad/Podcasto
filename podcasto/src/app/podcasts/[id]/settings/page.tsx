@@ -66,7 +66,7 @@ export default async function PodcastSettingsPage({ params }: PodcastSettingsPag
       </div>
 
       <PodcastEditForm
-        podcast={podcast as any}
+        podcast={podcast}
         userType={userType}
         episodeStats={episodeStats}
       />
