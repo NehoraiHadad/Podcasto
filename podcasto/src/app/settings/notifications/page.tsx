@@ -39,7 +39,7 @@ export default async function NotificationsSettingsPage() {
 
   const { data: subscriptionRows, error: subscriptionsError } = await supabase
     .from('subscriptions')
-    .select<SubscriptionWithPodcast>(
+    .select(
       `
         id,
         podcast_id,
@@ -60,7 +60,7 @@ export default async function NotificationsSettingsPage() {
     console.error('Failed to load subscriptions', subscriptionsError);
   }
 
-  const userSubscriptions = (subscriptionRows ?? []).map(subscription => ({
+  const userSubscriptions = ((subscriptionRows ?? []) as SubscriptionWithPodcast[]).map(subscription => ({
     id: subscription.id,
     podcast_id: subscription.podcast_id,
     podcast_title: subscription.podcasts?.title ?? 'Unknown Podcast',
