@@ -2,7 +2,11 @@
 
 import { calculateEpisodeCost } from '@/lib/services/cost-calculator';
 import type { CostBreakdown, UsageMetrics } from '@/lib/services/cost-calculator-types';
-import { createServerClient } from '@/lib/auth';
+import {
+  InsufficientPermissionsError,
+  UnauthorizedError,
+  requireAdmin,
+} from '@/lib/auth';
 
 export interface RecalculateEpisodeCostResult {
   success: boolean;
@@ -26,30 +30,7 @@ export async function recalculateEpisodeCost({
 }): Promise<RecalculateEpisodeCostResult> {
   try {
     // Check admin role
-    const supabase = await createServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: 'Authentication required',
-      };
-    }
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!roleData || roleData.role !== 'admin') {
-      return {
-        success: false,
-        error: 'Admin access required',
-      };
-    }
+    await requireAdmin();
 
     // Recalculate cost
     const result = await calculateEpisodeCost({ episodeId });
@@ -67,6 +48,20 @@ export async function recalculateEpisodeCost({
       metrics: result.metrics,
     };
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return {
+        success: false,
+        error: 'Authentication required',
+      };
+    }
+
+    if (error instanceof InsufficientPermissionsError) {
+      return {
+        success: false,
+        error: 'Admin access required',
+      };
+    }
+
     console.error('[RECALCULATE_COST] Error recalculating episode cost:', error);
     return {
       success: false,
