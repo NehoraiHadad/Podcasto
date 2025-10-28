@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { profilesApi } from '@/lib/db/api';
-import { getUser } from '@/lib/auth';
+import { getUser, createServerClient } from '@/lib/auth';
+import type { Database } from '@/lib/supabase/types';
 import type { EmailNotificationResult } from './shared';
 
 /**
@@ -30,13 +30,37 @@ export async function updateEmailNotificationPreference(): Promise<EmailNotifica
       };
     }
 
-    // Get current preference
-    const currentProfile = await profilesApi.getProfileById(user.id);
+    const supabase = await createServerClient();
+
+    const { data: currentProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select<Pick<Database['public']['Tables']['profiles']['Row'], 'email_notifications'>>('email_notifications')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching current email notifications preference:', profileError);
+      return {
+        success: false,
+        message: 'Failed to load current preferences'
+      };
+    }
+
     const currentEnabled = currentProfile?.email_notifications ?? true;
     const newEnabled = !currentEnabled;
 
-    // Update preference
-    await profilesApi.updateEmailNotifications(user.id, newEnabled);
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ email_notifications: newEnabled })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating email notification preference:', updateError);
+      return {
+        success: false,
+        message: 'Failed to update preference'
+      };
+    }
 
     revalidatePath('/settings');
     revalidatePath('/profile');
@@ -91,10 +115,15 @@ export async function toggleEmailNotifications(
 
     const enabled = formData.get('enabled') === 'true';
 
-    // Update email notifications preference
-    const updatedProfile = await profilesApi.updateEmailNotifications(user.id, enabled);
+    const supabase = await createServerClient();
 
-    if (!updatedProfile) {
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ email_notifications: enabled })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error updating email notification preference:', updateError);
       return {
         success: false,
         message: 'Failed to update email notification preferences'

@@ -2,13 +2,12 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, Podcast as PodcastIcon } from 'lucide-react';
-import { getUser } from '@/lib/auth';
+import { getUser, createServerClient } from '@/lib/auth';
 import { getUserCreditsAction, getEpisodeCostAction } from '@/lib/actions/credit/credit-core-actions';
 import { Button } from '@/components/ui/button';
 import { PodcastCardUser } from '@/components/podcasts';
-import { db } from '@/lib/db';
-import { podcasts, episodes } from '@/lib/db/schema';
-import { eq, count } from 'drizzle-orm';
+import type { Database } from '@/lib/supabase/types';
+import type { Podcast } from '@/lib/db/api/podcasts/types';
 
 export const metadata: Metadata = {
   title: 'My Podcasts | Podcasto',
@@ -34,17 +33,69 @@ export default async function MyPodcastsPage({ searchParams }: MyPodcastsPagePro
   const resolvedSearchParams = await searchParams || {};
   const statusFilter = resolvedSearchParams.status;
 
-  // Fetch user's podcasts with episode counts
-  const userPodcastsWithCounts = await db
-    .select({
-      podcast: podcasts,
-      episodeCount: count(episodes.id)
-    })
-    .from(podcasts)
-    .leftJoin(episodes, eq(episodes.podcast_id, podcasts.id))
-    .where(eq(podcasts.created_by, user.id))
-    .groupBy(podcasts.id)
-    .orderBy(podcasts.created_at);
+  const supabase = await createServerClient();
+
+  type PodcastWithEpisodeCount = Database['public']['Tables']['podcasts']['Row'] & {
+    episodes: { count: number | null }[] | null;
+  };
+
+  const { data: podcastRows, error: podcastsError } = await supabase
+    .from('podcasts')
+    .select<PodcastWithEpisodeCount>(
+      `
+        id,
+        title,
+        description,
+        cover_image,
+        image_style,
+        is_paused,
+        created_by,
+        podcast_group_id,
+        language_code,
+        migration_status,
+        auto_generation_enabled,
+        last_auto_generated_at,
+        next_scheduled_generation,
+        created_at,
+        updated_at,
+        episodes(count)
+      `
+    )
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: true });
+
+  if (podcastsError) {
+    console.error('Failed to load podcasts', podcastsError);
+  }
+
+  const userPodcastsWithCounts = (podcastRows ?? []).map((podcastRow) => {
+    const podcast: Podcast = {
+      id: podcastRow.id,
+      title: podcastRow.title,
+      description: podcastRow.description,
+      cover_image: podcastRow.cover_image,
+      image_style: podcastRow.image_style,
+      is_paused: podcastRow.is_paused,
+      created_by: podcastRow.created_by,
+      podcast_group_id: podcastRow.podcast_group_id,
+      language_code: podcastRow.language_code,
+      migration_status: podcastRow.migration_status,
+      auto_generation_enabled: podcastRow.auto_generation_enabled,
+      last_auto_generated_at: podcastRow.last_auto_generated_at
+        ? new Date(podcastRow.last_auto_generated_at)
+        : null,
+      next_scheduled_generation: podcastRow.next_scheduled_generation
+        ? new Date(podcastRow.next_scheduled_generation)
+        : null,
+      created_at: podcastRow.created_at ? new Date(podcastRow.created_at) : null,
+      updated_at: podcastRow.updated_at ? new Date(podcastRow.updated_at) : null,
+    };
+
+    return {
+      podcast,
+      episodeCount: podcastRow.episodes?.[0]?.count ?? 0,
+    };
+  });
 
   // Apply status filter if specified
   const filteredPodcasts = statusFilter

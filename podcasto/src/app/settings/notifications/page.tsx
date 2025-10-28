@@ -2,8 +2,7 @@ import { createServerClient } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form';
 import { SubscriptionList } from '@/components/settings/subscription-list';
-import { db, subscriptions, podcasts, profiles } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import type { Database } from '@/lib/supabase/types';
 import { Separator } from '@/components/ui/separator';
 
 // Force dynamic rendering because this page uses authentication (cookies)
@@ -22,30 +21,54 @@ export default async function NotificationsSettingsPage() {
     redirect('/auth/login');
   }
 
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.id, user.id),
-    columns: {
-      email_notifications: true,
-    }
-  });
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('email_notifications')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('Failed to load profile preferences', profileError);
+  }
 
   const emailNotifications = profile?.email_notifications ?? true;
 
-  // Fetch user subscriptions with podcast details
-  const userSubscriptions = await db
-    .select({
-      id: subscriptions.id,
-      podcast_id: subscriptions.podcast_id,
-      podcast_title: podcasts.title,
-      podcast_description: podcasts.description,
-      cover_image: podcasts.cover_image,
-      email_notifications: subscriptions.email_notifications,
-      created_at: subscriptions.created_at,
-    })
-    .from(subscriptions)
-    .innerJoin(podcasts, eq(subscriptions.podcast_id, podcasts.id))
-    .where(eq(subscriptions.user_id, user.id))
-    .orderBy(subscriptions.created_at);
+  type SubscriptionWithPodcast = Database['public']['Tables']['subscriptions']['Row'] & {
+    podcasts: Pick<Database['public']['Tables']['podcasts']['Row'], 'id' | 'title' | 'description' | 'cover_image'> | null;
+  };
+
+  const { data: subscriptionRows, error: subscriptionsError } = await supabase
+    .from('subscriptions')
+    .select<SubscriptionWithPodcast>(
+      `
+        id,
+        podcast_id,
+        email_notifications,
+        created_at,
+        podcasts:podcast_id (
+          id,
+          title,
+          description,
+          cover_image
+        )
+      `
+    )
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+
+  if (subscriptionsError) {
+    console.error('Failed to load subscriptions', subscriptionsError);
+  }
+
+  const userSubscriptions = (subscriptionRows ?? []).map(subscription => ({
+    id: subscription.id,
+    podcast_id: subscription.podcast_id,
+    podcast_title: subscription.podcasts?.title ?? 'Unknown Podcast',
+    podcast_description: subscription.podcasts?.description ?? null,
+    cover_image: subscription.podcasts?.cover_image ?? null,
+    email_notifications: subscription.email_notifications,
+    created_at: subscription.created_at ? new Date(subscription.created_at) : null,
+  }));
 
   return (
     <div className="container max-w-4xl py-10">
