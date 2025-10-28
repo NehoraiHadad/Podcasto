@@ -29,15 +29,13 @@ import type { Database } from '@/lib/supabase/types';
 export function createMiddlewareClient(
   request: NextRequest,
   response?: NextResponse
-) {
+): { client: SupabaseClient<Database>; response: NextResponse } {
   const isUpdateSession = !response;
-  let supabaseResponse: NextResponse | undefined;
-
-  if (isUpdateSession) {
-    supabaseResponse = NextResponse.next({
+  const supabaseResponse =
+    response ??
+    NextResponse.next({
       request: { headers: request.headers },
     });
-  }
 
   return {
     client: createSupabaseClient<Database>(
@@ -55,26 +53,21 @@ export function createMiddlewareClient(
           },
           setAll(cookies) {
             cookies.forEach(({ name, value, ...options }) => {
-              if (isUpdateSession && supabaseResponse) {
+              if (isUpdateSession) {
                 request.cookies.set(name, value);
-                supabaseResponse.cookies.set({
-                  name,
-                  value,
-                  ...options,
-                });
-              } else if (response) {
-                response.cookies.set({
-                  name,
-                  value,
-                  ...options,
-                });
               }
+
+              supabaseResponse.cookies.set({
+                name,
+                value,
+                ...options,
+              });
             });
           },
         },
       }
     ),
-    response: isUpdateSession ? supabaseResponse : response,
+    response: supabaseResponse,
   };
 }
 
@@ -90,7 +83,11 @@ export function createMiddlewareClient(
  * @example
  * ```typescript
  * export async function middleware(request: NextRequest) {
- *   const { response } = await updateSession(request);
+ *   const { client, response } = await updateSession(request);
+ *   const {
+ *     data: { user },
+ *   } = await client.auth.getUser();
+ *
  *   return response;
  * }
  * ```
@@ -98,11 +95,11 @@ export function createMiddlewareClient(
 export async function updateSession(
   request: NextRequest
 ): Promise<{ client: SupabaseClient<Database>; response: NextResponse }> {
-  const { client, response } = createMiddlewareClient(request);
+  const result = createMiddlewareClient(request);
 
   // IMPORTANT: DO NOT REMOVE auth.getUser() - This refreshes the session if needed
   // This is the 2025 Supabase SSR best practice for middleware
-  await client.auth.getUser();
+  await result.client.auth.getUser();
 
-  return { client, response: response as NextResponse };
+  return result;
 }
