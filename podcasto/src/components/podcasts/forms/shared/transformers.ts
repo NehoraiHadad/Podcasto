@@ -41,7 +41,7 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     creator: config?.creator,
     podcastName: podcast.podcast_name,
     slogan: config?.slogan,
-    creativityLevel: config?.creativity_level,
+    creativityLevel: config?.creativity_level !== undefined ? config.creativity_level / 100 : 0.7,
     mixingTechniques: config?.mixing_techniques || [],
     additionalInstructions: config?.additional_instructions,
   };
