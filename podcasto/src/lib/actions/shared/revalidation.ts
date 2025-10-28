@@ -3,12 +3,14 @@
  * Centralizes path revalidation logic to ensure consistency.
  */
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { PODCASTS_FOR_DISPLAY_TAG } from '@/lib/db/api/podcast-groups';
 
 /**
  * Revalidate all paths related to a specific podcast
  */
 export function revalidatePodcast(podcastId: string): void {
+  revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
   revalidatePath(`/podcasts/${podcastId}`);
   revalidatePath('/podcasts');
   revalidatePath('/admin/podcasts');

@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { unstable_cache } from 'next/cache';
+
 import { podcastGroups, podcastLanguages, podcasts } from '../../schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
@@ -270,6 +272,8 @@ export interface UnifiedPodcastDisplay {
   };
 }
 
+export const PODCASTS_FOR_DISPLAY_TAG = 'podcasts-for-display';
+
 /**
  * Get all podcasts for public display in a unified format
  * Returns both podcast groups (with primary language) and legacy podcasts
@@ -354,3 +358,12 @@ export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[
 
   return items;
 }
+
+export const getCachedPodcastsForDisplay = unstable_cache(
+  async () => getAllPodcastsForDisplay(),
+  [PODCASTS_FOR_DISPLAY_TAG],
+  {
+    revalidate: 300,
+    tags: [PODCASTS_FOR_DISPLAY_TAG]
+  }
+);

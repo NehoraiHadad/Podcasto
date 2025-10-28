@@ -1,18 +1,14 @@
-import { getAllPodcastsForDisplay } from '@/lib/db/api/podcast-groups';
+import { getCachedPodcastsForDisplay } from '@/lib/db/api/podcast-groups';
 import { PodcastCarouselClient } from './podcast-carousel-client';
-import { unstable_noStore as noStore } from 'next/cache';
 
 /**
  * Server component that fetches featured podcasts and renders the client carousel
  * Uses optimized unified query for both podcast groups and legacy podcasts
  */
 export async function PodcastCarousel() {
-  // Opt out of caching for this component
-  noStore();
-
   try {
     // Fetch all podcasts using optimized unified query
-    const allPodcastsUnified = await getAllPodcastsForDisplay();
+    const allPodcastsUnified = await getCachedPodcastsForDisplay();
 
     if (allPodcastsUnified.length === 0) {
       return null; // Don't render anything if no podcasts

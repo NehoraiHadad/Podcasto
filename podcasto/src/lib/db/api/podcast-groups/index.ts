@@ -20,6 +20,8 @@ export type {
 
 export type { UnifiedPodcastDisplay } from './queries';
 
+export { PODCASTS_FOR_DISPLAY_TAG, getCachedPodcastsForDisplay } from './queries';
+
 // Export query functions
 export {
   getPodcastGroupById,

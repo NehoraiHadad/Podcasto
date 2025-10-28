@@ -1,8 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { ActionResponse } from './schemas';
+import { PODCASTS_FOR_DISPLAY_TAG } from '@/lib/db/api/podcast-groups';
 
 /**
  * Filter valid URLs from an array, removing empty strings
@@ -18,6 +19,8 @@ export async function filterUrls(urls?: string[]) {
  * @param podcastId Optional specific podcast ID to revalidate
  */
 export async function revalidatePodcastPaths(podcastId?: string) {
+  revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
+
   // Always revalidate common podcast paths
   revalidatePath('/admin/podcasts');
   revalidatePath('/podcasts');
