@@ -187,7 +187,7 @@ export async function unlinkPodcastFromGroup(podcastId: string): Promise<boolean
     .update(podcasts)
     .set({
       podcast_group_id: null,
-      language_code: null,
+      // NOTE: language_code is preserved (NOT NULL field)
       migration_status: 'legacy',
       updated_at: nowUTC()
     })

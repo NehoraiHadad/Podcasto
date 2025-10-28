@@ -16,7 +16,7 @@ import type { PodcastUpdateData } from '../schemas';
 export function hasConfigFields(data: PodcastUpdateData): boolean {
   return !!(
     data.contentSource || data.telegramChannel || data.telegramHours || data.urls ||
-    data.creator || data.podcastName || data.outputLanguage || data.slogan ||
+    data.creator || data.podcastName || data.languageCode || data.slogan ||
     data.creativityLevel !== undefined || data.episodeFrequency ||
     data.conversationStyle || data.speaker1Role || data.speaker2Role ||
     data.mixingTechniques || data.additionalInstructions

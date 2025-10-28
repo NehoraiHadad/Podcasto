@@ -12,6 +12,7 @@ import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notificat
 import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
 import { determineTriggerSource } from '@/lib/utils/episode-server-utils';
 import { revalidatePath } from 'next/cache';
+import { languageCodeToFull } from '@/lib/utils/language-mapper';
 import type { DateRange, GenerationResult } from '../podcast/generation/types';
 import type { ActionResult } from '../shared/types';
 
@@ -206,7 +207,8 @@ export async function generateEpisodeWithCreditsAction(
 
       // Step 2: Create episode
       const timestamp = new Date().toISOString();
-      const language = podcastConfig.language || 'english';
+      // Convert language code from podcast to full name for Lambda
+      const language = languageCodeToFull(podcast.language_code || 'en');
 
       try {
         const episode = await episodesApi.createEpisode({
@@ -262,7 +264,8 @@ export async function generateEpisodeWithCreditsAction(
       console.log(`[EPISODE_GEN_WITH_CREDITS] Admin user - creating episode without credits`);
 
       const timestamp = new Date().toISOString();
-      const language = podcastConfig.language || 'english';
+      // Convert language code from podcast to full name for Lambda
+      const language = languageCodeToFull(podcast.language_code || 'en');
 
       const episode = await episodesApi.createEpisode({
         podcast_id: podcastId,

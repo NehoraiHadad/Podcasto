@@ -10,6 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
+import { languageFullToCode } from '@/lib/utils/language-mapper';
 
 import {
   BasicInfoSection,
@@ -77,12 +78,17 @@ export function PodcastEditForm({
     setIsSubmitting(true);
 
     try {
+      // Convert language from full name to ISO code
+      const languageCode = languageFullToCode(values.language);
+
       // Transform form values to update payload
       const payload = {
         id: podcast.id,
         title: values.title,
         description: values.description || '',
         cover_image: values.cover_image || null,
+        // Language (ISO code)
+        languageCode,
         // Episode settings
         episodeFrequency: values.episodeFrequency,
         autoGeneration: values.autoGeneration,
@@ -101,7 +107,6 @@ export function PodcastEditForm({
         // Admin settings
         creator: values.creator,
         podcastName: values.podcastName,
-        outputLanguage: values.language,
         slogan: values.slogan || null,
         creativityLevel: values.creativityLevel,
         mixingTechniques: values.mixingTechniques,

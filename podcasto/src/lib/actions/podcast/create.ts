@@ -31,6 +31,7 @@ export async function createPodcast(data: PodcastCreationData): Promise<ActionRe
       description: validatedData.description,
       cover_image: validatedData.coverImage,
       image_style: validatedData.imageStyle,
+      language_code: validatedData.languageCode, // ISO language code from form
       created_by: user?.id,
     });
     
@@ -69,7 +70,7 @@ async function createPodcastConfig(podcastId: string, data: PodcastCreationData)
       creator: data.creator,
       podcast_name: data.podcastName,
       slogan: data.slogan,
-      language: data.outputLanguage,
+      // NOTE: language removed - now using podcasts.language_code instead
       creativity_level: Math.round(data.creativityLevel * 100),
       conversation_style: data.conversationStyle,
       podcast_format: data.podcastFormat,

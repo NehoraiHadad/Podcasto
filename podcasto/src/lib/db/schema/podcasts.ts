@@ -15,7 +15,11 @@ export const podcasts = pgTable('podcasts', {
 
   // Multilingual podcast group support (nullable for backward compatibility)
   podcast_group_id: uuid('podcast_group_id').references(() => podcastGroups.id, { onDelete: 'set null' }),
-  language_code: text('language_code'), // Language for this podcast variant (e.g., 'he', 'en')
+
+  // Language configuration (ISO 639-1 code)
+  // This is the unified language field for the entire application
+  language_code: text('language_code').notNull().default('en'), // ISO language code (e.g., 'en', 'he', 'ar')
+
   migration_status: text('migration_status').default('legacy'), // 'legacy' | 'migrating' | 'migrated'
 
   // Automatic episode generation scheduling

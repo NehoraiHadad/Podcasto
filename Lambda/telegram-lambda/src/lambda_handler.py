@@ -83,6 +83,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     podcast_id = result.get('podcast_id', config.id)
                     podcast_format = config.podcast_format
 
+                    # Get language_code from podcast record
+                    language_code = 'en'  # Default to English
+                    try:
+                        podcast = supabase_client.get_podcast(podcast_id)
+                        if podcast and podcast.get('language_code'):
+                            language_code = podcast['language_code']
+                            logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} language_code: {language_code}")
+                        else:
+                            logger.warning(f"[TELEGRAM_LAMBDA] Could not retrieve language_code for podcast {podcast_id}, using default: {language_code}")
+                    except Exception as lang_error:
+                        logger.error(f"[TELEGRAM_LAMBDA] Error retrieving language_code: {str(lang_error)}, using default: {language_code}")
+
                     # Log podcast format for tracking
                     logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} podcast_format: {podcast_format}")
 
@@ -109,7 +121,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         podcast_config_id=config.id,
                         result_data=result,
                         timestamp=timestamp,
-                        podcast_format=podcast_format
+                        podcast_format=podcast_format,
+                        language_code=language_code
                     )
                     
                     # Log the result

@@ -22,6 +22,7 @@ from shared.services.voice_config import VoiceConfigManager  # type: ignore
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage  # type: ignore
 from shared.utils.logging import get_logger  # type: ignore
 from shared.utils.datetime_utils import now_utc  # type: ignore
+from shared.utils.language_mapper import language_code_to_full  # type: ignore
 
 # Lambda-specific services (unique to script-preprocessor)
 from services.telegram_content_extractor import TelegramContentExtractor  # type: ignore
@@ -147,7 +148,13 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
         logger.info(f"[SCRIPT_PREP] Episode {episode_id} podcast_format: {podcast_format}")
 
-        dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id, podcast_format)
+        # Extract language_code from message (ISO code like 'he', 'en')
+        language_code = msg.get('language_code', 'en')
+        # Convert ISO code to full name for Gemini API
+        language_full = language_code_to_full(language_code)
+        logger.info(f"[SCRIPT_PREP] Episode {episode_id} language_code: {language_code} -> language_full: {language_full}")
+
+        dynamic_config = self._apply_dynamic_role(podcast_config, analysis, episode_id, podcast_format, language_code)
 
         # Add topic analysis to dynamic config
         dynamic_config['topic_analysis'] = topic_analysis
@@ -178,7 +185,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
             "speaker2_role": dynamic_config.get('speaker2_role'),
             "speaker1_gender": dynamic_config.get('speaker1_gender', 'male'),
             "speaker2_gender": dynamic_config.get('speaker2_gender'),
-            "language": dynamic_config.get('language', 'he'),
+            "language_code": language_code,
             "podcast_format": podcast_format
         }
 
@@ -252,7 +259,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
             raise ValueError("Podcast configuration not found")
         return cfg
 
-    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult, episode_id: str, podcast_format: str = 'multi-speaker') -> Dict[str, Any]:
+    def _apply_dynamic_role(self, cfg: Dict[str, Any], analysis: ContentAnalysisResult, episode_id: str, podcast_format: str = 'multi-speaker', language_code: str = 'en') -> Dict[str, Any]:
         new_cfg = cfg.copy()
 
         # For single-speaker, skip speaker2 configuration
@@ -268,13 +275,14 @@ class ScriptPreprocessorHandler:  # noqa: D101
             }
 
             # Select only speaker1 voice
-            language = cfg.get("language", "he")
+            # Convert ISO language code to full name for voice manager
+            language_full = language_code_to_full(language_code)
             speaker1_role = cfg.get("speaker1_role", "Speaker 1")
             speaker1_gender = cfg.get("speaker1_gender", "male")
 
             # Use dummy values for speaker2 to satisfy voice manager API
             speaker1_voice, _ = self.voice_manager.get_distinct_voices_for_speakers(
-                language=language,
+                language=language_full,
                 speaker1_gender=speaker1_gender,
                 speaker2_gender='male',  # dummy
                 speaker1_role=speaker1_role,
@@ -285,7 +293,8 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
             new_cfg["speaker1_voice"] = speaker1_voice
             new_cfg["speaker2_voice"] = None
-            logger.info(f"[PREPROC] Selected single voice for episode {episode_id}: {speaker1_role}={speaker1_voice}")
+            new_cfg["language_code"] = language_code
+            logger.info(f"[PREPROC] Selected single voice for episode {episode_id}: {speaker1_role}={speaker1_voice}, language={language_full}")
         else:
             # Multi-speaker: use dynamic role assignment
             new_cfg["speaker2_role"] = analysis.specific_role
@@ -299,14 +308,15 @@ class ScriptPreprocessorHandler:  # noqa: D101
             }
 
             # Select voices once for the entire episode (ensures consistency across chunks)
-            language = cfg.get("language", "he")
+            # Convert ISO language code to full name for voice manager
+            language_full = language_code_to_full(language_code)
             speaker1_role = cfg.get("speaker1_role", "Speaker 1")
             speaker2_role = new_cfg["speaker2_role"]
             speaker1_gender = cfg.get("speaker1_gender", "male")
             speaker2_gender = new_cfg["speaker2_gender"]
 
             speaker1_voice, speaker2_voice = self.voice_manager.get_distinct_voices_for_speakers(
-                language=language,
+                language=language_full,
                 speaker1_gender=speaker1_gender,
                 speaker2_gender=speaker2_gender,
                 speaker1_role=speaker1_role,
@@ -317,6 +327,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
             new_cfg["speaker1_voice"] = speaker1_voice
             new_cfg["speaker2_voice"] = speaker2_voice
-            logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
+            new_cfg["language_code"] = language_code
+            logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}, language={language_full}")
 
         return new_cfg 

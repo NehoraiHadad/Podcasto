@@ -5,11 +5,13 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getEpisodeById } from '@/lib/db/api/episodes';
 import { episodesApi } from '@/lib/db/api';
 import { getPodcastConfigByPodcastId } from '@/lib/db/api/podcast-configs';
+import { getPodcastById } from '@/lib/db/api/podcasts';
 import { requireAdmin } from '@/lib/auth';
 import { parseS3Uri, verifyS3ObjectExists, createS3Client } from '@/lib/utils/s3-utils';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';
 import { EPISODE_CONSTANTS } from '@/lib/constants/episode-constants';
+import { languageCodeToFull } from '@/lib/utils/language-mapper';
 
 /**
  * Generate a presigned URL for an episode's audio file
@@ -154,6 +156,19 @@ export async function regenerateEpisodeAudio(
         error: 'Podcast configuration not found'
       };
     }
+
+    // Get podcast to access language_code
+    const podcast = await getPodcastById(episode.podcast_id);
+
+    if (!podcast) {
+      return {
+        success: false,
+        error: 'Podcast not found'
+      };
+    }
+
+    // Convert language code to full name for Lambda functions
+    const languageFullName = languageCodeToFull(podcast.language_code || 'en');
 
     // Reset episode status to pending
     await episodesApi.updateEpisode(episodeId, {
@@ -335,7 +350,7 @@ export async function regenerateEpisodeAudio(
         id: podcastConfig.id,
         podcast_id: podcastConfig.podcast_id,
         podcast_name: podcastConfig.podcast_name,
-        language: podcastConfig.language,
+        language: languageFullName, // Converted from podcasts.language_code
         creator: podcastConfig.creator,
         slogan: podcastConfig.slogan || '',
         speaker1_role: podcastConfig.speaker1_role,

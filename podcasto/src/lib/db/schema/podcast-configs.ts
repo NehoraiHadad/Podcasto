@@ -11,7 +11,7 @@ export const podcastConfigs = pgTable('podcast_configs', {
   creator: text('creator').notNull(),
   podcast_name: text('podcast_name').notNull(),
   slogan: text('slogan'),
-  language: text('language').default('english'),
+  // NOTE: language field removed - now using podcasts.language_code instead
   creativity_level: integer('creativity_level').notNull(),
   conversation_style: text('conversation_style').notNull(),
   podcast_format: text('podcast_format').default('multi-speaker'),

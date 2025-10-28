@@ -16,6 +16,7 @@ from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 from shared.services.tts_client import DeferrableError
 from shared.utils.logging import get_logger
 from shared.utils.datetime_utils import now_utc, to_iso_utc
+from shared.utils.language_mapper import language_code_to_full
 
 logger = get_logger(__name__)
 
@@ -206,9 +207,13 @@ class AudioGenerationHandler:
             logger.info(f"[AUDIO_GEN] [{request_id}] Script loaded from S3: {len(script)} characters")
             logger.info(f"[AUDIO_GEN] [{request_id}] Using dynamic_config with speaker2_role: {dynamic_config.get('speaker2_role')}")
 
+            # Get language_code from dynamic_config (ISO code like 'he', 'en')
+            language_code = dynamic_config.get('language_code', 'en')
+            logger.info(f"[AUDIO_GEN] [{request_id}] Using language_code: {language_code}")
+
             # Process Hebrew script with niqqud if needed
             processed_script, niqqud_script = self._process_hebrew_script(
-                script, dynamic_config.get('language', 'en'), request_id
+                script, language_code, request_id
             )
 
             # TIMEOUT DETECTION: Check remaining time before expensive audio generation
@@ -228,13 +233,13 @@ class AudioGenerationHandler:
             # If we got a niqqud script, it means the text was pre-processed
             is_pre_processed = niqqud_script is not None
             audio_data, duration = self._generate_audio(
-                processed_script, dynamic_config, request_id, episode_id, is_pre_processed, podcast_format
+                processed_script, dynamic_config, request_id, episode_id, is_pre_processed, podcast_format, language_code
             )
             
             # Upload both original and niqqud scripts as transcripts to S3
             self._upload_script_as_transcript(
-                episode_id, podcast_id, script, niqqud_script, 
-                dynamic_config.get('language', 'en'), request_id
+                episode_id, podcast_id, script, niqqud_script,
+                language_code, request_id
             )
             
             # Upload and update
@@ -384,7 +389,9 @@ class AudioGenerationHandler:
 
         from shared.services.voice_config import VoiceConfigManager
 
-        language = dynamic_config.get('language', 'he')
+        # Get language_code and convert to full name for voice manager
+        language_code = dynamic_config.get('language_code', 'en')
+        language_full = language_code_to_full(language_code)
         speaker1_role = dynamic_config.get('speaker1_role', 'Speaker 1')
         speaker2_role = dynamic_config.get('speaker2_role', 'Speaker 2')
         speaker1_gender = dynamic_config.get('speaker1_gender', 'male')
@@ -392,7 +399,7 @@ class AudioGenerationHandler:
 
         voice_manager = VoiceConfigManager()
         speaker1_voice, speaker2_voice = voice_manager.get_distinct_voices_for_speakers(
-            language=language,
+            language=language_full,
             speaker1_gender=speaker1_gender,
             speaker2_gender=speaker2_gender,
             speaker1_role=speaker1_role,
@@ -403,17 +410,18 @@ class AudioGenerationHandler:
 
         dynamic_config['speaker1_voice'] = speaker1_voice
         dynamic_config['speaker2_voice'] = speaker2_voice
-        logger.info(f"[AUDIO_GEN] [{request_id}] ✅ Regenerated voices deterministically: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
+        logger.info(f"[AUDIO_GEN] [{request_id}] ✅ Regenerated voices deterministically: speaker1={speaker1_voice}, speaker2={speaker2_voice}, language={language_full}")
 
         return dynamic_config
 
-    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False, podcast_format: str = 'multi-speaker') -> Tuple[bytes, float]:
+    def _generate_audio(self, script: str, podcast_config: Dict[str, Any], request_id: str, episode_id: str = None, is_pre_processed: bool = False, podcast_format: str = 'multi-speaker', language_code: str = 'en') -> Tuple[bytes, float]:
         """Generate audio using Google Gemini TTS with pre-selected voices from script-preprocessor"""
         logger.info(f"[AUDIO_GEN] Generating audio for episode {episode_id}")
 
         generator = GooglePodcastGenerator()
 
-        language = podcast_config.get('language', 'en')
+        # Convert ISO language code to full name for TTS API
+        language_full = language_code_to_full(language_code)
         speaker1_role = podcast_config.get('speaker1_role', 'Speaker 1')
         speaker2_role = podcast_config.get('speaker2_role', 'Speaker 2')
         speaker1_gender = podcast_config.get('speaker1_gender', 'male')
@@ -423,7 +431,7 @@ class AudioGenerationHandler:
         speaker1_voice = podcast_config.get('speaker1_voice')
         speaker2_voice = podcast_config.get('speaker2_voice')
 
-        logger.info(f"[AUDIO_GEN] Language: {language}")
+        logger.info(f"[AUDIO_GEN] Language: {language_code} -> {language_full}")
         logger.info(f"[AUDIO_GEN] Format: {podcast_format}")
         logger.info(f"[AUDIO_GEN] Speakers: {speaker1_role} ({speaker1_gender}), {speaker2_role} ({speaker2_gender})")
         logger.info(f"[AUDIO_GEN] Using pre-selected voices: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}")
@@ -436,7 +444,7 @@ class AudioGenerationHandler:
         try:
             audio_data, duration = generator.generate_podcast_audio(
                 script_content=script,
-                language=language,
+                language=language_full,
                 speaker1_role=speaker1_role,
                 speaker2_role=speaker2_role if podcast_format == 'multi-speaker' else None,
                 speaker1_gender=speaker1_gender,

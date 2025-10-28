@@ -128,27 +128,18 @@ async function findDuplicatePodcasts(): Promise<SuggestedGroup[]> {
       title: podcasts.title,
       description: podcasts.description,
       podcast_group_id: podcasts.podcast_group_id,
+      language_code: podcasts.language_code,
     })
     .from(podcasts)
     .where(eq(podcasts.podcast_group_id, null as any)); // Only get podcasts not in groups
 
   console.log(`Found ${allPodcasts.length} podcasts not in groups`);
 
-  // Fetch language info from podcast_configs
-  const podcastsWithLanguage: PodcastWithConfig[] = await Promise.all(
-    allPodcasts.map(async (podcast) => {
-      const config = await db
-        .select({ language: podcastConfigs.language })
-        .from(podcastConfigs)
-        .where(eq(podcastConfigs.podcast_id, podcast.id))
-        .limit(1);
-
-      return {
-        ...podcast,
-        language: config[0]?.language || 'english',
-      };
-    })
-  );
+  // Fetch language info from podcasts.language_code
+  const podcastsWithLanguage: PodcastWithConfig[] = allPodcasts.map((podcast) => ({
+    ...podcast,
+    language: podcast.language_code || 'en', // Use ISO code from podcasts table
+  }));
 
   console.log('🔍 Analyzing titles for duplicates...');
 

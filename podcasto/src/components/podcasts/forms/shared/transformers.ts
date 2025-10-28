@@ -5,6 +5,7 @@
  */
 
 import type { EditPodcastFormValues } from './types';
+import { languageCodeToFull } from '@/lib/utils/language-mapper';
 
 /**
  * Transform database podcast object to form values
@@ -14,13 +15,17 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
   // Get podcast config if it exists (support both naming conventions)
   const config = podcast.podcastConfigs?.[0] || podcast.podcast_configs?.[0];
 
+  // Convert ISO language code to full name for form
+  const languageCode = podcast.language_code || 'en';
+  const languageFull = languageCodeToFull(languageCode);
+
   return {
     id: podcast.id,
     title: podcast.title,
     description: podcast.description,
     cover_image: podcast.cover_image,
     image_style: podcast.image_style,
-    language: config?.language || podcast.language_code || 'english',
+    language: languageFull, // Now derived from podcasts.language_code
     episodeFrequency: config?.episode_frequency || 7,
     autoGeneration: podcast.auto_generation,
     podcastFormat: config?.podcast_format || 'multi-speaker',
@@ -44,6 +49,8 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
 
 /**
  * Transform form values to database update payload
+ * NOTE: This is deprecated - language is now managed via podcasts.language_code
+ * and passed separately via languageCode parameter
  */
 export function formValuesToPodcastUpdate(values: Partial<EditPodcastFormValues>) {
   return {
@@ -55,7 +62,6 @@ export function formValuesToPodcastUpdate(values: Partial<EditPodcastFormValues>
 
     // Podcast config fields
     config: {
-      output_language: values.language,
       episode_frequency: values.episodeFrequency,
       podcast_format: values.podcastFormat,
       speaker1_role: values.speaker1Role,

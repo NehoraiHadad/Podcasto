@@ -260,7 +260,7 @@ export interface UnifiedPodcastDisplay {
     is_paused: boolean;
     created_by: string | null;
     podcast_group_id: string | null;
-    language_code: string | null;
+    language_code: string; // Always has fallback to 'en'
     migration_status: string | null;
     created_at: Date | null;
     updated_at: Date | null;
@@ -334,7 +334,7 @@ export async function getAllPodcastsForDisplay(): Promise<UnifiedPodcastDisplay[
         is_paused: podcast.is_paused,
         created_by: podcast.created_by,
         podcast_group_id: podcast.podcast_group_id,
-        language_code: podcast.language_code,
+        language_code: podcast.language_code || 'en', // Default to English if null
         migration_status: podcast.migration_status,
         created_at: podcast.created_at,
         updated_at: podcast.updated_at,

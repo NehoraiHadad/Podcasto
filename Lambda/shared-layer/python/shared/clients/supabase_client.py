@@ -57,13 +57,38 @@ class SupabaseClient:
             logger.error(f"[SUPABASE] Error getting episode {episode_id}: {e}")
             return None
     
+    def get_podcast(self, podcast_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get podcast by ID
+
+        Args:
+            podcast_id: The podcast ID
+
+        Returns:
+            Podcast data or None if not found
+        """
+        try:
+            result = self.client.table('podcasts').select('*').eq('id', podcast_id).execute()
+
+            if result.data and len(result.data) > 0:
+                podcast = result.data[0]
+                logger.info(f"[SUPABASE] Found podcast: {podcast_id}")
+                return podcast
+            else:
+                logger.warning(f"[SUPABASE] Podcast not found: {podcast_id}")
+                return None
+
+        except Exception as e:
+            logger.error(f"[SUPABASE] Error getting podcast {podcast_id}: {e}")
+            return None
+
     def get_podcast_config(self, podcast_id: str) -> Optional[Dict[str, Any]]:
         """
         Get podcast configuration by podcast ID using RPC function to bypass RLS
-        
+
         Args:
             podcast_id: The podcast ID
-            
+
         Returns:
             Podcast config data or None if not found
         """
@@ -72,7 +97,7 @@ class SupabaseClient:
                 "get_podcast_config_by_podcast_id",
                 {"p_podcast_id": podcast_id}
             ).execute()
-            
+
             if result.data and result.data.get('success', False):
                 config = result.data.get('data')
                 logger.info(f"[SUPABASE] Found podcast config for: {podcast_id}")
@@ -81,7 +106,7 @@ class SupabaseClient:
                 error = result.data.get('error') if result.data else "Unknown error"
                 logger.warning(f"[SUPABASE] Podcast config not found for: {podcast_id}, error: {error}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"[SUPABASE] Error getting podcast config for {podcast_id}: {e}")
             return None

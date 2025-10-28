@@ -80,7 +80,7 @@ export default async function MyPodcastsPage({ searchParams }: MyPodcastsPagePro
       is_paused: podcastRow.is_paused,
       created_by: podcastRow.created_by,
       podcast_group_id: podcastRow.podcast_group_id,
-      language_code: podcastRow.language_code,
+      language_code: podcastRow.language_code || 'en', // Default to English if null (should not happen after migration)
       migration_status: podcastRow.migration_status,
       auto_generation_enabled: podcastRow.auto_generation_enabled,
       last_auto_generated_at: podcastRow.last_auto_generated_at

@@ -3,6 +3,7 @@ import 'server-only';
 import * as dbUtils from '../../utils';
 import { podcasts } from '../../schema';
 import { getPublishedPodcastEpisodes } from './episodes';
+import { languageCodeToFull } from '@/lib/utils/language-mapper';
 import type { Podcast, PodcastWithConfig } from './types';
 
 /**
@@ -50,7 +51,8 @@ export async function enrichPodcastWithConfig(
     // Basic settings
     podcastWithCount.creator = podcastConfig.creator;
     podcastWithCount.podcast_name = podcastConfig.podcast_name;
-    podcastWithCount.output_language = podcastConfig.language as
+    // Convert language code from podcasts table to full name
+    podcastWithCount.output_language = languageCodeToFull(podcast.language_code || 'en') as
       | 'english'
       | 'hebrew';
     podcastWithCount.slogan = podcastConfig.slogan || '';

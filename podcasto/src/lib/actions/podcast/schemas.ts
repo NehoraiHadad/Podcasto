@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { SUPPORTED_OUTPUT_LANGUAGES } from '@/lib/constants/languages';
+import { getSupportedLanguageCodes, type LanguageCode } from '@/lib/utils/language-mapper';
+
+// Supported language codes for validation
+const SUPPORTED_LANGUAGE_CODES = getSupportedLanguageCodes() as [LanguageCode, ...LanguageCode[]];
 
 // Common response type for all podcast actions
 export type ActionResponse = {
@@ -25,7 +29,7 @@ export const podcastCreationSchema = z.object({
 
   // Basic Settings
   podcastName: z.string().min(3),
-  outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
+  languageCode: z.enum(SUPPORTED_LANGUAGE_CODES),
   slogan: z.string().optional(),
   creativityLevel: z.number().min(0).max(1),
 
@@ -86,7 +90,7 @@ export const podcastUpdateSchema = z.object({
   // Basic settings fields (optional)
   creator: z.string().optional(),
   podcastName: z.string().optional(),
-  outputLanguage: z.enum(SUPPORTED_OUTPUT_LANGUAGES).optional(),
+  languageCode: z.enum(SUPPORTED_LANGUAGE_CODES).optional(),
   slogan: z.string().optional(),
   creativityLevel: z.number().optional(),
   // Episode settings fields (optional)

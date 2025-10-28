@@ -28,7 +28,7 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
     // Log the input data for debugging
     console.log("Updating podcast config with data:", {
       id: data.id,
-      outputLanguage: data.outputLanguage
+      languageCode: data.languageCode
     });
 
     // Build the update config object
@@ -39,7 +39,7 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
     try {
       if (existingConfig) {
         await podcastConfigsApi.updatePodcastConfigByPodcastId(data.id, updateConfig);
-        console.log("Updated existing podcast config, language field =", updateConfig.language);
+        console.log("Updated existing podcast config");
       } else {
         // For new configs, ensure required fields are present
         const podcastFormat = data.podcastFormat || 'multi-speaker';
@@ -47,7 +47,7 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
           content_source: data.contentSource || 'telegram',
           creator: data.creator || 'Unknown',
           podcast_name: data.podcastName || data.title,
-          language: data.outputLanguage || 'english',
+          // NOTE: language field removed - now using podcasts.language_code
           creativity_level: data.creativityLevel !== undefined ? Math.round(data.creativityLevel * 100) : 70,
           conversation_style: data.conversationStyle || 'engaging',
           podcast_format: podcastFormat,

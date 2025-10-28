@@ -423,6 +423,7 @@ export async function createPodcastGroupWithNewPodcastsAction(
           description: langData.description,
           cover_image: langData.cover_image || null,
           image_style: langData.image_style || null,
+          language_code: langData.language_code, // ISO language code
           created_at: new Date(),
           updated_at: new Date(),
         });
@@ -448,7 +449,7 @@ export async function createPodcastGroupWithNewPodcastsAction(
           creator: langData.creator,
           podcast_name: langData.podcastName,
           slogan: langData.slogan || null,
-          language: langData.outputLanguage,
+          // NOTE: language removed - now using podcasts.language_code instead
           creativity_level: Math.round(langData.creativityLevel * 100),
           podcast_format: langData.podcastFormat || 'multi-speaker',
           conversation_style: langData.conversationStyle,
@@ -666,6 +667,7 @@ export async function createPremiumPodcastAction(
         description: fullLanguageData.description,
         cover_image: fullLanguageData.cover_image || null,
         image_style: fullLanguageData.image_style || null,
+        language_code: fullLanguageData.language_code, // ISO language code
         created_by: user.id,
         created_at: new Date(),
         updated_at: new Date(),
@@ -690,7 +692,7 @@ export async function createPremiumPodcastAction(
         creator: fullLanguageData.creator,
         podcast_name: fullLanguageData.podcastName,
         slogan: fullLanguageData.slogan || null,
-        language: fullLanguageData.outputLanguage,
+        // NOTE: language removed - now using podcasts.language_code instead
         creativity_level: Math.round(fullLanguageData.creativityLevel * 100),
         podcast_format: fullLanguageData.podcastFormat || 'multi-speaker',
         conversation_style: fullLanguageData.conversationStyle,
@@ -859,6 +861,7 @@ export async function createUserPodcastAction(
         description: fullLanguageData.description,
         cover_image: fullLanguageData.cover_image || null,
         image_style: fullLanguageData.image_style || null,
+        language_code: fullLanguageData.language_code, // ISO language code
         created_by: user.id,
         created_at: new Date(),
         updated_at: new Date(),
@@ -883,7 +886,7 @@ export async function createUserPodcastAction(
         creator: fullLanguageData.creator,
         podcast_name: fullLanguageData.podcastName,
         slogan: fullLanguageData.slogan || null,
-        language: fullLanguageData.outputLanguage,
+        // NOTE: language removed - now using podcasts.language_code instead
         creativity_level: Math.round(fullLanguageData.creativityLevel * 100),
         podcast_format: fullLanguageData.podcastFormat,
         conversation_style: fullLanguageData.conversationStyle,

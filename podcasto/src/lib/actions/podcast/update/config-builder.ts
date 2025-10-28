@@ -33,7 +33,7 @@ export function buildConfigUpdateObject(
     creator: { dataKey: 'creator', configKey: 'creator' },
     podcastName: { dataKey: 'podcastName', configKey: 'podcast_name' },
     slogan: { dataKey: 'slogan', configKey: 'slogan' },
-    outputLanguage: { dataKey: 'outputLanguage', configKey: 'language' },
+    // NOTE: language field removed - now using podcasts.language_code
     conversationStyle: { dataKey: 'conversationStyle', configKey: 'conversation_style' },
     podcastFormat: { dataKey: 'podcastFormat', configKey: 'podcast_format' },
     speaker1Role: { dataKey: 'speaker1Role', configKey: 'speaker1_role' },
@@ -48,22 +48,11 @@ export function buildConfigUpdateObject(
       const dataValue = data[dataKey as keyof PodcastUpdateData];
       const existingValue = existingConfig?.[configKey];
 
-      // Add debug logging for language field
-      if (dataKey === 'outputLanguage') {
-        console.log(`Mapping outputLanguage: dataValue=${dataValue}, existingValue=${existingValue}`);
-      }
-
       // Only add the field if the value is not undefined and not null
       if (dataValue !== undefined && dataValue !== null) {
         updateConfig[configKey] = dataValue;
-        if (dataKey === 'outputLanguage') {
-          console.log(`Set ${configKey}=${dataValue} from input data`);
-        }
       } else if (existingValue !== undefined && existingValue !== null) {
         updateConfig[configKey] = existingValue;
-        if (dataKey === 'outputLanguage') {
-          console.log(`Set ${configKey}=${existingValue} from existing config`);
-        }
       }
     } catch (err) {
       console.error(`Error mapping field ${dataKey}:`, err);

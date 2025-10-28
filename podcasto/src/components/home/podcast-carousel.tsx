@@ -53,7 +53,7 @@ export async function PodcastCarousel() {
           is_paused: item.podcast_data!.is_paused,
           created_by: item.podcast_data!.created_by,
           podcast_group_id: null,
-          language_code: null,
+          language_code: item.podcast_data!.language_code || 'en',
           migration_status: 'legacy' as const,
           auto_generation_enabled: item.podcast_data!.auto_generation_enabled,
           last_auto_generated_at: item.podcast_data!.last_auto_generated_at,

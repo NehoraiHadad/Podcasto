@@ -7,7 +7,8 @@ import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
  * Creates pending episode records with metadata for tracking.
  */
 
-import { episodesApi, podcastConfigsApi } from '@/lib/db/api';
+import { episodesApi, podcastConfigsApi, podcastsApi } from '@/lib/db/api';
+import { languageCodeToFull } from '@/lib/utils/language-mapper';
 import type { DateRange, EpisodeCreationResult } from './types';
 
 /**
@@ -27,9 +28,10 @@ export async function createPendingEpisode(
   userId?: string
 ): Promise<EpisodeCreationResult> {
   try {
-    // Get podcast config to retrieve language
-    const podcastConfig = await podcastConfigsApi.getPodcastConfigByPodcastId(podcastId);
-    const language = podcastConfig?.language || 'english'; // Default to English if not set
+    // Get podcast to retrieve language_code
+    const podcast = await podcastsApi.getPodcastById(podcastId);
+    // Convert language code to full name for Lambda
+    const language = languageCodeToFull(podcast?.language_code || 'en');
 
     const episode = await episodesApi.createEpisode({
       podcast_id: podcastId,

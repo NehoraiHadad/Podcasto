@@ -32,7 +32,7 @@ class SQSClient:
             self.sqs_client = None
             logger.info("Running in local environment, SQS operations will be simulated")
     
-    def send_message(self, podcast_config_id: str, result_data: Dict[str, Any], timestamp: str, podcast_format: str = 'multi-speaker') -> bool:
+    def send_message(self, podcast_config_id: str, result_data: Dict[str, Any], timestamp: str, podcast_format: str = 'multi-speaker', language_code: str = 'en') -> bool:
         """
         Send a message to the SQS queue.
 
@@ -41,6 +41,7 @@ class SQSClient:
             result_data: The result data from the channel processor
             timestamp: The timestamp for consistent folder structure
             podcast_format: Podcast format (single-speaker or multi-speaker)
+            language_code: ISO 639-1 language code (e.g., 'he', 'en')
 
         Returns:
             True if the message was sent successfully, False otherwise
@@ -48,11 +49,11 @@ class SQSClient:
         if not self.queue_url:
             logger.error("Cannot send SQS message: SQS_QUEUE_URL environment variable not set")
             return False
-            
+
         # Extract the episode_id from result_data if available
         episode_id = result_data.get('episode_id', timestamp)
         s3_path = result_data.get('s3_path', '')
-        
+
         # Extract the podcast_id from result_data if available (separate from config_id)
         podcast_id = result_data.get('podcast_id', podcast_config_id)
 
@@ -64,10 +65,11 @@ class SQSClient:
             'episode_id': episode_id,
             's3_path': s3_path,
             'content_url': s3_path,  # Use the full S3 path for content URL
-            'podcast_format': podcast_format  # Add podcast format to message
+            'podcast_format': podcast_format,  # Add podcast format to message
+            'language_code': language_code  # Add ISO language code to message
         }
 
-        logger.info(f"[TELEGRAM_LAMBDA] Preparing SQS message with podcast_format: {podcast_format}")
+        logger.info(f"[TELEGRAM_LAMBDA] Preparing SQS message with podcast_format: {podcast_format}, language_code: {language_code}")
         message_body = json.dumps(message)
         
         if self.is_local or not self.sqs_client:
