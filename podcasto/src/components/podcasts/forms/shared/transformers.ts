@@ -20,7 +20,7 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     description: podcast.description,
     cover_image: podcast.cover_image,
     image_style: podcast.image_style,
-    language: config?.output_language || podcast.language_code || 'english',
+    language: config?.language || podcast.language_code || 'english',
     episodeFrequency: config?.episode_frequency || 7,
     autoGeneration: podcast.auto_generation,
     podcastFormat: config?.podcast_format || 'multi-speaker',
