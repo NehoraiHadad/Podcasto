@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { User } from '@supabase/supabase-js';
@@ -19,14 +18,8 @@ interface ClientHeaderProps {
  * Uses modular sub-components for navigation, profile menu, and auth buttons
  */
 export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps) {
-  const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
-  const [user, setUser] = useState(initialUser);
-
-  // Update admin status when user changes
-  useEffect(() => {
-    setIsAdmin(initialIsAdmin);
-    setUser(initialUser);
-  }, [initialUser, initialIsAdmin]);
+  const user = initialUser;
+  const isAdmin = initialIsAdmin;
 
   return (
     <header className="bg-background border-b border-border/40 backdrop-blur-sm sticky top-0 z-40">
