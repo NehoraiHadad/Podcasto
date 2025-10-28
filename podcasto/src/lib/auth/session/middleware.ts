@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
+import type { UserResponse } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 
 /**
@@ -84,22 +85,41 @@ export function createMiddlewareClient(
  * IMPORTANT: This calls getUser() to validate and refresh the session.
  *
  * @param request - The Next.js request object
- * @returns A response with updated cookies
+ * @returns An object containing the response with updated cookies and the
+ * user fetch result
  *
  * @example
  * ```typescript
  * export async function middleware(request: NextRequest) {
- *   const response = await updateSession(request);
+ *   const { response } = await updateSession(request);
  *   return response;
  * }
  * ```
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export type UpdateSessionResult = {
+  response: NextResponse;
+  userResult: UserResponse | null;
+};
+
+export async function updateSession(request: NextRequest): Promise<UpdateSessionResult> {
   const { client, response } = createMiddlewareClient(request);
 
   // IMPORTANT: DO NOT REMOVE auth.getUser() - This refreshes the session if needed
   // This is the 2025 Supabase SSR best practice for middleware
-  await client.auth.getUser();
+  let userResult: UserResponse | null = null;
 
-  return response as NextResponse;
+  try {
+    userResult = await client.auth.getUser();
+
+    if (userResult.error) {
+      console.error('[Middleware] Failed to fetch user during session update', userResult.error);
+    }
+  } catch (error) {
+    console.error('[Middleware] Unexpected error during session update', error);
+  }
+
+  return {
+    response: response as NextResponse,
+    userResult,
+  };
 }

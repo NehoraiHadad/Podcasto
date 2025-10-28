@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createMiddlewareClient, updateSession } from '@/lib/auth/session/middleware';
+import { updateSession } from '@/lib/auth/session/middleware';
 
 // ============================================================================
 // Configuration
@@ -128,7 +128,7 @@ export async function middleware(request: NextRequest) {
 
   // First, update the session - this refreshes the auth token if needed
   // CRITICAL: This calls getUser() internally, which validates the JWT
-  const response = await updateSession(request);
+  const { response, userResult } = await updateSession(request);
 
   // Check route requirements
   const needsAuth = requiresAuth(pathname);
@@ -148,13 +148,18 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get user information to check authentication status
-  const { client } = createMiddlewareClient(request, response);
+  if (!userResult) {
+    debugLog('User fetch result missing after session update', { pathname });
+  }
 
-  // ✅ CORRECT: Use getUser() for authentication checks
-  // This validates the JWT token server-side
-  const {
-    data: { user },
-  } = await client.auth.getUser();
+  const user = userResult?.data.user ?? null;
+
+  if (userResult?.error) {
+    debugLog('User fetch returned an error after session update', {
+      pathname,
+      error: userResult.error.message,
+    });
+  }
 
   debugLog('User status', {
     authenticated: !!user,
