@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { podcastGroups, podcastLanguages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { fetchPodcastGroupsWithLanguages } from './fetch-groups';
 
 /**
  * GET /api/podcast-groups
@@ -32,40 +30,7 @@ export async function GET() {
     }
 
     // Fetch all podcast groups with their languages
-    const groups = await db
-      .select({
-        id: podcastGroups.id,
-        base_title: podcastGroups.base_title,
-        base_description: podcastGroups.base_description,
-        base_cover_image: podcastGroups.base_cover_image,
-        created_at: podcastGroups.created_at,
-        updated_at: podcastGroups.updated_at,
-      })
-      .from(podcastGroups)
-      .orderBy(podcastGroups.created_at);
-
-    // Fetch languages for each group
-    const groupsWithLanguages = await Promise.all(
-      groups.map(async (group) => {
-        const languages = await db
-          .select({
-            id: podcastLanguages.id,
-            language_code: podcastLanguages.language_code,
-            title: podcastLanguages.title,
-            is_primary: podcastLanguages.is_primary,
-            podcast_id: podcastLanguages.podcast_id,
-          })
-          .from(podcastLanguages)
-          .where(eq(podcastLanguages.podcast_group_id, group.id))
-          .orderBy(podcastLanguages.language_code);
-
-        return {
-          ...group,
-          languages,
-          language_count: languages.length,
-        };
-      })
-    );
+    const groupsWithLanguages = await fetchPodcastGroupsWithLanguages();
 
     // Serialize dates
     const serialized = groupsWithLanguages.map((group) => ({
