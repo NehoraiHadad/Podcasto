@@ -1,9 +1,9 @@
 import { createServerClient } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import { NotificationSettingsForm } from '@/components/settings/notification-settings-form';
 import { SubscriptionList } from '@/components/settings/subscription-list';
 import type { Database } from '@/lib/supabase/types';
 import { Separator } from '@/components/ui/separator';
+import { requireAuth } from '@/lib/actions/user-actions';
 
 // Force dynamic rendering because this page uses authentication (cookies)
 export const dynamic = 'force-dynamic';
@@ -14,33 +14,22 @@ export const metadata = {
 };
 
 export default async function NotificationsSettingsPage() {
+  const user = await requireAuth('/settings/notifications');
   const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/auth/login');
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('email_notifications')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error('Failed to load profile preferences', profileError);
-  }
-
-  const emailNotifications = profile?.email_notifications ?? true;
-
-  type SubscriptionWithPodcast = Database['public']['Tables']['subscriptions']['Row'] & {
-    podcasts: Pick<Database['public']['Tables']['podcasts']['Row'], 'id' | 'title' | 'description' | 'cover_image'> | null;
-  };
-
-  const { data: subscriptionRows, error: subscriptionsError } = await supabase
-    .from('subscriptions')
-    .select(
-      `
+  const [
+    { data: profile, error: profileError },
+    { data: subscriptionRows, error: subscriptionsError },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('email_notifications')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('subscriptions')
+      .select(
+        `
         id,
         podcast_id,
         email_notifications,
@@ -52,9 +41,20 @@ export default async function NotificationsSettingsPage() {
           cover_image
         )
       `
-    )
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true });
+      )
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (profileError) {
+    console.error('Failed to load profile preferences', profileError);
+  }
+
+  const emailNotifications = profile?.email_notifications ?? true;
+
+  type SubscriptionWithPodcast = Database['public']['Tables']['subscriptions']['Row'] & {
+    podcasts: Pick<Database['public']['Tables']['podcasts']['Row'], 'id' | 'title' | 'description' | 'cover_image'> | null;
+  };
 
   if (subscriptionsError) {
     console.error('Failed to load subscriptions', subscriptionsError);
