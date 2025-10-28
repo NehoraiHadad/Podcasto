@@ -103,10 +103,10 @@ export const podcastUpdateSchema = z.object({
   speaker2Role: z.string().optional(),
   // Mixing techniques (optional)
   mixingTechniques: z.array(z.string().optional()).optional(),
-  additionalInstructions: z.string().optional(),
+  additionalInstructions: z.string().nullish(),
   // Intro/Outro prompts (optional)
-  introPrompt: z.string().optional(),
-  outroPrompt: z.string().optional(),
+  introPrompt: z.string().nullish(),
+  outroPrompt: z.string().nullish(),
   // Auto-generation setting (optional)
   autoGeneration: z.boolean().optional(),
 }).superRefine((data, ctx) => {
