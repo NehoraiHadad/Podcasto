@@ -5,8 +5,10 @@
  *
  * Read-only role query functions with request-level caching.
  * All queries use React's cache() for performance optimization.
- */import { cache } from 'react';
+ */
+import { cache } from 'react';
 import { userRolesApi } from '@/lib/db/api';
+import { getUser } from '../session';
 import {
   PERMISSIONS,
   ROLES,
@@ -85,6 +87,32 @@ export const isAdmin = cache(async (userId: string): Promise<boolean> => {
 });
 
 /**
+ * Get the current user's admin status using cached role queries.
+ *
+ * Combines the authenticated user lookup with the cached admin role check,
+ * ensuring both operations benefit from the shared request cache.
+ */
+type AdminStatus = {
+  isAdmin: boolean;
+  user: Awaited<ReturnType<typeof getUser>>;
+};
+
+export const getAdminStatus = cache(async (): Promise<AdminStatus> => {
+  const user = await getUser();
+
+  if (!user) {
+    return { isAdmin: false, user: null };
+  }
+
+  const admin = await isAdmin(user.id);
+
+  return {
+    isAdmin: admin,
+    user,
+  };
+});
+
+/**
  * Check if user has a specific permission (cached per request)
  *
  * Checks all user roles for the permission. Supports wildcard permissions.
@@ -150,5 +178,6 @@ export const getUserPermissions = cache(
 
     // Return unique permissions
     return Array.from(new Set(allPermissions));
+  }
   }
 );

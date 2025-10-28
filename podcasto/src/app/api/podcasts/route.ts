@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPodcastsBasic, getPodcastsEligibleForMigration } from '@/lib/db/api/podcasts/queries';
-import { createServerClient } from '@/lib/auth';
+import { getUser, isAdmin } from '@/lib/auth';
 
 /**
  * GET /api/podcasts
@@ -12,21 +12,16 @@ import { createServerClient } from '@/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const supabase = await createServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single<{ role: string }>();
+    // Check admin role using cached role queries
+    const hasAdminAccess = await isAdmin(user.id);
 
-    if (!userRoles || userRoles.role !== 'admin') {
+    if (!hasAdminAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
