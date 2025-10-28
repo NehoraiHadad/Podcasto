@@ -8,13 +8,6 @@
       "when": 1761315441451,
       "tag": "0000_loving_sphinx",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761315441452,
-      "tag": "0001_enable_rls_profiles_subscriptions_podcasts",
-      "breakpoints": false
     }
   ]
 }
