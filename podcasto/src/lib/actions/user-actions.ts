@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import type { User } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
@@ -16,7 +16,7 @@ import { eq } from 'drizzle-orm';
  * @returns The authenticated user or null if not authenticated
  */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  return await getUser();
+  return await SessionService.getUser();
 });
 
 /**
@@ -28,7 +28,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
  * @throws Redirects to login page if not authenticated
  */
 export const requireAuth = async (redirectTo?: string): Promise<User> => {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     // Redirect to login with optional redirect parameter

@@ -3,7 +3,7 @@
 import { creditService, type EnsureSignupCreditsResult } from '@/lib/services/credits';
 import { getUserCredits, getUserTransactionHistory } from '@/lib/db/api/credits';
 import type { ActionResult } from '../shared/types';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 
 /**
  * Credit Core Actions
@@ -34,7 +34,7 @@ export interface TransactionData {
  */
 export async function getUserCreditsAction(): Promise<ActionResult<UserCreditsData>> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
     if (!user) {
       return {
         success: false,
@@ -102,7 +102,7 @@ export async function getTransactionHistoryAction(
   limit: number = 50
 ): Promise<ActionResult<TransactionData[]>> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
     if (!user) {
       return {
         success: false,
@@ -146,7 +146,7 @@ export async function checkCreditsForEpisodeAction(): Promise<
   }>
 > {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
     if (!user) {
       return {
         success: false,

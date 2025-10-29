@@ -1,6 +1,6 @@
 'use server';
 
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import {
   getUserPlanType,
   isUserPremium,
@@ -18,7 +18,7 @@ export async function getUserPlanTypeAction(): Promise<{
   success: boolean;
   planType: PlanType;
 }> {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     return { success: true, planType: 'free' };
@@ -36,7 +36,7 @@ export async function checkUserPremiumAction(): Promise<{
   isPremium: boolean;
   planType: PlanType;
 }> {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     return { success: true, isPremium: false, planType: 'free' };
@@ -64,7 +64,7 @@ export async function checkAdvancedPodcastAccessAction(): Promise<{
   accessReason?: 'subscription' | 'credits';
   subscription?: UserSubscription | null;
 }> {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     return {

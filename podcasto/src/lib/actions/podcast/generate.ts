@@ -6,7 +6,7 @@
  */
 
 import { revalidatePath } from 'next/cache';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import {
   checkEnvironmentConfiguration,
   validateDateRange,
@@ -52,7 +52,7 @@ export async function generatePodcastEpisode(
     }
 
     // Get current user if available (will be null for cron jobs)
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     // Log the generation request
     console.log(`[PODCAST_GEN] Starting generation for podcast ID: ${podcastId}`);
@@ -260,7 +260,7 @@ export async function generatePodcastEpisode(
 
     // Log the error attempt
     try {
-      const user = await getUser();
+      const user = await SessionService.getUser();
       const triggerSource = await determineTriggerSource(user);
 
       await logGenerationAttempt({

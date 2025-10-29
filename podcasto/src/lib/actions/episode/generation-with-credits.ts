@@ -2,7 +2,7 @@
 
 import { nowUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
 import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import { creditService } from '@/lib/services/credits';
 import { podcastsApi, episodesApi, podcastConfigsApi } from '@/lib/db/api';
 import { checkIsAdmin } from '../admin/auth-actions';
@@ -29,7 +29,7 @@ export async function generateEpisodeWithCreditsAction(
 ): Promise<ActionResult<GenerationResult>> {
   try {
     // Get current user
-    const user = await getUser();
+    const user = await SessionService.getUser();
     if (!user) {
       return {
         success: false,
@@ -370,7 +370,7 @@ export async function generateEpisodeWithCreditsAction(
 
     // Log the error attempt
     try {
-      const currentUser = await getUser();
+      const currentUser = await SessionService.getUser();
       const triggerSource = await determineTriggerSource(currentUser);
       await logGenerationAttempt({
         podcastId,

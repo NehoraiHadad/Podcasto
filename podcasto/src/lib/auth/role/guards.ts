@@ -5,7 +5,8 @@
  *
  * Guard functions that throw errors on authorization failure.
  * Use these at the start of protected server actions to enforce access control.
- */import { getUser } from '../session/getters';
+ */import { SessionService } from '../session';
+  const user = await SessionService.getUser();
 import {
   UnauthorizedError,
   InsufficientPermissionsError,

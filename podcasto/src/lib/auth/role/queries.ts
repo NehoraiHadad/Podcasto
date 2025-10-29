@@ -8,7 +8,7 @@
  */
 import { cache } from 'react';
 import { userRolesApi } from '@/lib/db/api';
-import { getUser } from '../session';
+import { SessionService } from '../session';
 import {
   PERMISSIONS,
   ROLES,
@@ -96,11 +96,11 @@ export const isAdmin = cache(isAdminImpl);
  */
 type AdminStatus = {
   isAdmin: boolean;
-  user: Awaited<ReturnType<typeof getUser>> | null;
+  user: Awaited<ReturnType<typeof SessionService.getUser>> | null;
 };
 
 const getAdminStatusImpl = async (): Promise<AdminStatus> => {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     return { isAdmin: false, user: null };

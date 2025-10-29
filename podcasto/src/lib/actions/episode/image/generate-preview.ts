@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin, getUser } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { createPostProcessingWithConfig, extractEpisodeDescription } from '@/lib/utils/post-processing-utils';
 
@@ -20,7 +20,7 @@ export async function generateEpisodeImagePreview(
 }> {
   // Ensure the user is an admin
   await requireAdmin();
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   try {
     // Get the episode

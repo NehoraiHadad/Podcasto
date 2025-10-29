@@ -7,7 +7,7 @@ import {
   initializeSystemSettings,
 } from '@/lib/db/api/system-settings';
 import { SYSTEM_SETTING_KEYS } from '@/lib/db/schema/system-settings';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -64,7 +64,7 @@ export async function updateSystemSettingAction(
   }
 
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
     await updateSystemSetting(key, value, user?.id);
 
     return createSuccessResponse({

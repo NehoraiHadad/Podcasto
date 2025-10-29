@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { User } from '@supabase/supabase-js';
-import { getUser, isAdmin } from '@/lib/auth';
+import { SessionService, isAdmin } from '@/lib/auth';
 
 export type EnsureAdminFailureReason = 'unauthorized' | 'forbidden';
 
@@ -41,7 +41,7 @@ export type EnsureAdminResult = EnsureAdminSuccess | EnsureAdminFailure;
 
 /**
  * Ensure the current request is authenticated as an administrator.
- * Performs a `getUser()` lookup and verifies the admin role via `isAdmin()`.
+ * Performs a `SessionService.getUser()` lookup and verifies the admin role via `isAdmin()`.
  * Returns either a `NextResponse` ready to be returned from the route handler or the authenticated user.
  */
 export async function ensureAdmin(options: EnsureAdminOptions = {}): Promise<EnsureAdminResult> {
@@ -54,7 +54,7 @@ export async function ensureAdmin(options: EnsureAdminOptions = {}): Promise<Ens
     onFailure,
   } = options;
 
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     if (onFailure) {
