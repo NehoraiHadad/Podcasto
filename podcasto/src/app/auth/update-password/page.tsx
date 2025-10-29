@@ -61,13 +61,14 @@ function UpdatePasswordForm() {
 
     try {
       // Update the user's password using the server action with the code
-      const { error: updateError } = await updatePasswordWithCode({
+      const result = await updatePasswordWithCode({
         password,
         code
       });
 
-      if (updateError) {
-        setError(updateError.message);
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'Failed to update password';
+        setError(message);
         return;
       }
 

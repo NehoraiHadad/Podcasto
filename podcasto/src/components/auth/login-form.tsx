@@ -34,12 +34,11 @@ function LoginFormContent() {
     setError(null);
 
     try {
-      const { error } = await signInWithPassword(email, password);
-      
-      if (error) {
-        setError(typeof error === 'object' && error !== null && 'message' in error 
-          ? String(error.message) 
-          : 'An error occurred during login');
+      const result = await signInWithPassword(email, password);
+
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during login';
+        setError(message);
         return;
       }
       
@@ -60,19 +59,18 @@ function LoginFormContent() {
     
     try {
       // Use server action for Google sign in
-      const { data, error } = await signInWithGoogle();
-      
-      if (error) {
-        setError(typeof error === 'object' && error !== null && 'message' in error 
-          ? String(error.message) 
-          : 'An error occurred during Google login');
+      const result = await signInWithGoogle();
+
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during Google login';
+        setError(message);
         return;
       }
-      
+
       // Redirect to the URL returned by the server action
-      if (data?.url) {
+      if (result.data?.url) {
         // Add the redirect path to the URL if it exists
-        const url = new URL(data.url);
+        const url = new URL(result.data.url);
         if (redirectPath !== '/') {
           url.searchParams.set('redirect', redirectPath);
         }

@@ -20,12 +20,11 @@ export function ResetPasswordForm() {
     setSuccess(null);
 
     try {
-      const { error } = await resetPassword(email);
-      
-      if (error) {
-        setError(typeof error === 'object' && error !== null && 'message' in error 
-          ? String(error.message) 
-          : 'An error occurred while sending the reset password email');
+      const result = await resetPassword(email);
+
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred while sending the reset password email';
+        setError(message);
         return;
       }
       
