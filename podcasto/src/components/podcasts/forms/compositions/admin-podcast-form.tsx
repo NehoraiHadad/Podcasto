@@ -96,7 +96,10 @@ export function AdminPodcastForm({
   // Remove a language variant
   const removeLanguageVariant = (index: number) => {
     if (languageCount === 1) {
-      toast.error('Cannot remove the last language variant');
+      toast.error('Cannot Remove Language', {
+        description: 'At least one language variant is required for the podcast.',
+        duration: 4000,
+      });
       return;
     }
 
@@ -163,8 +166,14 @@ export function AdminPodcastForm({
         const variantCount = values.languages.length;
         toast.success(
           variantCount === 1
-            ? 'Podcast created successfully'
-            : `Podcast group created successfully with ${variantCount} language variants`
+            ? 'Podcast Created Successfully!'
+            : `Podcast Group Created!`,
+          {
+            description: variantCount === 1
+              ? `Your podcast "${values.languages[0].title}" is ready. You can now start generating episodes.`
+              : `Successfully created ${variantCount} language variants. All variants are ready for episode generation.`,
+            duration: 5000,
+          }
         );
 
         if (onSuccess && result.data?.languages?.[0]?.podcast_id) {
@@ -174,11 +183,17 @@ export function AdminPodcastForm({
         // Redirect to admin podcasts page
         router.push('/admin/podcasts');
       } else {
-        toast.error(result.error || 'Failed to create podcast');
+        toast.error('Failed to Create Podcast', {
+          description: result.error || 'Please check your input and try again. If the problem persists, contact support.',
+          duration: 6000,
+        });
       }
     } catch (error) {
       console.error('[AdminPodcastForm] Submission error:', error);
-      toast.error('An unexpected error occurred');
+      toast.error('Unexpected Error Occurred', {
+        description: 'Something went wrong while creating your podcast. Please try again or contact support if the issue continues.',
+        duration: 6000,
+      });
     } finally {
       setIsSubmitting(false);
     }

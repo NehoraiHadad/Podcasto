@@ -118,7 +118,13 @@ export function PodcastEditForm({
       const result = await updatePodcast(payload);
 
       if (result.success) {
-        toast.success('Podcast updated successfully');
+        const formatChanged = watchedFormat !== originalFormat;
+        toast.success('Podcast Updated Successfully!', {
+          description: formatChanged
+            ? `Your podcast "${values.title}" has been updated. Note: Format changed from ${originalFormat} to ${watchedFormat}.`
+            : `Your podcast "${values.title}" has been updated with the latest changes.`,
+          duration: 5000,
+        });
 
         if (onSuccess) {
           onSuccess();
@@ -128,11 +134,17 @@ export function PodcastEditForm({
           router.push(redirectPath);
         }
       } else {
-        toast.error(result.error || 'Failed to update podcast');
+        toast.error('Failed to Update Podcast', {
+          description: result.error || 'Please check your input and try again. If the problem persists, contact support.',
+          duration: 6000,
+        });
       }
     } catch (error) {
       console.error('[PodcastEditForm] Submission error:', error);
-      toast.error('An unexpected error occurred');
+      toast.error('Unexpected Error Occurred', {
+        description: 'Something went wrong while updating your podcast. Please try again or contact support if the issue continues.',
+        duration: 6000,
+      });
     } finally {
       setIsSubmitting(false);
     }
