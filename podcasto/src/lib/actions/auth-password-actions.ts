@@ -1,12 +1,16 @@
 'use server';
 
-import { createServerClient } from '@/lib/auth';
 import { getURL } from '@/lib/utils/url';
-import {
-  handleSupabaseAuthError,
-  authErrorToResult,
-  logAuthError,
-} from '@/lib/auth';
+import { createAuthError, AuthenticationError, logAuthError } from '@/lib/auth';
+import { runAuthAction } from './shared';
+
+function withStage(error: unknown, stage: string) {
+  const authError = createAuthError(error);
+  return new AuthenticationError(authError.code, authError.message, {
+    ...authError.context,
+    stage,
+  });
+}
 
 /**
  * Server action to reset password
@@ -15,25 +19,23 @@ import {
  * @returns Result with error if failed
  */
 export const resetPassword = async (email: string) => {
-  try {
-    const supabase = await createServerClient();
+  return runAuthAction(
+    async (supabase) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${getURL()}auth/update-password`,
+      });
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getURL()}auth/update-password`,
-    });
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'resetPassword', email });
-      return authErrorToResult(authError);
+      if (error) {
+        throw error;
+      }
+    },
+    {
+      logContext: {
+        action: 'resetPassword',
+        email,
+      },
     }
-
-    return { success: true };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'resetPassword', email });
-    return authErrorToResult(authError);
-  }
+  );
 };
 
 /**
@@ -45,25 +47,22 @@ export const resetPassword = async (email: string) => {
  * @returns Result with error if failed
  */
 export const updatePassword = async (password: string) => {
-  try {
-    const supabase = await createServerClient();
+  return runAuthAction(
+    async (supabase) => {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
 
-    const { error } = await supabase.auth.updateUser({
-      password,
-    });
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'updatePassword' });
-      return authErrorToResult(authError);
+      if (error) {
+        throw error;
+      }
+    },
+    {
+      logContext: {
+        action: 'updatePassword',
+      },
     }
-
-    return { success: true };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'updatePassword' });
-    return authErrorToResult(authError);
-  }
+  );
 };
 
 /**
@@ -88,42 +87,34 @@ export const updatePasswordWithCode = async ({
   password: string;
   code: string;
 }) => {
-  try {
-    const supabase = await createServerClient();
+  return runAuthAction(
+    async (supabase) => {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    // Verify the code and exchange it for a session
-    // This is a crucial step - it validates the reset code and creates a session
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        const authError = withStage(error, 'exchange_code');
+        logAuthError(authError, {
+          action: 'updatePasswordWithCode',
+          stage: 'exchange_code',
+        });
+        throw authError;
+      }
 
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, {
-        action: 'updatePasswordWithCode',
-        context: 'exchange_code',
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
       });
-      return authErrorToResult(authError);
-    }
 
-    // Now that we have a valid session, update the password
-    // The session is automatically used by the Supabase client
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    });
+      if (updateError) {
+        const authError = withStage(updateError, 'update_password');
+        logAuthError(authError, {
+          action: 'updatePasswordWithCode',
+          stage: 'update_password',
+        });
+        throw authError;
+      }
 
-    if (updateError) {
-      const authError = handleSupabaseAuthError(updateError);
-      logAuthError(authError, {
-        action: 'updatePasswordWithCode',
-        context: 'update_password',
-      });
-      return authErrorToResult(authError);
-    }
-
-    console.log('[Auth] Password updated successfully');
-    return { success: true };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'updatePasswordWithCode' });
-    return authErrorToResult(authError);
-  }
-}; 
+      console.log('[Auth] Password updated successfully');
+    },
+    {}
+  );
+};

@@ -26,17 +26,16 @@ export function RegisterForm() {
     setSuccess(null);
 
     try {
-      const { data, error } = await signUpWithPassword(email, password);
-      
-      if (error) {
-        setError(typeof error === 'object' && error !== null && 'message' in error 
-          ? String(error.message) 
-          : 'An error occurred during registration');
+      const result = await signUpWithPassword(email, password);
+
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during registration';
+        setError(message);
         return;
       }
-      
+
       // Check if email confirmation is required
-      if (data?.user && !data.user.email_confirmed_at) {
+      if (result.data?.user && !result.data.user.email_confirmed_at) {
         setSuccess('Registration successful! Please check your email to confirm your account.');
       } else {
         // If no email confirmation is required, refresh the page
@@ -56,18 +55,17 @@ export function RegisterForm() {
     setSuccess(null);
     
     try {
-      const { data, error } = await signInWithGoogle();
-      
-      if (error) {
-        setError(typeof error === 'object' && error !== null && 'message' in error 
-          ? String(error.message) 
-          : 'An error occurred during Google sign in');
+      const result = await signInWithGoogle();
+
+      if (!result.success) {
+        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during Google sign in';
+        setError(message);
         return;
       }
-      
+
       // Redirect to the URL returned by the server action
-      if (data?.url) {
-        window.location.href = data.url;
+      if (result.data?.url) {
+        window.location.href = result.data.url;
       } else {
         setError('Failed to get authentication URL');
       }

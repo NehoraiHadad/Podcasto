@@ -34,7 +34,13 @@ export function ProfileMenu({ user, isAdmin }: ProfileMenuProps) {
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
-      await signOut();
+      const result = await signOut();
+
+      if (!result.success) {
+        console.error('Error signing out:', result.error, result.errors);
+        return;
+      }
+
       setIsOpen(false);
       router.refresh();
     } catch (error) {

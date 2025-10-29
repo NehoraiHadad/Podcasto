@@ -1,14 +1,34 @@
 'use server';
 
-import { createServerClient } from '@/lib/auth';
 import { getURL } from '@/lib/utils/url';
-import {
-  handleSupabaseAuthError,
-  authErrorToResult,
-  logAuthError,
-  validateLogin,
-  validateRegistration,
-} from '@/lib/auth';
+import { validateLogin, validateRegistration } from '@/lib/auth';
+import { errorResult, runAuthAction } from './shared';
+
+const VALIDATION_ERROR_CODE = 'validation_error';
+
+function buildValidationErrors(
+  error?: {
+    message: string;
+    issues?: Array<{ path: string[]; message: string }>;
+  }
+) {
+  if (!error) return undefined;
+
+  if (error.issues?.length) {
+    return error.issues.map((issue) => ({
+      message: issue.message,
+      field: issue.path.join('.'),
+      code: VALIDATION_ERROR_CODE,
+    }));
+  }
+
+  return [
+    {
+      message: error.message,
+      code: VALIDATION_ERROR_CODE,
+    },
+  ];
+}
 
 /**
  * Server action to sign in with password
@@ -18,41 +38,33 @@ import {
  * @returns Result of the sign in operation
  */
 export const signInWithPassword = async (email: string, password: string) => {
-  try {
-    // Validate input
-    const validation = validateLogin({ email, password });
-    if (!validation.success || !validation.data) {
-      return {
-        data: null,
-        error: {
-          message: validation.error?.message || 'Invalid input',
-          code: 'validation_error',
-          status: 400
-        }
-      };
-    }
+  const validation = validateLogin({ email, password });
 
-    const supabase = await createServerClient();
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: validation.data.email,
-      password: validation.data.password,
-    });
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'signInWithPassword', email });
-      const result = authErrorToResult(authError);
-      return { data: null, error: result.error };
-    }
-
-    return { data, error: null };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'signInWithPassword', email });
-    const result = authErrorToResult(authError);
-    return { data: null, error: result.error };
+  if (!validation.success || !validation.data) {
+    const message = validation.error?.message ?? 'Invalid login credentials';
+    return errorResult(message, buildValidationErrors(validation.error));
   }
+
+  return runAuthAction(
+    async (supabase) => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validation.data!.email,
+        password: validation.data!.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    {
+      logContext: {
+        action: 'signInWithPassword',
+        email,
+      },
+    }
+  );
 };
 
 /**
@@ -63,35 +75,34 @@ export const signInWithPassword = async (email: string, password: string) => {
  * @returns URL to redirect to for Google authentication
  */
 export const signInWithGoogle = async (redirectTo?: string) => {
-  try {
-    const supabase = await createServerClient();
+  const redirectURL = `${getURL()}auth/callback${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`;
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${getURL()}auth/callback${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`,
-        // Request offline access to get a refresh token
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+  return runAuthAction(
+    async (supabase) => {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectURL,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    {
+      logContext: {
+        action: 'signInWithGoogle',
+        redirectTo,
       },
-    });
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'signInWithGoogle' });
-      const result = authErrorToResult(authError);
-      return { data: null, error: result.error };
     }
-
-    return { data, error: null };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'signInWithGoogle' });
-    const result = authErrorToResult(authError);
-    return { data: null, error: result.error };
-  }
+  );
 };
 
 /**
@@ -103,66 +114,63 @@ export const signInWithGoogle = async (redirectTo?: string) => {
  * @returns Result of the sign up operation
  */
 export const signUpWithPassword = async (email: string, password: string, confirmPassword?: string) => {
-  try {
-    // Validate input (with confirmation if provided)
-    if (confirmPassword !== undefined) {
-      const validation = validateRegistration({ email, password, confirmPassword });
-      if (!validation.success || !validation.data) {
-        return {
-          data: null,
-          error: {
-            message: validation.error?.message || 'Invalid input',
-            code: 'validation_error',
-            status: 400
-          }
-        };
+  if (confirmPassword !== undefined) {
+    const validation = validateRegistration({ email, password, confirmPassword });
+
+    if (!validation.success || !validation.data) {
+      const message = validation.error?.message ?? 'Invalid registration data';
+      return errorResult(message, buildValidationErrors(validation.error));
+    }
+
+    return runAuthAction(
+      async (supabase) => {
+        const { data, error } = await supabase.auth.signUp({
+          email: validation.data!.email,
+          password: validation.data!.password,
+          options: {
+            emailRedirectTo: `${getURL()}auth/callback`,
+          },
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        return data;
+      },
+      {
+        logContext: {
+          action: 'signUpWithPassword',
+          email,
+        },
       }
+    );
+  }
 
-      const supabase = await createServerClient();
-
+  return runAuthAction(
+    async (supabase) => {
       const { data, error } = await supabase.auth.signUp({
-        email: validation.data.email,
-        password: validation.data.password,
+        email,
+        password,
         options: {
           emailRedirectTo: `${getURL()}auth/callback`,
         },
       });
 
       if (error) {
-        const authError = handleSupabaseAuthError(error);
-        logAuthError(authError, { action: 'signUpWithPassword', email });
-        const result = authErrorToResult(authError);
-        return { data: null, error: result.error };
+        throw error;
       }
 
-      return { data, error: null };
-    }
-
-    // Fallback to basic validation (backward compatibility)
-    const supabase = await createServerClient();
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${getURL()}auth/callback`,
+      return data;
+    },
+    {
+      logContext: {
+        action: 'signUpWithPassword',
+        email,
+        legacyValidation: true,
       },
-    });
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'signUpWithPassword', email });
-      const result = authErrorToResult(authError);
-      return { data: null, error: result.error };
     }
-
-    return { data, error: null };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'signUpWithPassword', email });
-    const result = authErrorToResult(authError);
-    return { data: null, error: result.error };
-  }
+  );
 };
 
 /**
@@ -171,21 +179,18 @@ export const signUpWithPassword = async (email: string, password: string, confir
  * @returns Result of the sign out operation
  */
 export const signOut = async () => {
-  try {
-    const supabase = await createServerClient();
+  return runAuthAction(
+    async (supabase) => {
+      const { error } = await supabase.auth.signOut();
 
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      const authError = handleSupabaseAuthError(error);
-      logAuthError(authError, { action: 'signOut' });
-      return authErrorToResult(authError);
+      if (error) {
+        throw error;
+      }
+    },
+    {
+      logContext: {
+        action: 'signOut',
+      },
     }
-
-    return { success: true };
-  } catch (error) {
-    const authError = handleSupabaseAuthError(error);
-    logAuthError(authError, { action: 'signOut' });
-    return authErrorToResult(authError);
-  }
-}; 
+  );
+};

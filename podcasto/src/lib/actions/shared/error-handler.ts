@@ -3,12 +3,27 @@
  * Provides consistent error formatting and response creation.
  */
 
+import { AuthenticationError, isAuthError } from '@/lib/auth';
 import type { ActionError, ActionResult } from './types';
 
 /**
  * Convert unknown error to ActionError format
  */
 export function handleActionError(error: unknown): ActionError {
+  if (error instanceof AuthenticationError) {
+    return {
+      message: error.message,
+      code: error.code,
+    };
+  }
+
+  if (isAuthError(error)) {
+    return {
+      message: error.message,
+      code: error.code,
+    };
+  }
+
   if (error instanceof Error) {
     return {
       message: error.message,
