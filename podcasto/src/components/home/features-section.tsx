@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { Send, Headphones, Globe } from 'lucide-react';
 
 const features = [
@@ -21,7 +21,7 @@ const features = [
   },
 ];
 
-const cardVariants = {
+const cardVariants: Variants = {
   offscreen: {
     y: 50,
     opacity: 0,
@@ -44,7 +44,6 @@ const FeatureCard = ({ icon, title, description, index }: (typeof features[0] & 
     whileInView="onscreen"
     viewport={{ once: true, amount: 0.5 }}
     variants={cardVariants}
-    transition={{ delay: index * 0.2 }}
     whileHover={{ y: -10, transition: { type: 'spring', stiffness: 300 } }}
   >
     <div className="mb-4 p-3 sm:p-4 bg-purple-600/20 rounded-full">
