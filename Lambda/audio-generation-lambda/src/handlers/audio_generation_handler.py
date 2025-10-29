@@ -392,10 +392,11 @@ class AudioGenerationHandler:
         # Get language_code and convert to full name for voice manager
         language_code = dynamic_config.get('language_code', 'en')
         language_full = language_code_to_full(language_code)
-        speaker1_role = dynamic_config.get('speaker1_role', 'Speaker 1')
-        speaker2_role = dynamic_config.get('speaker2_role', 'Speaker 2')
-        speaker1_gender = dynamic_config.get('speaker1_gender', 'male')
-        speaker2_gender = dynamic_config.get('speaker2_gender', 'female')
+        # Use 'or' operator to handle None values (common in single-speaker podcasts)
+        speaker1_role = dynamic_config.get('speaker1_role') or 'Speaker 1'
+        speaker2_role = dynamic_config.get('speaker2_role') or 'Speaker 2'
+        speaker1_gender = dynamic_config.get('speaker1_gender') or 'male'
+        speaker2_gender = dynamic_config.get('speaker2_gender') or 'female'
 
         voice_manager = VoiceConfigManager()
         speaker1_voice, speaker2_voice = voice_manager.get_distinct_voices_for_speakers(
