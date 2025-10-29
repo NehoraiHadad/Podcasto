@@ -23,19 +23,21 @@ import { SUPPORTED_OUTPUT_LANGUAGES } from '@/lib/constants/languages';
  */
 const basicInfoFields = z.object({
   title: z.string()
-    .min(3, 'Title must be at least 3 characters')
-    .max(100, 'Title must be less than 100 characters'),
+    .min(3, 'Podcast title must be at least 3 characters long')
+    .max(100, 'Podcast title is too long (maximum 100 characters)'),
   description: z.string()
-    .min(10, 'Description must be at least 10 characters')
-    .max(1000, 'Description must be less than 1000 characters'),
-  language: z.enum(SUPPORTED_OUTPUT_LANGUAGES),
+    .min(10, 'Please provide a more detailed description (at least 10 characters)')
+    .max(1000, 'Description is too long (maximum 1000 characters)'),
+  language: z.enum(SUPPORTED_OUTPUT_LANGUAGES, {
+    errorMap: () => ({ message: 'Please select a valid language' })
+  }),
 });
 
 /**
  * Cover image fields
  */
 const imageFields = z.object({
-  cover_image: z.string().url('Must be a valid URL').optional().or(z.literal('')).nullable(),
+  cover_image: z.string().url('Please enter a valid image URL').optional().or(z.literal('')).nullable(),
   image_style: z.string().optional().nullable(),
 });
 
@@ -51,8 +53,10 @@ const scheduleFields = z.object({
  * Podcast format fields
  */
 const formatFields = z.object({
-  podcastFormat: z.enum(['single-speaker', 'multi-speaker']).default('multi-speaker'),
-  speaker1Role: z.string().min(1, 'Speaker 1 role is required'),
+  podcastFormat: z.enum(['single-speaker', 'multi-speaker'], {
+    errorMap: () => ({ message: 'Please select a podcast format' })
+  }).default('multi-speaker'),
+  speaker1Role: z.string().min(1, 'Please select a role for the first speaker'),
   speaker2Role: z.string().optional().nullable(),
 });
 
@@ -73,14 +77,18 @@ const styleFields = z.object({
  */
 const adminFields = z.object({
   creator: z.string()
-    .min(2, 'Creator name must be at least 2 characters')
-    .max(100, 'Creator name must be less than 100 characters'),
+    .min(2, 'Creator name must be at least 2 characters long')
+    .max(100, 'Creator name is too long (maximum 100 characters)'),
   podcastName: z.string()
-    .min(3, 'Technical name must be at least 3 characters')
-    .max(50, 'Technical name must be at most 50 characters')
-    .regex(/^[a-z0-9-]+$/, 'Technical name can only contain lowercase letters, numbers, and hyphens'),
+    .min(3, 'Technical name must be at least 3 characters long')
+    .max(50, 'Technical name is too long (maximum 50 characters)')
+    .regex(/^[a-z0-9-]+$/, 'Technical name can only contain lowercase letters, numbers, and hyphens (e.g., my-podcast-123)'),
   slogan: z.string().optional().nullable(),
-  creativityLevel: z.number().min(0).max(1).step(0.1).default(0.5),
+  creativityLevel: z.number()
+    .min(0, 'Creativity level must be between 0 and 1')
+    .max(1, 'Creativity level must be between 0 and 1')
+    .step(0.1)
+    .default(0.5),
   mixingTechniques: z.array(z.string()).default(['casual_banter']),
   additionalInstructions: z.string().optional().nullable(),
 });
@@ -94,8 +102,12 @@ const adminFields = z.object({
  */
 const telegramContentSource = z.object({
   contentSource: z.literal('telegram'),
-  telegramChannelName: z.string().min(1, 'Telegram channel is required'),
-  telegramHours: z.number().int().min(1).max(168).default(24), // Up to 1 week (168 hours)
+  telegramChannelName: z.string().min(1, 'Please enter a Telegram channel name'),
+  telegramHours: z.number()
+    .int('Hours must be a whole number')
+    .min(1, 'Hours must be at least 1')
+    .max(168, 'Hours cannot exceed 1 week (168 hours)')
+    .default(24), // Up to 1 week (168 hours)
   rssUrl: z.string().optional().nullable(), // Not used for telegram
 });
 
@@ -106,7 +118,9 @@ const rssContentSource = z.object({
   contentSource: z.literal('rss'),
   telegramChannelName: z.string().optional().nullable(), // Not used for RSS
   telegramHours: z.number().optional().nullable(),
-  rssUrl: z.string().url('Must be a valid RSS feed URL').min(1, 'RSS URL is required'),
+  rssUrl: z.string()
+    .url('Please enter a valid RSS feed URL (must start with http:// or https://)')
+    .min(1, 'RSS URL is required'),
 });
 
 /**
@@ -209,7 +223,7 @@ function addFormatValidation<T extends z.ZodType>(schema: T) {
     if (data.podcastFormat === 'multi-speaker' && !data.speaker2Role) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Speaker 2 role is required for multi-speaker podcasts',
+        message: 'Please select a role for the second speaker (required for multi-speaker podcasts)',
         path: ['speaker2Role'],
       });
     }

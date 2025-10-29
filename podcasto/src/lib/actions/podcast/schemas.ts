@@ -57,7 +57,7 @@ export const podcastCreationSchema = z.object({
   if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Speaker 2 role is required for multi-speaker podcasts",
+      message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
       path: ["speaker2Role"]
     });
   }
@@ -114,7 +114,7 @@ export const podcastUpdateSchema = z.object({
   if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Speaker 2 role is required for multi-speaker podcasts",
+      message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
       path: ["speaker2Role"]
     });
   }

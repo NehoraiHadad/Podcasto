@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
+import { FormErrorSummary, formatFormErrors } from '@/components/ui/form-error-summary';
 import { toast } from 'sonner';
 
 import {
@@ -119,6 +120,11 @@ export function UserPodcastForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Form Validation Errors */}
+        {Object.keys(form.formState.errors).length > 0 && (
+          <FormErrorSummary errors={formatFormErrors(form.formState.errors)} />
+        )}
+
         {/* Basic Information */}
         <BasicInfoSection control={form.control} />
 

@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FormErrorSummary, formatFormErrors } from '@/components/ui/form-error-summary';
 import { toast } from 'sonner';
 
 import {
@@ -239,18 +239,7 @@ export function AdminPodcastForm({
 
         {/* Form Validation Errors */}
         {Object.keys(form.formState.errors).length > 0 && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              <p className="font-semibold mb-2">Please fix the following errors:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                {Object.entries(form.formState.errors).map(([key, error]) => (
-                  <li key={key} className="text-sm">
-                    {key}: {error?.message?.toString() || 'Invalid value'}
-                  </li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
+          <FormErrorSummary errors={formatFormErrors(form.formState.errors)} />
         )}
 
         {/* Form Actions */}

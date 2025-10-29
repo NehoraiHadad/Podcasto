@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FormErrorSummary, formatFormErrors } from '@/components/ui/form-error-summary';
 import { toast } from 'sonner';
 import { languageFullToCode } from '@/lib/utils/language-mapper';
 
@@ -151,6 +152,11 @@ export function PodcastEditForm({
               voice consistency in future episodes. Are you sure you want to proceed?
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Form Validation Errors */}
+        {Object.keys(form.formState.errors).length > 0 && (
+          <FormErrorSummary errors={formatFormErrors(form.formState.errors)} />
         )}
 
         {/* Basic Information */}
