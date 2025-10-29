@@ -27,7 +27,7 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     image_style: podcast.image_style,
     language: languageFull, // Now derived from podcasts.language_code
     episodeFrequency: config?.episode_frequency || 7,
-    autoGeneration: podcast.auto_generation,
+    autoGeneration: podcast.auto_generation_enabled,
     podcastFormat: config?.podcast_format || 'multi-speaker',
     speaker1Role: config?.speaker1_role || 'Host',
     speaker2Role: config?.speaker2_role || 'Co-host',
@@ -39,7 +39,7 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     telegramHours: config?.telegram_hours || 24,
     rssUrl: config?.rss_url || '',
     creator: config?.creator,
-    podcastName: podcast.podcast_name,
+    podcastName: config?.podcast_name,
     slogan: config?.slogan,
     creativityLevel: config?.creativity_level !== undefined ? config.creativity_level / 100 : 0.7,
     mixingTechniques: config?.mixing_techniques || [],
