@@ -190,7 +190,8 @@ Episode Checker (Cron)
 - `src/app/api/cron/podcast-scheduler/route.ts` - Automatic scheduling
 
 ### 4. Database Layer
-- `src/lib/db/api/episodes.ts` - Episode CRUD operations
+> ℹ️ The database API now uses directory-based modules with `index.ts` re-exporting the supported queries and mutations. Use these entry points instead of any legacy `*.ts.backup` files when interacting with the database layer.
+- `src/lib/db/api/episodes/index.ts` - Episode CRUD operations
 - `src/lib/db/api/podcast-configs.ts` - Configuration
 - `src/lib/db/schema/episodes.ts` - Drizzle schema
 

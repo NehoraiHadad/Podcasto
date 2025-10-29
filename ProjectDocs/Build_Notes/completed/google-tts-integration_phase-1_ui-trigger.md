@@ -92,7 +92,7 @@ Once testing is complete, this functionality will provide administrators with a 
 **Issue**: PostgreSQL syntax error: `syntax error at or near "desc"`  
 **Root Cause**: In `getEpisodesByStatus()` function, used `episodes.updated_at` column which doesn't exist  
 **Fix**: Changed to `episodes.created_at` which exists in the schema  
-**File**: `podcasto/src/lib/db/api/episodes.ts` line 92  
+**File**: `podcasto/src/lib/db/api/episodes/queries.ts` line 92
 
 **Additional Changes**:
 - Added detailed logging to track episode processing

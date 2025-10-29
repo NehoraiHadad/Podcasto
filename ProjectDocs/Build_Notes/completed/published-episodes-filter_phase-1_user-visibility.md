@@ -48,7 +48,7 @@ Update the user-facing episode display to show only episodes with "published" st
 
 ### Changes Made:
 
-1. **Database API Functions** (`src/lib/db/api/podcasts.ts`):
+1. **Database API Functions** (`src/lib/db/api/podcasts/index.ts`):
    - Added `getPublishedPodcastEpisodes()` function that filters episodes by status = 'published'
    - Function orders results by published_at date (newest first)
    - Updated all episode count calculations to use published episodes only
