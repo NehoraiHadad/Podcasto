@@ -69,3 +69,11 @@ export type PodcastQueryOptions = {
   episodesLimit?: number;
   onlyPublished?: boolean;
 };
+
+/**
+ * Podcast with aggregated episode statistics
+ */
+export type PodcastWithEpisodeStats = {
+  podcast: Podcast;
+  episodeCount: number;
+};
