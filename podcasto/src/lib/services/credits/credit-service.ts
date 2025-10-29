@@ -36,6 +36,12 @@ export interface CreditAdditionResult {
   error?: string;
 }
 
+export interface EnsureSignupCreditsResult {
+  created: boolean;
+  success: boolean;
+  logContext: Record<string, unknown>;
+}
+
 export class CreditService {
   /**
    * Check if user has enough credits for episode generation
@@ -190,6 +196,47 @@ export class CreditService {
         error: error instanceof Error ? error.message : 'Failed to initialize credits'
       };
     }
+  }
+
+  async ensureSignupCredits(userId: string): Promise<EnsureSignupCreditsResult> {
+    const existingCredits = await getUserCredits(userId);
+
+    if (existingCredits) {
+      return {
+        created: false,
+        success: true,
+        logContext: {
+          userId,
+          available: parseFloat(existingCredits.available_credits),
+          source: 'existing'
+        }
+      };
+    }
+
+    const initResult = await this.initializeUserCredits(userId);
+
+    if (initResult.success) {
+      return {
+        created: true,
+        success: true,
+        logContext: {
+          userId,
+          newBalance: initResult.newBalance,
+          transactionId: initResult.transactionId,
+          source: 'initialized'
+        }
+      };
+    }
+
+    return {
+      created: false,
+      success: false,
+      logContext: {
+        userId,
+        error: initResult.error ?? 'Failed to initialize credits',
+        source: 'initialize_failed'
+      }
+    };
   }
 
   /**

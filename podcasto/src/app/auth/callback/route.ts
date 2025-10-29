@@ -1,7 +1,6 @@
 import { createServerClient } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
-import { getUserCredits } from '@/lib/db/api/credits';
 import { creditService } from '@/lib/services/credits';
 import { hasSeenWelcome, markWelcomeAsSeen } from '@/lib/actions/user-actions';
 
@@ -31,27 +30,16 @@ export async function GET(request: NextRequest) {
       const welcomeStatus = await hasSeenWelcome(user.id);
       const shouldShowWelcome = !welcomeStatus.hasSeen;
 
-      // Check if this is a new user by looking for existing credits
-      const existingCredits = await getUserCredits(user.id);
+      const ensureResult = await creditService.ensureSignupCredits(user.id);
 
-      if (!existingCredits) {
-        console.log(`[AUTH_CALLBACK] New user detected: ${user.id}, initializing credits`);
+      if (!ensureResult.success) {
+        console.error('[AUTH_CALLBACK] Failed to ensure signup credits', ensureResult.logContext);
+      } else if (ensureResult.created) {
+        console.log('[AUTH_CALLBACK] Signup credits initialized', ensureResult.logContext);
 
-        // Initialize credits for new user
-        const result = await creditService.initializeUserCredits(user.id);
+        await markWelcomeAsSeen(user.id);
 
-        if (result.success) {
-          console.log(`[AUTH_CALLBACK] Credits initialized for user ${user.id}: ${result.newBalance} credits`);
-
-          // Mark welcome as seen before redirecting
-          await markWelcomeAsSeen(user.id);
-
-          // Redirect to welcome page with credits notification
-          return NextResponse.redirect(new URL('/welcome?credits=true', request.url));
-        } else {
-          console.error(`[AUTH_CALLBACK] Failed to initialize credits:`, result.error);
-          // Continue anyway - credits can be initialized later via getUserCreditsAction
-        }
+        return NextResponse.redirect(new URL('/welcome?credits=true', request.url));
       } else if (shouldShowWelcome) {
         // Existing user who hasn't seen welcome (edge case: users created before this feature)
         console.log(`[AUTH_CALLBACK] Existing user ${user.id} hasn't seen welcome page, showing it now`);
