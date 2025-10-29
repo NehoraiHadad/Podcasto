@@ -3,7 +3,7 @@ import { podcasts } from './podcasts';
 
 export const podcastConfigs = pgTable('podcast_configs', {
   id: uuid('id').defaultRandom().primaryKey(),
-  podcast_id: uuid('podcast_id').references(() => podcasts.id, { onDelete: 'cascade' }),
+  podcast_id: uuid('podcast_id').references(() => podcasts.id, { onDelete: 'cascade' }).notNull(),
   content_source: text('content_source').notNull(),
   telegram_channel: text('telegram_channel'),
   telegram_hours: integer('telegram_hours'),
@@ -22,6 +22,7 @@ export const podcastConfigs = pgTable('podcast_configs', {
   intro_prompt: text('intro_prompt'),
   outro_prompt: text('outro_prompt'),
   episode_frequency: integer('episode_frequency').default(7),
+  target_duration_minutes: integer('target_duration_minutes').default(10),
   channel_access_status: text('channel_access_status').$type<'accessible' | 'no_preview' | 'unknown'>().default('unknown'),
   channel_access_checked_at: timestamp('channel_access_checked_at', { withTimezone: true }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),

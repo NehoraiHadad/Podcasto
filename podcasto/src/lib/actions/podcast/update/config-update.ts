@@ -44,6 +44,7 @@ export async function updatePodcastConfig(data: PodcastUpdateData): Promise<Acti
         // For new configs, ensure required fields are present
         const podcastFormat = data.podcastFormat || 'multi-speaker';
         const requiredFields = {
+          podcast_id: data.id,
           content_source: data.contentSource || 'telegram',
           creator: data.creator || 'Unknown',
           podcast_name: data.podcastName || data.title,

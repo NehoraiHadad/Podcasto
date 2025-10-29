@@ -3,7 +3,7 @@ import { podcasts } from './podcasts';
 
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').defaultRandom().primaryKey(),
-  user_id: uuid('user_id').notNull(), // References auth.users
+  user_id: uuid('user_id'), // References auth.users
   podcast_id: uuid('podcast_id').references(() => podcasts.id, { onDelete: 'cascade' }),
 
   // Language preference for multilingual podcasts

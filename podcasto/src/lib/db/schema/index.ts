@@ -22,6 +22,7 @@ import { creditPackages } from './credit-packages';
 import { userSubscriptions } from './user-subscriptions';
 import { systemSettings } from './system-settings';
 import { emailBounces } from './email-bounces';
+import { usersCache } from './users-cache';
 
 // Export all schema objects
 export {
@@ -47,7 +48,8 @@ export {
   creditPackages,
   userSubscriptions,
   systemSettings,
-  emailBounces
+  emailBounces,
+  usersCache
 };
 
 // Export relationships for use in queries
