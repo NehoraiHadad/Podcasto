@@ -43,6 +43,13 @@ export {
   type AuthValidationResult,
 } from './auth';
 
+export {
+  ensureAdmin,
+  type EnsureAdminResult,
+  type EnsureAdminOptions,
+  type EnsureAdminFailureReason,
+} from './ensure-admin';
+
 // Validation helpers
 export {
   validateJsonBody,

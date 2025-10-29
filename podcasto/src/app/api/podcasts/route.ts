@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPodcastsBasic, getPodcastsEligibleForMigration } from '@/lib/db/api/podcasts/queries';
-import { getUser, isAdmin } from '@/lib/auth';
+import { ensureAdmin } from '@/lib/api/ensure-admin';
 
 /**
  * GET /api/podcasts
@@ -11,18 +11,9 @@ import { getUser, isAdmin } from '@/lib/auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check admin role using cached role queries
-    const hasAdminAccess = await isAdmin(user.id);
-
-    if (!hasAdminAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const adminCheck = await ensureAdmin({ logContext: '[API] GET /api/podcasts' });
+    if (!adminCheck.ok) {
+      return adminCheck.response;
     }
 
     // Get query params
