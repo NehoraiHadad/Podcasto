@@ -5,16 +5,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
-import { togglePodcastEmailNotifications, type UserSubscription } from '@/lib/actions/subscription-management-actions';
+import { togglePodcastEmailNotifications } from '@/lib/actions/subscription-management-actions';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import type { UserSubscriptionWithPodcast } from '@/lib/db/api';
 
 interface SubscriptionListProps {
-  subscriptions: UserSubscription[];
+  subscriptions: UserSubscriptionWithPodcast[];
 }
 
 export function SubscriptionList({ subscriptions: initialSubscriptions }: SubscriptionListProps) {
-  const [subscriptions, setSubscriptions] = useState(initialSubscriptions);
+  const [subscriptions, setSubscriptions] = useState<UserSubscriptionWithPodcast[]>(initialSubscriptions);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
