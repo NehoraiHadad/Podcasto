@@ -137,9 +137,13 @@ class ScriptPreprocessorHandler:  # noqa: D101
 
         podcast_config = self._get_podcast_config(msg.get("podcast_config_id"), podcast_id)
 
-        # Extract podcast_format from message dynamic_config or message itself
+        # Extract podcast_format from message dynamic_config, message itself, or podcast_config from DB
         dynamic_config_in_message = msg.get("dynamic_config", {})
-        podcast_format = dynamic_config_in_message.get('podcast_format') or msg.get('podcast_format', 'multi-speaker')
+        podcast_format = (
+            dynamic_config_in_message.get('podcast_format') or
+            msg.get('podcast_format') or
+            podcast_config.get('podcast_format', 'multi-speaker')
+        )
 
         # Validate and log podcast format
         if podcast_format not in ['single-speaker', 'multi-speaker']:
