@@ -9,7 +9,7 @@
 
 // Service (recommended entry point for server modules)
 export { SessionService } from './session-service';
-export type { SessionService } from './session-service';
+export { type SessionService } from './session-service';
 
 // Types
 export type {

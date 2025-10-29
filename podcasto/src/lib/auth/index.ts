@@ -13,7 +13,7 @@
 // ============================================================================
 
 export { SessionService } from './session';
-export type { SessionService } from './session';
+export { type SessionService } from './session';
 
 export type {
   User,
