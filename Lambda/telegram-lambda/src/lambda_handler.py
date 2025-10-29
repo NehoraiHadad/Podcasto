@@ -81,10 +81,22 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     timestamp = result.get('timestamp', '')
                     episode_id = result.get('episode_id', timestamp)
                     podcast_id = result.get('podcast_id', config.id)
-                    podcast_format = config.podcast_format
 
-                    # Get language_code from podcast record
+                    # Get podcast_format and language_code from database (authoritative source)
+                    podcast_format = 'multi-speaker'  # Default
                     language_code = 'en'  # Default to English
+
+                    try:
+                        # Get podcast config from database for accurate format
+                        db_config = supabase_client.get_podcast_config_by_id(config.id)
+                        if db_config and db_config.get('podcast_format'):
+                            podcast_format = db_config['podcast_format']
+                            logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} podcast_format from DB: {podcast_format}")
+                        else:
+                            logger.warning(f"[TELEGRAM_LAMBDA] Could not retrieve podcast_format from DB for config {config.id}, using default: {podcast_format}")
+                    except Exception as format_error:
+                        logger.error(f"[TELEGRAM_LAMBDA] Error retrieving podcast_format from DB: {str(format_error)}, using default: {podcast_format}")
+
                     try:
                         podcast = supabase_client.get_podcast(podcast_id)
                         if podcast and podcast.get('language_code'):
@@ -95,8 +107,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     except Exception as lang_error:
                         logger.error(f"[TELEGRAM_LAMBDA] Error retrieving language_code: {str(lang_error)}, using default: {language_code}")
 
-                    # Log podcast format for tracking
-                    logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} podcast_format: {podcast_format}")
+                    # Log final values
+                    logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} final values: podcast_format={podcast_format}, language_code={language_code}")
 
                     # Update episode status to content_collected after successful S3 upload
                     if episode_id and s3_path:
