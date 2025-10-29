@@ -7,7 +7,7 @@ import { creditService } from '@/lib/services/credits';
 import { podcastsApi, episodesApi, podcastConfigsApi } from '@/lib/db/api';
 import { checkIsAdmin } from '../admin/auth-actions';
 import { invokeLambdaFunction, validateDateRange, checkEnvironmentConfiguration } from '../podcast/generation';
-import { checkForNewMessages } from '@/lib/services/telegram';
+import { handleMessagePreCheck } from '../podcast/generation/message-check-handler';
 import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notification';
 import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
 import { determineTriggerSource } from '@/lib/utils/episode-server-utils';
@@ -99,19 +99,22 @@ export async function generateEpisodeWithCreditsAction(
           messageCheckOptions = hoursBack / 24;
         }
 
-        // Check for new messages
-        const messageCheck = await checkForNewMessages(
+        // Check for new messages and determine routing
+        const checkResult = await handleMessagePreCheck(
+          podcastId,
           podcastConfig.telegram_channel,
-          messageCheckOptions
+          messageCheckOptions,
+          podcastConfig.channel_access_status
         );
 
         console.log(`[EPISODE_GEN_WITH_CREDITS] Message check result:`, {
-          hasNewMessages: messageCheck.hasNewMessages,
-          latestMessageDate: messageCheck.latestMessageDate,
+          shouldProceed: checkResult.shouldProceed,
+          shouldStop: checkResult.shouldStop,
+          accessStatus: checkResult.accessStatus,
         });
 
-        // If no new messages, don't proceed or charge credits
-        if (!messageCheck.hasNewMessages) {
+        // If should stop (no messages in accessible channel), don't proceed or charge credits
+        if (checkResult.shouldStop) {
           console.log(`[EPISODE_GEN_WITH_CREDITS] No new messages - aborting generation`);
 
           // For automated triggers, send email notification
@@ -151,19 +154,18 @@ export async function generateEpisodeWithCreditsAction(
             failureReason: `No new messages found in ${podcastConfig.telegram_channel}`,
             errorDetails: {
               channel_name: podcastConfig.telegram_channel,
-              latest_message_date: messageCheck.latestMessageDate?.toISOString(),
+              latest_message_date: checkResult.latestMessageDate?.toISOString(),
             },
           });
 
           return {
             success: false,
-            error: `No new messages found in ${podcastConfig.telegram_channel} for the specified time range. ${
-              messageCheck.latestMessageDate
-                ? `Latest message: ${messageCheck.latestMessageDate.toISOString()}`
-                : 'No recent messages detected'
-            }`
+            error: checkResult.errorMessage || 'No new messages found'
           };
         }
+
+        // If should proceed, continue with credit check and generation
+        console.log(`[EPISODE_GEN_WITH_CREDITS] Proceeding with generation (status: ${checkResult.accessStatus})`);
       } catch (error) {
         console.error(`[EPISODE_GEN_WITH_CREDITS] Error during message pre-check:`, error);
         console.log(`[EPISODE_GEN_WITH_CREDITS] Continuing with generation despite pre-check error`);

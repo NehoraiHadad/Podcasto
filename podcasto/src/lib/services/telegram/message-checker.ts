@@ -7,8 +7,10 @@ import { nowUTC, subtractDays } from '@/lib/utils/date/server';
 import {
   fetchTelegramChannelPage,
   parseLatestMessageDateFromHTML,
+  detectChannelAccessStatus,
 } from './telegram-scraper-base';
 import type { MessageCheckResult, MessageCheckOptions } from './types';
+import { ChannelAccessStatus } from './types';
 
 /**
  * Check if a Telegram channel has new messages within a specified date range
@@ -48,27 +50,58 @@ export async function checkForNewMessages(
     // Step 3: Parse latest message date
     const latestMessageDate = parseLatestMessageDateFromHTML(html);
 
-    if (!latestMessageDate) {
+    // Step 4: Detect channel accessibility status
+    const accessStatus = detectChannelAccessStatus(html, latestMessageDate !== null);
+
+    // Step 5: Handle different access statuses
+    if (accessStatus === ChannelAccessStatus.NO_PREVIEW) {
       console.log(
-        `[MESSAGE_CHECKER] Result for ${channelUsername}: hasNewMessages=false (no messages found)`
+        `[MESSAGE_CHECKER] Channel ${channelUsername} has no public preview - cannot verify messages via web scraping`
       );
       return {
         hasNewMessages: false,
+        accessStatus,
         channelUsername,
         checkedAt,
       };
     }
 
-    // Step 4: Check if latest message is within date range
+    if (accessStatus === ChannelAccessStatus.NOT_FOUND) {
+      console.warn(
+        `[MESSAGE_CHECKER] Channel ${channelUsername} not found or completely private`
+      );
+      return {
+        hasNewMessages: false,
+        accessStatus,
+        channelUsername,
+        checkedAt,
+      };
+    }
+
+    if (!latestMessageDate) {
+      // This shouldn't happen if accessStatus is ACCESSIBLE, but handle it anyway
+      console.warn(
+        `[MESSAGE_CHECKER] Channel ${channelUsername} is accessible but no messages found`
+      );
+      return {
+        hasNewMessages: false,
+        accessStatus: ChannelAccessStatus.ACCESSIBLE,
+        channelUsername,
+        checkedAt,
+      };
+    }
+
+    // Step 6: Check if latest message is within date range
     const hasNewMessages =
       latestMessageDate >= startDate && latestMessageDate <= endDate;
 
     console.log(
-      `[MESSAGE_CHECKER] Result for ${channelUsername}: hasNewMessages=${hasNewMessages} (latest: ${latestMessageDate.toISOString()})`
+      `[MESSAGE_CHECKER] Result for ${channelUsername}: hasNewMessages=${hasNewMessages}, accessStatus=${accessStatus}, latest: ${latestMessageDate.toISOString()}`
     );
 
     return {
       hasNewMessages,
+      accessStatus,
       latestMessageDate,
       channelUsername,
       checkedAt,
@@ -84,6 +117,7 @@ export async function checkForNewMessages(
 
     return {
       hasNewMessages: false,
+      accessStatus: ChannelAccessStatus.ERROR,
       channelUsername,
       checkedAt,
       error: errorMessage,

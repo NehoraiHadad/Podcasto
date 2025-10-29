@@ -10,6 +10,8 @@ import {
   simplePodcastSchema
 } from './schemas';
 import { filterUrls, handleActionError, revalidatePodcastPaths } from './utils';
+import { handleMessagePreCheck } from './generation/message-check-handler';
+import { ChannelAccessStatus } from '@/lib/services/telegram/types';
 
 /**
  * Creates a new podcast with the provided data
@@ -41,11 +43,37 @@ export async function createPodcast(data: PodcastCreationData): Promise<ActionRe
     
     // Store the podcast configuration
     await createPodcastConfig(podcast.id, validatedData);
-    
+
+    // If Telegram channel configured, check accessibility
+    let channelWarning: string | undefined;
+    if (validatedData.telegramChannel) {
+      try {
+        const checkResult = await handleMessagePreCheck(
+          podcast.id,
+          validatedData.telegramChannel,
+          7, // Check last 7 days
+          'unknown' // Initial status
+        );
+
+        if (checkResult.accessStatus === ChannelAccessStatus.NO_PREVIEW) {
+          channelWarning = `Channel "${validatedData.telegramChannel}" doesn't allow public message previews. Episode generation will rely on authenticated Lambda access. Make sure the Telegram account has joined this channel.`;
+        } else if (checkResult.accessStatus === ChannelAccessStatus.NOT_FOUND) {
+          channelWarning = `Channel "${validatedData.telegramChannel}" was not found or is completely private. Please verify the channel name and accessibility.`;
+        }
+      } catch (error) {
+        console.error('[CREATE_PODCAST] Error checking channel accessibility:', error);
+        // Non-blocking - don't fail podcast creation
+      }
+    }
+
     // Revalidate the podcasts page
     revalidatePodcastPaths();
-    
-    return { success: true, id: podcast.id };
+
+    return {
+      success: true,
+      id: podcast.id,
+      warning: channelWarning
+    };
   } catch (error) {
     return handleActionError(error);
   }

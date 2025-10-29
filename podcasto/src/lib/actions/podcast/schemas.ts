@@ -10,6 +10,7 @@ export type ActionResponse = {
   success: boolean;
   error?: string;
   id?: string;
+  warning?: string;
 };
 
 // Define the podcast creation schema

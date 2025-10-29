@@ -14,7 +14,7 @@ import {
   createPendingEpisode,
   invokeLambdaFunction
 } from './generation';
-import { checkForNewMessages } from '@/lib/services/telegram';
+import { handleMessagePreCheck } from './generation/message-check-handler';
 import { sendNoMessagesNotification } from '@/lib/actions/send-creator-notification';
 import { getPodcastById } from '@/lib/db/api/podcasts/queries';
 import { logGenerationAttempt } from '@/lib/db/api/episode-generation-attempts';
@@ -105,20 +105,16 @@ export async function generatePodcastEpisode(
           messageCheckOptions = hoursBack / 24;
         }
 
-        // Check for new messages
-        const messageCheck = await checkForNewMessages(
+        // Check for new messages and determine routing
+        const checkResult = await handleMessagePreCheck(
+          podcastId,
           podcastConfig.telegram_channel,
-          messageCheckOptions
+          messageCheckOptions,
+          podcastConfig.channel_access_status as string | null | undefined
         );
 
-        console.log(`[PODCAST_GEN] Message check result:`, {
-          hasNewMessages: messageCheck.hasNewMessages,
-          latestMessageDate: messageCheck.latestMessageDate,
-          checkedAt: messageCheck.checkedAt
-        });
-
-        // If no new messages found, handle based on trigger source
-        if (!messageCheck.hasNewMessages) {
+        // If should stop (no messages in accessible channel), handle notifications and logging
+        if (checkResult.shouldStop) {
           console.log(`[PODCAST_GEN] No new messages found in ${podcastConfig.telegram_channel}`);
 
           // Determine if this is an automated CRON trigger (no user session)
@@ -177,7 +173,7 @@ export async function generatePodcastEpisode(
               failureReason: `No new messages found in ${podcastConfig.telegram_channel}`,
               errorDetails: {
                 channel_name: podcastConfig.telegram_channel,
-                latest_message_date: messageCheck.latestMessageDate?.toISOString(),
+                latest_message_date: checkResult.latestMessageDate?.toISOString(),
                 error_message: 'No new messages in specified time range',
               },
             });
@@ -191,15 +187,12 @@ export async function generatePodcastEpisode(
           // Return error response (prevents episode creation and Lambda invocation)
           return {
             success: false,
-            error: `No new messages found in ${podcastConfig.telegram_channel} for the specified time range. ${
-              messageCheck.latestMessageDate
-                ? `Latest message: ${messageCheck.latestMessageDate.toISOString()}`
-                : 'No recent messages detected'
-            }`
+            error: checkResult.errorMessage || 'No new messages found'
           };
         }
 
-        console.log(`[PODCAST_GEN] New messages detected - proceeding with episode generation`);
+        // If should proceed, continue to episode generation
+        console.log(`[PODCAST_GEN] Proceeding with episode generation (status: ${checkResult.accessStatus})`);
       } catch (error) {
         // Log error but don't fail the entire generation
         // This ensures that if the pre-check fails, we still try to generate

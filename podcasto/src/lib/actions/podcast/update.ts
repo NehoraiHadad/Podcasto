@@ -20,6 +20,8 @@ import {
 import { updatePodcastMetadata } from './update/metadata';
 import { hasConfigFields } from './update/validation';
 import { updatePodcastConfig } from './update/config-update';
+import { handleMessagePreCheck } from './generation/message-check-handler';
+import { ChannelAccessStatus } from '@/lib/services/telegram/types';
 
 /**
  * Updates an existing podcast with new metadata and/or configuration.
@@ -75,6 +77,7 @@ export async function updatePodcast(data: PodcastUpdateData): Promise<ActionResp
         }
 
         // Update podcast configuration if any config fields are provided
+        let channelWarning: string | undefined;
         if (hasConfigFields(validatedData)) {
           console.log("Updating podcast config...");
           const configUpdateResult = await updatePodcastConfig(validatedData);
@@ -83,12 +86,36 @@ export async function updatePodcast(data: PodcastUpdateData): Promise<ActionResp
             console.error("Config update failed:", configUpdateResult.error);
             return configUpdateResult;
           }
+
+          // If Telegram channel was updated, check accessibility
+          if (validatedData.telegramChannel) {
+            try {
+              const checkResult = await handleMessagePreCheck(
+                validatedData.id,
+                validatedData.telegramChannel,
+                7, // Check last 7 days
+                'unknown' // Will be updated by the function
+              );
+
+              if (checkResult.accessStatus === ChannelAccessStatus.NO_PREVIEW) {
+                channelWarning = `Channel "${validatedData.telegramChannel}" doesn't allow public message previews. Episode generation will rely on authenticated Lambda access.`;
+              } else if (checkResult.accessStatus === ChannelAccessStatus.NOT_FOUND) {
+                channelWarning = `Channel "${validatedData.telegramChannel}" was not found or is completely private. Please verify the channel name.`;
+              }
+            } catch (error) {
+              console.error('[UPDATE_PODCAST] Error checking channel accessibility:', error);
+              // Non-blocking - don't fail update
+            }
+          }
         }
 
         // Revalidate cached paths
         revalidatePodcastPaths(validatedData.id);
 
-        return { success: true };
+        return {
+          success: true,
+          warning: channelWarning
+        };
       } catch (databaseError) {
         console.error("Database operation error:", databaseError);
         return {

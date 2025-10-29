@@ -22,6 +22,8 @@ export const podcastConfigs = pgTable('podcast_configs', {
   intro_prompt: text('intro_prompt'),
   outro_prompt: text('outro_prompt'),
   episode_frequency: integer('episode_frequency').default(7),
+  channel_access_status: text('channel_access_status').$type<'accessible' | 'no_preview' | 'unknown'>().default('unknown'),
+  channel_access_checked_at: timestamp('channel_access_checked_at', { withTimezone: true }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow()
 }); 

@@ -1,0 +1,2 @@
+ALTER TABLE "podcast_configs" ADD COLUMN "channel_access_status" text DEFAULT 'unknown';--> statement-breakpoint
+ALTER TABLE "podcast_configs" ADD COLUMN "channel_access_checked_at" timestamp with time zone;

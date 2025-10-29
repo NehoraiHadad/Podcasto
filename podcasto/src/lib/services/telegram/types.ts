@@ -3,6 +3,20 @@
  */
 
 /**
+ * Status of channel accessibility when checking for messages
+ */
+export enum ChannelAccessStatus {
+  /** Channel has public message preview and is accessible */
+  ACCESSIBLE = 'accessible',
+  /** Channel exists but does not allow public message preview */
+  NO_PREVIEW = 'no_preview',
+  /** Channel was not found or is completely private */
+  NOT_FOUND = 'not_found',
+  /** Error occurred while checking channel accessibility */
+  ERROR = 'error',
+}
+
+/**
  * Result structure for Telegram scraper operations
  * Follows the RORO pattern with success/error/data
  */
@@ -53,6 +67,8 @@ export const DEFAULT_SCRAPER_OPTIONS: Required<TelegramScraperOptions> = {
 export interface MessageCheckResult {
   /** Whether new messages were found in the specified date range */
   hasNewMessages: boolean;
+  /** Status of channel accessibility during the check */
+  accessStatus: ChannelAccessStatus;
   /** The date of the latest message found (if any) */
   latestMessageDate?: Date;
   /** The channel username that was checked */

@@ -7,6 +7,7 @@ import { parseISOUTC } from '@/lib/utils/date/server';
 import {
   TelegramScraperOptions,
   DEFAULT_SCRAPER_OPTIONS,
+  ChannelAccessStatus,
 } from './types';
 
 /**
@@ -175,4 +176,43 @@ export function parseLatestMessageDateFromHTML(html: string): Date | null {
 
   console.warn('[TELEGRAM_SCRAPER_BASE] Could not parse date from matched time element');
   return null;
+}
+
+/**
+ * Detect channel accessibility status based on HTML content
+ * Determines whether a channel has public preview, no preview, or doesn't exist
+ *
+ * @param html - HTML content from Telegram channel page
+ * @param hasTimeElements - Whether time elements (messages) were found in HTML
+ * @returns ChannelAccessStatus indicating the accessibility level
+ */
+export function detectChannelAccessStatus(
+  html: string,
+  hasTimeElements: boolean
+): ChannelAccessStatus {
+  console.log('[TELEGRAM_SCRAPER_BASE] Detecting channel access status');
+
+  // Check for channel metadata (title, subscribers)
+  // These elements are present if the channel exists and is public
+  const hasChannelMetadata =
+    html.includes('class="tgme_page_title"') ||
+    html.includes('class="tgme_page_extra"') ||
+    html.includes('property="og:title"');
+
+  if (!hasChannelMetadata) {
+    // No metadata found - channel doesn't exist or is completely private
+    console.log('[TELEGRAM_SCRAPER_BASE] No channel metadata found - status: NOT_FOUND');
+    return ChannelAccessStatus.NOT_FOUND;
+  }
+
+  if (!hasTimeElements) {
+    // Metadata exists but no message timestamps found
+    // This indicates a channel without public message preview
+    console.log('[TELEGRAM_SCRAPER_BASE] Metadata found but no messages - status: NO_PREVIEW');
+    return ChannelAccessStatus.NO_PREVIEW;
+  }
+
+  // Both metadata and messages found - channel has public preview
+  console.log('[TELEGRAM_SCRAPER_BASE] Metadata and messages found - status: ACCESSIBLE');
+  return ChannelAccessStatus.ACCESSIBLE;
 }
