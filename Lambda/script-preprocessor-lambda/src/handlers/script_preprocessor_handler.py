@@ -294,6 +294,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
             new_cfg["speaker1_voice"] = speaker1_voice
             new_cfg["speaker2_voice"] = None
             new_cfg["language_code"] = language_code
+            new_cfg["language"] = language_full  # Full language name for Gemini script generation
             logger.info(f"[PREPROC] Selected single voice for episode {episode_id}: {speaker1_role}={speaker1_voice}, language={language_full}")
         else:
             # Multi-speaker: use dynamic role assignment
@@ -328,6 +329,7 @@ class ScriptPreprocessorHandler:  # noqa: D101
             new_cfg["speaker1_voice"] = speaker1_voice
             new_cfg["speaker2_voice"] = speaker2_voice
             new_cfg["language_code"] = language_code
+            new_cfg["language"] = language_full  # Full language name for Gemini script generation
             logger.info(f"[PREPROC] Selected voices for episode {episode_id}: {speaker1_role}={speaker1_voice}, {speaker2_role}={speaker2_voice}, language={language_full}")
 
         return new_cfg 
