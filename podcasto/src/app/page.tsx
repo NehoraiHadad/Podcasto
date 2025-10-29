@@ -5,14 +5,22 @@ import { HeroSection } from "@/components/home/hero-section";
 import { CoverFlowCarousel } from "@/components/home/cover-flow-carousel";
 import { FeaturesSection } from "@/components/home/features-section";
 
+// Define a type for the carousel podcast to ensure type safety
+interface CarouselPodcast {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image: string | null;
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const user = await getCurrentUser();
   const podcasts = await getCachedPodcastsForDisplay();
 
-  // Map the fetched podcasts to the format expected by the carousel
-  const carouselPodcasts = podcasts.map(item => {
+  // Map and filter in a type-safe way
+  const carouselPodcasts: CarouselPodcast[] = podcasts.map(item => {
     if (item.type === 'group' && item.group_data) {
       const primaryLang = item.group_data.languages.find(l => l.is_primary) || item.group_data.languages[0];
       return {
@@ -30,7 +38,7 @@ export default async function Home() {
       };
     }
     return null;
-  }).filter(p => p !== null && p.cover_image);
+  }).filter((p): p is CarouselPodcast => p !== null && p.cover_image !== null);
 
 
   return (
