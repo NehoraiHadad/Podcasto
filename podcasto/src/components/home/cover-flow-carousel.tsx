@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -26,9 +26,11 @@ const CARD_HEIGHT_MOBILE = 240;
 const GAP_MOBILE = 20;
 
 export function CoverFlowCarousel({ podcasts }: CoverFlowCarouselProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -44,51 +46,60 @@ export function CoverFlowCarousel({ podcasts }: CoverFlowCarouselProps) {
   const handleNext = () => setIndex((i) => Math.min(i + 1, podcasts.length - 1));
   const handlePrev = () => setIndex((i) => Math.max(i - 1, 0));
 
+  const centerPosition = useMemo(() => {
+    if (!isMounted) return 0;
+    return window.innerWidth / 2 - CARD_WIDTH / 2;
+  }, [isMounted, CARD_WIDTH]);
+
   if (podcasts.length === 0) return null;
 
   const currentPodcast = podcasts[index];
 
   return (
-    <div className="bg-black py-16 sm:py-20 text-white">
-        <div className="relative w-full h-[350px] sm:h-[400px] flex items-center justify-center overflow-hidden" style={{ perspective: '1000px' }}>
-            <motion.div
-                className="flex items-center"
-                style={{ transformStyle: 'preserve-3d' }}
-                animate={{ x: `-${index * (CARD_WIDTH + GAP) - (window.innerWidth / 2 - CARD_WIDTH / 2)}px` }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-                {podcasts.map((podcast, i) => {
-                    const isActive = i === index;
-                    const distance = Math.abs(index - i);
+    <div className="bg-black py-16 sm:py-20 text-white overflow-hidden">
+        <div className="relative w-full h-[350px] sm:h-[400px] flex items-center justify-center" style={{ perspective: '1000px' }}>
+            <AnimatePresence>
+              <motion.div
+                  className="flex items-center"
+                  style={{ transformStyle: 'preserve-3d' }}
+                  initial={{ x: 0 }}
+                  animate={{ x: `-${index * (CARD_WIDTH + GAP) - centerPosition}px` }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              >
+                  {podcasts.map((podcast, i) => {
+                      const isActive = i === index;
+                      const distance = Math.abs(index - i);
 
-                    return (
-                        <motion.div
-                            key={podcast.id}
-                            className="relative flex-shrink-0"
-                            style={{ width: CARD_WIDTH, height: CARD_HEIGHT, marginRight: GAP }}
-                            animate={{
-                                scale: isActive ? 1.1 : 0.8,
-                                rotateY: distance * (i < index ? 45 : -45),
-                                z: isActive ? 0 : -150,
-                                opacity: Math.max(1 - distance * 0.2, isMobile ? 0 : 0.2), // Hide non-adjacent on mobile
-                            }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            onClick={() => setIndex(i)}
-                        >
-                            {podcast.cover_image && (
-                                <Image
-                                    src={podcast.cover_image}
-                                    alt={podcast.title}
-                                    fill
-                                    className="object-cover rounded-lg shadow-2xl cursor-pointer"
-                                    style={{ filter: isActive ? 'brightness(1)' : 'brightness(0.6)' }}
-                                    sizes="(max-width: 768px) 50vw, 300px"
-                                />
-                            )}
-                        </motion.div>
-                    );
-                })}
-            </motion.div>
+                      return (
+                          <motion.div
+                              key={podcast.id}
+                              className="relative flex-shrink-0"
+                              style={{ width: CARD_WIDTH, height: CARD_HEIGHT, marginRight: GAP }}
+                              animate={{
+                                  scale: isActive ? 1.1 : 0.8,
+                                  rotateY: distance * (i < index ? 45 : -45),
+                                  z: isActive ? 0 : -150,
+                                  opacity: isMounted ? Math.max(1 - distance * 0.2, isMobile ? (distance > 0 ? 0 : 1) : 0.2) : 0,
+                              }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                              onClick={() => setIndex(i)}
+                          >
+                              {podcast.cover_image && (
+                                  <Image
+                                      src={podcast.cover_image}
+                                      alt={podcast.title}
+                                      fill
+                                      className="object-cover rounded-lg shadow-2xl cursor-pointer"
+                                      style={{ filter: isActive ? 'brightness(1)' : 'brightness(0.6)' }}
+                                      sizes="(max-width: 768px) 50vw, 300px"
+                                      priority={i >= index - 1 && i <= index + 1}
+                                  />
+                              )}
+                          </motion.div>
+                      );
+                  })}
+              </motion.div>
+            </AnimatePresence>
         </div>
 
         <div className="text-center mt-8 px-4 h-36 sm:h-32">

@@ -42,8 +42,9 @@ const FeatureCard = ({ icon, title, description, index }: (typeof features[0] & 
     className="bg-gray-900/50 p-6 sm:p-8 rounded-2xl shadow-lg flex flex-col items-center text-center"
     initial="offscreen"
     whileInView="onscreen"
-    viewport={{ once: true, amount: 0.5 }}
+    viewport={{ once: true, amount: 0.1 }} // Make animation trigger sooner
     variants={cardVariants}
+    transition={{ delay: index * 0.1 }} // Stagger the animation
     whileHover={{ y: -10, transition: { type: 'spring', stiffness: 300 } }}
   >
     <div className="mb-4 p-3 sm:p-4 bg-purple-600/20 rounded-full">
