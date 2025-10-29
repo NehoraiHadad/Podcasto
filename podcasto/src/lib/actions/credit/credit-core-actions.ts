@@ -1,6 +1,6 @@
 'use server';
 
-import { creditService } from '@/lib/services/credits';
+import { creditService, type EnsureSignupCreditsResult } from '@/lib/services/credits';
 import { getUserCredits, getUserTransactionHistory } from '@/lib/db/api/credits';
 import type { ActionResult } from '../shared/types';
 import { getUser } from '@/lib/auth';
@@ -187,4 +187,8 @@ export async function getEpisodeCostAction(): Promise<ActionResult<number>> {
       error: error instanceof Error ? error.message : 'Failed to get episode cost'
     };
   }
+}
+
+export async function ensureSignupCredits(userId: string): Promise<EnsureSignupCreditsResult> {
+  return creditService.ensureSignupCredits(userId);
 }

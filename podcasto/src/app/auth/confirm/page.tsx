@@ -1,6 +1,5 @@
 import { createServerClient } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getUserCredits } from '@/lib/db/api/credits';
 import { creditService } from '@/lib/services/credits';
 
 /**
@@ -43,25 +42,16 @@ export default async function ConfirmPage({
       );
     }
 
-    // If email confirmation succeeded and we have a user, check for credits
+    // If email confirmation succeeded and we have a user, ensure credits exist
     if (user) {
-      const existingCredits = await getUserCredits(user.id);
+      const ensureResult = await creditService.ensureSignupCredits(user.id);
 
-      if (!existingCredits) {
-        console.log(`[EMAIL_CONFIRM] New user detected: ${user.id}, initializing credits`);
+      if (!ensureResult.success) {
+        console.error('[EMAIL_CONFIRM] Failed to ensure signup credits', ensureResult.logContext);
+      } else if (ensureResult.created) {
+        console.log('[EMAIL_CONFIRM] Signup credits initialized', ensureResult.logContext);
 
-        // Initialize credits for new user
-        const result = await creditService.initializeUserCredits(user.id);
-
-        if (result.success) {
-          console.log(`[EMAIL_CONFIRM] Credits initialized for user ${user.id}: ${result.newBalance} credits`);
-
-          // Redirect to welcome page with credits notification
-          redirect('/welcome?credits=true');
-        } else {
-          console.error(`[EMAIL_CONFIRM] Failed to initialize credits:`, result.error);
-          // Continue anyway - credits can be initialized later via getUserCreditsAction
-        }
+        redirect('/welcome?credits=true');
       }
     }
 
