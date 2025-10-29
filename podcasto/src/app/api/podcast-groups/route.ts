@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUser, isAdmin } from '@/lib/auth';
+import { ensureAdmin } from '@/lib/api/ensure-admin';
 import { fetchPodcastGroupsWithLanguages } from './fetch-groups';
 
 /**
@@ -10,18 +10,9 @@ import { fetchPodcastGroupsWithLanguages } from './fetch-groups';
  */
 export async function GET() {
   try {
-    // Check authentication
-    const user = await getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check admin role using cached role queries
-    const hasAdminAccess = await isAdmin(user.id);
-
-    if (!hasAdminAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const adminCheck = await ensureAdmin({ logContext: '[API] GET /api/podcast-groups' });
+    if (!adminCheck.ok) {
+      return adminCheck.response;
     }
 
     // Fetch all podcast groups with their languages
