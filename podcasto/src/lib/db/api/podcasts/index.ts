@@ -23,6 +23,7 @@ export type {
   ContentSource,
   PodcastWithConfig,
   PodcastQueryOptions,
+  PodcastWithEpisodeStats,
 } from './types';
 
 // ============================================================================
@@ -35,6 +36,7 @@ export {
   getPodcastsPaginatedBasic,
   getPodcastCount,
   podcastExistsByTitle,
+  getUserPodcastsWithEpisodeStats,
 } from './queries';
 
 // ============================================================================

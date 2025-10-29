@@ -1,10 +1,10 @@
 import 'server-only';
 
 import { db } from '../../index';
-import { podcasts } from '../../schema';
-import { eq, isNull } from 'drizzle-orm';
+import { podcasts, episodes } from '../../schema';
+import { eq, isNull, asc, sql } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
-import type { Podcast } from './types';
+import type { Podcast, PodcastWithEpisodeStats } from './types';
 
 /**
  * Get podcast by ID (basic data only)
@@ -105,6 +105,52 @@ export async function getPodcastCount(): Promise<number> {
  */
 export async function podcastExistsByTitle(title: string): Promise<boolean> {
   return await dbUtils.exists(podcasts, eq(podcasts.title, title));
+}
+
+/**
+ * Get podcasts created by a specific user along with episode counts
+ *
+ * @param userId - ID of the user who owns the podcasts
+ * @returns Array of podcasts with episode statistics
+ *
+ * @example
+ * ```typescript
+ * const podcasts = await getUserPodcastsWithEpisodeStats('user-123');
+ * console.log(podcasts[0].episodeCount); // => 5
+ * ```
+ */
+export async function getUserPodcastsWithEpisodeStats(
+  userId: string
+): Promise<PodcastWithEpisodeStats[]> {
+  const rows = await db
+    .select({
+      id: podcasts.id,
+      title: podcasts.title,
+      description: podcasts.description,
+      cover_image: podcasts.cover_image,
+      image_style: podcasts.image_style,
+      is_paused: podcasts.is_paused,
+      created_by: podcasts.created_by,
+      podcast_group_id: podcasts.podcast_group_id,
+      language_code: podcasts.language_code,
+      migration_status: podcasts.migration_status,
+      auto_generation_enabled: podcasts.auto_generation_enabled,
+      last_auto_generated_at: podcasts.last_auto_generated_at,
+      next_scheduled_generation: podcasts.next_scheduled_generation,
+      created_at: podcasts.created_at,
+      updated_at: podcasts.updated_at,
+      episodeCount: sql<number>`COALESCE(count(${episodes.id}), 0)::int`
+    })
+    .from(podcasts)
+    .leftJoin(episodes, eq(episodes.podcast_id, podcasts.id))
+    .where(eq(podcasts.created_by, userId))
+    .groupBy(podcasts.id)
+    .orderBy(asc(podcasts.created_at));
+
+  return rows.map(({ episodeCount, ...podcast }) => ({
+    podcast: podcast as Podcast,
+    episodeCount,
+  }));
 }
 
 /**
