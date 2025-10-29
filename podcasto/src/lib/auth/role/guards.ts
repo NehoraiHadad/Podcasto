@@ -5,7 +5,9 @@
  *
  * Guard functions that throw errors on authorization failure.
  * Use these at the start of protected server actions to enforce access control.
- */import { SessionService } from '../session';
+ */
+import { SessionService } from '../session';
+import { SessionService } from '../session';
   const user = await SessionService.getUser();
 import {
   UnauthorizedError,
@@ -118,7 +120,7 @@ export async function requireRole(role: string): Promise<User> {
  *
  * Throws errors if not authenticated or doesn't have the permission.
  *
- * @param permission - The required permission
+}
  * @returns The authenticated user
  * @throws {UnauthorizedError} If user is not authenticated
  * @throws {InsufficientPermissionsError} If user doesn't have permission
