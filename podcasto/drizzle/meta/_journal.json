@@ -43,6 +43,13 @@
       "when": 1761742130069,
       "tag": "0005_romantic_darwin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761816900000,
+      "tag": "0006_enable_rls_security",
+      "breakpoints": true
     }
   ]
 }
