@@ -10,6 +10,8 @@ import type { Database } from '@/lib/supabase/types';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
 import { MainLayout } from '@/components/layout/main-layout';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'My Podcasts | Podcasto',
   description: 'Manage your podcasts and generate episodes',
