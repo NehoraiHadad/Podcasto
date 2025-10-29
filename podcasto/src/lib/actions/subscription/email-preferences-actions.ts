@@ -1,8 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getUser, createServerClient } from '@/lib/auth';
+import { getUser } from '@/lib/auth';
 import type { EmailNotificationResult } from './shared';
+import { subscriptionService } from '@/lib/services/subscriptions';
 
 /**
  * Simple toggle for email notifications (for settings page)
@@ -29,32 +30,31 @@ export async function updateEmailNotificationPreference(): Promise<EmailNotifica
       };
     }
 
-    const supabase = await createServerClient();
+    const currentPreference = await subscriptionService.getEmailNotificationPreference(user.id);
 
-    const { data: currentProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email_notifications')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('Error fetching current email notifications preference:', profileError);
+    if (!currentPreference.success) {
+      console.error(
+        'Error fetching current email notifications preference:',
+        currentPreference.error
+      );
       return {
         success: false,
         message: 'Failed to load current preferences'
       };
     }
 
-    const currentEnabled = currentProfile?.email_notifications ?? true;
-    const newEnabled = !currentEnabled;
+    const newEnabled = !currentPreference.data;
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ email_notifications: newEnabled })
-      .eq('id', user.id);
+    const updateResult = await subscriptionService.updateEmailNotificationPreference(
+      user.id,
+      newEnabled
+    );
 
-    if (updateError) {
-      console.error('Error updating email notification preference:', updateError);
+    if (!updateResult.success) {
+      console.error(
+        'Error updating email notification preference:',
+        updateResult.error
+      );
       return {
         success: false,
         message: 'Failed to update preference'
@@ -114,15 +114,16 @@ export async function toggleEmailNotifications(
 
     const enabled = formData.get('enabled') === 'true';
 
-    const supabase = await createServerClient();
+    const updateResult = await subscriptionService.updateEmailNotificationPreference(
+      user.id,
+      enabled
+    );
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ email_notifications: enabled })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('Error updating email notification preference:', updateError);
+    if (!updateResult.success) {
+      console.error(
+        'Error updating email notification preference:',
+        updateResult.error
+      );
       return {
         success: false,
         message: 'Failed to update email notification preferences'

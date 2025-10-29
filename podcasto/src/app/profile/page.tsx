@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { requireAuth } from '@/lib/actions/user-actions';
-import { createServerClient } from '@/lib/auth';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { ProfilePagePresenter } from '@/components/pages/profile-page-presenter';
+import { subscriptionService } from '@/lib/services/subscriptions';
 
 export const metadata: Metadata = {
   title: 'My Profile | Podcasto',
@@ -18,25 +18,21 @@ export const dynamic = 'force-dynamic';
 export default async function ProfilePage() {
   const user = await requireAuth();
 
-  const supabase = await createServerClient();
-
-  const [
-    { data: userProfile, error },
-    creditsResult,
-  ] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('email_notifications')
-      .eq('id', user.id)
-      .maybeSingle(),
+  const [emailPreferenceResult, creditsResult] = await Promise.all([
+    subscriptionService.getEmailNotificationPreference(user.id),
     getUserCreditsAction(),
   ]);
 
-  if (error) {
-    console.error('Failed to load profile email preferences', error);
+  if (!emailPreferenceResult.success) {
+    console.error(
+      'Failed to load profile email preferences',
+      emailPreferenceResult.error
+    );
   }
 
-  const emailNotificationsEnabled = userProfile?.email_notifications ?? true;
+  const emailNotificationsEnabled = emailPreferenceResult.success
+    ? emailPreferenceResult.data
+    : true;
 
   const credits = creditsResult.success ? creditsResult.data : null;
 
@@ -47,4 +43,4 @@ export default async function ProfilePage() {
       credits={credits}
     />
   );
-} 
+}
