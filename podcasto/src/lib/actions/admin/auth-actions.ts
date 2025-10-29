@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import {
   requireAdmin as requireAdminAuth,
   getUserHighestRole,
-  getUser,
+  SessionService,
   InsufficientPermissionsError,
   UnauthorizedError,
 } from '@/lib/auth';
@@ -82,7 +82,7 @@ export const checkIsAdmin = cache(async ({
  */
 export const getUserRole = async (): Promise<string | null> => {
   // Use centralized session service
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) return null;
 

@@ -3,7 +3,9 @@ import { createAdminUser, createSupabaseUser } from '@/test/factories/user';
 import type { GroupWithLanguages } from '../fetch-groups';
 
 vi.mock('@/lib/auth', () => ({
-  getUser: vi.fn(),
+  SessionService: {
+    getUser: vi.fn(),
+  },
   isAdmin: vi.fn(),
 }));
 
@@ -11,7 +13,7 @@ vi.mock('../fetch-groups', () => ({
   fetchPodcastGroupsWithLanguages: vi.fn(),
 }));
 
-const { getUser, isAdmin } = vi.mocked(await import('@/lib/auth'));
+const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth'));
 const { fetchPodcastGroupsWithLanguages } = vi.mocked(
   await import('../fetch-groups')
 );
@@ -24,7 +26,7 @@ describe('GET /api/podcast-groups admin guard', () => {
   });
 
   it('returns 401 when user is not authenticated', async () => {
-    getUser.mockResolvedValueOnce(null);
+    SessionService.getUser.mockResolvedValueOnce(null);
 
     const response = await GET();
 
@@ -33,7 +35,9 @@ describe('GET /api/podcast-groups admin guard', () => {
   });
 
   it('returns 403 when user is not an admin', async () => {
-    getUser.mockResolvedValueOnce(createSupabaseUser({ id: 'user-1' }));
+    SessionService.getUser.mockResolvedValueOnce(
+      createSupabaseUser({ id: 'user-1' })
+    );
     isAdmin.mockResolvedValueOnce(false);
 
     const response = await GET();
@@ -43,7 +47,9 @@ describe('GET /api/podcast-groups admin guard', () => {
   });
 
   it('returns podcast groups for admins', async () => {
-    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-1' }));
+    SessionService.getUser.mockResolvedValueOnce(
+      createAdminUser({ id: 'admin-1' })
+    );
     isAdmin.mockResolvedValueOnce(true);
     fetchPodcastGroupsWithLanguages.mockResolvedValueOnce([
       {
