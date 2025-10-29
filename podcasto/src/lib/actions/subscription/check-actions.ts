@@ -1,14 +1,11 @@
 'use server';
 
-import { createServerClient, getUser } from '@/lib/auth';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/types';
+import { getUser } from '@/lib/auth';
+import type { User } from '@supabase/supabase-js';
 import type { SubscriptionParams } from './shared';
-
-type SupabaseServerClient = SupabaseClient<Database>;
+import { subscriptionService } from '@/lib/services/subscriptions';
 
 interface SubscriptionCheckOptions {
-  supabase?: SupabaseServerClient;
   user?: User | null;
 }
 
@@ -26,7 +23,7 @@ interface SubscriptionCheckOptions {
  */
 export async function isUserSubscribed(
   { podcastId }: SubscriptionParams,
-  { supabase: providedClient, user: providedUser }: SubscriptionCheckOptions = {}
+  { user: providedUser }: SubscriptionCheckOptions = {}
 ): Promise<boolean> {
   try {
     const user = providedUser ?? await getUser();
@@ -35,19 +32,14 @@ export async function isUserSubscribed(
       return false;
     }
 
-    const supabase = providedClient ?? await createServerClient();
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('podcast_id', podcastId);
+    const result = await subscriptionService.getSubscription(user.id, podcastId);
 
-    if (error) {
-      console.error('Error checking subscription:', error);
+    if (!result.success) {
+      console.error('Error checking subscription:', result.error);
       return false;
     }
 
-    return !!data && data.length > 0;
+    return Boolean(result.data);
   } catch (error) {
     console.error('Error checking subscription:', error);
     return false;

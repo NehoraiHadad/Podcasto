@@ -1,10 +1,9 @@
 'use server';
 
-import { createServerClient } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { getUser } from '@/lib/auth';
+import { subscriptionService } from '@/lib/services/subscriptions';
 import type { SubscriptionActionResult } from './shared';
-import { isUserSubscribed } from './check-actions';
 
 /**
  * Toggle subscription status for the current user
@@ -47,60 +46,31 @@ export async function toggleSubscription(
       };
     }
 
-    const supabase = await createServerClient();
-    const isCurrentlySubscribed = await isUserSubscribed(
-      { podcastId },
-      { supabase, user }
-    );
+    const result = await subscriptionService.toggleSubscription(user.id, podcastId);
 
-    if (isCurrentlySubscribed) {
-      // Unsubscribe
-      const { error } = await supabase
-        .from('subscriptions')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('podcast_id', podcastId);
-
-      if (error) {
-        console.error('Error unsubscribing:', error);
-        return {
-          success: false,
-          message: 'An error occurred while unsubscribing'
-        };
-      }
-
-      revalidatePath(`/podcasts/${podcastId}`);
-
+    if (!result.success || !result.data) {
+      console.error('Error toggling subscription:', result.error);
       return {
-        success: true,
-        message: 'You will no longer receive updates for new episodes',
-        isSubscribed: false
+        success: false,
+        message: result.error ?? 'An error occurred while processing your request'
       };
-    } else {
-      // Subscribe
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert([{
-          user_id: user.id,
-          podcast_id: podcastId
-        }]);
+    }
 
-      if (error) {
-        console.error('Error subscribing:', error);
-        return {
-          success: false,
-          message: 'An error occurred while subscribing'
-        };
-      }
+    revalidatePath(`/podcasts/${podcastId}`);
 
-      revalidatePath(`/podcasts/${podcastId}`);
-
+    if (result.data.isSubscribed) {
       return {
         success: true,
         message: 'You will receive updates when new episodes are released',
         isSubscribed: true
       };
     }
+
+    return {
+      success: true,
+      message: 'You will no longer receive updates for new episodes',
+      isSubscribed: false
+    };
   } catch (error) {
     console.error('Error toggling subscription:', error);
     return {
