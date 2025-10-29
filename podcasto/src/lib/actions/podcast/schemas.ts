@@ -45,7 +45,7 @@ export const podcastCreationSchema = z.object({
     'casual', 'professional', 'friendly', 'formal'
   ]),
   speaker1Role: z.string().min(1, "Speaker 1 role is required"),
-  speaker2Role: z.string().optional(),
+  speaker2Role: z.string().optional().nullable(),
 
   // Mixing Techniques
   mixingTechniques: z.array(z.string()),
@@ -54,7 +54,7 @@ export const podcastCreationSchema = z.object({
   additionalInstructions: z.string().optional(),
 }).superRefine((data, ctx) => {
   // Validate speaker2Role is required for multi-speaker podcasts
-  if (data.podcastFormat === 'multi-speaker' && !data.speaker2Role) {
+  if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Speaker 2 role is required for multi-speaker podcasts",
@@ -100,7 +100,7 @@ export const podcastUpdateSchema = z.object({
   // Style and roles fields (optional)
   conversationStyle: z.string().optional(),
   speaker1Role: z.string().optional(),
-  speaker2Role: z.string().optional(),
+  speaker2Role: z.string().optional().nullable(),
   // Mixing techniques (optional)
   mixingTechniques: z.array(z.string().optional()).optional(),
   additionalInstructions: z.string().nullish(),
@@ -111,7 +111,7 @@ export const podcastUpdateSchema = z.object({
   autoGeneration: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   // Only validate speaker2Role if podcastFormat is explicitly set to multi-speaker
-  if (data.podcastFormat === 'multi-speaker' && data.speaker2Role === undefined) {
+  if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Speaker 2 role is required for multi-speaker podcasts",

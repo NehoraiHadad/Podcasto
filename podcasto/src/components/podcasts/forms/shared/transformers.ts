@@ -19,6 +19,8 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
   const languageCode = podcast.language_code || 'en';
   const languageFull = languageCodeToFull(languageCode);
 
+  const podcastFormat = config?.podcast_format || 'multi-speaker';
+
   return {
     id: podcast.id,
     title: podcast.title,
@@ -28,9 +30,10 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     language: languageFull, // Now derived from podcasts.language_code
     episodeFrequency: config?.episode_frequency || 7,
     autoGeneration: podcast.auto_generation_enabled,
-    podcastFormat: config?.podcast_format || 'multi-speaker',
+    podcastFormat,
     speaker1Role: config?.speaker1_role || 'Host',
-    speaker2Role: config?.speaker2_role || 'Co-host',
+    // Only set speaker2Role default for multi-speaker, otherwise keep null
+    speaker2Role: podcastFormat === 'single-speaker' ? null : (config?.speaker2_role || 'Co-host'),
     conversationStyle: config?.conversation_style || 'casual',
     introPrompt: config?.intro_prompt,
     outroPrompt: config?.outro_prompt,
