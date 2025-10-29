@@ -48,7 +48,7 @@ export async function toggleSubscription(
 
     const result = await subscriptionService.toggleSubscription(user.id, podcastId);
 
-    if (!result.success || !result.data) {
+    if (!result.success) {
       console.error('Error toggling subscription:', result.error);
       return {
         success: false,
@@ -56,9 +56,19 @@ export async function toggleSubscription(
       };
     }
 
+    const data = result.data;
+
+    if (!data) {
+      console.error('Error toggling subscription: missing response data');
+      return {
+        success: false,
+        message: 'An error occurred while processing your request'
+      };
+    }
+
     revalidatePath(`/podcasts/${podcastId}`);
 
-    if (result.data.isSubscribed) {
+    if (data.isSubscribed) {
       return {
         success: true,
         message: 'You will receive updates when new episodes are released',
