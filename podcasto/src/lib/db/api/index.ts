@@ -14,7 +14,12 @@ export * as profilesApi from './profiles';
 // Export types
 export type { Podcast, NewPodcast, PodcastWithConfig } from './podcasts';
 export type { Episode, NewEpisode } from './episodes';
-export type { Subscription, NewSubscription } from './subscriptions';
+export type {
+  Subscription,
+  NewSubscription,
+  UserSubscriptionWithPodcast,
+  UserNotificationSettings,
+} from './subscriptions';
 export type { SentEpisode, NewSentEpisode } from './sent-episodes';
 export type { UserRole, NewUserRole } from './user-roles';
 export type { PodcastConfig, NewPodcastConfig } from './podcast-configs';

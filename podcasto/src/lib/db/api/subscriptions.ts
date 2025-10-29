@@ -1,9 +1,11 @@
 import 'server-only';
 
-import { subscriptions } from '../schema';
+import { db } from '../index';
+import { podcasts, subscriptions } from '../schema';
 import { eq, and, SQL } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import * as dbUtils from '../utils';
+import { getProfileById } from './profiles';
 
 // ============================================================================
 // Types
@@ -18,6 +20,21 @@ export type Subscription = InferSelectModel<typeof subscriptions>;
  * New subscription data for insertion
  */
 export type NewSubscription = InferInsertModel<typeof subscriptions>;
+
+export interface UserSubscriptionWithPodcast {
+  id: string;
+  podcast_id: string | null;
+  podcast_title: string;
+  podcast_description: string | null;
+  cover_image: string | null;
+  email_notifications: boolean;
+  created_at: Date | null;
+}
+
+export interface UserNotificationSettings {
+  emailNotifications: boolean;
+  subscriptions: UserSubscriptionWithPodcast[];
+}
 
 // ============================================================================
 // Read Operations (Queries)
@@ -101,6 +118,42 @@ export async function getPodcastSubscriptions(podcastId: string): Promise<Subscr
  */
 export async function getSubscriptionCount(): Promise<number> {
   return await dbUtils.count(subscriptions);
+}
+
+/**
+ * Get user notification settings including global profile preference and subscriptions
+ */
+export async function getUserNotificationSettings(userId: string): Promise<UserNotificationSettings> {
+  const [profile, subscriptionRows] = await Promise.all([
+    getProfileById(userId),
+    db
+      .select({
+        id: subscriptions.id,
+        podcastId: subscriptions.podcast_id,
+        podcastTitle: podcasts.title,
+        podcastDescription: podcasts.description,
+        coverImage: podcasts.cover_image,
+        emailNotifications: subscriptions.email_notifications,
+        createdAt: subscriptions.created_at,
+      })
+      .from(subscriptions)
+      .leftJoin(podcasts, eq(subscriptions.podcast_id, podcasts.id))
+      .where(eq(subscriptions.user_id, userId))
+      .orderBy(subscriptions.created_at),
+  ]);
+
+  return {
+    emailNotifications: profile?.email_notifications ?? true,
+    subscriptions: subscriptionRows.map((subscription) => ({
+      id: subscription.id,
+      podcast_id: subscription.podcastId ?? null,
+      podcast_title: subscription.podcastTitle ?? 'Unknown Podcast',
+      podcast_description: subscription.podcastDescription ?? null,
+      cover_image: subscription.coverImage ?? null,
+      email_notifications: subscription.emailNotifications,
+      created_at: subscription.createdAt ?? null,
+    })),
+  };
 }
 
 /**
