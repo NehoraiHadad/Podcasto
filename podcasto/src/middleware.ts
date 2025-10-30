@@ -77,6 +77,20 @@ function isAuthRoute(pathname: string): boolean {
 }
 
 /**
+ * Copy cookies from one response to another.
+ */
+export function withSupabaseCookies(
+  base: NextResponse,
+  source: NextResponse
+): NextResponse {
+  for (const cookie of source.cookies.getAll()) {
+    base.cookies.set(cookie);
+  }
+
+  return base;
+}
+
+/**
  * Build redirect URL with return path
  */
 function buildRedirectUrl(
@@ -174,7 +188,11 @@ export async function middleware(request: NextRequest) {
     const redirectParam = request.nextUrl.searchParams.get('redirect');
     const redirectPath = redirectParam || '/';
 
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+    const redirectResponse = NextResponse.redirect(
+      new URL(redirectPath, request.url)
+    );
+
+    return withSupabaseCookies(redirectResponse, response);
   }
 
   // Handle protected routes - redirect if not authenticated
@@ -182,7 +200,9 @@ export async function middleware(request: NextRequest) {
     debugLog('Redirecting unauthenticated user to login', { pathname });
 
     const redirectUrl = buildRedirectUrl(request, '/auth/login');
-    return NextResponse.redirect(redirectUrl);
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+
+    return withSupabaseCookies(redirectResponse, response);
   }
 
   // Handle admin routes - need to check role
