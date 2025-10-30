@@ -35,30 +35,36 @@ export function DateRangePresets({
         Quick Selection
       </label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full min-h-[44px] h-11 text-sm">
           <SelectValue placeholder="Choose a time period" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[60vh]">
           {presets.map((preset) => (
-            <SelectItem key={preset.value} value={preset.value}>
-              <div className="flex items-center justify-between w-full">
-                <span>{preset.label}</span>
+            <SelectItem 
+              key={preset.value} 
+              value={preset.value}
+              className="min-h-[44px] cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full gap-2">
+                <span className="text-sm">{preset.label}</span>
                 {preset.description && (
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
                     {preset.description}
                   </span>
                 )}
               </div>
             </SelectItem>
           ))}
-          <SelectItem value="custom">
+          <SelectItem value="custom" className="min-h-[44px] cursor-pointer">
             <div className="flex items-center justify-between w-full">
-              <span>Custom dates...</span>
+              <span className="text-sm">Custom dates...</span>
               <CalendarIcon className="h-3 w-3 ml-2" />
             </div>
           </SelectItem>
           {hasCustomDate && (
-            <SelectItem value="clear">Clear custom selection</SelectItem>
+            <SelectItem value="clear" className="min-h-[44px] cursor-pointer">
+              <span className="text-sm">Clear custom selection</span>
+            </SelectItem>
           )}
         </SelectContent>
       </Select>

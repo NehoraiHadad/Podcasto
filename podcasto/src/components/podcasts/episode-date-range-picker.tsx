@@ -59,12 +59,12 @@ export function EpisodeDateRangePicker({
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-3 sm:space-y-4', className)}>
       <div>
-        <label className="text-sm font-medium text-foreground mb-2 block">
+        <label className="text-sm font-medium text-foreground mb-1.5 sm:mb-2 block">
           Content Time Range
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
           Select which period of your channel content to include in this episode
         </p>
       </div>

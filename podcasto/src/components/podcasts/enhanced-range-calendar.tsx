@@ -34,10 +34,10 @@ export function EnhancedRangeCalendar({
   }, []);
 
   const formatDateDisplay = (): string => {
-    if (!date?.from) return 'Click to pick start and end dates';
+    if (!date?.from) return 'Pick dates';
 
     if (date.to) {
-      return `${format(date.from, 'MMM dd, yyyy')} → ${format(date.to, 'MMM dd, yyyy')}`;
+      return `${format(date.from, 'MMM dd')} → ${format(date.to, 'MMM dd, yyyy')}`;
     }
 
     return format(date.from, 'MMM dd, yyyy');
@@ -59,15 +59,31 @@ export function EnhancedRangeCalendar({
             id="date"
             variant="outline"
             className={cn(
-              'w-full justify-start text-left font-normal h-11',
+              'w-full justify-start text-left font-normal h-11 text-sm md:text-base min-h-[44px]',
               !date && 'text-muted-foreground'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{formatDateDisplay()}</span>
+            <span className="truncate text-xs sm:text-sm">{formatDateDisplay()}</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start" side="bottom">
+        <PopoverContent 
+          className="w-auto p-0 max-w-[calc(100vw-2rem)]" 
+          align="center" 
+          side="bottom"
+          sideOffset={8}
+        >
+          <Calendar
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={onDateSelect}
+            numberOfMonths={1}
+            disabled={(date) => date > new Date()}
+            timeZone={timeZone}
+            captionLayout="dropdown"
+            className="rounded-lg border shadow-sm md:hidden [--cell-size:2.5rem]"
+          />
           <Calendar
             mode="range"
             defaultMonth={date?.from}
@@ -77,7 +93,7 @@ export function EnhancedRangeCalendar({
             disabled={(date) => date > new Date()}
             timeZone={timeZone}
             captionLayout="dropdown"
-            className="rounded-lg border shadow-sm"
+            className="rounded-lg border shadow-sm hidden md:block"
           />
         </PopoverContent>
       </Popover>
