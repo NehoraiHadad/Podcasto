@@ -39,6 +39,9 @@ export const podcastCreationSchema = z.object({
 
   // Podcast Format
   podcastFormat: z.enum(['single-speaker', 'multi-speaker']).default('multi-speaker'),
+  speakerSelectionStrategy: z.enum(['fixed', 'random', 'sequence']).default('fixed'),
+  sequenceDualCount: z.number().optional(),
+  sequenceSingleCount: z.number().optional(),
 
   // Style and Roles
   conversationStyle: z.enum([
@@ -141,4 +144,4 @@ export const podcastUpdateSchema = z.object({
   }
 });
 
-export type PodcastUpdateData = z.infer<typeof podcastUpdateSchema>; 
+export type PodcastUpdateData = z.infer<typeof podcastUpdateSchema>;
