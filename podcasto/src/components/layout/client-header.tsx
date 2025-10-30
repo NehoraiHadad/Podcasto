@@ -1,25 +1,34 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User } from '@supabase/supabase-js';
 import { DesktopNav } from './header/desktop-nav';
 import { MobileNav } from './header/mobile-nav';
 import { ProfileMenu } from './header/profile-menu';
 import { AuthButtons } from './header/auth-buttons';
+import { useSupabase } from '@/components/providers/supabase-provider';
 
 interface ClientHeaderProps {
   initialIsAdmin: boolean;
-  initialUser: User | null;
 }
 
 /**
  * Main header component
  * Uses modular sub-components for navigation, profile menu, and auth buttons
  */
-export function ClientHeader({ initialIsAdmin, initialUser }: ClientHeaderProps) {
-  const user = initialUser;
-  const isAdmin = initialIsAdmin;
+export function ClientHeader({ initialIsAdmin }: ClientHeaderProps) {
+  const { user } = useSupabase();
+  const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    setIsAdmin(initialIsAdmin);
+  }, [initialIsAdmin, user]);
 
   return (
     <header className="bg-background border-b border-border/40 backdrop-blur-sm sticky top-0 z-40">
