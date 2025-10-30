@@ -16,7 +16,6 @@ export function SupabaseListener({ accessToken }: SupabaseListenerProps) {
   useEffect(() => {
     const {
       data: { subscription },
-      error,
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session ?? null);
       setUser(session?.user ?? null);
@@ -25,10 +24,6 @@ export function SupabaseListener({ accessToken }: SupabaseListenerProps) {
         router.refresh();
       }
     });
-
-    if (error) {
-      console.error('[SupabaseListener] Failed to subscribe to auth changes', error);
-    }
 
     return () => {
       subscription?.unsubscribe();
