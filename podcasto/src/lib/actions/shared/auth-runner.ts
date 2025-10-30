@@ -4,6 +4,7 @@ import { withAuthErrorHandling, createAuthError, AUTH_ERROR_CODES, logAuthError,
 import { createServerClient } from '@/lib/supabase/server';
 import type { AuthErrorCode } from '@/lib/auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 import type { ActionResult } from './types';
 import { executeAction } from './error-handler';
 
@@ -27,7 +28,7 @@ interface RunAuthActionOptions {
  * {@link executeAction} helper to produce {@link ActionResult} responses.
  */
 export async function runAuthAction<TResult>(
-  callback: (supabase: SupabaseClient) => Promise<TResult>,
+  callback: (supabase: SupabaseClient<Database>) => Promise<TResult>,
   options: RunAuthActionOptions = {}
 ): Promise<ActionResult<TResult>> {
   const supabase = await createServerClient();
