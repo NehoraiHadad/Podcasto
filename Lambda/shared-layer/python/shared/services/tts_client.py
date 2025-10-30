@@ -15,6 +15,7 @@ from shared.services.voice_config import VoiceConfigManager
 from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
 from shared.utils.rate_limiter import parse_retry_delay, TokenBucketRateLimiter
 import time
+import random
 
 logger = get_logger(__name__)
 
@@ -659,11 +660,14 @@ class GeminiTTSClient:
                 else:
                     # Only retry for 500 errors (transient Google errors)
                     if "500" in error_str or "Internal error" in error_str:
-                        # Exponential backoff: 5s, 10s, 20s for retries 1, 2, 3
-                        # Prevents cascading 429 errors when retrying after Google internal errors
-                        delay = min(5 * (2 ** retry), 20)
-                        logger.info(f"[TTS_CLIENT] 500 error - will retry chunk {chunk_num} after {delay}s backoff (attempt {retry+2}/{max_retries+1})")
-                        time.sleep(delay)
+                        # Exponential backoff with jitter: 30s, 60s, 120s base delays
+                        # With 4 parallel workers, prevents rate limit exhaustion (27 RPM → 4.6 RPM)
+                        # Jitter (±30%) spreads retry attempts to avoid thundering herd
+                        delay = min(30 * (2 ** retry), 120)  # 30s, 60s, 120s
+                        jitter = random.uniform(0, delay * 0.3)  # ±30% random jitter
+                        delay_with_jitter = delay + jitter
+                        logger.info(f"[TTS_CLIENT] 500 error - will retry chunk {chunk_num} after {delay_with_jitter:.1f}s backoff (attempt {retry+2}/{max_retries+1})")
+                        time.sleep(delay_with_jitter)
                     else:
                         # Other errors - no point retrying
                         logger.error(f"[TTS_CLIENT] Non-retryable error for chunk {chunk_num}")

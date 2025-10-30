@@ -31,7 +31,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "bg-background group/calendar p-4 [--cell-size:2.5rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+        "bg-background group/calendar p-3 [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -45,10 +45,10 @@ function Calendar({
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
         months: cn(
-          "flex gap-4 flex-col md:flex-row relative",
+          "flex flex-col sm:flex-row gap-2 sm:gap-4 relative",
           defaultClassNames.months
         ),
-        month: cn("flex flex-col w-full gap-4", defaultClassNames.month),
+        month: cn("flex flex-col w-full gap-2 sm:gap-4", defaultClassNames.month),
         nav: cn(
           "flex items-center w-full justify-between mb-4",
           defaultClassNames.nav
@@ -106,11 +106,11 @@ function Calendar({
           defaultClassNames.day
         ),
         range_start: cn(
-          "rounded-l-md bg-primary/10",
+          "rounded-l-md bg-accent",
           defaultClassNames.range_start
         ),
-        range_middle: cn("rounded-none bg-primary/5", defaultClassNames.range_middle),
-        range_end: cn("rounded-r-md bg-primary/10", defaultClassNames.range_end),
+        range_middle: cn("rounded-none bg-accent/50", defaultClassNames.range_middle),
+        range_end: cn("rounded-r-md bg-accent", defaultClassNames.range_end),
         today: cn(
           "bg-accent text-accent-foreground font-semibold rounded-md data-[selected=true]:rounded-none border-2 border-primary/30",
           defaultClassNames.today
@@ -203,7 +203,7 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[selected-single=true]:font-semibold data-[range-middle=true]:bg-primary/5 data-[range-middle=true]:text-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:font-semibold data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:font-semibold group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 hover:bg-accent hover:text-accent-foreground dark:hover:text-accent-foreground flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md transition-colors [&>span]:text-xs [&>span]:opacity-70",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[selected-single=true]:font-semibold data-[range-middle=true]:bg-accent/50 data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:font-semibold data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:font-semibold group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 hover:bg-accent hover:text-accent-foreground dark:hover:text-accent-foreground flex aspect-square size-auto w-full flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md transition-colors [&>span]:text-xs [&>span]:opacity-70",
         defaultClassNames.day,
         className
       )}
