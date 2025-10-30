@@ -7,7 +7,7 @@ This module provides centralized session management for Podcasto, following 2025
 The authentication module consists of three main components:
 
 1. **SessionService** (`session-service.ts`) - Core session management operations
-2. **Session Utilities** (`session-utils.ts`) - Helper functions for session validation
+2. **Session Validators** (`session/validators.ts`) - Helper functions for session validation
 3. **Types** (`types.ts`) - TypeScript type definitions
 
 ## Quick Start
@@ -424,10 +424,13 @@ A: No, SessionService is server-side only (`'use server'` directive). Use the ex
 ```
 src/lib/auth/
 ├── index.ts              # Public API exports
-├── session-service.ts    # Core session operations
-├── session-utils.ts      # Utility functions
-├── types.ts             # Type definitions
-└── README.md            # This file
+├── session/
+│   ├── index.ts           # Unified session entrypoint
+│   ├── session-service.ts # Core session operations
+│   ├── validators.ts      # Shared validation helpers (canonical)
+│   └── ...                # Additional session helpers
+├── types.ts              # Type definitions
+└── README.md             # This file
 ```
 
 ---
