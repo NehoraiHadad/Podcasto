@@ -5,7 +5,7 @@
 
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import { SessionService, getAdminStatus as fetchAdminStatus, isAdmin } from '@/lib/auth';
+import { SessionService, getAdminStatus as fetchAdminStatus, isAdmin } from '@/lib/auth/server';
 
 /**
  * Checks if the current user has admin role

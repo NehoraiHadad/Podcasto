@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin, SessionService } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth/server';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { createPostProcessingWithConfig, extractEpisodeDescription } from '@/lib/utils/post-processing-utils';
 

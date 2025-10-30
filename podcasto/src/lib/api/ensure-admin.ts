@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { User } from '@supabase/supabase-js';
-import { SessionService, isAdmin } from '@/lib/auth';
+import { SessionService, isAdmin } from '@/lib/auth/server';
 
 export type EnsureAdminFailureReason = 'unauthorized' | 'forbidden';
 

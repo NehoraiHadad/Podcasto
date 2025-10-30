@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { db } from '@/lib/db';
 import {
   costTrackingEvents,

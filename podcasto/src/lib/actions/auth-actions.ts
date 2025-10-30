@@ -2,7 +2,8 @@
 
 import { getURL } from '@/lib/utils/url';
 import { validateLogin, validateRegistration } from '@/lib/auth';
-import { errorResult, runAuthAction } from './shared';
+import { errorResult } from './shared';
+import { runAuthAction } from './shared/server';
 
 const VALIDATION_ERROR_CODE = 'validation_error';
 

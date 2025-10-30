@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { sendNewEpisodeNotification, EmailNotificationResult } from '@/lib/services/email';
 import { logError, errorToString } from '@/lib/utils/error-utils';
 

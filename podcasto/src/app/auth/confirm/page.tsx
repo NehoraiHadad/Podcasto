@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/auth';
+import { createServerClient } from '@/lib/auth/server';
 import { redirect } from 'next/navigation';
 import { creditService } from '@/lib/services/credits';
 

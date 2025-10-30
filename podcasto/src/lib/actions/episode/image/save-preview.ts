@@ -1,7 +1,7 @@
 'use server';
 
 import { episodesApi } from '@/lib/db/api';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';
 import { createPostProcessingWithConfig, extractImageDataFromUrl } from '@/lib/utils/post-processing-utils';

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import type { EmailNotificationResult } from './shared';
 import { subscriptionService } from '@/lib/services/subscriptions';
 

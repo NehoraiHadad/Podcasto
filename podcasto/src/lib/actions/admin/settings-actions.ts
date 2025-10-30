@@ -7,7 +7,7 @@ import {
   initializeSystemSettings,
 } from '@/lib/db/api/system-settings';
 import { SYSTEM_SETTING_KEYS } from '@/lib/db/schema/system-settings';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import {
   createErrorResponse,
   createSuccessResponse,

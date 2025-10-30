@@ -5,7 +5,7 @@
  * Handles uploading images to S3 and generating public URLs.
  */
 
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { buildS3Url } from '@/lib/utils/s3-url-utils';
 

@@ -5,8 +5,8 @@ import type { CostBreakdown, UsageMetrics } from '@/lib/services/cost-calculator
 import {
   InsufficientPermissionsError,
   UnauthorizedError,
-  requireAdmin,
 } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 
 export interface RecalculateEpisodeCostResult {
   success: boolean;

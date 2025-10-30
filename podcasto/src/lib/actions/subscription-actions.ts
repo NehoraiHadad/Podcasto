@@ -1,6 +1,6 @@
 'use server';
 
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import {
   getUserPlanType,
   isUserPremium,

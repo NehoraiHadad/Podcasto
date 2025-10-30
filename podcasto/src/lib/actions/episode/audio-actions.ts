@@ -6,7 +6,7 @@ import { getEpisodeById } from '@/lib/db/api/episodes';
 import { episodesApi } from '@/lib/db/api';
 import { getPodcastConfigByPodcastId } from '@/lib/db/api/podcast-configs';
 import { getPodcastById } from '@/lib/db/api/podcasts';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { parseS3Uri, verifyS3ObjectExists, createS3Client } from '@/lib/utils/s3-utils';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { revalidateEpisodePaths } from '@/lib/utils/revalidation-utils';

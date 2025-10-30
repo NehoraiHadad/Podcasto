@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { userCosts, profiles } from '@/lib/db/schema';
 import { desc, sql } from 'drizzle-orm';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 
 export interface UserCostSummary {
   userId: string;

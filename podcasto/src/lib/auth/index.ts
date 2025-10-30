@@ -12,39 +12,13 @@
 // Session Management (✅ ALWAYS use getUser() for auth checks!)
 // ============================================================================
 
-export { SessionService } from './session';
-
 export type {
   User,
   Session,
   AuthState,
   SessionValidation,
   RefreshSessionOptions,
-} from './session';
-
-export {
-  // Core getters (✅ Use getUser() for auth!)
-  getCachedServerClient,
-  createServerClient,
-  getUser,
-  getSession,
-  getAuthState,
-
-  // Validators
-  isSessionExpired,
-  getSessionExpiryTime,
-  getSecondsUntilExpiry,
-  shouldRefreshSession,
-  validateSession,
-  validateSessionSync,
-  refreshSession,
-  clearSession,
-  formatSessionExpiry,
-
-  // Middleware helpers
-  createMiddlewareClient,
-  updateSession,
-} from './session';
+} from './session/types';
 
 // ============================================================================
 // Role & Permission Management
@@ -53,32 +27,7 @@ export {
 export type {
   RoleCheckResult,
   PermissionCheckResult,
-} from './role';
-
-export {
-  // Queries (cached per request)
-  getUserRoles,
-  hasRole,
-  isAdmin,
-  getAdminStatus,
-  hasPermission,
-  getUserPermissions,
-
-  // Guards (throw on failure)
-  requireAuth,
-  requireAdmin,
-  requireRole,
-  requirePermission,
-
-  // Checks (return detailed info)
-  checkRole,
-  checkPermission,
-  getUserHighestRole,
-
-  // Management
-  addUserRole,
-  removeUserRole,
-} from './role';
+} from './role/types';
 
 // ============================================================================
 // Permission System

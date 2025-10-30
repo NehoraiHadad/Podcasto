@@ -8,5 +8,5 @@
  */
 
 // Re-export from new auth module for backward compatibility
-export { createServerClient as createClient } from '@/lib/auth/session/getters';
-export { createMiddlewareClient, updateSession } from '@/lib/auth/session/middleware';
+export { createServerClient as createClient } from '@/lib/auth/server';
+export { createMiddlewareClient, updateSession } from '@/lib/auth/server';

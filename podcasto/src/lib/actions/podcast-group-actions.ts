@@ -600,7 +600,7 @@ export async function createPremiumPodcastAction(
   }
 ): Promise<ActionResult<PodcastGroupWithLanguages>> {
   try {
-    const { SessionService } = await import('@/lib/auth');
+    const { SessionService } = await import('@/lib/auth/server');
     const { checkAdvancedPodcastAccessAction } = await import('./subscription-actions');
 
     // Verify user is authenticated
@@ -805,7 +805,7 @@ export async function createUserPodcastAction(
   }
 ): Promise<ActionResult<PodcastGroupWithLanguages>> {
   try {
-    const { SessionService } = await import('@/lib/auth');
+    const { SessionService } = await import('@/lib/auth/server');
 
     // Verify user is authenticated
     const user = await SessionService.getUser();

@@ -3,7 +3,7 @@
 import { creditService, type EnsureSignupCreditsResult } from '@/lib/services/credits';
 import { getUserCredits, getUserTransactionHistory } from '@/lib/db/api/credits';
 import type { ActionResult } from '../shared/types';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 
 /**
  * Credit Core Actions

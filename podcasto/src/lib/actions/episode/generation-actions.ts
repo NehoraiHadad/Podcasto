@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAdmin, SessionService } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth/server';
 import { episodesApi } from '@/lib/db/api';
 import { errorToString, logError } from '@/lib/utils/error-utils';
 import { getPostProcessingConfig } from '@/lib/utils/post-processing-utils';

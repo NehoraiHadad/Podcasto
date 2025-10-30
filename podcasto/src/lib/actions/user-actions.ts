@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import type { User } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';

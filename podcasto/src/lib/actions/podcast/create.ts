@@ -1,7 +1,7 @@
 'use server';
 
 import { podcastsApi, podcastConfigsApi } from '@/lib/db/api';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import {
   PodcastCreationData,
   SimplePodcastData,

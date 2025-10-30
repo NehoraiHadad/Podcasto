@@ -1,3 +1,5 @@
+'use server';
+
 /**
  * Shared revalidation utilities for cache management.
  * Centralizes path revalidation logic to ensure consistency.

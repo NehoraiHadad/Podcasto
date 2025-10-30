@@ -5,11 +5,11 @@
  * Handles updating and deleting image references in the database.
  */
 
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth/server';
 import { db } from '@/lib/db';
 import { podcasts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { revalidatePodcast } from '@/lib/actions/shared/revalidation';
+import { revalidatePodcast } from '@/lib/actions/shared/server';
 import type { ImageActionResult } from './types';
 
 /**

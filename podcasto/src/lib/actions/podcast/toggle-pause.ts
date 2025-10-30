@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { ActionResponse } from './schemas';
 import { createErrorResponse } from '@/lib/utils/error-utils';
 import { createLogger } from '@/lib/utils/logger';
-import { revalidatePodcast } from '@/lib/actions/shared/revalidation';
+import { revalidatePodcast } from '@/lib/actions/shared/server';
 
 const logger = createLogger('PODCAST_PAUSE');
 

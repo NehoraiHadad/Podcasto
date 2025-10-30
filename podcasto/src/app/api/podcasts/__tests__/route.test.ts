@@ -15,7 +15,7 @@ vi.mock('@/lib/db/api/podcasts/queries', () => ({
   getPodcastsEligibleForMigration: vi.fn(),
 }));
 
-const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth'));
+const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth/server'));
 const {
   getAllPodcastsBasic,
   getPodcastsEligibleForMigration,

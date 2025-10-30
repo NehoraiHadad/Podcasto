@@ -5,7 +5,7 @@
  * Accepts base64-encoded image data from file upload.
  */
 
-import { requireAdmin, SessionService } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth/server';
 import { enhanceImageWithAI } from './shared';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 

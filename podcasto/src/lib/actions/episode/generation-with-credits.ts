@@ -2,7 +2,7 @@
 
 import { nowUTC, formatInTimezoneServer } from '@/lib/utils/date/server';
 import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import { creditService } from '@/lib/services/credits';
 import { podcastsApi, episodesApi, podcastConfigsApi } from '@/lib/db/api';
 import { checkIsAdmin } from '../admin/auth-actions';

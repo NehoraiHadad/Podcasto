@@ -1,4 +1,4 @@
-import { getAdminStatus } from '@/lib/auth';
+import { getAdminStatus } from '@/lib/auth/server';
 import { ClientHeader } from './client-header';
 import { unstable_noStore as noStore } from 'next/cache';
 

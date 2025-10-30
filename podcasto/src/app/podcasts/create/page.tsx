@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import { PremiumPodcastForm, UserPodcastForm } from '@/components/podcasts/forms/compositions';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';

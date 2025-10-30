@@ -1,6 +1,6 @@
 import { isUserSubscribed } from '@/lib/actions/subscription';
 import { SubscribeForm } from './subscribe-form';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

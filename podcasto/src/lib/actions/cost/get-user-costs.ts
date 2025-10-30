@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { userCosts, costTrackingEvents } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { SessionService } from '@/lib/auth';
+import { SessionService } from '@/lib/auth/server';
 
 export interface UserCostBreakdown {
   totalCostUsd: string;

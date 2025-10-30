@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/auth';
+import { createServerClient } from '@/lib/auth/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { creditService } from '@/lib/services/credits';

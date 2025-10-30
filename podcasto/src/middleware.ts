@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { updateSession } from '@/lib/auth/session/middleware';
+import { updateSession } from '@/lib/auth/server';
 
 // ============================================================================
 // Configuration

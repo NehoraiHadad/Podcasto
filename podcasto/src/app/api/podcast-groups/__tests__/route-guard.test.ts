@@ -13,7 +13,7 @@ vi.mock('../fetch-groups', () => ({
   fetchPodcastGroupsWithLanguages: vi.fn(),
 }));
 
-const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth'));
+const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth/server'));
 const { fetchPodcastGroupsWithLanguages } = vi.mocked(
   await import('../fetch-groups')
 );

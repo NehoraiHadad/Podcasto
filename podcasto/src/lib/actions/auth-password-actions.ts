@@ -2,7 +2,7 @@
 
 import { getURL } from '@/lib/utils/url';
 import { createAuthError, AuthenticationError, logAuthError } from '@/lib/auth';
-import { runAuthAction } from './shared';
+import { runAuthAction } from './shared/server';
 
 function withStage(error: unknown, stage: string) {
   const authError = createAuthError(error);

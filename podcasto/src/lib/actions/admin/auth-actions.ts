@@ -6,9 +6,8 @@ import {
   requireAdmin as requireAdminAuth,
   getUserHighestRole,
   SessionService,
-  InsufficientPermissionsError,
-  UnauthorizedError,
-} from '@/lib/auth';
+} from '@/lib/auth/server';
+import { InsufficientPermissionsError, UnauthorizedError } from '@/lib/auth';
 import type { User } from '@/lib/auth';
 
 /**
