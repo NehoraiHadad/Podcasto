@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
-import type { UserResponse } from '@supabase/supabase-js';
+import type { SupabaseClient, UserResponse } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 
 /**
@@ -26,10 +26,13 @@ import type { Database } from '@/lib/supabase/types';
  * const { data: { user } } = await client.auth.getUser();
  * ```
  */
-export function createMiddlewareClient(
+export async function createMiddlewareClient(
   request: NextRequest,
   response?: NextResponse
-) {
+): Promise<{
+  client: SupabaseClient<Database>;
+  response: NextResponse | undefined;
+}> {
   const isUpdateSession = !response;
   let supabaseResponse: NextResponse | undefined;
 
@@ -102,7 +105,7 @@ export type UpdateSessionResult = {
 };
 
 export async function updateSession(request: NextRequest): Promise<UpdateSessionResult> {
-  const { client, response } = createMiddlewareClient(request);
+  const { client, response } = await createMiddlewareClient(request);
 
   // IMPORTANT: DO NOT REMOVE auth.getUser() - This refreshes the session if needed
   // This is the 2025 Supabase SSR best practice for middleware

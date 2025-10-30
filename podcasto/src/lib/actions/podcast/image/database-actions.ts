@@ -38,7 +38,7 @@ export async function deletePodcastImage(
       .where(eq(podcasts.id, podcastId));
 
     // Revalidate pages
-    revalidatePodcast(podcastId);
+    await revalidatePodcast(podcastId);
 
     return {
       success: true
@@ -89,7 +89,7 @@ export async function setPodcastImageFromUrl(
       .where(eq(podcasts.id, podcastId));
 
     // Revalidate pages
-    revalidatePodcast(podcastId);
+    await revalidatePodcast(podcastId);
 
     return {
       success: true,

@@ -11,7 +11,7 @@ import { PODCASTS_FOR_DISPLAY_TAG } from '@/lib/db/api/podcast-groups';
 /**
  * Revalidate all paths related to a specific podcast
  */
-export function revalidatePodcast(podcastId: string): void {
+export async function revalidatePodcast(podcastId: string): Promise<void> {
   revalidateTag(PODCASTS_FOR_DISPLAY_TAG);
   revalidatePath(`/podcasts/${podcastId}`);
   revalidatePath('/podcasts');
@@ -22,7 +22,10 @@ export function revalidatePodcast(podcastId: string): void {
 /**
  * Revalidate all paths related to a specific episode
  */
-export function revalidateEpisode(podcastId: string, episodeId: string): void {
+export async function revalidateEpisode(
+  podcastId: string,
+  episodeId: string
+): Promise<void> {
   revalidatePath(`/podcasts/${podcastId}/episodes/${episodeId}`);
   revalidatePath(`/podcasts/${podcastId}`);
   revalidatePath('/admin/episodes');
@@ -32,7 +35,7 @@ export function revalidateEpisode(podcastId: string, episodeId: string): void {
 /**
  * Revalidate subscription-related paths
  */
-export function revalidateSubscriptions(userId?: string): void {
+export async function revalidateSubscriptions(userId?: string): Promise<void> {
   revalidatePath('/profile');
   revalidatePath('/podcasts');
   if (userId) {
@@ -43,7 +46,7 @@ export function revalidateSubscriptions(userId?: string): void {
 /**
  * Revalidate admin dashboard paths
  */
-export function revalidateAdmin(): void {
+export async function revalidateAdmin(): Promise<void> {
   revalidatePath('/admin');
   revalidatePath('/admin/podcasts');
   revalidatePath('/admin/episodes');
@@ -53,6 +56,6 @@ export function revalidateAdmin(): void {
 /**
  * Revalidate all paths (use sparingly)
  */
-export function revalidateAll(): void {
+export async function revalidateAll(): Promise<void> {
   revalidatePath('/', 'layout');
 }

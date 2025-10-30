@@ -60,7 +60,7 @@ export async function togglePodcastPause(
     });
 
     // Revalidate relevant pages
-    revalidatePodcast(podcastId);
+    await revalidatePodcast(podcastId);
 
     return {
       success: true,
