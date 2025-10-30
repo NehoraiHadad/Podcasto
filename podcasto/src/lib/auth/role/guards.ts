@@ -10,10 +10,10 @@ import {
   UnauthorizedError,
   InsufficientPermissionsError,
 } from '../errors/classes';
-export async function requireAuth(): Promise<User> {
-  const { SessionService } = await import('../session');
-  const user = await SessionService.getUser();
+import { SessionService } from '../session';
 import { ROLES, type Permission } from '../permissions';
+import { isAdmin, hasRole, hasPermission } from './queries';
+import type { User } from '../types';
 import { isAdmin, hasRole, hasPermission } from './queries';
 import type { User } from '../types';
 
