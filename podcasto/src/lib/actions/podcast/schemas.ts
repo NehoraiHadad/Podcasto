@@ -57,16 +57,31 @@ export const podcastCreationSchema = z.object({
   // Additional Instructions
   additionalInstructions: z.string().optional(),
 }).superRefine((data, ctx) => {
-  // Validate speaker2Role is required for multi-speaker podcasts
-  if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
-      path: ["speaker2Role"]
-    });
+  const strategy = data.speakerSelectionStrategy || 'fixed';
+
+  // Fixed strategy: speaker2Role required only for multi-speaker
+  if (strategy === 'fixed' && data.podcastFormat === 'multi-speaker') {
+    if (!data.speaker2Role || data.speaker2Role.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
+        path: ["speaker2Role"]
+      });
+    }
   }
 
-  if (data.speakerSelectionStrategy === 'sequence') {
+  // Random strategy: speaker2Role is optional (will be used only in multi-speaker episodes)
+  // No validation needed
+
+  // Sequence strategy: speaker2Role always required (will be used in multi-speaker episodes)
+  if (strategy === 'sequence') {
+    if (!data.speaker2Role || data.speaker2Role.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a role for the second speaker (required for sequence strategy)",
+        path: ["speaker2Role"]
+      });
+    }
     if (!data.sequenceDualCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -134,13 +149,45 @@ export const podcastUpdateSchema = z.object({
   // Auto-generation setting (optional)
   autoGeneration: z.boolean().optional(),
 }).superRefine((data, ctx) => {
-  // Only validate speaker2Role if podcastFormat is explicitly set to multi-speaker
-  if (data.podcastFormat === 'multi-speaker' && (!data.speaker2Role || data.speaker2Role.trim() === '')) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
-      path: ["speaker2Role"]
-    });
+  const strategy = data.speakerSelectionStrategy;
+
+  // Fixed strategy: speaker2Role required only for multi-speaker
+  if (strategy === 'fixed' && data.podcastFormat === 'multi-speaker') {
+    if (!data.speaker2Role || data.speaker2Role.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a role for the second speaker (required for multi-speaker podcasts)",
+        path: ["speaker2Role"]
+      });
+    }
+  }
+
+  // Random strategy: speaker2Role is optional
+  // No validation needed
+
+  // Sequence strategy: speaker2Role always required
+  if (strategy === 'sequence') {
+    if (!data.speaker2Role || data.speaker2Role.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a role for the second speaker (required for sequence strategy)",
+        path: ["speaker2Role"]
+      });
+    }
+    if (data.sequenceDualCount === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Multi-speaker count is required for sequence strategy",
+        path: ["sequenceDualCount"]
+      });
+    }
+    if (data.sequenceSingleCount === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Single-speaker count is required for sequence strategy",
+        path: ["sequenceSingleCount"]
+      });
+    }
   }
 });
 

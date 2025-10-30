@@ -117,23 +117,89 @@ export function FormatSection({ control, disabled = false, setValue }: FormatSec
         </div>
       )}
 
-      {speakerSelectionStrategy === 'sequence' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormNumberField
+      {speakerSelectionStrategy === 'random' && (
+        <div className="space-y-4">
+          <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-900">
+            <p className="font-medium">Random Strategy</p>
+            <p className="mt-1 text-blue-800">
+              Format will be randomly selected for each episode (single-speaker or multi-speaker).
+              Define speaker roles that will be used when needed.
+            </p>
+          </div>
+
+          <FormSelectField
             control={control}
-            name="sequenceDualCount"
-            label="Multi-Speaker Episodes in Sequence"
-            placeholder="e.g., 2"
-            description="Number of multi-speaker episodes to generate in a row."
+            name="speaker1Role"
+            label="Primary Speaker Role"
+            placeholder="Select primary speaker's role"
+            description="Role for the main speaker (used in all episodes)"
+            options={SPEAKER_ROLE_OPTIONS}
             required
             disabled={disabled}
           />
-          <FormNumberField
+
+          <FormSelectField
             control={control}
-            name="sequenceSingleCount"
-            label="Single-Speaker Episodes in Sequence"
-            placeholder="e.g., 1"
-            description="Number of single-speaker episodes to generate in a row."
+            name="speaker2Role"
+            label="Secondary Speaker Role (Optional)"
+            placeholder="Select secondary speaker's role"
+            description="Role for the second speaker (used only in multi-speaker episodes)"
+            options={SPEAKER_ROLE_OPTIONS}
+            required={false}
+            disabled={disabled}
+          />
+        </div>
+      )}
+
+      {speakerSelectionStrategy === 'sequence' && (
+        <div className="space-y-4">
+          <div className="rounded-md bg-purple-50 p-4 text-sm text-purple-900">
+            <p className="font-medium">Sequence Strategy</p>
+            <p className="mt-1 text-purple-800">
+              Episodes will alternate between formats in a repeating pattern.
+              Define how many episodes of each type before switching.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormNumberField
+              control={control}
+              name="sequenceDualCount"
+              label="Multi-Speaker Episodes"
+              placeholder="e.g., 2"
+              description="Number of multi-speaker episodes in sequence"
+              required
+              disabled={disabled}
+            />
+            <FormNumberField
+              control={control}
+              name="sequenceSingleCount"
+              label="Single-Speaker Episodes"
+              placeholder="e.g., 1"
+              description="Number of single-speaker episodes in sequence"
+              required
+              disabled={disabled}
+            />
+          </div>
+
+          <FormSelectField
+            control={control}
+            name="speaker1Role"
+            label="Primary Speaker Role"
+            placeholder="Select primary speaker's role"
+            description="Role for the main speaker (used in all episodes)"
+            options={SPEAKER_ROLE_OPTIONS}
+            required
+            disabled={disabled}
+          />
+
+          <FormSelectField
+            control={control}
+            name="speaker2Role"
+            label="Secondary Speaker Role"
+            placeholder="Select secondary speaker's role"
+            description="Role for the second speaker (used in multi-speaker episodes)"
+            options={SPEAKER_ROLE_OPTIONS}
             required
             disabled={disabled}
           />
