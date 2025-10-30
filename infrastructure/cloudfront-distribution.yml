@@ -119,23 +119,25 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
-  # S3 Bucket Policy for CloudFront OAC Access
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref S3BucketName
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: AllowCloudFrontServicePrincipalReadOnly
-            Effect: Allow
-            Principal:
-              Service: cloudfront.amazonaws.com
-            Action: s3:GetObject
-            Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
-            Condition:
-              StringEquals:
-                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution.Id}'
+  # S3 Bucket Policy - Update manually after stack creation
+  # Cannot be managed by CloudFormation if policy already exists
+  # Run this command after stack creation to update bucket policy:
+  #
+  # aws s3api put-bucket-policy --bucket podcasto-podcasts --policy '{
+  #   "Version": "2012-10-17",
+  #   "Statement": [{
+  #     "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+  #     "Effect": "Allow",
+  #     "Principal": {"Service": "cloudfront.amazonaws.com"},
+  #     "Action": "s3:GetObject",
+  #     "Resource": "arn:aws:s3:::podcasto-podcasts/*",
+  #     "Condition": {
+  #       "StringEquals": {
+  #         "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+  #       }
+  #     }
+  #   }]
+  # }'
 
 Outputs:
   DistributionId:

@@ -15,6 +15,9 @@ const inter = {
   variable: "font-sans",
 } as const;
 
+// Force dynamic rendering since we use cookies for authentication
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Podcasto - Daily News Podcasts",
   description: "Transform daily news content from Telegram channels into accessible podcasts",
