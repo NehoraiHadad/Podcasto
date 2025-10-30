@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Session Service
  *
