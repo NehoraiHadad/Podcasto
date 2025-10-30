@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 /**
  * Role guard utilities enforce server-side authorization invariants for
