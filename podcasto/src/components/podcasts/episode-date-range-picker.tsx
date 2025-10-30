@@ -181,28 +181,16 @@ export function EpisodeDateRangePicker({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start" side="bottom">
-              <div className="space-y-3">
-                {/* Dynamic feedback - only when range is selected */}
-                {date?.from && date?.to && (
-                  <div className="px-4 pt-4">
-                    <p className="text-sm font-medium text-center text-foreground">
-                      {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} days selected
-                    </p>
-                  </div>
-                )}
-                
-                {/* Calendar Component - Range style with 2 months on desktop */}
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={handleDateSelect}
-                  numberOfMonths={2}
-                  disabled={(date) => date > new Date()}
-                  className="p-0"
-                />
-              </div>
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={handleDateSelect}
+                numberOfMonths={2}
+                disabled={(date) => date > new Date()}
+                className="rounded-lg border shadow-sm"
+              />
             </PopoverContent>
           </Popover>
           {date?.from && date?.to && (
