@@ -88,19 +88,19 @@ export function EpisodeDateRangePicker({
   };
 
   return (
-    <div className={cn('grid gap-2', className)}>
-      <div className="flex gap-2">
+    <div className={cn('space-y-3', className)}>
+      <div className="flex flex-col sm:flex-row gap-2">
         <Select value={preset} onValueChange={handlePresetChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select preset" />
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Select time range" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">Default (last {defaultHours}h, recommended)</SelectItem>
+            <SelectItem value="default">Default ({defaultHours}h)</SelectItem>
             <SelectItem value="24h">Last 24 hours</SelectItem>
             <SelectItem value="3d">Last 3 days</SelectItem>
             <SelectItem value="7d">Last week</SelectItem>
             <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="custom">Pick a custom range...</SelectItem>
+            <SelectItem value="custom">Custom range...</SelectItem>
             {date && <SelectItem value="clear">Clear selection</SelectItem>}
           </SelectContent>
         </Select>
@@ -111,19 +111,18 @@ export function EpisodeDateRangePicker({
               id="date"
               variant={'outline'}
               className={cn(
-                'justify-start text-left font-normal',
+                'w-full sm:w-auto justify-start text-left font-normal',
                 !date && 'text-muted-foreground'
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
               {date?.from ? (
                 date.to ? (
-                  <>
-                    {format(date.from, 'LLL dd, y')} -{' '}
-                    {format(date.to, 'LLL dd, y')}
-                  </>
+                  <span className="truncate">
+                    {format(date.from, 'MMM dd, y')} - {format(date.to, 'MMM dd, y')}
+                  </span>
                 ) : (
-                  format(date.from, 'LLL dd, y')
+                  format(date.from, 'MMM dd, y')
                 )
               ) : (
                 <span>Pick a date range</span>
@@ -143,9 +142,9 @@ export function EpisodeDateRangePicker({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="text-xs text-muted-foreground mt-1 pl-0.5">
-        Need to pick a specific period? Choose &apos;Custom range&apos;. If unsure, use the default option for the most recent updates.
-      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Choose &apos;Custom range&apos; to pick specific dates, or use the default for the most recent updates.
+      </p>
     </div>
   );
 }

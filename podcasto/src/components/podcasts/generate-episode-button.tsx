@@ -16,12 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { generatePodcastEpisode, DateRange } from '@/lib/actions/podcast/generate';
 import { EpisodeDateRangePicker } from './episode-date-range-picker';
 
@@ -102,51 +96,44 @@ export function GenerateEpisodeButton({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[650px]">
+        <DialogHeader className="space-y-3">
           <DialogTitle>Create New Podcast Episode</DialogTitle>
-          <DialogDescription>
-            Select a time range to choose which updates or messages will be included in your next episode.
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-              <Info className="h-3 w-3" />
-              Episodes use your channel posts or updates for the selected timeframe. The more recent, the more timely the episode.
+          <DialogDescription className="space-y-2">
+            <p>Select a time range to choose which updates or messages will be included in your next episode.</p>
+            <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-900 dark:text-blue-200">
+                Episodes use your channel posts or updates for the selected timeframe. The more recent, the more timely the episode.
+              </p>
             </div>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="space-y-4">
           {isPaused && (
-            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-900">Podcast is paused</p>
-                <p className="text-sm text-amber-700 mt-1">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Podcast is paused</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                   Automatic generation is off. You can still create episodes manually here.
                 </p>
               </div>
             </div>
           )}
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <EpisodeDateRangePicker
-                    onRangeSelect={handleDateRangeSelect}
-                    onClear={handleClearDateRange}
-                    defaultHours={defaultHours}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                Pick a period of recent channel updates/messages to include in the new episode.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div>
+            <EpisodeDateRangePicker
+              onRangeSelect={handleDateRangeSelect}
+              onClear={handleClearDateRange}
+              defaultHours={defaultHours}
+            />
+          </div>
 
           {dateRange && (
-            <div className="rounded-md bg-muted p-3 text-sm">
-              <p className="font-medium">Selected Range:</p>
+            <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+              <p className="font-medium text-foreground">Selected Range:</p>
               <p className="text-muted-foreground">
                 {formatUserDate(dateRange.startDate, DATE_FORMATS.DISPLAY_DATE)} - {formatUserDate(dateRange.endDate, DATE_FORMATS.DISPLAY_DATE)}
               </p>
