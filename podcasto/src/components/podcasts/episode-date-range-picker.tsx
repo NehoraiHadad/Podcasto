@@ -189,7 +189,7 @@ export function EpisodeDateRangePicker({
                 onSelect={handleDateSelect}
                 numberOfMonths={2}
                 disabled={(date) => date > new Date()}
-                className="p-3 rounded-lg border shadow-sm"
+                className="rounded-lg border shadow-sm"
               />
             </PopoverContent>
           </Popover>
