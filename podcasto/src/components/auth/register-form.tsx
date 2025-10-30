@@ -8,78 +8,76 @@ import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
 import { AuthDivider } from './auth-divider';
 import { SocialButton } from './social-button';
-import { signUpWithPassword, signInWithGoogle } from '@/lib/actions/auth-actions';
+import { useGoogleAuth } from './use-google-auth';
+import { signUpWithPassword } from '@/lib/actions/auth-actions';
 
 export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const router = useRouter();
+
+  const {
+    signIn: signInWithGoogle,
+    isLoading: isGoogleLoading,
+    resetError: resetGoogleError,
+  } = useGoogleAuth({
+    onSuccess: () => {
+      setFormError(null);
+      setSuccess(null);
+    },
+    onError: (message) => {
+      setFormError(message);
+      setSuccess(null);
+    },
+  });
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    setIsRegisterLoading(true);
+    setFormError(null);
     setSuccess(null);
+    resetGoogleError();
 
     try {
       const result = await signUpWithPassword(email, password);
 
       if (!result.success) {
-        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during registration';
-        setError(message);
+        const message =
+          result.errors?.[0]?.message ??
+          result.error ??
+          'An error occurred during registration';
+        setFormError(message);
         return;
       }
 
-      // Check if email confirmation is required
       if (result.data?.user && !result.data.user.email_confirmed_at) {
         setSuccess('Registration successful! Please check your email to confirm your account.');
       } else {
-        // If no email confirmation is required, refresh the page
         router.refresh();
       }
     } catch (_error) {
       console.error('Error in handleRegister:', _error);
-      setError('An unexpected error occurred. Please try again.');
+      setFormError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsRegisterLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
+    setFormError(null);
     setSuccess(null);
-    
-    try {
-      const result = await signInWithGoogle();
-
-      if (!result.success) {
-        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during Google sign in';
-        setError(message);
-        return;
-      }
-
-      // Redirect to the URL returned by the server action
-      if (result.data?.url) {
-        window.location.href = result.data.url;
-      } else {
-        setError('Failed to get authentication URL');
-      }
-    } catch (_error) {
-      console.error('Error in handleGoogleLogin:', _error);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    await signInWithGoogle();
   };
+
+  const isLoading = isRegisterLoading || isGoogleLoading;
 
   return (
     <div className="space-y-4">
-      {error && <AuthAlert type="error" message={error} />}
+      {formError && <AuthAlert type="error" message={formError} />}
       {success && <AuthAlert type="success" message={success} />}
 
       <form onSubmit={handleRegister} className="space-y-4">
@@ -108,8 +106,8 @@ export function RegisterForm() {
           autoComplete="new-password"
         />
 
-        <AuthButton 
-          type="submit" 
+        <AuthButton
+          type="submit"
           isLoading={isLoading}
           disabled={!!success}
         >
@@ -136,4 +134,4 @@ export function RegisterForm() {
       </div>
     </div>
   );
-} 
+}

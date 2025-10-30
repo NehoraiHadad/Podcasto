@@ -8,7 +8,8 @@ import { AuthButton } from './auth-button';
 import { AuthAlert } from './auth-alert';
 import { AuthDivider } from './auth-divider';
 import { SocialButton } from './social-button';
-import { signInWithPassword, signInWithGoogle } from '@/lib/actions/auth-actions';
+import { useGoogleAuth } from './use-google-auth';
+import { signInWithPassword } from '@/lib/actions/auth-actions';
 
 export function LoginForm() {
   return (
@@ -21,78 +22,64 @@ export function LoginForm() {
 function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/';
 
+  const {
+    signIn: signInWithGoogle,
+    isLoading: isGoogleLoading,
+    resetError: resetGoogleError,
+  } = useGoogleAuth({
+    redirectPath,
+    onSuccess: () => setFormError(null),
+    onError: (message) => setFormError(message),
+  });
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+    setIsEmailLoading(true);
+    setFormError(null);
+    resetGoogleError();
 
     try {
       const result = await signInWithPassword(email, password);
 
       if (!result.success) {
-        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during login';
-        setError(message);
+        const message =
+          result.errors?.[0]?.message ??
+          result.error ??
+          'An error occurred during login';
+        setFormError(message);
         return;
       }
-      
-      // Refresh the page to reflect the new authentication state
-      // and redirect to the requested page
+
       router.push(redirectPath);
     } catch (_error) {
       console.error('Error in handleEmailLogin:', _error);
-      setError('An unexpected error occurred. Please try again.');
+      setFormError('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsEmailLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Use server action for Google sign in
-      const result = await signInWithGoogle();
-
-      if (!result.success) {
-        const message = result.errors?.[0]?.message ?? result.error ?? 'An error occurred during Google login';
-        setError(message);
-        return;
-      }
-
-      // Redirect to the URL returned by the server action
-      if (result.data?.url) {
-        // Add the redirect path to the URL if it exists
-        const url = new URL(result.data.url);
-        if (redirectPath !== '/') {
-          url.searchParams.set('redirect', redirectPath);
-        }
-        window.location.href = url.toString();
-      } else {
-        setError('Failed to get authentication URL');
-      }
-    } catch (_error) {
-      console.error('Error in handleGoogleLogin:', _error);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    setFormError(null);
+    await signInWithGoogle();
   };
+
+  const isLoading = isEmailLoading || isGoogleLoading;
 
   return (
     <div className="space-y-4">
-      {error && <AuthAlert type="error" message={error} />}
+      {formError && <AuthAlert type="error" message={formError} />}
       {redirectPath !== '/' && (
-        <AuthAlert 
-          type="info" 
-          message={`You'll be redirected to ${redirectPath} after login.`} 
+        <AuthAlert
+          type="info"
+          message={`You'll be redirected to ${redirectPath} after login.`}
         />
       )}
 
@@ -122,10 +109,10 @@ function LoginFormContent() {
             disabled={isLoading}
             autoComplete="current-password"
           />
-          
+
           <div className="flex justify-end">
-            <Link 
-              href="/auth/reset-password" 
+            <Link
+              href="/auth/reset-password"
               className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
             >
               Forgot password?
@@ -133,8 +120,8 @@ function LoginFormContent() {
           </div>
         </div>
 
-        <AuthButton 
-          type="submit" 
+        <AuthButton
+          type="submit"
           isLoading={isLoading}
         >
           Sign In
@@ -159,4 +146,4 @@ function LoginFormContent() {
       </div>
     </div>
   );
-} 
+}
