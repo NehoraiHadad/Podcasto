@@ -21,13 +21,13 @@ class GooglePodcastGenerator:
         # With 9 requests/minute limit, 2 workers is optimal for parallel processing
         # Reduced chunk size from 1500 to 1200 to account for Hebrew niqqud expansion (~50%)
         # This prevents excessive chunks and improves chunk size uniformity
-        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1200, max_workers=2)
+        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1200, max_workers=4)
         self.voice_manager = VoiceConfigManager()
         
     def generate_podcast_audio(
         self,
         script_content: str,
-        language: str = "he",
+        language: str = "en",
         speaker1_role: str = "Speaker 1",
         speaker2_role: str = "Speaker 2",
         speaker1_gender: str = "male",
