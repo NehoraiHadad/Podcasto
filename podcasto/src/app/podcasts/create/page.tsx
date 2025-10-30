@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import { PremiumPodcastForm, UserPodcastForm } from '@/components/podcasts/forms/compositions';
 import { getUserCreditsAction } from '@/lib/actions/credit/credit-core-actions';
 import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function CreatePodcastPage() {
   // Get authenticated user
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     redirect('/auth/login?redirect=/podcasts/create');

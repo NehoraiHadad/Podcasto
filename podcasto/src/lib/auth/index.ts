@@ -12,6 +12,8 @@
 // Session Management (✅ ALWAYS use getUser() for auth checks!)
 // ============================================================================
 
+export { SessionService } from './session';
+
 export type {
   User,
   Session,

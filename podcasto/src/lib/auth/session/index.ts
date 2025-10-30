@@ -2,8 +2,13 @@
  * Session Module
  *
  * Unified exports for session management following 2025 Supabase SSR best practices.
+ * Prefer consuming the SessionService for the curated API surface while
+ * retaining direct access to individual helpers when necessary.
  * CRITICAL: Always use getUser() for authentication checks, never getSession().
  */
+
+// Service (recommended entry point for server modules)
+export { SessionService } from './session-service';
 
 // Types
 export type {

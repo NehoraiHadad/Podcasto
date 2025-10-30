@@ -5,7 +5,7 @@
 
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import { getAdminStatus as fetchAdminStatus, getUser, isAdmin } from '@/lib/auth';
+import { SessionService, getAdminStatus as fetchAdminStatus, isAdmin } from '@/lib/auth';
 
 /**
  * Checks if the current user has admin role
@@ -15,7 +15,7 @@ import { getAdminStatus as fetchAdminStatus, getUser, isAdmin } from '@/lib/auth
  * @returns Boolean indicating if the user is an admin
  */
 export const isUserAdmin = cache(async (): Promise<boolean> => {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     return false;

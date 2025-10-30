@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import { subscriptionService } from '@/lib/services/subscriptions';
 import type { SubscriptionActionResult } from './shared';
 
@@ -37,7 +37,7 @@ export async function toggleSubscription(
       };
     }
 
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {

@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { userCosts, costTrackingEvents } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 
 export interface UserCostBreakdown {
   totalCostUsd: string;
@@ -63,7 +63,7 @@ export interface RecalculateUserCostsResult {
  */
 export async function getUserCosts(): Promise<GetUserCostsResult> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {
@@ -147,7 +147,7 @@ export async function getUserCostEvents({
   offset?: number;
 } = {}): Promise<GetUserCostEventsResult> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {
@@ -201,7 +201,7 @@ export async function getUserCostEvents({
  */
 export async function recalculateUserCosts(): Promise<RecalculateUserCostsResult> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {

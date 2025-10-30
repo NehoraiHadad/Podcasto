@@ -5,7 +5,7 @@
  * Scrapes the channel's public page and processes the image.
  */
 
-import { requireAdmin, getUser } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth';
 import { getTelegramChannelImage } from '@/lib/services/telegram-scraper';
 import { db } from '@/lib/db';
 import { podcasts, podcastConfigs } from '@/lib/db/schema';
@@ -28,7 +28,7 @@ export async function generatePodcastImageFromTelegram(
   try {
     // Require admin authentication
     await requireAdmin();
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     console.log(`[IMAGE_TELEGRAM] Generating image for podcast ${podcastId || 'new'}`);
 

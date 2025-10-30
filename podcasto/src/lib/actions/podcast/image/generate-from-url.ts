@@ -5,7 +5,7 @@
  * Downloads image from provided URL and processes it.
  */
 
-import { requireAdmin, getUser } from '@/lib/auth';
+import { requireAdmin, SessionService } from '@/lib/auth';
 import { enhanceImageWithAI } from './shared';
 import type { ImageActionResult, ImageGenerationOptions } from './types';
 
@@ -27,7 +27,7 @@ export async function generatePodcastImageFromUrl(
 ): Promise<ImageActionResult> {
   try {
     await requireAdmin();
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     console.log(`[IMAGE_URL] Generating image from URL for podcast ${podcastId || 'new'}: ${imageUrl}`);
 

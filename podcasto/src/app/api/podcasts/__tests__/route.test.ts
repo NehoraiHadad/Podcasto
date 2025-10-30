@@ -4,7 +4,9 @@ import { createAdminUser, createSupabaseUser } from '@/test/factories/user';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
 
 vi.mock('@/lib/auth', () => ({
-  getUser: vi.fn(),
+  SessionService: {
+    getUser: vi.fn(),
+  },
   isAdmin: vi.fn(),
 }));
 
@@ -13,7 +15,7 @@ vi.mock('@/lib/db/api/podcasts/queries', () => ({
   getPodcastsEligibleForMigration: vi.fn(),
 }));
 
-const { getUser, isAdmin } = vi.mocked(await import('@/lib/auth'));
+const { SessionService, isAdmin } = vi.mocked(await import('@/lib/auth'));
 const {
   getAllPodcastsBasic,
   getPodcastsEligibleForMigration,
@@ -27,7 +29,7 @@ describe('GET /api/podcasts', () => {
   });
 
   it('returns 401 when user is not authenticated', async () => {
-    getUser.mockResolvedValueOnce(null);
+    SessionService.getUser.mockResolvedValueOnce(null);
 
     const request = new NextRequest('http://localhost/api/podcasts');
     const response = await GET(request);
@@ -38,7 +40,9 @@ describe('GET /api/podcasts', () => {
   });
 
   it('returns 403 when user is not an admin', async () => {
-    getUser.mockResolvedValueOnce(createSupabaseUser({ id: 'user-1' }));
+    SessionService.getUser.mockResolvedValueOnce(
+      createSupabaseUser({ id: 'user-1' })
+    );
     isAdmin.mockResolvedValueOnce(false);
 
     const request = new NextRequest('http://localhost/api/podcasts');
@@ -50,7 +54,9 @@ describe('GET /api/podcasts', () => {
   });
 
   it('fetches all podcasts for admin users by default', async () => {
-    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-1' }));
+    SessionService.getUser.mockResolvedValueOnce(
+      createAdminUser({ id: 'admin-1' })
+    );
     isAdmin.mockResolvedValueOnce(true);
     const podcasts: Podcast[] = [createPodcast({ id: 'pod-1' })];
     getAllPodcastsBasic.mockResolvedValueOnce(podcasts);
@@ -66,7 +72,9 @@ describe('GET /api/podcasts', () => {
   });
 
   it('fetches eligible podcasts when requested', async () => {
-    getUser.mockResolvedValueOnce(createAdminUser({ id: 'admin-2' }));
+    SessionService.getUser.mockResolvedValueOnce(
+      createAdminUser({ id: 'admin-2' })
+    );
     isAdmin.mockResolvedValueOnce(true);
     const podcasts: Podcast[] = [createPodcast({ id: 'pod-2' })];
     getPodcastsEligibleForMigration.mockResolvedValueOnce(podcasts);

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import { podcastsApi, episodesApi } from '@/lib/db/api';
 import { PodcastEditForm } from '@/components/podcasts/forms/compositions';
 import { checkAdvancedPodcastAccessAction } from '@/lib/actions/subscription-actions';
@@ -26,7 +26,7 @@ export default async function PodcastSettingsPage({ params }: PodcastSettingsPag
   const resolvedParams = await params;
 
   // Get authenticated user
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   if (!user) {
     redirect('/auth/login?redirect=/podcasts/' + resolvedParams.id + '/settings');

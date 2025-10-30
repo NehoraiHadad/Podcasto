@@ -1,6 +1,6 @@
 import { isUserSubscribed } from '@/lib/actions/subscription';
 import { SubscribeForm } from './subscribe-form';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { profiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,7 +10,7 @@ interface SubscribeButtonServerProps {
 }
 
 export async function SubscribeButtonServer({ podcastId }: SubscribeButtonServerProps) {
-  const user = await getUser();
+  const user = await SessionService.getUser();
 
   // Check subscription status server-side
   const isSubscribed = await isUserSubscribed(

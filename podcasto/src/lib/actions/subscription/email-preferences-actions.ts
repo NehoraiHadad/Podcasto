@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import type { EmailNotificationResult } from './shared';
 import { subscriptionService } from '@/lib/services/subscriptions';
 
@@ -21,7 +21,7 @@ import { subscriptionService } from '@/lib/services/subscriptions';
  */
 export async function updateEmailNotificationPreference(): Promise<EmailNotificationResult> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {
@@ -103,7 +103,7 @@ export async function toggleEmailNotifications(
   formData: FormData
 ): Promise<EmailNotificationResult> {
   try {
-    const user = await getUser();
+    const user = await SessionService.getUser();
 
     if (!user) {
       return {

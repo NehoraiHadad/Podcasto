@@ -1,6 +1,6 @@
 'use server';
 
-import { getUser } from '@/lib/auth';
+import { SessionService } from '@/lib/auth';
 import type { User } from '@supabase/supabase-js';
 import type { SubscriptionParams } from './shared';
 import { subscriptionService } from '@/lib/services/subscriptions';
@@ -26,7 +26,7 @@ export async function isUserSubscribed(
   { user: providedUser }: SubscriptionCheckOptions = {}
 ): Promise<boolean> {
   try {
-    const user = providedUser ?? await getUser();
+    const user = providedUser ?? await SessionService.getUser();
 
     if (!user) {
       return false;
