@@ -2,7 +2,7 @@
 
 import { AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { EpisodeDateRangePicker } from '../../../podcasts/episode-date-range-picker';
+import { EpisodeDateRangePicker } from '../../episode-date-range-picker';
 import type { DateRange } from '../types';
 import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
