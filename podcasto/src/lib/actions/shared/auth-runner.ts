@@ -13,7 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ActionResult } from './types';
 import { executeAction } from './error-handler';
 
-interface RunAuthActionOptions {
+export interface RunAuthActionOptions {
   /** Optional friendly error message when the action fails */
   errorMessage?: string;
   /**
