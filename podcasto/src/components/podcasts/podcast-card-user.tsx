@@ -1,14 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Settings, Calendar, Loader2, CheckCircle } from 'lucide-react';
+import { Play, Settings, Calendar, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { generateEpisodeWithCreditsAction } from '@/lib/actions/episode/generation-with-credits';
 import { EpisodeCostIndicator } from './episode-cost-indicator';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
 import { formatUserDate } from '@/lib/utils/date/client';
@@ -28,56 +25,7 @@ export function PodcastCardUser({
   userCredits,
   episodeCost
 }: PodcastCardUserProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
-
   const hasEnoughCredits = userCredits >= episodeCost;
-
-  const handleGenerateEpisode = async () => {
-    if (!hasEnoughCredits) {
-      toast({
-        title: 'Insufficient credits',
-        description: `You need ${episodeCost - userCredits} more credits to generate an episode.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-
-    try {
-      const result = await generateEpisodeWithCreditsAction(podcast.id);
-
-      if (result.success) {
-        toast({
-          title: 'Episode generation started',
-          description: 'Your episode is being generated. This may take a few minutes.',
-        });
-
-        // Redirect to the episode page after a short delay
-        if (result.data?.episodeId) {
-          setTimeout(() => {
-            window.location.href = `/podcasts/${podcast.id}`;
-          }, 1500);
-        }
-      } else {
-        toast({
-          title: 'Generation failed',
-          description: result.error || 'Failed to generate episode',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error generating episode:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const truncateDescription = (text: string | null, maxLength: number = 120) => {
     if (!text) return '';

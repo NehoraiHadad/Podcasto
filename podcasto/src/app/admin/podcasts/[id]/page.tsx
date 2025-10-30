@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Edit } from 'lucide-react';
-import { GenerateEpisodeButton } from '@/components/admin/generate-episode-button';
+import { GenerateEpisodeButton } from '@/components/podcasts/generate-episode-button';
 import { BulkEpisodeGenerator } from '@/components/admin/bulk-episode-generator';
 
 export const metadata = {
