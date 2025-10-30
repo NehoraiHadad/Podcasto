@@ -14,6 +14,7 @@ from shared.services.google_podcast_generator import GooglePodcastGenerator
 from shared.services.hebrew_niqqud import HebrewNiqqudProcessor
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 from shared.services.tts_client import DeferrableError
+from shared.services.audio_converter import AudioConverter
 from shared.utils.logging import get_logger
 from shared.utils.datetime_utils import now_utc, to_iso_utc
 from shared.utils.language_mapper import language_code_to_full
@@ -241,13 +242,48 @@ class AudioGenerationHandler:
                 episode_id, podcast_id, script, niqqud_script,
                 language_code, request_id
             )
-            
-            # Upload and update
-            audio_url = self.s3_client.upload_audio(
-                audio_data, podcast_id, episode_id, 'wav'
+
+            # Convert WAV to MP3 for storage optimization
+            logger.info(f"[AUDIO_GEN] [{request_id}] Converting audio from WAV to MP3...")
+            converter = AudioConverter(bitrate="128k")  # Standard quality (5-6 MB per 30 min)
+
+            try:
+                mp3_audio_data, conversion_metadata = converter.wav_to_mp3(audio_data)
+
+                logger.info(
+                    f"[AUDIO_GEN] [{request_id}] Audio compression completed: "
+                    f"{conversion_metadata['original_size_mb']}MB → "
+                    f"{conversion_metadata['compressed_size_mb']}MB "
+                    f"({conversion_metadata['compression_ratio']}% reduction)"
+                )
+
+                # Upload MP3 to S3
+                audio_url = self.s3_client.upload_audio(
+                    mp3_audio_data, podcast_id, episode_id, 'mp3', conversion_metadata
+                )
+
+                # Store audio format in metadata
+                audio_format = 'mp3'
+
+            except Exception as conversion_error:
+                # Fallback to WAV if conversion fails (don't fail the entire process)
+                logger.error(
+                    f"[AUDIO_GEN] [{request_id}] MP3 conversion failed: {str(conversion_error)}. "
+                    f"Falling back to WAV format."
+                )
+
+                # Upload WAV as fallback
+                audio_url = self.s3_client.upload_audio(
+                    audio_data, podcast_id, episode_id, 'wav'
+                )
+
+                audio_format = 'wav'
+                conversion_metadata = None
+
+            self._update_episode_with_audio(
+                episode_id, audio_url, mp3_audio_data if audio_format == 'mp3' else audio_data,
+                duration, episode, audio_format
             )
-            
-            self._update_episode_with_audio(episode_id, audio_url, audio_data, duration, episode)
 
             logger.info(f"[AUDIO_GEN] [{request_id}] Successfully generated audio for episode {episode_id}")
 
@@ -463,7 +499,15 @@ class AudioGenerationHandler:
 
         return audio_data, duration
 
-    def _update_episode_with_audio(self, episode_id: str, audio_url: str, audio_data: bytes, duration: float, episode: Dict[str, Any]):
+    def _update_episode_with_audio(
+        self,
+        episode_id: str,
+        audio_url: str,
+        audio_data: bytes,
+        duration: float,
+        episode: Dict[str, Any],
+        audio_format: str = 'mp3'
+    ):
         """Update episode with audio results and send completion callback"""
         # Update episode in database
         self.supabase_client.update_episode(episode_id, {
@@ -471,9 +515,10 @@ class AudioGenerationHandler:
             'duration': duration,
             'status': 'completed',
             'description': episode.get('description'),
-            'title': episode.get('title')
+            'title': episode.get('title'),
+            'audio_format': audio_format
         })
-        
+
         # Send completion callback to trigger immediate post-processing
         self._send_completion_callback(episode_id, audio_url, duration)
 

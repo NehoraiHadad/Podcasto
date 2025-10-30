@@ -1,11 +1,11 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import { FormSelectField, FormTextareaField } from '@/components/ui/form-fields';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface StyleSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
 }
 

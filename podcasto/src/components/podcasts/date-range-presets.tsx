@@ -1,7 +1,6 @@
 'use client';
 
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { DateRange } from 'react-day-picker';
 import {
   Select,
   SelectContent,

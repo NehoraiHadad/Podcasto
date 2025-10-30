@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Control, FieldValues, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Loader2, Plus } from 'lucide-react';
@@ -204,7 +204,7 @@ export function AdminPodcastForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Base Group Section */}
         <BaseGroupSection
-          control={form.control}
+          control={form.control as unknown as Control<FieldValues>}
           autoFilled={isSingleLanguageMode}
           languageCount={languageCount}
         />
@@ -240,8 +240,8 @@ export function AdminPodcastForm({
               <LanguageVariantCard
                 key={field.id}
                 index={index}
-                control={form.control}
-                form={form}
+                control={form.control as unknown as Control<FieldValues>}
+                form={form as unknown as UseFormReturn<FieldValues>}
                 onRemove={() => removeLanguageVariant(index)}
                 onSetPrimary={() => setPrimaryLanguage(index)}
                 canRemove={languageCount > 1}

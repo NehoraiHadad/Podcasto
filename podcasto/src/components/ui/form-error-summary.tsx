@@ -131,10 +131,10 @@ export function FormErrorSummary({ errors, className }: FormErrorSummaryProps) {
 /**
  * Helper function to convert react-hook-form errors to FieldError array
  */
-export function formatFormErrors(errors: Record<string, any>): FieldError[] {
+export function formatFormErrors(errors: Record<string, unknown>): FieldError[] {
   const result: FieldError[] = [];
 
-  function extractErrors(obj: any, prefix = ''): void {
+  function extractErrors(obj: Record<string, unknown>, prefix = ''): void {
     Object.entries(obj).forEach(([key, value]) => {
       const fieldPath = prefix ? `${prefix}.${key}` : key;
 
@@ -147,7 +147,7 @@ export function formatFormErrors(errors: Record<string, any>): FieldError[] {
           });
         } else {
           // Recursively process nested objects (like field arrays)
-          extractErrors(value, fieldPath);
+          extractErrors(value as Record<string, unknown>, fieldPath);
         }
       }
     });

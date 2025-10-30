@@ -40,7 +40,8 @@ class S3Client:
         audio_buffer: bytes,
         podcast_id: str,
         episode_id: str,
-        file_format: str = 'wav'
+        file_format: str = 'mp3',
+        metadata: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Upload audio file to S3
@@ -49,7 +50,8 @@ class S3Client:
             audio_buffer: Audio data as bytes
             podcast_id: The podcast ID
             episode_id: The episode ID
-            file_format: Audio file format (default: wav)
+            file_format: Audio file format ('wav' or 'mp3', default: mp3)
+            metadata: Additional metadata to store with file (e.g., compression stats)
 
         Returns:
             S3 URL of uploaded file
@@ -63,18 +65,31 @@ class S3Client:
 
             logger.info(f"[S3] Uploading audio to s3://{self.bucket_name}/{s3_key}")
 
+            # Determine content type (MP3 uses audio/mpeg)
+            content_type = 'audio/mpeg' if file_format == 'mp3' else f'audio/{file_format}'
+
+            # Build metadata
+            s3_metadata = {
+                'podcast_id': podcast_id,
+                'episode_id': episode_id,
+                'content_type': 'podcast_audio',
+                'format': file_format
+            }
+
+            # Add conversion metadata if provided (compression ratio, bitrate, etc.)
+            if metadata:
+                for key, value in metadata.items():
+                    # S3 metadata keys must be strings, values must be strings
+                    s3_metadata[f'conversion_{key}'] = str(value)
+
             # Upload to S3 with retry logic
             def upload_op():
                 self.s3_client.put_object(
                     Bucket=self.bucket_name,
                     Key=s3_key,
                     Body=audio_buffer,
-                    ContentType=f'audio/{file_format}',
-                    Metadata={
-                        'podcast_id': podcast_id,
-                        'episode_id': episode_id,
-                        'content_type': 'podcast_audio'
-                    }
+                    ContentType=content_type,
+                    Metadata=s3_metadata
                 )
 
             self._execute_with_retry("upload_audio", upload_op)

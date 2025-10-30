@@ -1,6 +1,6 @@
 'use client';
 
-import { Control, useWatch } from 'react-hook-form';
+import { Control, FieldValues, useWatch } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { FormTextField } from '@/components/ui/form-fields';
 
 interface ContentSourceSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
 }
 

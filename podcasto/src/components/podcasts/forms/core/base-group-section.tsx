@@ -1,13 +1,13 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormTextField, FormTextareaField } from '@/components/ui/form-fields';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 
 interface BaseGroupSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
   autoFilled?: boolean;
   languageCount: number;

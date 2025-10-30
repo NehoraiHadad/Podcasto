@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Control, FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -127,19 +127,19 @@ export function PremiumPodcastForm({
         )}
 
         {/* Basic Information */}
-        <BasicInfoSection control={form.control} />
+        <BasicInfoSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Content Source */}
-        <ContentSourceSection control={form.control} />
+        <ContentSourceSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Podcast Format (premium feature) */}
-        <FormatSection control={form.control} setValue={form.setValue} />
+        <FormatSection control={form.control as unknown as Control<FieldValues>} setValue={form.setValue} />
 
         {/* Schedule & Automation */}
-        <ScheduleSection control={form.control} />
+        <ScheduleSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Image Upload */}
-        <ImageUploadSection control={form.control} />
+        <ImageUploadSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Form Actions */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">

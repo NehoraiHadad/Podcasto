@@ -57,7 +57,7 @@ export function AudioPlayerClient({
 
   // Render error state
   if (state.error) {
-    return <AudioErrorState error={state.error} audioUrl={audioUrl} />;
+    return <AudioErrorState error={state.error} audioUrl={audioUrl ?? undefined} />;
   }
 
   // Render loading state

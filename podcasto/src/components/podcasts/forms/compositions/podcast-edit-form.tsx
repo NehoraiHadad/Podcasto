@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Control, FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -24,7 +24,7 @@ import {
 } from '../core';
 
 import { editPodcastSchemaValidated } from '../shared/schemas';
-import { podcastToFormValues, normalizeContentSource } from '../shared/transformers';
+import { podcastToFormValues, normalizeContentSource, type DbPodcast } from '../shared/transformers';
 
 import type {
   PodcastEditFormProps,
@@ -48,7 +48,7 @@ import { updatePodcast } from '@/lib/actions/podcast/update';
  * - Updates existing podcast instead of creating new one
  */
 export function PodcastEditForm({
-  podcast,
+  podcast: podcastProp,
   episodeStats,
   userType,
   onSuccess,
@@ -58,15 +58,21 @@ export function PodcastEditForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFormatWarning, setShowFormatWarning] = useState(false);
 
+  // Cast podcast to typed interface
+  const podcast = podcastProp as DbPodcast;
+
   // Initialize form with existing podcast data using transformer
   const form = useForm<EditPodcastFormValues>({
     resolver: zodResolver(editPodcastSchemaValidated),
     defaultValues: podcastToFormValues(podcast),
   });
 
+  // Get podcast config for tracking format changes
+  const config = podcast.podcastConfigs?.[0] || podcast.podcast_configs?.[0];
+  
   // Track format changes
   const watchedFormat = form.watch('podcastFormat');
-  const originalFormat = podcast.podcastFormat;
+  const originalFormat = config?.podcast_format || 'multi-speaker';
 
   useEffect(() => {
     // Show warning if format changed and episodes exist
@@ -172,28 +178,28 @@ export function PodcastEditForm({
         )}
 
         {/* Basic Information */}
-        <BasicInfoSection control={form.control} />
+        <BasicInfoSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Content Source (Telegram/RSS) */}
-        <ContentSourceSection control={form.control} />
+        <ContentSourceSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Podcast Format (EDITABLE) */}
-        <FormatSection control={form.control} setValue={form.setValue} />
+        <FormatSection control={form.control as unknown as Control<FieldValues>} setValue={form.setValue} />
 
         {/* Schedule & Automation */}
-        <ScheduleSection control={form.control} />
+        <ScheduleSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Style & Customization (conditional for admin/premium) */}
         {(userType === 'admin' || userType === 'premium') && (
-          <StyleSection control={form.control} />
+          <StyleSection control={form.control as unknown as Control<FieldValues>} />
         )}
 
         {/* Image Upload */}
-        <ImageUploadSection control={form.control} />
+        <ImageUploadSection control={form.control as unknown as Control<FieldValues>} />
 
         {/* Admin Settings (admin only) */}
         {userType === 'admin' && (
-          <AdminSettingsSection control={form.control} />
+          <AdminSettingsSection control={form.control as unknown as Control<FieldValues>} />
         )}
 
         {/* Form Actions */}

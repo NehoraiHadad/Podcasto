@@ -86,7 +86,11 @@ export interface BaseFormSectionProps {
  * Props for FormatSection with setValue for clearing speaker2Role
  */
 export interface FormatSectionProps extends BaseFormSectionProps {
-  setValue?: (name: string, value: any) => void;
+  setValue?: <TFieldName extends string>(
+    name: TFieldName,
+    value: unknown,
+    options?: { shouldValidate?: boolean; shouldDirty?: boolean }
+  ) => void;
 }
 
 /**
@@ -191,7 +195,7 @@ export interface ValidationResult {
  */
 export interface SubmissionResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   validationErrors?: Record<string, string[]>;
 }
@@ -260,10 +264,10 @@ export interface UserPodcastFormProps {
 
 /**
  * Props for podcast edit form composition
- * Note: podcast is any to accept DB types - will be transformed internally
+ * Uses DbPodcast type from transformers module
  */
 export interface PodcastEditFormProps {
-  podcast: any; // Accepts DB podcast type, transformed via podcastToFormValues
+  podcast: unknown; // DB podcast type - cast to DbPodcast in implementation
   episodeStats?: EpisodeStats;
   userType: UserType;
   onSuccess?: () => void;

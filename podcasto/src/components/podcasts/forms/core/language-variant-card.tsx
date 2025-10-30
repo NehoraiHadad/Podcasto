@@ -1,7 +1,7 @@
 'use client';
 
 import { Trash2, Radio } from 'lucide-react';
-import { Control, UseFormReturn } from 'react-hook-form';
+import { Control, FieldValues, UseFormReturn } from 'react-hook-form';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,8 +61,8 @@ const LANGUAGE_CODE_OPTIONS = [
 
 interface LanguageVariantCardProps {
   index: number;
-  control: Control<any>;
-  form: UseFormReturn<any>;
+  control: Control<FieldValues>;
+  form: UseFormReturn<FieldValues>;
   onRemove: () => void;
   onSetPrimary: () => void;
   canRemove: boolean;

@@ -1,11 +1,11 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import { FormTextField, FormTextareaField, FormSelectField } from '@/components/ui/form-fields';
 import { SUPPORTED_OUTPUT_LANGUAGES, LANGUAGE_NAMES } from '@/lib/constants/languages';
 
 interface BasicInfoSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
 }
 

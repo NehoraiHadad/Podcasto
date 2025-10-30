@@ -1,13 +1,13 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 
 interface ScheduleSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
 }
 

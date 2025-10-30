@@ -15,3 +15,6 @@ pytz>=2024.1
 
 # Hebrew text processing
 beautifulsoup4>=4.11.0
+
+# Audio processing for MP3 conversion
+pydub==0.25.1

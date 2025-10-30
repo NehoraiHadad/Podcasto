@@ -1,6 +1,6 @@
 'use client';
 
-import { Control } from 'react-hook-form';
+import { Control, FieldValues } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Wand2 } from 'lucide-react';
 
 interface AdminSettingsSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
 }
 

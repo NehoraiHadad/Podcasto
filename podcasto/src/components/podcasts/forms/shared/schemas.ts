@@ -219,8 +219,9 @@ export const editPodcastSchema = z.object({
  * Rule: If podcastFormat is 'multi-speaker', speaker2Role is required
  */
 function addFormatValidation<T extends z.ZodType>(schema: T) {
-  return schema.superRefine((data: any, ctx) => {
-    if (data.podcastFormat === 'multi-speaker' && !data.speaker2Role) {
+  return schema.superRefine((data: z.infer<T>, ctx) => {
+    const formData = data as { podcastFormat?: string; speaker2Role?: string | null };
+    if (formData.podcastFormat === 'multi-speaker' && !formData.speaker2Role) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Please select a role for the second speaker (required for multi-speaker podcasts)',

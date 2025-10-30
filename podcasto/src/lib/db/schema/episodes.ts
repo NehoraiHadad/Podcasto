@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, timestamp, varchar, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
 import { podcasts } from './podcasts';
 import { profiles } from './profiles';
 
@@ -9,6 +9,7 @@ export const episodes = pgTable('episodes', {
   description: text('description'),
   language: text('language').notNull(),
   audio_url: text('audio_url').notNull(),
+  audio_format: text('audio_format').default('mp3'), // 'wav' | 'mp3'
   duration: integer('duration'),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   published_at: timestamp('published_at', { withTimezone: true }),

@@ -1,6 +1,6 @@
 'use client';
 
-import { Control, useWatch, useFormContext } from 'react-hook-form';
+import { Control, FieldValues, useWatch, useFormContext } from 'react-hook-form';
 import { useState } from 'react';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
 
 interface ImageUploadSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
   showAIGeneration?: boolean;
   podcastId?: string;
@@ -40,6 +40,15 @@ interface GeneratedVariation {
   base64Data: string;
   index: number;
   selected: boolean;
+}
+
+interface ImageGenerationResult {
+  success: boolean;
+  imageDatas?: string[];
+  imageData?: string;
+  mimeType?: string;
+  enhancedWithAI?: boolean;
+  error?: string;
 }
 
 /**
@@ -180,9 +189,10 @@ export function ImageUploadSection({
       }
 
       if (result && typeof result === 'object' && 'success' in result) {
-        if (result.success) {
-          const imageDatas = (result as any).imageDatas || ((result as any).imageData ? [(result as any).imageData] : []);
-          const mimeType = (result as any).mimeType || 'image/jpeg';
+        const typedResult = result as ImageGenerationResult;
+        if (typedResult.success) {
+          const imageDatas = typedResult.imageDatas || (typedResult.imageData ? [typedResult.imageData] : []);
+          const mimeType = typedResult.mimeType || 'image/jpeg';
 
           if (imageDatas.length > 0) {
             const variations: GeneratedVariation[] = imageDatas.map((base64: string, index: number) => ({
@@ -198,10 +208,10 @@ export function ImageUploadSection({
             setValue('cover_image', variations[0].base64Data);
             setValue('image_style', selectedStyle);
 
-            imageToasts.generationSuccess(variations.length, (result as any).enhancedWithAI);
+            imageToasts.generationSuccess(variations.length, typedResult.enhancedWithAI);
           }
         } else {
-          imageToasts.error((result as any).error || 'Failed to generate image');
+          imageToasts.error(typedResult.error || 'Failed to generate image');
         }
       }
     } catch (error) {

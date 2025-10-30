@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { SUPPORTED_OUTPUT_LANGUAGES } from '@/lib/constants/languages';
 import { getSupportedLanguageCodes, type LanguageCode } from '@/lib/utils/language-mapper';
 
 // Supported language codes for validation

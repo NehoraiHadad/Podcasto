@@ -1,6 +1,6 @@
 'use client';
 
-import { Control, Controller, useWatch } from 'react-hook-form';
+import { Control, Controller, FieldValues, useWatch, PathValue, Path } from 'react-hook-form';
 import { useEffect } from 'react';
 import { FormatSelector } from '@/components/admin/podcast-form/format-selector';
 import { FormSelectField, FormNumberField } from '@/components/ui/form-fields';
@@ -9,9 +9,13 @@ import { FormControl, FormItem, FormLabel, FormDescription } from '@/components/
 
 
 interface FormatSectionProps {
-  control: Control<any>;
+  control: Control<FieldValues>;
   disabled?: boolean;
-  setValue?: (name: string, value: any, options?: { shouldValidate?: boolean; shouldDirty?: boolean }) => void;
+  setValue?: <TFieldName extends Path<FieldValues>>(
+    name: TFieldName,
+    value: PathValue<FieldValues, TFieldName>,
+    options?: { shouldValidate?: boolean; shouldDirty?: boolean }
+  ) => void;
 }
 
 const SPEAKER_ROLE_OPTIONS = [

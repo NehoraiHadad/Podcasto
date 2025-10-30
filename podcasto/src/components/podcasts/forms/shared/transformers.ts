@@ -8,10 +8,46 @@ import type { EditPodcastFormValues } from './types';
 import { languageCodeToFull } from '@/lib/utils/language-mapper';
 
 /**
+ * Database podcast type (minimal for form transformation)
+ */
+export interface DbPodcast {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image: string | null;
+  image_style?: string | null;
+  language_code?: string;
+  auto_generation_enabled?: boolean;
+  podcastConfigs?: DbPodcastConfig[];
+  podcast_configs?: DbPodcastConfig[];
+}
+
+export interface DbPodcastConfig {
+  podcast_format?: string;
+  speaker_1_role?: string;
+  speaker_2_role?: string | null;
+  conversation_style?: string;
+  episode_frequency?: number;
+  auto_generation?: boolean;
+  content_source?: string;
+  telegram_channel_name?: string;
+  telegram_hours?: number;
+  rss_url?: string;
+  intro_prompt?: string | null;
+  outro_prompt?: string | null;
+  creator?: string;
+  podcast_name?: string;
+  slogan?: string;
+  creativity_level?: number;
+  mixing_techniques?: string[];
+  additional_instructions?: string | null;
+}
+
+/**
  * Transform database podcast object to form values
  * Handles the mismatch between DB structure and form structure
  */
-export function podcastToFormValues(podcast: any): EditPodcastFormValues {
+export function podcastToFormValues(podcast: DbPodcast): EditPodcastFormValues {
   // Get podcast config if it exists (support both naming conventions)
   const config = podcast.podcastConfigs?.[0] || podcast.podcast_configs?.[0];
 
@@ -31,14 +67,14 @@ export function podcastToFormValues(podcast: any): EditPodcastFormValues {
     episodeFrequency: config?.episode_frequency || 7,
     autoGeneration: podcast.auto_generation_enabled,
     podcastFormat,
-    speaker1Role: config?.speaker1_role || 'Host',
+    speaker1Role: config?.speaker_1_role || 'Host',
     // Only set speaker2Role default for multi-speaker, otherwise keep null
-    speaker2Role: podcastFormat === 'single-speaker' ? null : (config?.speaker2_role || 'Co-host'),
+    speaker2Role: podcastFormat === 'single-speaker' ? null : (config?.speaker_2_role || 'Co-host'),
     conversationStyle: config?.conversation_style || 'casual',
     introPrompt: config?.intro_prompt,
     outroPrompt: config?.outro_prompt,
-    contentSource: config?.telegram_channel ? 'telegram' : 'rss',
-    telegramChannelName: config?.telegram_channel || '',
+    contentSource: config?.telegram_channel_name ? 'telegram' : 'rss',
+    telegramChannelName: config?.telegram_channel_name || '',
     telegramHours: config?.telegram_hours || 24,
     rssUrl: config?.rss_url || '',
     creator: config?.creator,

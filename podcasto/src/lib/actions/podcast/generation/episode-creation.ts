@@ -7,7 +7,7 @@ import { DEFAULT_TIMEZONE } from '@/lib/utils/date/constants';
  * Creates pending episode records with metadata for tracking.
  */
 
-import { episodesApi, podcastConfigsApi, podcastsApi } from '@/lib/db/api';
+import { episodesApi, podcastsApi } from '@/lib/db/api';
 import { languageCodeToFull } from '@/lib/utils/language-mapper';
 import type { DateRange, EpisodeCreationResult } from './types';
 

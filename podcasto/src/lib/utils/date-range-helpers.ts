@@ -46,10 +46,10 @@ export const calculateDaysBetween = ({
 
 export const formatDateRange = ({
   range,
-  format = 'MMM dd, yyyy',
+  _format = 'MMM dd, yyyy',
 }: {
   range: DateRange | undefined;
-  format?: string;
+  _format?: string;
 }): string => {
   if (!range?.from) return '';
   
