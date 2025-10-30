@@ -13,6 +13,7 @@ import { EpisodeCostIndicator } from './episode-cost-indicator';
 import type { Podcast } from '@/lib/db/api/podcasts/types';
 import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
+import { GenerateEpisodeButton } from './generate-episode-button';
 
 interface PodcastCardUserProps {
   podcast: Podcast;
@@ -138,24 +139,22 @@ export function PodcastCardUser({
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2 pt-3">
-        <Button
-          onClick={handleGenerateEpisode}
-          disabled={isGenerating || !hasEnoughCredits || podcast.is_paused}
-          className="w-full"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Play className="mr-2 h-4 w-4" />
-              Generate Episode
-            </>
-          )}
-        </Button>
-
+        {hasEnoughCredits && !podcast.is_paused && (
+          <GenerateEpisodeButton
+            podcastId={podcast.id}
+            isPaused={podcast.is_paused}
+          />
+        )}
+        {!hasEnoughCredits && (
+          <Button disabled className="w-full">
+            Insufficient credits to generate episode
+          </Button>
+        )}
+        {podcast.is_paused && (
+          <Button disabled className="w-full">
+            Podcast is paused
+          </Button>
+        )}
         <div className="flex gap-2 w-full">
           <Button
             variant="outline"
@@ -168,7 +167,6 @@ export function PodcastCardUser({
               View Episodes
             </Link>
           </Button>
-
           <Button
             variant="outline"
             size="sm"
@@ -181,7 +179,6 @@ export function PodcastCardUser({
             </Link>
           </Button>
         </div>
-
         {podcast.next_scheduled_generation && podcast.auto_generation_enabled && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
             <Calendar className="h-3 w-3" />

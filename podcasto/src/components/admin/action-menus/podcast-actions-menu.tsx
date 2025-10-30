@@ -10,7 +10,7 @@ import { ActionMenuWrapper } from './shared/action-menu-wrapper';
 import { ActionDropdownItem } from './shared/action-dropdown-item';
 import { DeleteConfirmationDialog } from './shared/delete-confirmation-dialog';
 import { PodcastStatusIndicator } from '../podcast-status-indicator';
-import { GenerateEpisodeButton } from '../generate-episode-button';
+import { GenerateEpisodeButton } from '../../podcasts/generate-episode-button';
 import { PodcastItem, ActionMenuItem } from './types';
 
 interface PodcastActionsMenuProps {
