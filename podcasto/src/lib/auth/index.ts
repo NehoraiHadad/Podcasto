@@ -127,3 +127,5 @@ export type {
 } from './types';
 
 export { isAuthError } from './types';
+
+export type { SessionService } from './session/session-service';

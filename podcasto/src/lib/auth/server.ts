@@ -95,4 +95,4 @@ export const requirePermission = wrapServerFunction(requirePermissionImpl);
 export const addUserRole = wrapServerFunction(addUserRoleImpl);
 export const removeUserRole = wrapServerFunction(removeUserRoleImpl);
 
-export type { SessionService } from './session/session-service';
+export { type SessionService as SessionServiceDefinition } from './session/session-service';
