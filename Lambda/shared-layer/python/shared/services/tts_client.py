@@ -26,6 +26,16 @@ class DeferrableError(Exception):
     """
     pass
 
+class RetryableRateLimitError(Exception):
+    """
+    Rate limit error (429) that should be retried within Lambda because delay is short enough.
+    Contains the delay in seconds suggested by Google API.
+    Used when Google's suggested delay < 10 minutes (safe within Lambda timeout).
+    """
+    def __init__(self, delay: int):
+        self.delay = delay
+        super().__init__(f"Rate limit (429) - retry after {delay}s")
+
 # Global rate-limiter shared across all Lambda invokes (execution context is reused)
 _RATE_LIMITER = TokenBucketRateLimiter(
     max_tokens=int(os.getenv("TTS_REQUESTS_PER_MINUTE", "9")),  # stay below Google limit (10)
@@ -307,14 +317,22 @@ class GeminiTTSClient:
             # Smart error handling based on error type
             error_str = str(e)
 
-            # 429 Rate Limit - Use Google's retry-after delay (no immediate retry)
+            # 429 Rate Limit - Smart handling based on Google's suggested delay
             if "RESOURCE_EXHAUSTED" in error_str or "429" in error_str:
                 delay = parse_retry_delay(error_str)
                 logger.warning(f"[TTS_CLIENT] Rate limit (429) - Google suggests {delay}s delay")
-                # Convert 429 to DeferrableError so episode gets deferred instead of immediate retry
-                raise DeferrableError(
-                    f"Rate limit exceeded (429). Defer episode for {delay}s before retry."
-                )
+
+                # If delay is short enough, retry within Lambda (< 10 minutes threshold)
+                # This is safe within 15-minute Lambda timeout and provides faster recovery
+                if delay < 600:
+                    logger.info(f"[TTS_CLIENT] Delay {delay}s is short enough - will retry within Lambda")
+                    raise RetryableRateLimitError(delay)
+                else:
+                    # Delay too long for Lambda timeout - defer to SQS for later retry
+                    logger.warning(f"[TTS_CLIENT] Delay {delay}s exceeds threshold - deferring to SQS")
+                    raise DeferrableError(
+                        f"Rate limit exceeded (429). Defer episode for {delay}s before retry."
+                    )
 
             # 500 Internal Server Error - Transient Google error, allow one immediate retry
             elif "500" in error_str or "Internal error" in error_str:
@@ -466,13 +484,21 @@ class GeminiTTSClient:
             # Smart error handling
             error_str = str(e)
 
-            # 429 Rate Limit - defer episode
+            # 429 Rate Limit - Smart handling based on Google's suggested delay
             if "RESOURCE_EXHAUSTED" in error_str or "429" in error_str:
                 delay = parse_retry_delay(error_str)
                 logger.warning(f"[TTS_CLIENT] Rate limit (429) - Google suggests {delay}s delay")
-                raise DeferrableError(
-                    f"Rate limit exceeded (429). Defer episode for {delay}s before retry."
-                )
+
+                # If delay is short enough, retry within Lambda (< 10 minutes threshold)
+                if delay < 600:
+                    logger.info(f"[TTS_CLIENT] Delay {delay}s is short enough - will retry within Lambda")
+                    raise RetryableRateLimitError(delay)
+                else:
+                    # Delay too long for Lambda timeout - defer to SQS for later retry
+                    logger.warning(f"[TTS_CLIENT] Delay {delay}s exceeds threshold - deferring to SQS")
+                    raise DeferrableError(
+                        f"Rate limit exceeded (429). Defer episode for {delay}s before retry."
+                    )
 
             # 500 Internal Server Error - allow retry
             elif "500" in error_str or "Internal error" in error_str:
@@ -639,9 +665,28 @@ class GeminiTTSClient:
                     logger.warning(f"[TTS_CLIENT] Validation failed for voices: speaker1={speaker1_voice}, speaker2={speaker2_voice}")
 
             except DeferrableError as de:
-                # Timeout or rate limit - defer episode, don't retry
+                # Timeout or rate limit (long delay) - defer episode, don't retry
                 logger.error(f"[TTS_CLIENT] Chunk {chunk_num} needs deferral: {str(de)}")
                 raise  # Propagate to handler so episode can be deferred
+
+            except RetryableRateLimitError as rle:
+                # Rate limit with short delay - wait and retry within Lambda
+                logger.info(f"[TTS_CLIENT] Rate limit on chunk {chunk_num} - Google suggests {rle.delay}s")
+
+                # Check if this is the last retry
+                if retry == max_retries:
+                    logger.error(f"[TTS_CLIENT] Chunk {chunk_num} still rate-limited after {max_retries+1} attempts")
+                    # Convert to DeferrableError after exhausting retries
+                    raise DeferrableError(
+                        f"Rate limit persisted after {max_retries+1} attempts. "
+                        f"Defer episode for {rle.delay}s before retry."
+                    )
+                else:
+                    # Add jitter to spread retry attempts and avoid thundering herd
+                    jitter = random.uniform(0, rle.delay * 0.3)  # ±30% random jitter
+                    delay_with_jitter = rle.delay + jitter
+                    logger.info(f"[TTS_CLIENT] Waiting {delay_with_jitter:.1f}s before retry (attempt {retry+2}/{max_retries+1})")
+                    time.sleep(delay_with_jitter)
 
             except Exception as e:
                 error_str = str(e)
