@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { getAuthState } from "@/lib/auth";
+import { SupabaseProvider } from "@/components/providers/supabase-provider";
+import { SupabaseListener } from "@/components/providers/supabase-listener";
+
 const inter = {
   /**
    * Use Tailwind's default sans-serif stack as a resilient fallback when the
@@ -35,16 +40,26 @@ export const viewport: Viewport = {
   themeColor: "#e279c7",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
+  const authState = await getAuthState();
+
   return (
     <html lang="en" dir="ltr" className={`${inter.variable}`}>
       <body className="antialiased min-h-screen bg-background text-foreground">
-        {children}
-        <Toaster position="bottom-right" richColors />
+        <SupabaseProvider
+          initialSession={authState.session}
+          initialUser={authState.user}
+        >
+          <SupabaseListener
+            accessToken={authState.session?.access_token ?? undefined}
+          />
+          {children}
+          <Toaster position="bottom-right" richColors />
+        </SupabaseProvider>
       </body>
     </html>
   );

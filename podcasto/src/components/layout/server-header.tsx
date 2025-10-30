@@ -1,6 +1,6 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import { getAdminStatus } from '@/lib/auth';
 import { ClientHeader } from './client-header';
-import { unstable_noStore as noStore } from 'next/cache';
 
 /**
  * Server component wrapper for the header
@@ -11,8 +11,8 @@ export async function ServerHeader() {
   // Opt out of caching for this component
   noStore();
 
-  const { isAdmin, user } = await getAdminStatus();
+  const { isAdmin } = await getAdminStatus();
 
-  // Pass the admin status and user to the client component
-  return <ClientHeader initialIsAdmin={isAdmin} initialUser={user} />;
+  // Pass the admin status to the client component
+  return <ClientHeader initialIsAdmin={isAdmin} />;
 }
