@@ -7,6 +7,13 @@
  * @deprecated Use @/lib/auth for new code
  */
 
-// Re-export from new auth module for backward compatibility
-export { createServerClient as createClient } from '@/lib/auth/session/getters';
-export { createMiddlewareClient, updateSession } from '@/lib/auth/session/middleware';
+// Expose the core Supabase helpers implemented in the auth session layer
+export {
+  getCachedServerClient,
+  createServerClient,
+  createServerClient as createClient,
+} from '@/lib/auth/session/getters';
+
+export { createSupabaseServerClient } from './server-client';
+export { createSupabaseMiddlewareClient as createMiddlewareClient } from './middleware-client';
+export { updateSession } from '@/lib/auth/session/middleware';
