@@ -6,14 +6,13 @@
  * Guard functions that throw errors on authorization failure.
  * Use these at the start of protected server actions to enforce access control.
  */
+import { SessionService } from '../session';
+import { ROLES } from '../permissions';
+import type { Permission } from '../permissions';
 import {
   UnauthorizedError,
   InsufficientPermissionsError,
 } from '../errors/classes';
-import { SessionService } from '../session';
-import { ROLES, type Permission } from '../permissions';
-import { isAdmin, hasRole, hasPermission } from './queries';
-import type { User } from '../types';
 import { isAdmin, hasRole, hasPermission } from './queries';
 import type { User } from '../types';
 
@@ -34,8 +33,6 @@ import type { User } from '../types';
  * }
  * ```
  */
-export async function requireAuth(): Promise<User> {
-  const user = await getUser();
 
   if (!user) {
     throw new UnauthorizedError({
@@ -120,7 +117,7 @@ export async function requireRole(role: string): Promise<User> {
  *
  * Throws errors if not authenticated or doesn't have the permission.
  *
-}
+ * @param permission - The required permission
  * @returns The authenticated user
  * @throws {UnauthorizedError} If user is not authenticated
  * @throws {InsufficientPermissionsError} If user doesn't have permission
@@ -144,6 +141,10 @@ export async function requirePermission(permission: Permission): Promise<User> {
       requiredPermission: permission,
       action: 'requirePermission',
     });
+  }
+
+  return user;
+}
   }
 
   return user;
