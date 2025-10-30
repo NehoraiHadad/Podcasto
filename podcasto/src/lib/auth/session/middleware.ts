@@ -6,10 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient as createSupabaseClient } from '@supabase/ssr';
 import type { UserResponse } from '@supabase/supabase-js';
-import { getSupabaseEnv } from '@/lib/config/env';
-import type { Database } from '@/lib/supabase/types';
+import { createSupabaseMiddlewareClient } from '@/lib/supabase/middleware-client';
 
 /**
  * Create a Supabase client for middleware usage
@@ -31,55 +29,7 @@ export function createMiddlewareClient(
   request: NextRequest,
   response?: NextResponse
 ) {
-  const isUpdateSession = !response;
-  let supabaseResponse: NextResponse | undefined;
-
-  if (isUpdateSession) {
-    supabaseResponse = NextResponse.next({
-      request: { headers: request.headers },
-    });
-  }
-
-  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } =
-    getSupabaseEnv();
-
-  return {
-    client: createSupabaseClient<Database>(
-      NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return isUpdateSession
-              ? request.cookies.getAll()
-              : request.cookies.getAll().map((cookie) => ({
-                  name: cookie.name,
-                  value: cookie.value,
-                }));
-          },
-          setAll(cookies) {
-            cookies.forEach(({ name, value, ...options }) => {
-              if (isUpdateSession && supabaseResponse) {
-                request.cookies.set(name, value);
-                supabaseResponse.cookies.set({
-                  name,
-                  value,
-                  ...options,
-                });
-              } else if (response) {
-                response.cookies.set({
-                  name,
-                  value,
-                  ...options,
-                });
-              }
-            });
-          },
-        },
-      }
-    ),
-    response: isUpdateSession ? supabaseResponse : response,
-  };
+  return createSupabaseMiddlewareClient(request, response);
 }
 
 /**

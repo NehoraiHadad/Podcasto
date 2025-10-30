@@ -1,6 +1,7 @@
 'use server';
 
-import { createServerClient, withAuthErrorHandling, createAuthError, AUTH_ERROR_CODES, logAuthError, AuthenticationError } from '@/lib/auth';
+import { withAuthErrorHandling, createAuthError, AUTH_ERROR_CODES, logAuthError, AuthenticationError } from '@/lib/auth';
+import { createServerClient } from '@/lib/supabase/server';
 import type { AuthErrorCode } from '@/lib/auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ActionResult } from './types';
