@@ -6,13 +6,13 @@
  * Guard functions that throw errors on authorization failure.
  * Use these at the start of protected server actions to enforce access control.
  */
-import { SessionService } from '../session';
-import { SessionService } from '../session';
-  const user = await SessionService.getUser();
 import {
   UnauthorizedError,
   InsufficientPermissionsError,
 } from '../errors/classes';
+export async function requireAuth(): Promise<User> {
+  const { SessionService } = await import('../session');
+  const user = await SessionService.getUser();
 import { ROLES, type Permission } from '../permissions';
 import { isAdmin, hasRole, hasPermission } from './queries';
 import type { User } from '../types';
