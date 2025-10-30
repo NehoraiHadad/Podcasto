@@ -180,45 +180,31 @@ export function EpisodeDateRangePicker({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-4" align="start" side="bottom">
-              <div className="space-y-4">
-                {/* Calendar Header */}
-                <div className="space-y-1">
-                  <h4 className="font-medium text-sm">Select Date Range</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {date?.from && date?.to 
-                      ? `${Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} days selected`
-                      : 'Pick start and end dates for your content'}
-                  </p>
-                </div>
+            <PopoverContent className="w-auto p-0" align="start" side="bottom">
+              <div className="p-4 space-y-3">
+                {/* Dynamic feedback */}
+                {date?.from && date?.to && (
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground">
+                      {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} days selected
+                    </p>
+                  </div>
+                )}
                 
-                {/* Calendar Component */}
+                {/* Calendar Component - responsive */}
                 <Calendar
                   initialFocus
                   mode="range"
                   defaultMonth={date?.from}
                   selected={date}
                   onSelect={handleDateSelect}
-                  numberOfMonths={2}
+                  numberOfMonths={1}
                   disabled={(date) => date > new Date()}
-                  className="rounded-md border"
+                  className="rounded-md"
+                  classNames={{
+                    months: "flex flex-col sm:flex-row gap-4",
+                  }}
                 />
-
-                {/* Helper Text */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground border-t pt-3">
-                  <div className="flex items-center gap-1">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-primary"></div>
-                    </div>
-                    <span>Selected dates</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-6 h-6 rounded bg-accent flex items-center justify-center">
-                      <div className="w-3 h-3 rounded bg-accent-foreground/20"></div>
-                    </div>
-                    <span>Date range</span>
-                  </div>
-                </div>
               </div>
             </PopoverContent>
           </Popover>
