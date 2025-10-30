@@ -1,3 +1,5 @@
+'use server';
+
 /**
  * Role guard utilities enforce server-side authorization invariants for
  * privileged server actions. Each guard asserts authentication and the
@@ -13,8 +15,8 @@ import {
 import { isAdmin, hasRole, hasPermission } from './queries';
 import type { User } from '../types';
 
-  'use server';
-
+export async function requireAuth(): Promise<User> {
+  const user = await SessionService.getUser();
 
   if (!user) {
     throw new UnauthorizedError({
@@ -27,8 +29,6 @@ import type { User } from '../types';
 }
 
 export async function requireAdmin(): Promise<User> {
-  'use server';
-
   const user = await requireAuth();
   const userIsAdmin = await isAdmin(user.id);
 
@@ -44,8 +44,6 @@ export async function requireAdmin(): Promise<User> {
 }
 
 export async function requireRole(role: string): Promise<User> {
-  'use server';
-
   const user = await requireAuth();
   const userHasRole = await hasRole(user.id, role);
 
@@ -61,8 +59,6 @@ export async function requireRole(role: string): Promise<User> {
 }
 
 export async function requirePermission(permission: Permission): Promise<User> {
-  'use server';
-
   const user = await requireAuth();
   const userHasPermission = await hasPermission(user.id, permission);
 
@@ -72,10 +68,6 @@ export async function requirePermission(permission: Permission): Promise<User> {
       requiredPermission: permission,
       action: 'requirePermission',
     });
-  }
-
-  return user;
-}
   }
 
   return user;
