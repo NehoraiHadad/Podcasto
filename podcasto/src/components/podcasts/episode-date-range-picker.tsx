@@ -88,63 +88,117 @@ export function EpisodeDateRangePicker({
   };
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="flex flex-col sm:flex-row gap-2">
+    <div className={cn('space-y-4', className)}>
+      {/* Header */}
+      <div>
+        <label className="text-sm font-medium text-foreground mb-2 block">
+          Content Time Range
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Select which period of your channel content to include in this episode
+        </p>
+      </div>
+
+      {/* Quick Presets */}
+      <div className="space-y-2">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Quick Selection
+        </label>
         <Select value={preset} onValueChange={handlePresetChange}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Select time range" />
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Choose a time period" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">Default ({defaultHours}h)</SelectItem>
-            <SelectItem value="24h">Last 24 hours</SelectItem>
-            <SelectItem value="3d">Last 3 days</SelectItem>
-            <SelectItem value="7d">Last week</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="custom">Custom range...</SelectItem>
-            {date && <SelectItem value="clear">Clear selection</SelectItem>}
+            <SelectItem value="default">
+              <div className="flex items-center justify-between w-full">
+                <span>Default</span>
+                <span className="text-xs text-muted-foreground ml-2">Last {defaultHours}h (recommended)</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="24h">
+              <div className="flex items-center justify-between w-full">
+                <span>Last 24 hours</span>
+                <span className="text-xs text-muted-foreground ml-2">1 day</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="3d">
+              <div className="flex items-center justify-between w-full">
+                <span>Last 3 days</span>
+                <span className="text-xs text-muted-foreground ml-2">72 hours</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="7d">
+              <div className="flex items-center justify-between w-full">
+                <span>Last week</span>
+                <span className="text-xs text-muted-foreground ml-2">7 days</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="30d">
+              <div className="flex items-center justify-between w-full">
+                <span>Last month</span>
+                <span className="text-xs text-muted-foreground ml-2">30 days</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="custom">
+              <div className="flex items-center justify-between w-full">
+                <span>Custom dates...</span>
+                <CalendarIcon className="h-3 w-3 ml-2" />
+              </div>
+            </SelectItem>
+            {date && <SelectItem value="clear">Clear custom selection</SelectItem>}
           </SelectContent>
         </Select>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={'outline'}
-              className={cn(
-                'w-full sm:w-auto justify-start text-left font-normal',
-                !date && 'text-muted-foreground'
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-              {date?.from ? (
-                date.to ? (
-                  <span className="truncate">
-                    {format(date.from, 'MMM dd, y')} - {format(date.to, 'MMM dd, y')}
-                  </span>
-                ) : (
-                  format(date.from, 'MMM dd, y')
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={date?.from}
-              selected={date}
-              onSelect={handleDateSelect}
-              numberOfMonths={2}
-              disabled={(date) => date > new Date()}
-            />
-          </PopoverContent>
-        </Popover>
       </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        Choose &apos;Custom range&apos; to pick specific dates, or use the default for the most recent updates.
-      </p>
+
+      {/* Custom Date Picker - only show when custom is selected or date is set */}
+      {(preset === 'custom' || date) && (
+        <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Custom Date Range
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={'outline'}
+                className={cn(
+                  'w-full justify-start text-left font-normal',
+                  !date && 'text-muted-foreground'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                {date?.from ? (
+                  date.to ? (
+                    <span className="truncate">
+                      {format(date.from, 'MMM dd, yyyy')} → {format(date.to, 'MMM dd, yyyy')}
+                    </span>
+                  ) : (
+                    format(date.from, 'MMM dd, yyyy')
+                  )
+                ) : (
+                  <span>Click to pick start and end dates</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={handleDateSelect}
+                numberOfMonths={2}
+                disabled={(date) => date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+          {date?.from && date?.to && (
+            <p className="text-xs text-muted-foreground">
+              {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} days selected
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
