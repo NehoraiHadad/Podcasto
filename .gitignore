@@ -4,6 +4,8 @@
 .env*
 env*
 env.json
+!podcasto/src/lib/config/env.ts
+!podcasto/src/lib/config/__tests__/env.test.ts
 !.env.example
 !.env.*.example
 samconfig.toml

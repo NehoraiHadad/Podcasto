@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
 import type { UserResponse } from '@supabase/supabase-js';
+import { getSupabaseEnv } from '@/lib/config/env';
 import type { Database } from '@/lib/supabase/types';
 
 /**
@@ -39,10 +40,13 @@ export function createMiddlewareClient(
     });
   }
 
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } =
+    getSupabaseEnv();
+
   return {
     client: createSupabaseClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll() {

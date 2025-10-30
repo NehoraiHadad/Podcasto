@@ -171,14 +171,17 @@ For middleware, use the client directly:
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getSupabaseEnv } from '@/lib/config/env';
 import type { Database } from '@/lib/supabase/types';
 
 export async function middleware(request: NextRequest) {
   const res = NextResponse.next();
-  
+  const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } =
+    getSupabaseEnv();
+
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get: (name) => request.cookies.get(name)?.value,

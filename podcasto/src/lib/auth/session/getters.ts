@@ -13,6 +13,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createServerClient as createSupabaseClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseEnv } from '@/lib/config/env';
 import type { Database } from '@/lib/supabase/types';
 import type { User, Session, AuthState } from './types';
 
@@ -26,10 +27,12 @@ import type { User, Session, AuthState } from './types';
 export const getCachedServerClient = cache(
   async (): Promise<SupabaseClient<Database>> => {
     const cookieStore = await cookies();
+    const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } =
+      getSupabaseEnv();
 
     return createSupabaseClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll() {
