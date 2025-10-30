@@ -3,6 +3,7 @@
 import { getURL } from '@/lib/utils/url';
 import { validateLogin, validateRegistration } from '@/lib/auth';
 import { errorResult, runAuthAction } from './shared';
+import type { SignUpWithPasswordCredentials } from '@supabase/supabase-js';
 
 const VALIDATION_ERROR_CODE = 'validation_error';
 
@@ -28,6 +29,34 @@ function buildValidationErrors(
       code: VALIDATION_ERROR_CODE,
     },
   ];
+}
+
+type SignUpLogContext = {
+  email: string;
+  legacyValidation?: boolean;
+};
+
+async function executeSignUp(
+  payload: SignUpWithPasswordCredentials,
+  logContext: SignUpLogContext
+) {
+  return runAuthAction(
+    async (supabase) => {
+      const { data, error } = await supabase.auth.signUp(payload);
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    {
+      logContext: {
+        action: 'signUpWithPassword',
+        ...logContext,
+      },
+    }
+  );
 }
 
 /**
@@ -114,6 +143,10 @@ export const signInWithGoogle = async (redirectTo?: string) => {
  * @returns Result of the sign up operation
  */
 export const signUpWithPassword = async (email: string, password: string, confirmPassword?: string) => {
+  const emailRedirectTo = `${getURL()}auth/callback`;
+  let credentials: SignUpWithPasswordCredentials;
+  let logContext: SignUpLogContext;
+
   if (confirmPassword !== undefined) {
     const validation = validateRegistration({ email, password, confirmPassword });
 
@@ -122,55 +155,27 @@ export const signUpWithPassword = async (email: string, password: string, confir
       return errorResult(message, buildValidationErrors(validation.error));
     }
 
-    return runAuthAction(
-      async (supabase) => {
-        const { data, error } = await supabase.auth.signUp({
-          email: validation.data!.email,
-          password: validation.data!.password,
-          options: {
-            emailRedirectTo: `${getURL()}auth/callback`,
-          },
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        return data;
+    const { email: validatedEmail, password: validatedPassword } = validation.data;
+    credentials = {
+      email: validatedEmail,
+      password: validatedPassword,
+      options: {
+        emailRedirectTo,
       },
-      {
-        logContext: {
-          action: 'signUpWithPassword',
-          email,
-        },
-      }
-    );
+    };
+    logContext = { email };
+  } else {
+    credentials = {
+      email,
+      password,
+      options: {
+        emailRedirectTo,
+      },
+    };
+    logContext = { email, legacyValidation: true };
   }
 
-  return runAuthAction(
-    async (supabase) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${getURL()}auth/callback`,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
-    },
-    {
-      logContext: {
-        action: 'signUpWithPassword',
-        email,
-        legacyValidation: true,
-      },
-    }
-  );
+  return executeSignUp(credentials, logContext);
 };
 
 /**
