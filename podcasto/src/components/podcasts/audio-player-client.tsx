@@ -12,26 +12,48 @@ import {
   AudioErrorState,
   AudioPlayerProgress,
 } from './audio-player/components';
+import { useAudioUrl } from '@/lib/hooks/use-audio-url';
 
 interface AudioPlayerClientProps {
   episodeId: string;
-  audioUrl: string;
+  audioUrl?: string; // Made optional - will fetch if not provided
   _title: string;
   audioUrlError?: string;
 }
 
 export function AudioPlayerClient({
   episodeId,
-  audioUrl,
+  audioUrl: propAudioUrl,
   _title,
-  audioUrlError,
+  audioUrlError: propAudioUrlError,
 }: AudioPlayerClientProps) {
+  // Use the new cached audio URL hook if URL not provided via props
+  const {
+    audioUrl: fetchedAudioUrl,
+    isLoading: isFetchingUrl,
+    error: fetchError
+  } = useAudioUrl(episodeId);
+
+  // Prefer prop URL (from server) over fetched URL for backwards compatibility
+  // But fall back to cached fetch if prop URL not provided
+  const audioUrl = propAudioUrl || fetchedAudioUrl;
+  const audioUrlError = propAudioUrlError || (fetchError || undefined);
+
   // Use shared hooks
-  const playerReturn = useAudioPlayer({ episodeId, audioUrl, audioUrlError });
+  const playerReturn = useAudioPlayer({
+    episodeId,
+    audioUrl: audioUrl || null,
+    audioUrlError
+  });
   const { visualizerVariant, setVisualizerVariant } = useAudioPersistence(episodeId);
   const handlers = useAudioControls(playerReturn);
 
   const { state, audioRef } = playerReturn;
+
+  // Show loading state if fetching URL and no prop URL provided
+  if (!propAudioUrl && isFetchingUrl) {
+    return <AudioLoadingState />;
+  }
 
   // Render error state
   if (state.error) {

@@ -16,3 +16,13 @@ export interface FormLoadingProps {
 export interface DetailsLoadingProps {
   showHeader?: boolean;
 }
+
+export interface StatCardsLoadingProps {
+  count?: number;
+  columns?: 1 | 2 | 3 | 4;
+}
+
+export interface TabsLoadingProps {
+  tabs?: number;
+  contentHeight?: number;
+}

@@ -1,12 +1,9 @@
-import { MainLayout } from '@/components/layout/main-layout';
 import { FormLoading } from '@/components/loading';
 
-export default function EditEpisodeLoading() {
+export default function AdminEditEpisodeLoading() {
   return (
-    <MainLayout>
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <FormLoading fields={5} />
-      </div>
-    </MainLayout>
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <FormLoading fields={5} />
+    </div>
   );
 }

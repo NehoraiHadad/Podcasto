@@ -5,13 +5,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/lib/utils';
 import { Play, Pause, Volume2, VolumeX, BarChart3, Waves } from 'lucide-react';
-import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
 import { AudioVisualizer } from './audio-visualizer';
 import { useAudioPlayer, useAudioControls, useAudioPersistence } from './audio-player/hooks';
+import { useAudioUrl } from '@/lib/hooks/use-audio-url';
 
 interface CompactAudioPlayerProps {
   episodeId: string;
@@ -19,31 +18,8 @@ interface CompactAudioPlayerProps {
 }
 
 export function CompactAudioPlayer({ episodeId, title: _title }: CompactAudioPlayerProps) {
-  // First fetch the audio URL
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [urlError, setUrlError] = useState<string | null>(null);
-  const [isFetchingUrl, setIsFetchingUrl] = useState(true);
-
-  useEffect(() => {
-    const fetchAudioUrl = async () => {
-      try {
-        const result = await getEpisodeAudioUrl(episodeId);
-        if (result.error) {
-          setUrlError(result.error);
-        } else if (result.url) {
-          setAudioUrl(result.url);
-        } else {
-          setUrlError('Could not load audio URL');
-        }
-      } catch {
-        setUrlError('Failed to fetch audio');
-      } finally {
-        setIsFetchingUrl(false);
-      }
-    };
-
-    fetchAudioUrl();
-  }, [episodeId]);
+  // Use the new cached audio URL hook
+  const { audioUrl, isLoading: isFetchingUrl, error: urlError } = useAudioUrl(episodeId);
 
   // Use shared hooks (same as full player!)
   const playerReturn = useAudioPlayer({

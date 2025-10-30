@@ -1,12 +1,9 @@
-import { MainLayout } from '@/components/layout/main-layout';
 import { CardGridLoading } from '@/components/loading';
 
 export default function AdminPodcastsLoading() {
   return (
-    <MainLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <CardGridLoading count={6} columns={3} showHeader={true} />
-      </div>
-    </MainLayout>
+    <div className="container mx-auto px-4 py-8">
+      <CardGridLoading count={6} columns={3} showHeader={true} />
+    </div>
   );
 }

@@ -4,8 +4,10 @@
  */
 
 export const EPISODE_CONSTANTS = {
-  // Presigned URL expiration (1 hour)
-  PRESIGNED_URL_EXPIRY_SECONDS: 3600,
+  // Presigned URL expiration (7 days - AWS maximum for IAM credentials)
+  // Extended from 1 hour to prevent disconnection during long listening sessions
+  // AWS allows up to 604,800 seconds (7 days) for presigned URLs with IAM credentials
+  PRESIGNED_URL_EXPIRY_SECONDS: 604800,
 
   // Analytics thresholds
   DEFAULT_FAILURE_THRESHOLD: 0.8, // 80%
