@@ -50,6 +50,13 @@
       "when": 1761816900000,
       "tag": "0006_enable_rls_security",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1761769141304,
+      "tag": "0007_dizzy_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

@@ -42,6 +42,9 @@ export function buildConfigUpdateObject(
     introPrompt: { dataKey: 'introPrompt', configKey: 'intro_prompt' },
     outroPrompt: { dataKey: 'outroPrompt', configKey: 'outro_prompt' },
     episodeFrequency: { dataKey: 'episodeFrequency', configKey: 'episode_frequency' },
+    speakerSelectionStrategy: { dataKey: 'speakerSelectionStrategy', configKey: 'speaker_selection_strategy' },
+    sequenceDualCount: { dataKey: 'sequenceDualCount', configKey: 'sequence_dual_count' },
+    sequenceSingleCount: { dataKey: 'sequenceSingleCount', configKey: 'sequence_single_count' },
   };
 
   // Apply all field mappings
@@ -87,6 +90,13 @@ export function buildConfigUpdateObject(
   if (updateConfig.podcast_format === 'single-speaker') {
     updateConfig.speaker2_role = null;
   }
+
+  // Reset sequence progress if strategy is not sequence
+  if (data.speakerSelectionStrategy && data.speakerSelectionStrategy !== 'sequence') {
+    updateConfig.sequence_progress_count = 0;
+    updateConfig.sequence_current_speaker_type = 'multi-speaker';
+  }
+
 
   return updateConfig;
 }
