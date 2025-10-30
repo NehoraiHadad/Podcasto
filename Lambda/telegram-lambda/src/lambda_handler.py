@@ -5,6 +5,7 @@ Updated to fix environment variable configuration.
 import json
 import os
 import asyncio
+import random
 from typing import Dict, Any
 
 from src.config import ConfigManager
@@ -16,6 +17,47 @@ from src.utils.logging import get_logger, log_event, log_error
 from shared.services.episode_tracker import EpisodeTracker, ProcessingStage
 
 logger = get_logger(__name__)
+
+def _determine_podcast_format(db_config: Dict[str, Any], supabase_client: SupabaseClient, podcast_id: str) -> str:
+    """
+    Determines the podcast format for the current episode based on the speaker selection strategy.
+    """
+    strategy = db_config.get('speaker_selection_strategy', 'fixed')
+
+    if strategy == 'random':
+        return random.choice(['single-speaker', 'multi-speaker'])
+
+    if strategy == 'sequence':
+        dual_count = db_config.get('sequence_dual_count', 1)
+        single_count = db_config.get('sequence_single_count', 1)
+        current_type = db_config.get('sequence_current_speaker_type', 'multi-speaker')
+        progress_count = db_config.get('sequence_progress_count', 0)
+
+        # Determine the format for this episode
+        podcast_format = current_type
+
+        # Update the progress
+        progress_count += 1
+
+        # Check if we need to switch to the next type
+        if current_type == 'multi-speaker' and progress_count >= dual_count:
+            current_type = 'single-speaker'
+            progress_count = 0
+        elif current_type == 'single-speaker' and progress_count >= single_count:
+            current_type = 'multi-speaker'
+            progress_count = 0
+
+        # Update the config in the database
+        update_data = {
+            'sequence_current_speaker_type': current_type,
+            'sequence_progress_count': progress_count
+        }
+        supabase_client.update_podcast_config(podcast_id, update_data)
+
+        return podcast_format
+
+    # Default to 'fixed' strategy
+    return db_config.get('podcast_format', 'multi-speaker')
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -88,10 +130,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                     try:
                         # Get podcast config from database for accurate format
-                        db_config = supabase_client.get_podcast_config_by_id(config.id)
-                        if db_config and db_config.get('podcast_format'):
-                            podcast_format = db_config['podcast_format']
-                            logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} podcast_format from DB: {podcast_format}")
+                        db_config = supabase_client.get_podcast_config(podcast_id)
+                        if db_config:
+                            podcast_format = _determine_podcast_format(db_config, supabase_client, podcast_id)
+                            logger.info(f"[TELEGRAM_LAMBDA] Episode {episode_id} determined podcast_format: {podcast_format}")
                         else:
                             logger.warning(f"[TELEGRAM_LAMBDA] Could not retrieve podcast_format from DB for config {config.id}, using default: {podcast_format}")
                     except Exception as format_error:
@@ -218,4 +260,4 @@ def _create_error_response(status_code: int, message: str) -> Dict[str, Any]:
         'body': json.dumps({
             'message': message
         })
-    } 
+    }

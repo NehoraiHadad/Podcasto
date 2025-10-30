@@ -62,6 +62,23 @@ export const podcastCreationSchema = z.object({
       path: ["speaker2Role"]
     });
   }
+
+  if (data.speakerSelectionStrategy === 'sequence') {
+    if (!data.sequenceDualCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Multi-speaker count is required for sequence strategy",
+        path: ["sequenceDualCount"]
+      });
+    }
+    if (!data.sequenceSingleCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Single-speaker count is required for sequence strategy",
+        path: ["sequenceSingleCount"]
+      });
+    }
+  }
 });
 
 export type PodcastCreationData = z.infer<typeof podcastCreationSchema>;
@@ -98,6 +115,9 @@ export const podcastUpdateSchema = z.object({
   episodeFrequency: z.number().optional(),
   // Podcast Format
   podcastFormat: z.enum(['single-speaker', 'multi-speaker']).optional(),
+  speakerSelectionStrategy: z.enum(['fixed', 'random', 'sequence']).optional(),
+  sequenceDualCount: z.number().optional(),
+  sequenceSingleCount: z.number().optional(),
   // Style and roles fields (optional)
   conversationStyle: z.string().optional(),
   speaker1Role: z.string().optional(),

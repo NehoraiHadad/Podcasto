@@ -25,6 +25,14 @@ export const podcastConfigs = pgTable('podcast_configs', {
   target_duration_minutes: integer('target_duration_minutes').default(10),
   channel_access_status: text('channel_access_status').$type<'accessible' | 'no_preview' | 'unknown'>().default('unknown'),
   channel_access_checked_at: timestamp('channel_access_checked_at', { withTimezone: true }),
+
+  // Speaker selection strategy
+  speaker_selection_strategy: text('speaker_selection_strategy').$type<'fixed' | 'random' | 'sequence'>().default('fixed').notNull(),
+  sequence_dual_count: integer('sequence_dual_count'),
+  sequence_single_count: integer('sequence_single_count'),
+  sequence_current_speaker_type: text('sequence_current_speaker_type').$type<'multi-speaker' | 'single-speaker'>().default('multi-speaker').notNull(),
+  sequence_progress_count: integer('sequence_progress_count').default(0).notNull(),
+
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow()
 }); 
