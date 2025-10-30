@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
@@ -21,11 +21,68 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+export interface DateRangePreset {
+  value: string;
+  label: string;
+  /**
+   * When provided, selecting the preset will call this function to produce the range.
+   * If omitted, the preset acts as a simple selector (e.g., "custom").
+   */
+  calculateRange?: (context: { now: Date }) => DateRange;
+}
+
+const DEFAULT_PRESETS: DateRangePreset[] = [
+  {
+    value: 'default',
+    label: 'Default',
+  },
+  {
+    value: '24h',
+    label: 'Last 24 hours',
+    calculateRange: ({ now }) => ({
+      from: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+      to: now,
+    }),
+  },
+  {
+    value: '3d',
+    label: 'Last 3 days',
+    calculateRange: ({ now }) => ({
+      from: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      to: now,
+    }),
+  },
+  {
+    value: '7d',
+    label: 'Last week',
+    calculateRange: ({ now }) => ({
+      from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+      to: now,
+    }),
+  },
+  {
+    value: '30d',
+    label: 'Last 30 days',
+    calculateRange: ({ now }) => ({
+      from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      to: now,
+    }),
+  },
+  {
+    value: 'custom',
+    label: 'Custom range',
+  },
+];
+
 export interface DateRangePickerProps {
   onRangeSelect: (startDate: Date, endDate: Date) => void;
   onClear: () => void;
   defaultHours?: number;
   className?: string;
+  value?: DateRange | null;
+  onRangeChange?: (range: DateRange | undefined) => void;
+  defaultPreset?: string;
+  presets?: DateRangePreset[];
 }
 
 export function EpisodeDateRangePicker({
@@ -33,49 +90,65 @@ export function EpisodeDateRangePicker({
   onClear,
   defaultHours = 24,
   className,
+  value,
+  onRangeChange,
+  defaultPreset = 'default',
+  presets,
 }: DateRangePickerProps) {
-  const [date, setDate] = useState<DateRange | undefined>();
-  const [preset, setPreset] = useState<string>('default');
+  const availablePresets = useMemo(() => {
+    if (!presets) {
+      return DEFAULT_PRESETS;
+    }
 
-  const handlePresetChange = (value: string) => {
-    setPreset(value);
+    return presets;
+  }, [presets]);
 
-    if (value === 'clear') {
+  const [date, setDate] = useState<DateRange | undefined>(value ?? undefined);
+  const [preset, setPreset] = useState<string>(defaultPreset);
+
+  useEffect(() => {
+    if (value) {
+      setDate(value);
+      setPreset('custom');
+    }
+    if (value === null || value === undefined) {
+      setDate(undefined);
+      setPreset(defaultPreset);
+    }
+  }, [value, defaultPreset]);
+
+  const handlePresetChange = (selectedPresetValue: string) => {
+    setPreset(selectedPresetValue);
+
+    if (selectedPresetValue === 'clear') {
       setDate(undefined);
       onClear();
-      setPreset('default');
+      onRangeChange?.(undefined);
+      setPreset(defaultPreset);
       return;
     }
 
-    if (value === 'default') {
-      setDate(undefined);
-      onClear();
+    const selectedPreset = availablePresets.find((presetOption) => presetOption.value === selectedPresetValue);
+
+    if (!selectedPreset || !selectedPreset.calculateRange) {
+      if (selectedPresetValue === 'default') {
+        setDate(undefined);
+        onClear();
+        onRangeChange?.(undefined);
+      }
       return;
     }
 
     const now = new Date();
-    let start: Date;
+    const range = selectedPreset.calculateRange({ now });
+    setDate(range);
+    onRangeChange?.(range);
 
-    switch (value) {
-      case '24h':
-        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '3d':
-        start = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        return;
+    if (range.from && range.to) {
+      onRangeSelect(range.from, range.to);
+    } else if (range.from) {
+      onRangeSelect(range.from, range.from);
     }
-
-    const newRange = { from: start, to: now };
-    setDate(newRange);
-    onRangeSelect(start, now);
   };
 
   const handleDateSelect = (selectedDate: DateRange | undefined) => {
@@ -85,6 +158,8 @@ export function EpisodeDateRangePicker({
     if (selectedDate?.from && selectedDate?.to) {
       onRangeSelect(selectedDate.from, selectedDate.to);
     }
+
+    onRangeChange?.(selectedDate);
   };
 
   return (
@@ -95,12 +170,13 @@ export function EpisodeDateRangePicker({
             <SelectValue placeholder="Select preset" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="default">Default ({defaultHours}h)</SelectItem>
-            <SelectItem value="24h">Last 24 hours</SelectItem>
-            <SelectItem value="3d">Last 3 days</SelectItem>
-            <SelectItem value="7d">Last week</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="custom">Custom range</SelectItem>
+            {availablePresets.map((presetOption) => (
+              <SelectItem key={presetOption.value} value={presetOption.value}>
+                {presetOption.value === 'default'
+                  ? `${presetOption.label} (${defaultHours}h)`
+                  : presetOption.label}
+              </SelectItem>
+            ))}
             {date && <SelectItem value="clear">Clear selection</SelectItem>}
           </SelectContent>
         </Select>
