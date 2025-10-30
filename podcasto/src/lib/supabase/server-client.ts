@@ -1,16 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SerializeOptions } from 'cookie';
 import { getSupabaseEnv } from '@/lib/config/env';
 import type { Database } from './types';
 
-export type SupabaseCookieOptions = {
-  domain?: string;
-  expires?: Date;
-  httpOnly?: boolean;
-  maxAge?: number;
-  path?: string;
-  sameSite?: 'lax' | 'strict' | 'none';
-  secure?: boolean;
+export type SupabaseCookieOptions = Partial<SerializeOptions> & {
   priority?: 'low' | 'medium' | 'high';
 };
 
