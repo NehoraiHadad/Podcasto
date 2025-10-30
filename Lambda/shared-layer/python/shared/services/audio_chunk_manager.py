@@ -5,19 +5,20 @@ Handles script chunking, validation, and parallel processing for TTS generation
 import concurrent.futures
 from typing import List, Tuple, Callable, Optional
 from shared.utils.logging import get_logger
+from shared.services.tts_client import DeferrableError
 
 logger = get_logger(__name__)
 
 class AudioChunkManager:
     """Manages audio chunk processing for TTS generation"""
-    
-    def __init__(self, max_chars_per_chunk: int = 1500, max_workers: int = 4):
+
+    def __init__(self, max_chars_per_chunk: int = 1200, max_workers: int = 2):
         """
         Initialize chunk manager
-        
+
         Args:
-            max_chars_per_chunk: Maximum characters per chunk
-            max_workers: Maximum parallel workers for processing
+            max_chars_per_chunk: Maximum characters per chunk (default 1200, optimized for Hebrew with niqqud expansion)
+            max_workers: Maximum parallel workers for processing (default 2, optimized for rate limiting)
         """
         self.max_chars_per_chunk = max_chars_per_chunk
         self.max_workers = max_workers
@@ -170,6 +171,11 @@ class AudioChunkManager:
         successful_chunks = []
         failed_chunks = []
         
+        # Circuit breaker: stop processing after consecutive rate limits
+        # Prevents wasting Lambda time and API quota when rate limiting is happening
+        consecutive_rate_limits = 0
+        MAX_CONSECUTIVE_RATE_LIMITS = 2
+
         try:
             # Use ThreadPoolExecutor for parallel processing
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -178,23 +184,39 @@ class AudioChunkManager:
                 for i, chunk in enumerate(chunks):
                     future = executor.submit(chunk_processor, chunk, i+1)
                     future_to_chunk[future] = (i+1, chunk)
-                
+
                 # Collect results as they complete
                 for future in concurrent.futures.as_completed(future_to_chunk):
                     chunk_num, chunk_content = future_to_chunk[future]
-                    
+
                     try:
                         result = future.result()
                         if result:
                             audio_data, duration = result
                             successful_chunks.append((chunk_num, audio_data, duration))
                             logger.info(f"[CHUNK_MGR] Parallel chunk {chunk_num} completed: {duration}s")
+                            consecutive_rate_limits = 0  # Reset counter on success
                         else:
                             failed_chunks.append(chunk_num)
                             logger.error(f"[CHUNK_MGR] Parallel chunk {chunk_num} failed")
+                    except DeferrableError as de:
+                        # Track consecutive rate limits for circuit breaker
+                        consecutive_rate_limits += 1
+                        logger.warning(f"[CHUNK_MGR] Chunk {chunk_num} hit rate limit ({consecutive_rate_limits}/{MAX_CONSECUTIVE_RATE_LIMITS})")
+
+                        if consecutive_rate_limits >= MAX_CONSECUTIVE_RATE_LIMITS:
+                            logger.error(f"[CHUNK_MGR] CIRCUIT BREAKER ACTIVATED: {consecutive_rate_limits} consecutive rate limits")
+                            logger.error(f"[CHUNK_MGR] Stopping processing to save Lambda time and API quota")
+                            logger.warning(f"[CHUNK_MGR] Propagating DeferrableError to handler for episode deferral")
+                            raise  # Defer episode immediately
+                        else:
+                            # First rate limit - mark chunk as failed but continue processing
+                            logger.warning(f"[CHUNK_MGR] Continuing processing, watching for circuit breaker threshold")
+                            failed_chunks.append(chunk_num)
                     except Exception as e:
                         failed_chunks.append(chunk_num)
                         logger.error(f"[CHUNK_MGR] Parallel chunk {chunk_num} exception: {str(e)}")
+                        consecutive_rate_limits = 0  # Reset on other errors
         
         except Exception as e:
             logger.error(f"[CHUNK_MGR] Parallel processing failed: {str(e)}")

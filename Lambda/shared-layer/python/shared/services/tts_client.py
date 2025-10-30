@@ -659,8 +659,11 @@ class GeminiTTSClient:
                 else:
                     # Only retry for 500 errors (transient Google errors)
                     if "500" in error_str or "Internal error" in error_str:
-                        logger.info(f"[TTS_CLIENT] 500 error - will retry chunk {chunk_num} (attempt {retry+2}/{max_retries+1})")
-                        time.sleep(2)  # Brief delay before retry
+                        # Exponential backoff: 5s, 10s, 20s for retries 1, 2, 3
+                        # Prevents cascading 429 errors when retrying after Google internal errors
+                        delay = min(5 * (2 ** retry), 20)
+                        logger.info(f"[TTS_CLIENT] 500 error - will retry chunk {chunk_num} after {delay}s backoff (attempt {retry+2}/{max_retries+1})")
+                        time.sleep(delay)
                     else:
                         # Other errors - no point retrying
                         logger.error(f"[TTS_CLIENT] Non-retryable error for chunk {chunk_num}")

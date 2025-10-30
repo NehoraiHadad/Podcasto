@@ -46,16 +46,27 @@ class TokenBucketRateLimiter:
         self._last_refill = time.monotonic()
 
     def _refill(self) -> None:
+        """
+        Continuous token refill: adds tokens proportionally to elapsed time
+        instead of batch refilling every period.
+
+        For 9 tokens per 60 seconds: adds 1 token every 6.67 seconds
+        This prevents burst traffic and better matches Google's rate limiting behavior.
+        """
         now = time.monotonic()
         elapsed = now - self._last_refill
-        if elapsed >= self._refill_period:
+
+        # Continuous refill: add tokens proportionally to elapsed time
+        # This prevents burst traffic by distributing tokens evenly over time
+        if elapsed > 0:
             with self._lock:
-                # Double-check inside the lock to avoid duplicate refills.
-                now = time.monotonic()
-                elapsed = now - self._last_refill
-                if elapsed >= self._refill_period:
-                    self._tokens = self._capacity
-                    self._last_refill = now
+                # Calculate tokens to add: (elapsed_seconds / refill_period) * capacity
+                # Example: For 9 tokens/60s, after 6.67s we add ~1 token
+                tokens_to_add = (elapsed / self._refill_period) * self._capacity
+
+                # Add tokens but don't exceed capacity (prevent token accumulation)
+                self._tokens = min(self._capacity, self._tokens + tokens_to_add)
+                self._last_refill = now
 
     def acquire(self) -> None:
         """Block until a token is available."""

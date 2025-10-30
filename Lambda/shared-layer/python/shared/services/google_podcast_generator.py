@@ -17,7 +17,11 @@ class GooglePodcastGenerator:
     def __init__(self):
         """Initialize the podcast generator with modular components"""
         self.tts_client = GeminiTTSClient()
-        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1500, max_workers=4)
+        # Reduced from 4 to 2 workers to prevent rate limit exhaustion
+        # With 9 requests/minute limit, 2 workers is optimal for parallel processing
+        # Reduced chunk size from 1500 to 1200 to account for Hebrew niqqud expansion (~50%)
+        # This prevents excessive chunks and improves chunk size uniformity
+        self.chunk_manager = AudioChunkManager(max_chars_per_chunk=1200, max_workers=2)
         self.voice_manager = VoiceConfigManager()
         
     def generate_podcast_audio(
