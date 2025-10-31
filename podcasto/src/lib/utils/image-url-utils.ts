@@ -52,7 +52,11 @@ export function getBestImageUrl(imageUrl: string | null | undefined): string | n
     return imageUrl; // Fallback to original
   }
 
-  return cloudfrontUrl;
+  // Add version parameter to force cache refresh during CloudFront migration
+  // This helps clear Next.js Image Optimization cache
+  // Version should be bumped when switching from S3 to CloudFront
+  const IMAGE_VERSION = '2'; // Bump this to force cache refresh
+  return `${cloudfrontUrl}?v=${IMAGE_VERSION}`;
 }
 
 /**
