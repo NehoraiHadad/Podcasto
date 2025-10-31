@@ -21,6 +21,7 @@ import { useTableSelection } from '@/components/admin/shared/hooks/use-table-sel
 import { formatDuration } from '@/lib/utils/table-utils';
 import { StageBadge } from '@/components/admin/processing/stage-badge';
 import { ProcessingStage } from '@/types/processing';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 // Define the expected episode type for the component
 interface Episode {
@@ -78,10 +79,10 @@ function EpisodeMobileCard({
 
           {/* Cover Image */}
           <div className="flex-shrink-0">
-            {episode.cover_image ? (
+            {episode.cover_image && getBestImageUrl(episode.cover_image) ? (
               <div className="relative h-16 w-16 overflow-hidden rounded-md">
                 <Image
-                  src={episode.cover_image}
+                  src={getBestImageUrl(episode.cover_image)!}
                   alt={`${episode.title} cover`}
                   width={64}
                   height={64}
@@ -197,10 +198,10 @@ export function EpisodesTable({
                   />
                 </TableCell>
                 <TableCell>
-                  {episode.cover_image ? (
+                  {episode.cover_image && getBestImageUrl(episode.cover_image) ? (
                     <div className="relative h-10 w-10 overflow-hidden rounded-md">
                       <Image
-                        src={episode.cover_image}
+                        src={getBestImageUrl(episode.cover_image)!}
                         alt={`${episode.title} cover`}
                         width={40}
                         height={40}
