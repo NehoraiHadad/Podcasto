@@ -14,7 +14,7 @@ const getS3Hostname = () => {
   return `${bucket}.s3.${region}.amazonaws.com`;
 };
 
-// Build remote patterns for S3 images
+// Build remote patterns for S3 images and CloudFront
 const buildS3RemotePatterns = () => {
   const patterns = [
     {
@@ -22,36 +22,45 @@ const buildS3RemotePatterns = () => {
       hostname: 'picsum.photos',
     }
   ];
-  
+
+  // Add CloudFront domain if configured (PRIORITY - check first)
+  const cloudfrontDomain = process.env.CLOUDFRONT_DOMAIN;
+  if (cloudfrontDomain) {
+    patterns.push({
+      protocol: 'https' as const,
+      hostname: cloudfrontDomain,
+    });
+  }
+
   // Add current S3 bucket configuration
   const s3Hostname = getS3Hostname();
   patterns.push({
     protocol: 'https' as const,
     hostname: s3Hostname,
   });
-  
+
   // Add fallback patterns for common S3 formats
   const bucket = process.env.S3_BUCKET_NAME || 'podcasto-podcasts';
   const region = process.env.AWS_REGION || 'us-east-1';
-  
+
   // Virtual-hosted-style URL
   patterns.push({
     protocol: 'https' as const,
     hostname: `${bucket}.s3.${region}.amazonaws.com`,
   });
-  
+
   // Legacy format without region
   patterns.push({
     protocol: 'https' as const,
     hostname: `${bucket}.s3.amazonaws.com`,
   });
-  
+
   // Path-style URL (fallback)
   patterns.push({
     protocol: 'https' as const,
     hostname: `s3.${region}.amazonaws.com`,
   });
-  
+
   return patterns;
 };
 

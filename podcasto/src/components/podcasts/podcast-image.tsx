@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 interface PodcastImageProps {
   imageUrl?: string | null;
@@ -16,7 +17,8 @@ interface PodcastImageProps {
  * Displays podcast cover images with automatic fallback handling.
  * Uses Next.js Image component with optimized settings from next.config.ts.
  *
- * The actual optimization happens through:
+ * Features:
+ * - Automatic S3 to CloudFront URL conversion
  * - minimumCacheTTL: 31 days (reduces transformations by 80-90%)
  * - formats: WebP only (reduces transformations by 50%)
  * - Optimized deviceSizes and imageSizes in next.config.ts
@@ -29,7 +31,12 @@ export function PodcastImage({
 }: PodcastImageProps) {
   const [hasError, setHasError] = useState(false);
 
-  if (!imageUrl || hasError) {
+  // Convert S3 URLs to CloudFront URLs automatically
+  const optimizedImageUrl = useMemo(() => {
+    return getBestImageUrl(imageUrl);
+  }, [imageUrl]);
+
+  if (!optimizedImageUrl || hasError) {
     return (
       <div className={`bg-gray-200 flex items-center justify-center ${className}`}>
         <svg
@@ -51,7 +58,7 @@ export function PodcastImage({
 
   return (
     <Image
-      src={imageUrl}
+      src={optimizedImageUrl}
       alt={title}
       fill
       // The sizes prop helps the browser select the right image size
