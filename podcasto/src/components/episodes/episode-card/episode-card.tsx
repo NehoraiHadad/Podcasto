@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { EpisodeCardContextValue, EpisodeCardProps } from './types';
 import { EpisodeCardImage } from './episode-card-image';
 import { EpisodeCardTitle } from './episode-card-title';
+import { EpisodeCardDownloadButton } from './episode-card-download-button';
 import { EpisodeCardShareButton } from './episode-card-share-button';
 import { EpisodeCardBadges } from './episode-card-badges';
 import { EpisodeCardDescription } from './episode-card-description';
@@ -46,7 +47,10 @@ export function EpisodeCardRoot({ episode, podcastId, children }: EpisodeCardPro
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-2">
                   <EpisodeCardTitle />
-                  <EpisodeCardShareButton />
+                  <div className="flex items-center gap-0">
+                    <EpisodeCardDownloadButton />
+                    <EpisodeCardShareButton />
+                  </div>
                 </div>
                 <EpisodeCardBadges />
                 <EpisodeCardDescription />

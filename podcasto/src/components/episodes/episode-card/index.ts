@@ -1,6 +1,7 @@
 import { EpisodeCardRoot } from './episode-card';
 import { EpisodeCardImage } from './episode-card-image';
 import { EpisodeCardTitle } from './episode-card-title';
+import { EpisodeCardDownloadButton } from './episode-card-download-button';
 import { EpisodeCardShareButton } from './episode-card-share-button';
 import { EpisodeCardBadges } from './episode-card-badges';
 import { EpisodeCardDescription } from './episode-card-description';
@@ -23,6 +24,7 @@ import { EpisodeCardViewButton } from './episode-card-view-button';
  * <EpisodeCard episode={episode} podcastId={podcastId}>
  *   <EpisodeCard.Image />
  *   <EpisodeCard.Title />
+ *   <EpisodeCard.DownloadButton />
  *   <EpisodeCard.ShareButton />
  *   <EpisodeCard.Badges />
  *   <EpisodeCard.Description />
@@ -35,6 +37,7 @@ import { EpisodeCardViewButton } from './episode-card-view-button';
 export const EpisodeCard = Object.assign(EpisodeCardRoot, {
   Image: EpisodeCardImage,
   Title: EpisodeCardTitle,
+  DownloadButton: EpisodeCardDownloadButton,
   ShareButton: EpisodeCardShareButton,
   Badges: EpisodeCardBadges,
   Description: EpisodeCardDescription,

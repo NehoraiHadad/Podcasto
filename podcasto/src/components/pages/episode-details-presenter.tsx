@@ -4,6 +4,8 @@ import { PodcastImage } from '@/components/podcasts/podcast-image';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 import { EpisodeDateBadge } from '@/components/episodes/episode-date-badge';
 import { ContentDateRangeBadge } from '@/components/episodes/content-date-range-badge';
+import { EpisodeDownloadButton } from '@/components/episodes/episode-download-button';
+import { EpisodeShareButton } from '@/components/episodes/episode-share-button';
 import { formatDuration } from '@/lib/utils';
 import { Podcast } from '@/lib/db/api/podcasts';
 import { Episode } from '@/lib/db/api/episodes';
@@ -67,12 +69,31 @@ export function EpisodeDetailsPresenter({
               </div>
             </CardHeader>
             <CardContent>
-              <AudioPlayerClient
-                episodeId={episode.id}
-                audioUrl={playableAudioUrl}
-                audioUrlError={audioUrlError}
-                _title={episode.title}
-              />
+              <div className="space-y-4">
+                <AudioPlayerClient
+                  episodeId={episode.id}
+                  audioUrl={playableAudioUrl}
+                  audioUrlError={audioUrlError}
+                  _title={episode.title}
+                />
+                {playableAudioUrl && (
+                  <div className="flex gap-2 justify-center">
+                    <EpisodeDownloadButton
+                      episodeId={episode.id}
+                      episodeTitle={episode.title}
+                      audioUrl={playableAudioUrl}
+                      audioFormat={episode.audio_format || 'mp3'}
+                      variant="default"
+                    />
+                    <EpisodeShareButton
+                      episodeId={episode.id}
+                      episodeTitle={episode.title}
+                      podcastId={podcast.id}
+                      variant="outline"
+                    />
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
