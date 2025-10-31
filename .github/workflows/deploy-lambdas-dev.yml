@@ -129,10 +129,23 @@ jobs:
 
       - name: Update ${{ matrix.function_name }} to use new layer
         run: |
-          echo "Updating ${{ matrix.function_name }} to use layer: ${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+          echo "Updating ${{ matrix.function_name }} to use layers"
+
+          # Build layers array based on Lambda type
+          if [ "${{ matrix.lambda_name }}" == "audio-generation-lambda" ]; then
+            # Audio Lambda needs FFmpeg + shared layer
+            FFMPEG_LAYER="arn:aws:lambda:us-east-1:638520701769:layer:ffmpeg:1"
+            LAYERS="$FFMPEG_LAYER ${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+            echo "Using layers: FFmpeg + Shared"
+          else
+            # Other Lambdas only need shared layer
+            LAYERS="${{ needs.deploy-shared-layer.outputs.layer_arn }}"
+            echo "Using layers: Shared only"
+          fi
+
           aws lambda update-function-configuration \
             --function-name ${{ matrix.function_name }} \
-            --layers ${{ needs.deploy-shared-layer.outputs.layer_arn }}
+            --layers $LAYERS
 
           echo "Waiting for layer update to complete..."
           aws lambda wait function-updated-v2 --function-name ${{ matrix.function_name }}
@@ -182,14 +195,25 @@ jobs:
               exit 1
             fi
 
-            if [ "$LAYER_ARN" != "$EXPECTED_LAYER" ]; then
-              echo "⚠️  WARNING: $lambda is using wrong layer version!"
-              echo "  Expected: $EXPECTED_LAYER"
-              echo "  Actual:   $LAYER_ARN"
-              exit 1
+            # For audio-generation-lambda, skip single-layer check (it has 2 layers)
+            if [[ "$lambda" == *"audio-generation"* ]]; then
+              LAYER_COUNT=$(echo $CONFIG | jq -r '.Layers | length')
+              echo "  Layer count: $LAYER_COUNT"
+              if [ "$LAYER_COUNT" != "2" ]; then
+                echo "❌ $lambda should have 2 layers (FFmpeg + shared), but has $LAYER_COUNT"
+                exit 1
+              fi
+              echo "✅ $lambda is healthy with 2 layers (FFmpeg + shared)"
+            else
+              # Other Lambdas should match expected single layer
+              if [ "$LAYER_ARN" != "$EXPECTED_LAYER" ]; then
+                echo "⚠️  WARNING: $lambda is using wrong layer version!"
+                echo "  Expected: $EXPECTED_LAYER"
+                echo "  Actual:   $LAYER_ARN"
+                exit 1
+              fi
+              echo "✅ $lambda is healthy and using correct layer"
             fi
-
-            echo "✅ $lambda is healthy and using correct layer"
           done
 
           echo ""
