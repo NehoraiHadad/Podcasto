@@ -6,8 +6,8 @@ import { eq, desc, inArray } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import type { Episode } from './types';
 import {
-  transformEpisodeImageUrls,
-  transformEpisodeImageUrlsBatch,
+  transformEpisodeUrls,
+  transformEpisodeUrlsBatch,
 } from '@/lib/db/api/utils/image-url-transformer';
 
 /**
@@ -23,7 +23,7 @@ import {
  */
 export async function getAllEpisodes(): Promise<Episode[]> {
   const allEpisodes = await dbUtils.getAll<Episode>(episodes);
-  return transformEpisodeImageUrlsBatch(allEpisodes);
+  return transformEpisodeUrlsBatch(allEpisodes);
 }
 
 /**
@@ -43,7 +43,7 @@ export async function getAllEpisodes(): Promise<Episode[]> {
 export async function getEpisodeById(id: string): Promise<Episode | null> {
   const episode = await dbUtils.findById<Episode>(episodes, episodes.id, id);
   if (!episode) return null;
-  return transformEpisodeImageUrls(episode);
+  return transformEpisodeUrls(episode);
 }
 
 /**
@@ -66,7 +66,7 @@ export async function getEpisodesPaginated(page: number = 1, pageSize: number = 
     .limit(pageSize)
     .offset((page - 1) * pageSize) as Episode[];
 
-  return transformEpisodeImageUrlsBatch(paginatedEpisodes);
+  return transformEpisodeUrlsBatch(paginatedEpisodes);
 }
 
 /**
@@ -82,7 +82,7 @@ export async function getEpisodesPaginated(page: number = 1, pageSize: number = 
  */
 export async function getEpisodesByPodcastId(podcastId: string): Promise<Episode[]> {
   const podcastEpisodes = await dbUtils.findBy<Episode>(episodes, eq(episodes.podcast_id, podcastId));
-  return transformEpisodeImageUrlsBatch(podcastEpisodes);
+  return transformEpisodeUrlsBatch(podcastEpisodes);
 }
 
 /**
@@ -102,7 +102,7 @@ export async function getEpisodesByStatus(statuses: string[]): Promise<Episode[]
     .where(inArray(episodes.status, statuses))
     .orderBy(desc(episodes.created_at)) as Episode[];
 
-  return transformEpisodeImageUrlsBatch(statusEpisodes);
+  return transformEpisodeUrlsBatch(statusEpisodes);
 }
 
 /**

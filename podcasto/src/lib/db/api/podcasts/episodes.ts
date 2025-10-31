@@ -4,7 +4,7 @@ import { db } from '../../index';
 import { episodes } from '../../schema';
 import { eq, and, desc } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
-import { transformEpisodeImageUrlsBatch } from '../utils/image-url-transformer';
+import { transformEpisodeUrlsBatch } from '../utils/image-url-transformer';
 
 /**
  * Get all episodes for a podcast (including all statuses)
@@ -22,7 +22,7 @@ export async function getPodcastEpisodes(
   podcastId: string
 ): Promise<typeof episodes.$inferSelect[]> {
   const episodesList = await dbUtils.findBy(episodes, eq(episodes.podcast_id, podcastId)) as typeof episodes.$inferSelect[];
-  return transformEpisodeImageUrlsBatch(episodesList) as typeof episodes.$inferSelect[];
+  return transformEpisodeUrlsBatch(episodesList) as typeof episodes.$inferSelect[];
 }
 
 /**
@@ -49,5 +49,5 @@ export async function getPublishedPodcastEpisodes(
     )
     .orderBy(desc(episodes.published_at))) as typeof episodes.$inferSelect[];
 
-  return transformEpisodeImageUrlsBatch(publishedEpisodes) as typeof episodes.$inferSelect[];
+  return transformEpisodeUrlsBatch(publishedEpisodes) as typeof episodes.$inferSelect[];
 }
