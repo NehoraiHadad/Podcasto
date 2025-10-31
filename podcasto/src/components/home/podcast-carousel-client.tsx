@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Podcast } from "@/lib/db/api/podcasts";
+import { getBestImageUrl } from "@/lib/utils/image-url-utils";
 
 // Fallback component for when image is not available or fails to load
 function PodcastImageFallback() {
@@ -125,9 +126,9 @@ export function PodcastCarouselClient({ podcasts }: PodcastCarouselClientProps) 
                 index === currentImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
               }`}
             >
-              {podcast.cover_image && !failedImages[podcast.id] ? (
+              {podcast.cover_image && getBestImageUrl(podcast.cover_image) && !failedImages[podcast.id] ? (
                 <Image
-                  src={podcast.cover_image}
+                  src={getBestImageUrl(podcast.cover_image)!}
                   alt={podcast.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
