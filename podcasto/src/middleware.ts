@@ -33,7 +33,12 @@ const AUTH_ROUTES = ['/auth/login', '/auth/signup'];
 const SKIP_MIDDLEWARE_PATTERNS = [
   '/_next',
   '/api/public',
+  '/api/webhooks',
   '/favicon.ico',
+  '/manifest.json',
+  '/sw.js',
+  '/robots.txt',
+  '/sitemap.xml',
   '.',
 ];
 

@@ -66,10 +66,26 @@ export async function updateSession(request: NextRequest): Promise<UpdateSession
     userResult = await client.auth.getUser();
 
     if (userResult.error) {
-      console.error('[Middleware] Failed to fetch user during session update', userResult.error);
+      // Only log errors that are NOT "session missing" (which is normal for unauthenticated requests)
+      if (userResult.error.name !== 'AuthSessionMissingError') {
+        console.error('[Middleware] Failed to fetch user during session update', {
+          pathname: request.nextUrl.pathname,
+          errorName: userResult.error.name,
+          errorMessage: userResult.error.message,
+          error: userResult.error,
+        });
+      } else {
+        // Log session missing only in debug mode with pathname for investigation
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('[Middleware] No session found for path:', request.nextUrl.pathname);
+        }
+      }
     }
   } catch (error) {
-    console.error('[Middleware] Unexpected error during session update', error);
+    console.error('[Middleware] Unexpected error during session update', {
+      pathname: request.nextUrl.pathname,
+      error,
+    });
   }
 
   return {
