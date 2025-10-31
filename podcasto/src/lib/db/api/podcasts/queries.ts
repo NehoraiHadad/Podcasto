@@ -5,6 +5,10 @@ import { podcasts, episodes } from '../../schema';
 import { eq, isNull, asc, sql } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import type { Podcast, PodcastWithEpisodeStats } from './types';
+import {
+  transformPodcastImageUrls,
+  transformPodcastImageUrlsBatch,
+} from '@/lib/db/api/utils/image-url-transformer';
 
 /**
  * Get podcast by ID (basic data only)
@@ -21,7 +25,9 @@ import type { Podcast, PodcastWithEpisodeStats } from './types';
  * ```
  */
 export async function getPodcastById(id: string): Promise<Podcast | null> {
-  return await dbUtils.findById<Podcast>(podcasts, podcasts.id, id);
+  const podcast = await dbUtils.findById<Podcast>(podcasts, podcasts.id, id);
+  if (!podcast) return null;
+  return transformPodcastImageUrls(podcast);
 }
 
 /**
@@ -36,7 +42,8 @@ export async function getPodcastById(id: string): Promise<Podcast | null> {
  * ```
  */
 export async function getAllPodcastsBasic(): Promise<Podcast[]> {
-  return await dbUtils.getAll<Podcast>(podcasts);
+  const allPodcasts = await dbUtils.getAll<Podcast>(podcasts);
+  return transformPodcastImageUrlsBatch(allPodcasts);
 }
 
 /**
@@ -51,7 +58,8 @@ export async function getAllPodcastsBasic(): Promise<Podcast[]> {
  * ```
  */
 export async function getPodcastsEligibleForMigration(): Promise<Podcast[]> {
-  return await dbUtils.findBy<Podcast>(podcasts, isNull(podcasts.podcast_group_id));
+  const eligiblePodcasts = await dbUtils.findBy<Podcast>(podcasts, isNull(podcasts.podcast_group_id));
+  return transformPodcastImageUrlsBatch(eligiblePodcasts);
 }
 
 /**
@@ -71,7 +79,8 @@ export async function getPodcastsPaginatedBasic(
   page: number = 1,
   pageSize: number = 10
 ): Promise<Podcast[]> {
-  return await dbUtils.getPaginated<Podcast>(podcasts, page, pageSize);
+  const paginatedPodcasts = await dbUtils.getPaginated<Podcast>(podcasts, page, pageSize);
+  return transformPodcastImageUrlsBatch(paginatedPodcasts);
 }
 
 /**
@@ -148,7 +157,7 @@ export async function getUserPodcastsWithEpisodeStats(
     .orderBy(asc(podcasts.created_at));
 
   return rows.map(({ episodeCount, ...podcast }) => ({
-    podcast: podcast as Podcast,
+    podcast: transformPodcastImageUrls(podcast as Podcast),
     episodeCount,
   }));
 }
@@ -170,10 +179,13 @@ export async function getUserPodcastsWithEpisodeStats(
  * ```
  */
 export async function getPodcastByIdWithConfig(id: string) {
-  return await db.query.podcasts.findFirst({
+  const podcast = await db.query.podcasts.findFirst({
     where: eq(podcasts.id, id),
     with: {
       podcastConfigs: true,
     },
   });
+
+  if (!podcast) return null;
+  return transformPodcastImageUrls(podcast);
 }

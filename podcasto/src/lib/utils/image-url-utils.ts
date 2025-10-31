@@ -28,13 +28,6 @@ export function getBestImageUrl(imageUrl: string | null | undefined): string | n
     return imageUrl;
   }
 
-  // Debug logging
-  if (typeof window === 'undefined') {
-    // Server-side logging
-    console.log('[getBestImageUrl] CLOUDFRONT_DOMAIN:', AWS_CONSTANTS.CLOUDFRONT_DOMAIN);
-    console.log('[getBestImageUrl] USE_CLOUDFRONT:', AWS_CONSTANTS.USE_CLOUDFRONT);
-  }
-
   // If CloudFront is not configured, return original URL
   // NOTE: This will fail if S3 bucket is restricted to CloudFront only
   if (!AWS_CONSTANTS.USE_CLOUDFRONT) {

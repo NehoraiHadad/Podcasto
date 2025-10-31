@@ -5,6 +5,10 @@ import { episodes } from '../../schema';
 import { eq, desc, inArray } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import type { Episode } from './types';
+import {
+  transformEpisodeImageUrls,
+  transformEpisodeImageUrlsBatch,
+} from '@/lib/db/api/utils/image-url-transformer';
 
 /**
  * Get all episodes
@@ -18,7 +22,8 @@ import type { Episode } from './types';
  * ```
  */
 export async function getAllEpisodes(): Promise<Episode[]> {
-  return await dbUtils.getAll<Episode>(episodes);
+  const allEpisodes = await dbUtils.getAll<Episode>(episodes);
+  return transformEpisodeImageUrlsBatch(allEpisodes);
 }
 
 /**
@@ -36,7 +41,9 @@ export async function getAllEpisodes(): Promise<Episode[]> {
  * ```
  */
 export async function getEpisodeById(id: string): Promise<Episode | null> {
-  return await dbUtils.findById<Episode>(episodes, episodes.id, id);
+  const episode = await dbUtils.findById<Episode>(episodes, episodes.id, id);
+  if (!episode) return null;
+  return transformEpisodeImageUrls(episode);
 }
 
 /**
@@ -53,11 +60,13 @@ export async function getEpisodeById(id: string): Promise<Episode | null> {
  * ```
  */
 export async function getEpisodesPaginated(page: number = 1, pageSize: number = 10): Promise<Episode[]> {
-  return await db.select()
+  const paginatedEpisodes = await db.select()
     .from(episodes)
     .orderBy(desc(episodes.published_at))
     .limit(pageSize)
     .offset((page - 1) * pageSize) as Episode[];
+
+  return transformEpisodeImageUrlsBatch(paginatedEpisodes);
 }
 
 /**
@@ -72,7 +81,8 @@ export async function getEpisodesPaginated(page: number = 1, pageSize: number = 
  * ```
  */
 export async function getEpisodesByPodcastId(podcastId: string): Promise<Episode[]> {
-  return await dbUtils.findBy<Episode>(episodes, eq(episodes.podcast_id, podcastId));
+  const podcastEpisodes = await dbUtils.findBy<Episode>(episodes, eq(episodes.podcast_id, podcastId));
+  return transformEpisodeImageUrlsBatch(podcastEpisodes);
 }
 
 /**
@@ -87,10 +97,12 @@ export async function getEpisodesByPodcastId(podcastId: string): Promise<Episode
  * ```
  */
 export async function getEpisodesByStatus(statuses: string[]): Promise<Episode[]> {
-  return await db.select()
+  const statusEpisodes = await db.select()
     .from(episodes)
     .where(inArray(episodes.status, statuses))
     .orderBy(desc(episodes.created_at)) as Episode[];
+
+  return transformEpisodeImageUrlsBatch(statusEpisodes);
 }
 
 /**

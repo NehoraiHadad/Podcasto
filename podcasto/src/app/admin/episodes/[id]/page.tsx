@@ -16,7 +16,6 @@ import { EpisodeFilesManager } from '@/components/admin/episode-files-manager';
 import { AudioPlayerClient } from '@/components/podcasts/audio-player-client';
 import { ProcessingTimeline } from '@/components/admin/processing';
 import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
-import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 export const metadata = {
   title: 'Episode Details | Admin Dashboard | Podcasto',
@@ -221,17 +220,17 @@ async function EpisodeDetails({ params }: EpisodePageProps) {
             <CardTitle>Cover Image</CardTitle>
           </CardHeader>
             <CardContent className="flex justify-center">
-              {episode.cover_image && getBestImageUrl(episode.cover_image) ? (
+              {episode.cover_image ? (
                 <div className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-md">
                   <Image
-                    src={getBestImageUrl(episode.cover_image)!}
+                    src={episode.cover_image}
                     alt={`${episode.title} cover`}
                     fill
                     className="object-cover"
                   />
                   <div className="absolute bottom-2 right-2">
                     <a
-                      href={getBestImageUrl(episode.cover_image)!}
+                      href={episode.cover_image}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-black/50 text-white px-2 py-1 rounded text-xs"

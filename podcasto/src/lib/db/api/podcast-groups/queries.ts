@@ -12,6 +12,27 @@ import type {
   PodcastGroupWithLanguages,
   PodcastLanguageWithPodcast
 } from './types';
+import { transformImageUrl } from '@/lib/db/api/utils/image-url-transformer';
+
+/**
+ * Transform base_cover_image in a podcast group
+ */
+function transformPodcastGroupImages<T extends { base_cover_image?: string | null }>(group: T): T {
+  return {
+    ...group,
+    base_cover_image: transformImageUrl(group.base_cover_image),
+  };
+}
+
+/**
+ * Transform cover_image in a podcast language variant
+ */
+function transformPodcastLanguageImages<T extends { cover_image?: string | null }>(language: T): T {
+  return {
+    ...language,
+    cover_image: transformImageUrl(language.cover_image),
+  };
+}
 
 /**
  * Get podcast group by ID (basic data only)
@@ -20,7 +41,9 @@ import type {
  * @returns The podcast group if found, null otherwise
  */
 export async function getPodcastGroupById(id: string): Promise<PodcastGroup | null> {
-  return await dbUtils.findById<PodcastGroup>(podcastGroups, podcastGroups.id, id);
+  const group = await dbUtils.findById<PodcastGroup>(podcastGroups, podcastGroups.id, id);
+  if (!group) return null;
+  return transformPodcastGroupImages(group);
 }
 
 /**
@@ -40,7 +63,7 @@ export async function getPodcastGroupWithLanguages(id: string): Promise<PodcastG
 
   return {
     ...group,
-    languages: languages as PodcastLanguageWithPodcast[]
+    languages: languages.map(transformPodcastLanguageImages) as PodcastLanguageWithPodcast[]
   };
 }
 
@@ -69,8 +92,10 @@ export async function getPodcastByGroupAndLanguage(
 
   if (result.length === 0) return null;
 
+  const transformedLanguage = transformPodcastLanguageImages(result[0].podcast_languages);
+
   return {
-    ...result[0].podcast_languages,
+    ...transformedLanguage,
     podcast: result[0].podcasts || undefined
   };
 }
@@ -84,10 +109,11 @@ export async function getPodcastByGroupAndLanguage(
 export async function getPodcastLanguagesByGroupId(
   groupId: string
 ): Promise<PodcastLanguage[]> {
-  return await dbUtils.findBy<PodcastLanguage>(
+  const languages = await dbUtils.findBy<PodcastLanguage>(
     podcastLanguages,
     eq(podcastLanguages.podcast_group_id, groupId)
   );
+  return languages.map(transformPodcastLanguageImages);
 }
 
 /**
@@ -108,7 +134,8 @@ export async function getPrimaryLanguage(groupId: string): Promise<PodcastLangua
     )
     .limit(1);
 
-  return result.length > 0 ? result[0] : null;
+  if (result.length === 0) return null;
+  return transformPodcastLanguageImages(result[0]);
 }
 
 /**
@@ -117,7 +144,8 @@ export async function getPrimaryLanguage(groupId: string): Promise<PodcastLangua
  * @returns Array of all podcast groups
  */
 export async function getAllPodcastGroups(): Promise<PodcastGroup[]> {
-  return await dbUtils.getAll<PodcastGroup>(podcastGroups);
+  const groups = await dbUtils.getAll<PodcastGroup>(podcastGroups);
+  return groups.map(transformPodcastGroupImages);
 }
 
 /**
@@ -126,11 +154,11 @@ export async function getAllPodcastGroups(): Promise<PodcastGroup[]> {
  * @returns Array of all podcast groups with languages
  */
 export async function getAllPodcastGroupsWithLanguages(): Promise<PodcastGroupWithLanguages[]> {
-  const groups = await getAllPodcastGroups();
+  const groups = await getAllPodcastGroups(); // Already transformed
 
   const groupsWithLanguages = await Promise.all(
     groups.map(async (group) => {
-      const languages = await getPodcastLanguagesByGroupId(group.id);
+      const languages = await getPodcastLanguagesByGroupId(group.id); // Already transformed
       return {
         ...group,
         languages: languages as PodcastLanguageWithPodcast[]
@@ -177,7 +205,7 @@ export async function getPodcastGroupByPodcastId(podcastId: string): Promise<Pod
 
   if (result.length === 0 || !result[0].podcast_group_id) return null;
 
-  return await getPodcastGroupById(result[0].podcast_group_id);
+  return await getPodcastGroupById(result[0].podcast_group_id); // Already transformed
 }
 
 /**
@@ -208,14 +236,16 @@ export async function getActivePodcastGroups(): Promise<PodcastGroupWithLanguage
     // Initialize group if not seen before
     if (!groupedByPodcastGroup.has(group.id)) {
       groupedByPodcastGroup.set(group.id, {
-        ...group,
+        ...transformPodcastGroupImages(group),
         languages: []
       });
     }
 
     // Add language variant if it exists
     if (language) {
-      groupedByPodcastGroup.get(group.id)!.languages.push(language as PodcastLanguageWithPodcast);
+      groupedByPodcastGroup.get(group.id)!.languages.push(
+        transformPodcastLanguageImages(language) as PodcastLanguageWithPodcast
+      );
     }
   }
 
@@ -236,7 +266,10 @@ export async function getLegacyPodcasts() {
     .from(podcasts)
     .where(isNull(podcasts.podcast_group_id));
 
-  return result;
+  return result.map((podcast) => ({
+    ...podcast,
+    cover_image: transformImageUrl(podcast.cover_image),
+  }));
 }
 
 /**

@@ -6,6 +6,7 @@ import { eq, and, SQL } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import * as dbUtils from '../utils';
 import { getProfileById } from './profiles';
+import { transformImageUrl } from '@/lib/db/api/utils/image-url-transformer';
 
 // ============================================================================
 // Types
@@ -149,7 +150,7 @@ export async function getUserNotificationSettings(userId: string): Promise<UserN
       podcast_id: subscription.podcastId ?? null,
       podcast_title: subscription.podcastTitle ?? 'Unknown Podcast',
       podcast_description: subscription.podcastDescription ?? null,
-      cover_image: subscription.coverImage ?? null,
+      cover_image: transformImageUrl(subscription.coverImage),
       email_notifications: subscription.emailNotifications,
       created_at: subscription.createdAt ?? null,
     })),

@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle, Edit } from 'lucide-react';
 import { GenerateEpisodeButton } from '@/components/podcasts/generate-episode-button';
 import { BulkEpisodeGenerator } from '@/components/admin/bulk-episode-generator';
-import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 export const metadata = {
   title: 'Podcast Details | Admin Dashboard | Podcasto',
@@ -90,10 +89,10 @@ export default async function PodcastDetailPage({ params }: { params: Promise<{ 
                 <CardTitle>Cover Image</CardTitle>
               </CardHeader>
               <CardContent className="flex justify-center">
-                {podcast.cover_image && getBestImageUrl(podcast.cover_image) ? (
+                {podcast.cover_image ? (
                   <div className="relative w-full aspect-square rounded-md overflow-hidden">
                     <Image
-                      src={getBestImageUrl(podcast.cover_image)!}
+                      src={podcast.cover_image}
                       alt={podcast.title}
                       fill
                       className="object-cover"
