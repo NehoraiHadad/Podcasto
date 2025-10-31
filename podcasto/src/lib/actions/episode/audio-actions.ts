@@ -2,7 +2,9 @@
 
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { getEpisodeById } from '@/lib/db/api/episodes';
+import { db } from '@/lib/db';
+import { episodes } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { episodesApi } from '@/lib/db/api';
 import { getPodcastConfigByPodcastId } from '@/lib/db/api/podcast-configs';
 import { getPodcastById } from '@/lib/db/api/podcasts';
@@ -37,8 +39,10 @@ export async function getEpisodeAudioUrl(
     console.log('Episode ID:', episodeId);
     console.log('CloudFront enabled:', AWS_CONSTANTS.USE_CLOUDFRONT);
 
-    // 1. Fetch episode data
-    const episode = await getEpisodeById(episodeId);
+    // 1. Fetch episode data DIRECTLY from DB (no URL transformation)
+    const episode = await db.query.episodes.findFirst({
+      where: eq(episodes.id, episodeId)
+    });
 
     if (!episode) {
       console.error('Episode not found:', episodeId);
@@ -48,6 +52,7 @@ export async function getEpisodeAudioUrl(
       };
     }
 
+    // 2. Get RAW audio URL from database (not transformed proxy URL)
     const audioUrl = episode.audio_url;
     console.log('Original audio URL:', audioUrl);
 
