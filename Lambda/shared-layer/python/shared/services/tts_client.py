@@ -43,11 +43,11 @@ _RATE_LIMITER = TokenBucketRateLimiter(
 )
 
 # Timeout for individual TTS API calls
-# Normal processing: 60-86 seconds
-# With delays: up to 5-7 minutes observed
-# Setting to 480s (8 minutes) to allow for legitimate slow responses
-# Lambda has 15 minutes (900s) total, so this leaves room for retries
-TTS_CALL_TIMEOUT_SECONDS = 480
+# Normal processing: 30-60 seconds
+# Faulty responses (655s audio): detected after 6-7 minutes
+# Setting to 120s (2 minutes) to catch faulty responses early while allowing normal variance
+# Lambda has 15 minutes (900s) total, early timeout enables faster retry
+TTS_CALL_TIMEOUT_SECONDS = 120
 
 class GeminiTTSClient:
     """Client for Google Gemini TTS API interactions"""
