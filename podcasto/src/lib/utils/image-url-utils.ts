@@ -28,12 +28,20 @@ export function getBestImageUrl(imageUrl: string | null | undefined): string | n
     return imageUrl;
   }
 
+  // Debug logging
+  if (typeof window === 'undefined') {
+    // Server-side logging
+    console.log('[getBestImageUrl] CLOUDFRONT_DOMAIN:', AWS_CONSTANTS.CLOUDFRONT_DOMAIN);
+    console.log('[getBestImageUrl] USE_CLOUDFRONT:', AWS_CONSTANTS.USE_CLOUDFRONT);
+  }
+
   // If CloudFront is not configured, return original URL
   // NOTE: This will fail if S3 bucket is restricted to CloudFront only
   if (!AWS_CONSTANTS.USE_CLOUDFRONT) {
     console.warn(
       'CloudFront is not configured but S3 bucket may be restricted. ' +
-      'Add CLOUDFRONT_DOMAIN environment variable.'
+      'Add CLOUDFRONT_DOMAIN environment variable.',
+      'Current CLOUDFRONT_DOMAIN:', AWS_CONSTANTS.CLOUDFRONT_DOMAIN
     );
     return imageUrl;
   }
@@ -52,11 +60,7 @@ export function getBestImageUrl(imageUrl: string | null | undefined): string | n
     return imageUrl; // Fallback to original
   }
 
-  // Add version parameter to force cache refresh during CloudFront migration
-  // This helps clear Next.js Image Optimization cache
-  // Version should be bumped when switching from S3 to CloudFront
-  const IMAGE_VERSION = '2'; // Bump this to force cache refresh
-  return `${cloudfrontUrl}?v=${IMAGE_VERSION}`;
+  return cloudfrontUrl;
 }
 
 /**
