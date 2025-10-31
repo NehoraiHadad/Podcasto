@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { LanguageBadgeList } from './language-badge-list';
 import type { PodcastGroupWithLanguages } from '@/lib/db/api/podcast-groups';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 export interface GroupedPodcastCardProps {
   podcastGroup: PodcastGroupWithLanguages;
@@ -43,11 +44,14 @@ export function GroupedPodcastCard({
   // 2. Primary language cover image (if available)
   // 3. Any language variant with a cover image
   // 4. Default placeholder image
-  const coverImage =
+  const coverImageRaw =
     podcastGroup.base_cover_image ||
     primaryLanguage.cover_image ||
     podcastGroup.languages.find(l => l.cover_image)?.cover_image ||
     'https://picsum.photos/400/300';
+
+  // Convert S3 URLs to CloudFront URLs automatically
+  const coverImage = getBestImageUrl(coverImageRaw);
 
   return (
     <Card

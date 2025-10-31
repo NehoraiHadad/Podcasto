@@ -11,6 +11,7 @@ import type { Podcast } from '@/lib/db/api/podcasts/types';
 import { formatUserDate } from '@/lib/utils/date/client';
 import { DATE_FORMATS } from '@/lib/utils/date/constants';
 import { GenerateEpisodeButton } from './generate-episode-button';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 interface PodcastCardUserProps {
   podcast: Podcast;
@@ -46,10 +47,10 @@ export function PodcastCardUser({
             </CardDescription>
           </div>
 
-          {podcast.cover_image && (
+          {podcast.cover_image && getBestImageUrl(podcast.cover_image) && (
             <div className="relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
               <Image
-                src={podcast.cover_image}
+                src={getBestImageUrl(podcast.cover_image)!}
                 alt={podcast.title}
                 fill
                 className="object-cover"
