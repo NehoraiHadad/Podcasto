@@ -17,7 +17,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getEpisodeById } from '@/lib/db/api/episodes';
+import { db } from '@/lib/db';
+import { episodes } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -30,8 +33,10 @@ export async function GET(
   try {
     const { id: episodeId } = await context.params;
 
-    // 1. Fetch episode data
-    const episode = await getEpisodeById(episodeId);
+    // 1. Fetch episode data DIRECTLY from DB (no transformation)
+    const episode = await db.query.episodes.findFirst({
+      where: eq(episodes.id, episodeId)
+    });
 
     if (!episode) {
       return NextResponse.json(
@@ -40,13 +45,23 @@ export async function GET(
       );
     }
 
-    // 2. Get audio URL (already transformed to CloudFront by database layer)
-    const audioUrl = episode.audio_url;
+    // 2. Get RAW audio URL from database
+    const rawAudioUrl = episode.audio_url;
 
-    if (!audioUrl) {
+    if (!rawAudioUrl) {
       return NextResponse.json(
         { error: 'Episode has no audio file' },
         { status: 404 }
+      );
+    }
+
+    // 3. Transform raw URL to CloudFront URL
+    const audioUrl = getBestImageUrl(rawAudioUrl);
+
+    if (!audioUrl) {
+      return NextResponse.json(
+        { error: 'Failed to generate audio URL' },
+        { status: 500 }
       );
     }
 

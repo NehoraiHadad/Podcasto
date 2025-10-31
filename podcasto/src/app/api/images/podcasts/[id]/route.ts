@@ -19,7 +19,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPodcastById } from '@/lib/db/api/podcasts';
+import { db } from '@/lib/db';
+import { podcasts } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -32,8 +35,10 @@ export async function GET(
   try {
     const { id: podcastId } = await context.params;
 
-    // 1. Fetch podcast data
-    const podcast = await getPodcastById(podcastId);
+    // 1. Fetch podcast data DIRECTLY from DB (no transformation)
+    const podcast = await db.query.podcasts.findFirst({
+      where: eq(podcasts.id, podcastId)
+    });
 
     if (!podcast) {
       return NextResponse.json(
@@ -42,17 +47,27 @@ export async function GET(
       );
     }
 
-    // 2. Get image URL (from database, already transformed to CloudFront)
-    const imageUrl = podcast.cover_image;
+    // 2. Get RAW image URL from database
+    const rawImageUrl = podcast.cover_image;
 
-    if (!imageUrl) {
+    if (!rawImageUrl) {
       return NextResponse.json(
         { error: 'Podcast has no cover image' },
         { status: 404 }
       );
     }
 
-    // 3. Fetch image from CloudFront/S3
+    // 3. Transform raw URL to CloudFront URL
+    const imageUrl = getBestImageUrl(rawImageUrl);
+
+    if (!imageUrl) {
+      return NextResponse.json(
+        { error: 'Failed to generate image URL' },
+        { status: 500 }
+      );
+    }
+
+    // 4. Fetch image from CloudFront/S3
     const imageResponse = await fetch(imageUrl, {
       // Next.js automatically adds caching for fetch requests
       next: { revalidate: 31536000 } // Cache for 1 year
@@ -66,7 +81,7 @@ export async function GET(
       );
     }
 
-    // 4. Prepare response headers
+    // 5. Prepare response headers
     const responseHeaders = new Headers();
 
     // Copy content type from CloudFront response
