@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPodcastById } from '@/lib/db/api/podcasts';
 import { getEpisodeById } from '@/lib/db/api/episodes';
-import { getEpisodeAudioUrl } from '@/lib/actions/episode/audio-actions';
 import { EpisodeDetailsPresenter } from '@/components/pages/episode-details-presenter';
 
 export async function generateMetadata({
@@ -45,7 +44,9 @@ export default async function EpisodeDetailPage({
     notFound();
   }
 
-  const { url: playableAudioUrl, error: audioUrlError } = await getEpisodeAudioUrl(episode.id);
+  // Use proxy URL to hide CloudFront/S3 URLs from client
+  const playableAudioUrl = `/api/episodes/${episode.id}/audio`;
+  const audioUrlError = episode.audio_url ? undefined : 'Episode has no audio file';
 
   return (
     <EpisodeDetailsPresenter
