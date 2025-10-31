@@ -5,10 +5,26 @@ import { episodes } from '../../schema';
 import { eq, desc, inArray } from 'drizzle-orm';
 import * as dbUtils from '../../utils';
 import type { Episode } from './types';
-import {
-  transformEpisodeUrls,
-  transformEpisodeUrlsBatch,
-} from '@/lib/db/api/utils/image-url-transformer';
+import { UrlService } from '@/lib/utils/url-service';
+
+/**
+ * Helper function to transform episode URLs to proxy URLs
+ * Replaces CloudFront URLs with clean proxy URLs
+ */
+function transformEpisodeUrl(episode: Episode): Episode {
+  return {
+    ...episode,
+    cover_image: UrlService.episodeImage(episode.id),
+    audio_url: UrlService.episodeAudio(episode.id),
+  };
+}
+
+/**
+ * Helper function to transform multiple episodes
+ */
+function transformEpisodeUrls(episodesList: Episode[]): Episode[] {
+  return episodesList.map(transformEpisodeUrl);
+}
 
 /**
  * Get all episodes
@@ -23,7 +39,7 @@ import {
  */
 export async function getAllEpisodes(): Promise<Episode[]> {
   const allEpisodes = await dbUtils.getAll<Episode>(episodes);
-  return transformEpisodeUrlsBatch(allEpisodes);
+  return transformEpisodeUrls(allEpisodes);
 }
 
 /**
@@ -43,7 +59,7 @@ export async function getAllEpisodes(): Promise<Episode[]> {
 export async function getEpisodeById(id: string): Promise<Episode | null> {
   const episode = await dbUtils.findById<Episode>(episodes, episodes.id, id);
   if (!episode) return null;
-  return transformEpisodeUrls(episode);
+  return transformEpisodeUrl(episode);
 }
 
 /**
@@ -66,7 +82,7 @@ export async function getEpisodesPaginated(page: number = 1, pageSize: number = 
     .limit(pageSize)
     .offset((page - 1) * pageSize) as Episode[];
 
-  return transformEpisodeUrlsBatch(paginatedEpisodes);
+  return transformEpisodeUrls(paginatedEpisodes);
 }
 
 /**
@@ -82,7 +98,7 @@ export async function getEpisodesPaginated(page: number = 1, pageSize: number = 
  */
 export async function getEpisodesByPodcastId(podcastId: string): Promise<Episode[]> {
   const podcastEpisodes = await dbUtils.findBy<Episode>(episodes, eq(episodes.podcast_id, podcastId));
-  return transformEpisodeUrlsBatch(podcastEpisodes);
+  return transformEpisodeUrls(podcastEpisodes);
 }
 
 /**
@@ -102,7 +118,7 @@ export async function getEpisodesByStatus(statuses: string[]): Promise<Episode[]
     .where(inArray(episodes.status, statuses))
     .orderBy(desc(episodes.created_at)) as Episode[];
 
-  return transformEpisodeUrlsBatch(statusEpisodes);
+  return transformEpisodeUrls(statusEpisodes);
 }
 
 /**

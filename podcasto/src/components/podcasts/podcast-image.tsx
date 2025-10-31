@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import { getBestImageUrl } from '@/lib/utils/image-url-utils';
 
 interface PodcastImageProps {
   imageUrl?: string | null;
@@ -15,13 +14,17 @@ interface PodcastImageProps {
  * Podcast Image Component
  *
  * Displays podcast cover images with automatic fallback handling.
- * Uses Next.js Image component with optimized settings from next.config.ts.
+ * Images are served through proxy endpoints to hide infrastructure URLs.
+ *
+ * Architecture:
+ * - Images come pre-transformed from database API layer with proxy URLs
+ * - Format: /api/images/episodes/[id] or /api/images/podcasts/[id]
+ * - No URL transformation needed in this component
  *
  * Features:
- * - Automatic S3 to CloudFront URL conversion
- * - minimumCacheTTL: 31 days (reduces transformations by 80-90%)
- * - formats: WebP only (reduces transformations by 50%)
- * - Optimized deviceSizes and imageSizes in next.config.ts
+ * - Clean proxy URLs (infrastructure hidden)
+ * - Automatic fallback on error
+ * - Next.js Image optimization (if configured)
  */
 export function PodcastImage({
   imageUrl,
@@ -31,12 +34,8 @@ export function PodcastImage({
 }: PodcastImageProps) {
   const [hasError, setHasError] = useState(false);
 
-  // Convert S3 URLs to CloudFront URLs automatically
-  const optimizedImageUrl = useMemo(() => {
-    return getBestImageUrl(imageUrl);
-  }, [imageUrl]);
-
-  if (!optimizedImageUrl || hasError) {
+  // Show fallback if no URL or error occurred
+  if (!imageUrl || hasError) {
     return (
       <div className={`bg-gray-200 flex items-center justify-center ${className}`}>
         <svg
@@ -58,17 +57,14 @@ export function PodcastImage({
 
   return (
     <Image
-      src={optimizedImageUrl}
+      src={imageUrl}
       alt={title}
       fill
-      // The sizes prop helps the browser select the right image size
-      // This should match the actual rendered size of the image
       sizes="(max-width: 768px) 100vw, 50vw"
       priority={priority}
       className={`object-cover ${className}`}
       onError={() => setHasError(true)}
-      // Lazy loading is automatic when priority=false
-      // quality defaults to 75 from next.config.ts
+      unoptimized  // Use unoptimized mode since we're serving through proxy
     />
   );
 } 
